@@ -171,48 +171,12 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const results: any = {
-      assignments: 0, constructions: 0, materials: 0, work_pricing: 0,
+      constructions: 0, materials: 0, work_pricing: 0,
       rodos: 0, kos: 0, errors: []
     };
 
     // ===== ASSIGNMENTS SHEET =====
     if (assignmentsSheetId) {
-      // --- Form Responses 4 (Audits) ---
-      try {
-        const rows = await readSheet(accessToken, assignmentsSheetId, "'Form Responses 4'!A:Z");
-        if (rows.length > 1) {
-          const headers = rows[0].map((h: string) => h.toLowerCase().trim());
-          for (let i = 1; i < rows.length; i++) {
-            const row = rows[i];
-            const srId = col(headers, row, "sr id", "sr_id");
-            const area = col(headers, row, "περιοχη", "περιοχή");
-            const comments = col(headers, row, "σχολια", "σχόλια");
-            const photosStr = col(headers, row, "φωτογραφιεσ κτιριου", "φωτογραφίες κτιρίου");
-            const screenshotsStr = col(headers, row, "screenshots (χεμδ & autocad)", "screenshots");
-            const pdfStr = col(headers, row, "φωτογραφια εντυπου αυτοψιασ", "φωτογραφία εντύπου αυτοψίας");
-
-            if (!srId) continue;
-
-            const photosCount = countPhotos(photosStr) + countPhotos(screenshotsStr) + countPhotos(pdfStr);
-
-            const { error } = await supabase.from("assignments").upsert(
-              {
-                sr_id: srId.trim(),
-                area: area.trim(),
-                status: "pending",
-                comments: comments.trim(),
-                photos_count: photosCount,
-                drive_folder_url: photosStr.split(",")[0]?.trim() || null,
-                google_sheet_row_id: i,
-                source_tab: "Form Responses 4",
-              },
-              { onConflict: "google_sheet_row_id" }
-            );
-            if (error) results.errors.push(`Assignment row ${i}: ${error.message}`);
-            else results.assignments++;
-          }
-        }
-      } catch (e) { results.errors.push(`Form Responses 4: ${e.message}`); }
 
       // --- ΡΟΔΟΣ tab ---
       try {
