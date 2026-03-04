@@ -26,6 +26,7 @@ const Index = () => {
     date: a.created_at.split('T')[0],
     comments: a.comments || '',
     photos: a.photos_count || 0,
+    driveUrl: a.drive_folder_url || '',
   })) : mockAssignments;
 
   const hasRealConstructions = (dbConstructions?.length ?? 0) > 0;
