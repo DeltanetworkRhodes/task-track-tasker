@@ -4,16 +4,16 @@ import AssignmentTable from "@/components/AssignmentTable";
 import SyncButton from "@/components/SyncButton";
 import { useAssignments, useConstructions } from "@/hooks/useData";
 import { mockAssignments, mockConstructions, statusLabels } from "@/data/mockData";
-import { ClipboardCheck, Wrench, TrendingUp, Euro, FolderOpen, Activity } from "lucide-react";
+import { ClipboardCheck, Wrench, TrendingUp, Euro, FolderOpen, Activity, Wifi } from "lucide-react";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { BarChart, Bar, XAxis, YAxis, Cell, PieChart, Pie } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, Cell } from "recharts";
 
 const STATUS_COLORS: Record<string, string> = {
-  pending: "hsl(45 90% 55%)",
-  inspection: "hsl(175 85% 45%)",
-  pre_committed: "hsl(215 70% 55%)",
-  construction: "hsl(280 60% 55%)",
-  completed: "hsl(145 70% 48%)",
+  pending: "hsl(38 92% 50%)",
+  inspection: "hsl(330 100% 44%)",
+  pre_committed: "hsl(220 70% 55%)",
+  construction: "hsl(280 55% 52%)",
+  completed: "hsl(152 60% 42%)",
 };
 
 const Index = () => {
@@ -59,7 +59,7 @@ const Index = () => {
   const activeConstructions = constructions.filter(c => c.status === 'in_progress').length;
   const withDrive = assignments.filter(a => (a as any).driveUrl).length;
 
-  // Status distribution for chart
+  // Status distribution
   const statusCounts = Object.entries(
     assignments.reduce((acc, a) => {
       acc[a.status] = (acc[a.status] || 0) + 1;
@@ -69,7 +69,7 @@ const Index = () => {
     status,
     label: (statusLabels as any)[status] || status,
     count,
-    fill: STATUS_COLORS[status] || "hsl(215 15% 48%)",
+    fill: STATUS_COLORS[status] || "hsl(220 10% 46%)",
   }));
 
   const chartConfig = statusCounts.reduce((acc, s) => {
@@ -77,7 +77,7 @@ const Index = () => {
     return acc;
   }, {} as Record<string, { label: string; color: string }>);
 
-  // Recent activity (last 5 sorted by date)
+  // Recent activity
   const recentActivity = [...assignments]
     .sort((a, b) => b.date.localeCompare(a.date))
     .slice(0, 6)
@@ -91,15 +91,20 @@ const Index = () => {
 
   return (
     <AppLayout>
-      <div className="space-y-6">
+      <div className="space-y-6 max-w-[1400px]">
         {/* Header */}
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold">Πίνακας Ελέγχου</h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              Επισκόπηση λειτουργιών FTTH
-              {!hasRealData && <span className="ml-2 text-xs opacity-60">(demo data)</span>}
-            </p>
+          <div className="flex items-center gap-4">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl cosmote-gradient shadow-lg shadow-primary/20">
+              <Wifi className="h-6 w-6 text-primary-foreground" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-extrabold tracking-tight text-foreground">Πίνακας Ελέγχου</h1>
+              <p className="text-sm text-muted-foreground">
+                Επισκόπηση λειτουργιών FTTH
+                {!hasRealData && <span className="ml-2 text-[11px] rounded-full bg-warning/10 text-warning px-2 py-0.5 font-medium">demo</span>}
+              </p>
+            </div>
           </div>
           <SyncButton />
         </div>
@@ -107,26 +112,26 @@ const Index = () => {
         {/* Stat Cards */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
           <StatCard title="Ενεργές Αναθέσεις" value={activeAssignments} subtitle={`${completedAssignments} ολοκληρωμένες`} icon={ClipboardCheck} trend="up" trendValue={`${assignments.length} σύνολο`} />
-          <StatCard title="Κατασκευές" value={activeConstructions} subtitle="σε εξέλιξη" icon={Wrench} />
+          <StatCard title="Κατασκευές" value={activeConstructions} subtitle="σε εξέλιξη" icon={Wrench} accent />
           <StatCard title="Έσοδα" value={`${totalRevenue.toLocaleString('el-GR')}€`} subtitle="Σύνολο κατασκευών" icon={Euro} trend="up" trendValue={`${totalProfit.toLocaleString('el-GR')}€ κέρδος`} />
-          <StatCard title="Καθαρό Κέρδος" value={`${totalProfit.toLocaleString('el-GR')}€`} subtitle={`${totalRevenue > 0 ? Math.round((totalProfit / totalRevenue) * 100) : 0}% margin`} icon={TrendingUp} trend={totalProfit > 0 ? 'up' : 'down'} trendValue={`${constructions.length} κατασκευές`} />
+          <StatCard title="Καθαρό Κέρδος" value={`${totalProfit.toLocaleString('el-GR')}€`} subtitle={`${totalRevenue > 0 ? Math.round((totalProfit / totalRevenue) * 100) : 0}% margin`} icon={TrendingUp} trend={totalProfit > 0 ? 'up' : 'down'} trendValue={`${constructions.length} κατασκευές`} accent />
           <StatCard title="Drive Folders" value={withDrive} subtitle={`από ${assignments.length} αναθέσεις`} icon={FolderOpen} />
         </div>
 
         {/* Charts Row */}
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
           {/* Status Bar Chart */}
-          <div className="lg:col-span-2 rounded-lg border border-border/50 bg-card p-5">
-            <h2 className="font-semibold text-sm mb-4 flex items-center gap-2">
+          <div className="lg:col-span-2 rounded-xl border border-border bg-card p-5 shadow-sm">
+            <h2 className="font-bold text-sm mb-4 flex items-center gap-2 text-foreground">
               <ClipboardCheck className="h-4 w-4 text-primary" />
               Κατανομή Κατάστασης Αναθέσεων
             </h2>
             <ChartContainer config={chartConfig} className="h-[220px] w-full">
               <BarChart data={statusCounts} margin={{ top: 5, right: 10, bottom: 5, left: 10 }}>
-                <XAxis dataKey="label" tick={{ fill: "hsl(215 15% 48%)", fontSize: 11 }} axisLine={false} tickLine={false} />
-                <YAxis allowDecimals={false} tick={{ fill: "hsl(215 15% 48%)", fontSize: 11 }} axisLine={false} tickLine={false} width={30} />
+                <XAxis dataKey="label" tick={{ fill: "hsl(220 10% 46%)", fontSize: 11 }} axisLine={false} tickLine={false} />
+                <YAxis allowDecimals={false} tick={{ fill: "hsl(220 10% 46%)", fontSize: 11 }} axisLine={false} tickLine={false} width={30} />
                 <ChartTooltip content={<ChartTooltipContent />} />
-                <Bar dataKey="count" radius={[6, 6, 0, 0]} barSize={40}>
+                <Bar dataKey="count" radius={[8, 8, 0, 0]} barSize={44}>
                   {statusCounts.map((entry, i) => (
                     <Cell key={i} fill={entry.fill} />
                   ))}
@@ -136,23 +141,23 @@ const Index = () => {
           </div>
 
           {/* Recent Activity */}
-          <div className="rounded-lg border border-border/50 bg-card p-5">
-            <h2 className="font-semibold text-sm mb-4 flex items-center gap-2">
+          <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+            <h2 className="font-bold text-sm mb-4 flex items-center gap-2 text-foreground">
               <Activity className="h-4 w-4 text-accent" />
               Πρόσφατη Δραστηριότητα
             </h2>
             <div className="space-y-3">
               {recentActivity.map((item, i) => (
-                <div key={i} className="flex items-center gap-3 text-xs">
+                <div key={i} className="flex items-center gap-3 text-xs rounded-lg px-3 py-2.5 bg-muted/50 hover:bg-muted transition-colors">
                   <div
-                    className="h-2 w-2 rounded-full shrink-0"
-                    style={{ backgroundColor: STATUS_COLORS[item.status] || "hsl(215 15% 48%)" }}
+                    className="h-2.5 w-2.5 rounded-full shrink-0 ring-2 ring-background"
+                    style={{ backgroundColor: STATUS_COLORS[item.status] || "hsl(220 10% 46%)" }}
                   />
                   <div className="flex-1 min-w-0">
-                    <span className="font-mono font-medium text-foreground">{item.srId}</span>
+                    <span className="font-mono font-semibold text-foreground">{item.srId}</span>
                     <span className="text-muted-foreground ml-2">{item.area}</span>
                   </div>
-                  <span className="text-muted-foreground shrink-0 font-mono">{item.date.slice(5)}</span>
+                  <span className="text-muted-foreground shrink-0 font-mono text-[10px]">{item.date.slice(5)}</span>
                 </div>
               ))}
             </div>
@@ -160,13 +165,13 @@ const Index = () => {
         </div>
 
         {/* Recent Assignments Table */}
-        <div className="rounded-lg border border-border/50 bg-card">
-          <div className="flex items-center justify-between border-b border-border/50 px-5 py-4">
+        <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
+          <div className="flex items-center justify-between border-b border-border px-5 py-4">
             <div className="flex items-center gap-2">
               <ClipboardCheck className="h-4 w-4 text-primary" />
-              <h2 className="font-semibold text-sm">Πρόσφατες Αναθέσεις</h2>
+              <h2 className="font-bold text-sm">Πρόσφατες Αναθέσεις</h2>
             </div>
-            <span className="text-xs text-muted-foreground font-mono">{assignments.length} εγγραφές</span>
+            <span className="text-[11px] text-muted-foreground font-mono bg-muted px-2.5 py-1 rounded-full">{assignments.length} εγγραφές</span>
           </div>
           <AssignmentTable assignments={assignments.slice(0, 5)} />
         </div>
