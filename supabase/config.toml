@@ -1,1 +1,7 @@
 project_id = "goioxtwfyjlyvefhytpi"
+
+[functions.google-drive-sync]
+verify_jwt = false
+
+[functions.google-drive-files]
+verify_jwt = false
