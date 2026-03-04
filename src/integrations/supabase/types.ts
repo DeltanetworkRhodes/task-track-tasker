@@ -20,6 +20,7 @@ export type Database = {
           comments: string | null
           created_at: string
           drive_folder_url: string | null
+          google_sheet_row_id: number | null
           id: string
           pdf_url: string | null
           photos_count: number | null
@@ -33,6 +34,7 @@ export type Database = {
           comments?: string | null
           created_at?: string
           drive_folder_url?: string | null
+          google_sheet_row_id?: number | null
           id?: string
           pdf_url?: string | null
           photos_count?: number | null
@@ -46,6 +48,7 @@ export type Database = {
           comments?: string | null
           created_at?: string
           drive_folder_url?: string | null
+          google_sheet_row_id?: number | null
           id?: string
           pdf_url?: string | null
           photos_count?: number | null
@@ -63,6 +66,7 @@ export type Database = {
           cab: string | null
           created_at: string
           floors: number | null
+          google_sheet_row_id: number | null
           id: string
           material_cost: number
           profit: number | null
@@ -78,6 +82,7 @@ export type Database = {
           cab?: string | null
           created_at?: string
           floors?: number | null
+          google_sheet_row_id?: number | null
           id?: string
           material_cost?: number
           profit?: number | null
@@ -93,6 +98,7 @@ export type Database = {
           cab?: string | null
           created_at?: string
           floors?: number | null
+          google_sheet_row_id?: number | null
           id?: string
           material_cost?: number
           profit?: number | null

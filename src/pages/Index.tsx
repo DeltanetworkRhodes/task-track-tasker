@@ -2,6 +2,7 @@ import AppLayout from "@/components/AppLayout";
 import StatCard from "@/components/StatCard";
 import AssignmentTable from "@/components/AssignmentTable";
 import ConstructionTable from "@/components/ConstructionTable";
+import SyncButton from "@/components/SyncButton";
 import { useAssignments, useConstructions } from "@/hooks/useData";
 import { mockAssignments, mockConstructions } from "@/data/mockData";
 import { ClipboardCheck, Wrench, TrendingUp, Mail, FileText } from "lucide-react";
@@ -46,12 +47,15 @@ const Index = () => {
   return (
     <AppLayout>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold">Πίνακας Ελέγχου</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Επισκόπηση λειτουργιών FTTH
-            {!hasRealData && <span className="ml-2 text-warning text-xs">(demo data)</span>}
-          </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold">Πίνακας Ελέγχου</h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Επισκόπηση λειτουργιών FTTH
+              {!hasRealData && <span className="ml-2 text-xs opacity-60">(demo data)</span>}
+            </p>
+          </div>
+          <SyncButton />
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
