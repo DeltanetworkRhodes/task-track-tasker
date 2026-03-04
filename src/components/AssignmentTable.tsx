@@ -106,6 +106,7 @@ const AssignmentTable = ({ assignments }: AssignmentTableProps) => {
               <th className="py-3 px-4 text-left font-medium text-muted-foreground text-xs uppercase tracking-wider">Ημ/νία</th>
               <th className="py-3 px-4 text-center font-medium text-muted-foreground text-xs uppercase tracking-wider">Φωτο</th>
               <th className="py-3 px-4 text-left font-medium text-muted-foreground text-xs uppercase tracking-wider">Σχόλια</th>
+              <th className="py-3 px-4 text-center font-medium text-muted-foreground text-xs uppercase tracking-wider">Drive</th>
             </tr>
           </thead>
           <tbody>
@@ -139,6 +140,13 @@ const AssignmentTable = ({ assignments }: AssignmentTableProps) => {
                       <MessageSquare className="h-3 w-3 flex-shrink-0" />
                       {a.comments}
                     </span>
+                  )}
+                </td>
+                <td className="py-3 px-4 text-center">
+                  {(a as any).driveUrl ? (
+                    <FolderOpen className="h-3.5 w-3.5 text-primary mx-auto" />
+                  ) : (
+                    <FolderOpen className="h-3.5 w-3.5 text-muted-foreground/30 mx-auto" />
                   )}
                 </td>
               </tr>
