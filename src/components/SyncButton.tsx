@@ -75,7 +75,7 @@ const SyncButton = () => {
           ) : (
             <CheckCircle className="h-3 w-3 text-green-500" />
           )}
-          {lastResult.assignments}A / {lastResult.rodos || 0}Ρ / {lastResult.kos || 0}Κ / {lastResult.constructions}C / {lastResult.materials}M / {lastResult.work_pricing || 0}P
+          {lastResult.rodos || 0}Ρ / {lastResult.kos || 0}Κ / {lastResult.constructions}C / {lastResult.materials}M / {lastResult.work_pricing || 0}P / {lastResult.drive_matched || 0}📁
         </span>
       )}
     </div>

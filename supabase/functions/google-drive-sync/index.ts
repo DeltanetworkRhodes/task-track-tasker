@@ -172,7 +172,7 @@ Deno.serve(async (req) => {
 
     const results: any = {
       constructions: 0, materials: 0, work_pricing: 0,
-      rodos: 0, kos: 0, errors: []
+      rodos: 0, kos: 0, drive_matched: 0, errors: []
     };
 
     // ===== ASSIGNMENTS SHEET =====
@@ -247,6 +247,50 @@ Deno.serve(async (req) => {
           }
         }
       } catch (e) { results.errors.push(`ΚΩΣ: ${e.message}`); }
+    }
+
+    // ===== DRIVE FOLDER MATCHING =====
+    try {
+      const driveFolderIds = [
+        "1JvcSG3tiOplSujXhb3yj_ELQLjfrgOzO", // ΡΟΔΟΣ
+        "1X1mtK4tV_sgGM9IdizNSK7AS19qX1nYl", // ΚΩΣ
+        "1dal55zb0uv5__e1pDk2fLFMB0ogi1OnZ", // ΡΟΔΟΣ/ΜΑΡΤΙΟΣ/ΠΡΟΔΕΣΜΕΥΣΗ
+        "16Dr_1g6AkaypkyoePwcfZ8IanPX5TXeZ", // ΡΟΔΟΣ/ΜΑΡΤΙΟΣ/ΟΛΟΚΛΗΡΩΜΕΝΕΣ
+        "1azAHjT8LS8R3JOq0jYNh1UdBx4SYn-iM", // ΡΟΔΟΣ/ΜΑΡΤΙΟΣ/ΠΑΡΑΔΩΤΕΑ
+        "1pIRjzexYG_JVFkoqfaG2_o_YfziGoFy_", // ΡΟΔΟΣ/ΜΑΡΤΙΟΣ
+        "1C2E70l0PkCETaMPqywysYNMrDUcKMO5k", // ΠΑΡΑΔΕΙΓΜΑΤΑ
+      ];
+
+      const srFolderMap: Record<string, string> = {};
+
+      for (const parentId of driveFolderIds) {
+        const url = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(
+          `'${parentId}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`
+        )}&fields=files(id,name,webViewLink)&pageSize=200`;
+        const res = await fetch(url, {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+        if (!res.ok) continue;
+        const data = await res.json();
+        for (const folder of (data.files || [])) {
+          const folderName = folder.name || "";
+          const cleaned = folderName.replace(/^SR\s+/i, "");
+          const srMatch = cleaned.match(/^([\w-]+)/);
+          if (srMatch) {
+            srFolderMap[srMatch[1]] = folder.webViewLink || `https://drive.google.com/drive/folders/${folder.id}`;
+          }
+        }
+      }
+
+      for (const [srId, driveUrl] of Object.entries(srFolderMap)) {
+        const { error } = await supabase
+          .from("assignments")
+          .update({ drive_folder_url: driveUrl })
+          .eq("sr_id", srId);
+        if (!error) results.drive_matched++;
+      }
+    } catch (e) {
+      results.errors.push(`Drive matching: ${e.message}`);
     }
 
     // ===== CONSTRUCTIONS/MATERIALS SHEET =====
