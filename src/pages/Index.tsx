@@ -4,9 +4,9 @@ import AssignmentTable from "@/components/AssignmentTable";
 import SyncButton from "@/components/SyncButton";
 import { useAssignments, useConstructions } from "@/hooks/useData";
 import { mockAssignments, mockConstructions, statusLabels } from "@/data/mockData";
-import { ClipboardCheck, Wrench, TrendingUp, Euro, FolderOpen, Activity, Wifi } from "lucide-react";
+import { ClipboardCheck, Wrench, TrendingUp, Euro, FolderOpen, Activity, Wifi, PieChartIcon } from "lucide-react";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { BarChart, Bar, XAxis, YAxis, Cell } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, Cell, PieChart, Pie } from "recharts";
 
 const STATUS_COLORS: Record<string, string> = {
   pending: "hsl(38 92% 50%)",
@@ -121,23 +121,75 @@ const Index = () => {
         {/* Charts Row */}
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
           {/* Status Bar Chart */}
-          <div className="lg:col-span-2 rounded-xl border border-border bg-card p-5 shadow-sm">
+          <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
             <h2 className="font-bold text-sm mb-4 flex items-center gap-2 text-foreground">
               <ClipboardCheck className="h-4 w-4 text-primary" />
-              Κατανομή Κατάστασης Αναθέσεων
+              Κατάσταση Αναθέσεων
             </h2>
             <ChartContainer config={chartConfig} className="h-[220px] w-full">
               <BarChart data={statusCounts} margin={{ top: 5, right: 10, bottom: 5, left: 10 }}>
-                <XAxis dataKey="label" tick={{ fill: "hsl(220 10% 46%)", fontSize: 11 }} axisLine={false} tickLine={false} />
-                <YAxis allowDecimals={false} tick={{ fill: "hsl(220 10% 46%)", fontSize: 11 }} axisLine={false} tickLine={false} width={30} />
+                <XAxis dataKey="label" tick={{ fill: "hsl(220 10% 46%)", fontSize: 10 }} axisLine={false} tickLine={false} />
+                <YAxis allowDecimals={false} tick={{ fill: "hsl(220 10% 46%)", fontSize: 11 }} axisLine={false} tickLine={false} width={25} />
                 <ChartTooltip content={<ChartTooltipContent />} />
-                <Bar dataKey="count" radius={[8, 8, 0, 0]} barSize={44}>
+                <Bar dataKey="count" radius={[8, 8, 0, 0]} barSize={36}>
                   {statusCounts.map((entry, i) => (
                     <Cell key={i} fill={entry.fill} />
                   ))}
                 </Bar>
               </BarChart>
             </ChartContainer>
+          </div>
+
+          {/* Revenue vs Cost Pie Chart */}
+          <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+            <h2 className="font-bold text-sm mb-4 flex items-center gap-2 text-foreground">
+              <PieChartIcon className="h-4 w-4 text-accent" />
+              Έσοδα vs Κόστος Υλικών
+            </h2>
+            {(() => {
+              const totalMaterialCost = constructions.reduce((sum, c) => sum + c.materialCost, 0);
+              const pieData = [
+                { name: "Καθαρό Κέρδος", value: Math.max(0, totalProfit), fill: "hsl(152 60% 42%)" },
+                { name: "Κόστος Υλικών", value: totalMaterialCost, fill: "hsl(330 100% 44%)" },
+              ];
+              const pieConfig = {
+                profit: { label: "Καθαρό Κέρδος", color: "hsl(152 60% 42%)" },
+                cost: { label: "Κόστος Υλικών", color: "hsl(330 100% 44%)" },
+              };
+              return (
+                <>
+                  <ChartContainer config={pieConfig} className="h-[180px] w-full">
+                    <PieChart>
+                      <ChartTooltip content={<ChartTooltipContent />} />
+                      <Pie
+                        data={pieData}
+                        dataKey="value"
+                        nameKey="name"
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={45}
+                        outerRadius={75}
+                        strokeWidth={2}
+                        stroke="hsl(0 0% 100%)"
+                      >
+                        {pieData.map((entry, i) => (
+                          <Cell key={i} fill={entry.fill} />
+                        ))}
+                      </Pie>
+                    </PieChart>
+                  </ChartContainer>
+                  <div className="flex justify-center gap-5 mt-2">
+                    {pieData.map((item, i) => (
+                      <div key={i} className="flex items-center gap-2 text-[11px]">
+                        <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: item.fill }} />
+                        <span className="text-muted-foreground">{item.name}</span>
+                        <span className="font-mono font-semibold text-foreground">{item.value.toLocaleString('el-GR')}€</span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              );
+            })()}
           </div>
 
           {/* Recent Activity */}
