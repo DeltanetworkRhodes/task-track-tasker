@@ -1,5 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, ClipboardCheck, Wrench, Package, Zap } from "lucide-react";
+import { LayoutDashboard, ClipboardCheck, Wrench, Package, Zap, LogOut } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 const navItems = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard },
@@ -10,6 +11,7 @@ const navItems = [
 
 const AppSidebar = () => {
   const location = useLocation();
+  const { user, signOut } = useAuth();
 
   return (
     <aside className="fixed left-0 top-0 z-40 flex h-screen w-60 flex-col border-r border-border/50 bg-card/80 backdrop-blur-sm">
@@ -43,8 +45,15 @@ const AppSidebar = () => {
         })}
       </nav>
 
-      <div className="border-t border-border/50 px-5 py-4">
-        <p className="text-[10px] text-muted-foreground tracking-wider uppercase">Ρόδος — Κως</p>
+      <div className="border-t border-border/50 px-4 py-3 space-y-2">
+        <p className="text-[10px] text-muted-foreground truncate">{user?.email}</p>
+        <button
+          onClick={signOut}
+          className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-xs text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
+        >
+          <LogOut className="h-3.5 w-3.5" />
+          Αποσύνδεση
+        </button>
       </div>
     </aside>
   );
