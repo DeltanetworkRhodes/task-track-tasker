@@ -4,12 +4,13 @@ import AssignmentTable from "@/components/AssignmentTable";
 import SyncButton from "@/components/SyncButton";
 import { useAssignments } from "@/hooks/useData";
 import { mockAssignments } from "@/data/mockData";
-import { ClipboardCheck, Filter } from "lucide-react";
+import { ClipboardCheck, Filter, Search } from "lucide-react";
 
 const Assignments = () => {
   const { data: dbAssignments, isLoading } = useAssignments();
   const [areaFilter, setAreaFilter] = useState<string>("all");
   const [sourceFilter, setSourceFilter] = useState<string>("all");
+  const [search, setSearch] = useState("");
 
   const hasRealData = (dbAssignments?.length ?? 0) > 0;
 
@@ -36,8 +37,10 @@ const Assignments = () => {
   const sources = [...new Set(assignments.map((a: any) => a.sourceTab).filter(Boolean))].sort();
 
   const filtered = assignments.filter((a) => {
+    const q = search.toLowerCase();
     if (areaFilter !== "all" && a.area !== areaFilter) return false;
     if (sourceFilter !== "all" && (a as any).sourceTab !== sourceFilter) return false;
+    if (q && !a.srId.toLowerCase().includes(q) && !(a as any).customerName?.toLowerCase().includes(q)) return false;
     return true;
   });
 
@@ -57,9 +60,18 @@ const Assignments = () => {
 
         {/* Filters */}
         <div className="flex items-center gap-3 flex-wrap">
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+            <input
+              type="text"
+              placeholder="Αναζήτηση SR ID ή πελάτη..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="rounded-md border border-border/50 bg-card pl-8 pr-3 py-1.5 text-xs w-56 focus:outline-none focus:ring-1 focus:ring-primary placeholder:text-muted-foreground/60"
+            />
+          </div>
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <Filter className="h-3.5 w-3.5" />
-            <span>Φίλτρα:</span>
           </div>
           <select
             value={areaFilter}
