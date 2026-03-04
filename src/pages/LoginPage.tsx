@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Zap, LogIn, UserPlus } from "lucide-react";
+import { LogIn, UserPlus } from "lucide-react";
+import deltaLogo from "@/assets/delta-logo.jpg";
 
 const LoginPage = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -40,12 +41,13 @@ const LoginPage = () => {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background bg-grid">
       <div className="w-full max-w-sm space-y-6 rounded-lg border border-border/50 bg-card p-8 glow-primary">
-        <div className="flex flex-col items-center gap-2">
-          <div className="flex h-10 w-10 items-center justify-center rounded-md bg-primary/10">
-            <Zap className="h-5 w-5 text-primary animate-pulse-glow" />
-          </div>
-          <h1 className="text-lg font-bold text-gradient-primary">DELTANETWORK</h1>
-          <p className="text-xs text-muted-foreground uppercase tracking-wider">FTTH Operations</p>
+        <div className="flex flex-col items-center gap-3">
+          <img
+            src={deltaLogo}
+            alt="Delta Network Inc."
+            className="h-14 w-auto rounded bg-foreground/90 px-3 py-1"
+          />
+          <p className="text-xs text-muted-foreground uppercase tracking-widest">FTTH Operations</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
