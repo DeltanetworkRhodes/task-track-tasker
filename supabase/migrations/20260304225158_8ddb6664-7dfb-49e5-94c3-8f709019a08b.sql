@@ -1,0 +1,2 @@
+ALTER TABLE public.assignments ADD CONSTRAINT assignments_google_sheet_row_id_key UNIQUE (google_sheet_row_id);
+ALTER TABLE public.constructions ADD CONSTRAINT constructions_google_sheet_row_id_key UNIQUE (google_sheet_row_id);
