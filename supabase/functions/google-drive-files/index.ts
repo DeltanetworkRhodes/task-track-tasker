@@ -94,13 +94,20 @@ Deno.serve(async (req) => {
 
     // Search for SR folder and list all contents with subfolders
     if (action === "sr_folder" && sr_id) {
-      // Parent folder where all SR folders live
-      const parentFolderId = "1b6fX2Fkn7iU1YtC42FUkDIbQd9TGTYwj";
-      // Find the folder named with the SR ID inside the parent
-      const folders = await driveSearch(
-        accessToken,
-        `name contains '${sr_id}' and '${parentFolderId}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`
-      );
+      // Area subfolders inside the parent "ΑΝΑΘΕΣΕΙΣ ΡΟΔΟΣ-ΚΩ"
+      const areaFolderIds = [
+        "1JvcSG3tiOplSujXhb3yj_ELQLjfrgOzO", // ΡΟΔΟΣ
+        "1X1mtK4tV_sgGM9IdizNSK7AS19qX1nYl", // ΚΩΣ
+      ];
+
+      let folders: any[] = [];
+      for (const areaId of areaFolderIds) {
+        folders = await driveSearch(
+          accessToken,
+          `name contains '${sr_id}' and '${areaId}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`
+        );
+        if (folders.length > 0) break;
+      }
 
       if (folders.length === 0) {
         return new Response(
