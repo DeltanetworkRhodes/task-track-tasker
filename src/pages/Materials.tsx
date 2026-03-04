@@ -2,10 +2,11 @@ import { useState, useMemo } from "react";
 import AppLayout from "@/components/AppLayout";
 import { useMaterials } from "@/hooks/useData";
 import { mockMaterials } from "@/data/mockData";
-import { Package, AlertTriangle, Search, Plus, Box, ArrowUpDown, Check, X, Pencil } from "lucide-react";
+import { Package, AlertTriangle, Search, Plus, Box, ArrowUpDown, Check, X, Pencil, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { useQueryClient } from "@tanstack/react-query";
 
 type SortField = 'code' | 'name' | 'stock' | 'price';
 type SortDir = 'asc' | 'desc';
@@ -136,8 +137,29 @@ const Materials = () => {
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValues, setEditValues] = useState({ stock: '', price: '' });
+  const [syncing, setSyncing] = useState(false);
+  const queryClient = useQueryClient();
 
   const [form, setForm] = useState({ code: '', name: '', source: 'OTE' as string, stock: '', unit: 'τεμ.', price: '' });
+
+  const syncFromSheet = async () => {
+    setSyncing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("sync-materials", { body: {} });
+      if (error) throw error;
+      queryClient.invalidateQueries({ queryKey: ["materials"] });
+      queryClient.invalidateQueries({ queryKey: ["work_pricing"] });
+      refetch();
+      toast.success(`Συγχρονίστηκαν ${data?.synced?.materials || 0} υλικά, ${data?.synced?.work_pricing || 0} εργασίες`);
+      if (data?.errors?.length > 0) {
+        toast.error(`${data.errors.length} σφάλματα`);
+      }
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   const hasRealData = (dbMaterials?.length ?? 0) > 0;
   const materials: MaterialItem[] = hasRealData
@@ -248,13 +270,22 @@ const Materials = () => {
               {!hasRealData && <span className="ml-2 text-[11px] rounded-full bg-warning/10 text-warning px-2 py-0.5 font-medium">demo</span>}
             </p>
           </div>
-          <Dialog open={addOpen} onOpenChange={setAddOpen}>
-            <DialogTrigger asChild>
-              <button className="flex items-center gap-2 rounded-xl cosmote-gradient px-4 py-2.5 text-sm font-bold text-white shadow-lg shadow-primary/20 hover:opacity-90 transition-all">
-                <Plus className="h-4 w-4" />
-                Νέο Υλικό
-              </button>
-            </DialogTrigger>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={syncFromSheet}
+              disabled={syncing}
+              className="flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-semibold text-foreground hover:bg-muted transition-all disabled:opacity-50"
+            >
+              <RefreshCw className={`h-4 w-4 ${syncing ? 'animate-spin text-primary' : ''}`} />
+              {syncing ? 'Sync...' : 'Sync από Sheet'}
+            </button>
+            <Dialog open={addOpen} onOpenChange={setAddOpen}>
+              <DialogTrigger asChild>
+                <button className="flex items-center gap-2 rounded-xl cosmote-gradient px-4 py-2.5 text-sm font-bold text-white shadow-lg shadow-primary/20 hover:opacity-90 transition-all">
+                  <Plus className="h-4 w-4" />
+                  Νέο Υλικό
+                </button>
+              </DialogTrigger>
             <DialogContent className="sm:max-w-md">
               <DialogHeader>
                 <DialogTitle>Προσθήκη Υλικού</DialogTitle>
@@ -297,6 +328,7 @@ const Materials = () => {
               </form>
             </DialogContent>
           </Dialog>
+          </div>
         </div>
 
         {/* Stats Row */}
