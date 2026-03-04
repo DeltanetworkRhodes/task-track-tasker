@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Assignment, statusLabels } from "@/data/mockData";
-import { Camera, MessageSquare, ExternalLink, User, MapPin, Phone, Hash, FolderOpen, X } from "lucide-react";
+import { Camera, MessageSquare, ExternalLink, User, MapPin, Phone, Hash, FolderOpen, FileText, Image, Loader2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { supabase } from "@/integrations/supabase/client";
 
-const statusColors: Record<Assignment['status'], string> = {
+const statusColors: Record<string, string> = {
   pending: 'bg-muted text-muted-foreground',
   inspection: 'bg-warning/15 text-warning',
   pre_committed: 'bg-primary/15 text-primary',
@@ -28,8 +29,68 @@ const DetailRow = ({ icon: Icon, label, value }: { icon: any; label: string; val
   );
 };
 
+interface DriveFile {
+  id: string;
+  name: string;
+  mimeType: string;
+  webViewLink?: string;
+  thumbnailLink?: string;
+}
+
+interface DriveData {
+  found: boolean;
+  folder?: { id: string; name: string; webViewLink?: string };
+  files?: DriveFile[];
+  subfolders?: Record<string, { id: string; webViewLink?: string; files: DriveFile[] }>;
+}
+
+const FileItem = ({ file }: { file: DriveFile }) => {
+  const isPdf = file.mimeType === "application/pdf";
+  const isImage = file.mimeType?.startsWith("image/");
+  const Icon = isPdf ? FileText : isImage ? Image : FileText;
+
+  return (
+    <a
+      href={file.webViewLink || "#"}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="flex items-center gap-2 rounded-md px-2 py-1.5 text-xs hover:bg-secondary/50 transition-colors group"
+    >
+      <Icon className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+      <span className="truncate flex-1">{file.name}</span>
+      <ExternalLink className="h-3 w-3 text-muted-foreground/50 opacity-0 group-hover:opacity-100 transition-opacity" />
+    </a>
+  );
+};
+
 const AssignmentTable = ({ assignments }: AssignmentTableProps) => {
   const [selected, setSelected] = useState<any>(null);
+  const [driveData, setDriveData] = useState<DriveData | null>(null);
+  const [driveLoading, setDriveLoading] = useState(false);
+
+  useEffect(() => {
+    if (!selected?.srId) {
+      setDriveData(null);
+      return;
+    }
+
+    const fetchDrive = async () => {
+      setDriveLoading(true);
+      try {
+        const { data, error } = await supabase.functions.invoke("google-drive-files", {
+          body: { action: "sr_folder", sr_id: selected.srId },
+        });
+        if (error) throw error;
+        setDriveData(data);
+      } catch {
+        setDriveData(null);
+      } finally {
+        setDriveLoading(false);
+      }
+    };
+
+    fetchDrive();
+  }, [selected?.srId]);
 
   return (
     <>
@@ -88,17 +149,18 @@ const AssignmentTable = ({ assignments }: AssignmentTableProps) => {
 
       {/* Detail Modal */}
       <Dialog open={!!selected} onOpenChange={() => setSelected(null)}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Hash className="h-4 w-4 text-primary" />
               <span className="font-mono">{selected?.srId}</span>
-              <span className={`ml-auto inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${statusColors[selected?.status as keyof typeof statusColors] || statusColors.pending}`}>
+              <span className={`ml-auto inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${statusColors[selected?.status] || statusColors.pending}`}>
                 {statusLabels[selected?.status as keyof typeof statusLabels] || selected?.status}
               </span>
             </DialogTitle>
           </DialogHeader>
 
+          {/* Customer Info */}
           <div className="space-y-0 mt-2">
             <DetailRow icon={MapPin} label="Περιοχή" value={selected?.area} />
             <DetailRow icon={User} label="Πελάτης" value={selected?.customerName} />
@@ -106,31 +168,100 @@ const AssignmentTable = ({ assignments }: AssignmentTableProps) => {
             <DetailRow icon={Phone} label="Τηλέφωνο" value={selected?.phone} />
             <DetailRow icon={Hash} label="Καμπίνα (CAB)" value={selected?.cab} />
             <DetailRow icon={MessageSquare} label="Σχόλια" value={selected?.comments} />
+          </div>
 
-            {selected?.photos > 0 && (
-              <div className="flex items-start gap-3 py-2.5 border-b border-border/30">
-                <Camera className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-                <div>
-                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground/70">Φωτογραφίες</p>
-                  <p className="text-sm mt-0.5">{selected.photos} αρχεία</p>
-                </div>
+          {/* Drive Folder Section */}
+          <div className="mt-4 pt-4 border-t border-border/30">
+            <div className="flex items-center gap-2 mb-3">
+              <FolderOpen className="h-4 w-4 text-primary" />
+              <h3 className="text-sm font-semibold">Φάκελος Έργου (Drive)</h3>
+            </div>
+
+            {driveLoading && (
+              <div className="flex items-center gap-2 py-4 text-xs text-muted-foreground">
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                Αναζήτηση φακέλου...
               </div>
             )}
 
-            {selected?.driveUrl && (
-              <a
-                href={selected.driveUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 py-2.5 text-sm text-primary hover:underline"
-              >
-                <FolderOpen className="h-4 w-4" />
-                Άνοιγμα φακέλου Drive
-                <ExternalLink className="h-3 w-3" />
-              </a>
+            {!driveLoading && driveData?.found && (
+              <div className="space-y-3">
+                {/* Main folder link */}
+                {driveData.folder?.webViewLink && (
+                  <a
+                    href={driveData.folder.webViewLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 rounded-md bg-primary/5 border border-primary/20 px-3 py-2 text-xs text-primary hover:bg-primary/10 transition-colors"
+                  >
+                    <FolderOpen className="h-4 w-4" />
+                    <span className="font-medium">Άνοιγμα Φακέλου {driveData.folder.name}</span>
+                    <ExternalLink className="h-3 w-3 ml-auto" />
+                  </a>
+                )}
+
+                {/* Root files (PDF δελτίο etc) */}
+                {driveData.files && driveData.files.length > 0 && (
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground/70 mb-1">Αρχεία</p>
+                    <div className="space-y-0.5">
+                      {driveData.files.map((f) => (
+                        <FileItem key={f.id} file={f} />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Subfolders */}
+                {driveData.subfolders && Object.entries(driveData.subfolders).map(([name, sub]) => (
+                  <div key={name}>
+                    <div className="flex items-center gap-2 mb-1">
+                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground/70">
+                        📁 {name}
+                      </p>
+                      <span className="text-[10px] text-muted-foreground/50">
+                        ({sub.files.length} αρχεία)
+                      </span>
+                      {sub.webViewLink && (
+                        <a href={sub.webViewLink} target="_blank" rel="noopener noreferrer" className="ml-auto">
+                          <ExternalLink className="h-3 w-3 text-muted-foreground/50 hover:text-primary transition-colors" />
+                        </a>
+                      )}
+                    </div>
+                    <div className="space-y-0.5 pl-2 border-l border-border/30">
+                      {sub.files.slice(0, 5).map((f) => (
+                        <FileItem key={f.id} file={f} />
+                      ))}
+                      {sub.files.length > 5 && (
+                        <a
+                          href={sub.webViewLink || "#"}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block text-[10px] text-primary hover:underline pl-2 py-1"
+                        >
+                          +{sub.files.length - 5} ακόμα αρχεία →
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {!driveLoading && driveData && !driveData.found && (
+              <p className="text-xs text-muted-foreground/70 py-2">
+                Δεν βρέθηκε φάκελος για SR {selected?.srId} στο Drive
+              </p>
+            )}
+
+            {!driveLoading && !driveData && (
+              <p className="text-xs text-muted-foreground/70 py-2">
+                Δεν ήταν δυνατή η σύνδεση με το Drive
+              </p>
             )}
           </div>
 
+          {/* Footer */}
           <div className="mt-3 pt-3 border-t border-border/30 flex items-center justify-between text-[10px] text-muted-foreground/50">
             <span>Πηγή: {selected?.sourceTab || '—'}</span>
             <span>{selected?.date}</span>
