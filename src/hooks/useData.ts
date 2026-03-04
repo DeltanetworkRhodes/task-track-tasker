@@ -42,3 +42,17 @@ export const useMaterials = () => {
     },
   });
 };
+
+export const useWorkPricing = () => {
+  return useQuery({
+    queryKey: ["work_pricing"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("work_pricing")
+        .select("*")
+        .order("code", { ascending: true });
+      if (error) throw error;
+      return data;
+    },
+  });
+};
