@@ -92,10 +92,11 @@ function extractSheetId(input: string): string {
   return match ? match[1] : input.trim();
 }
 
-// Helper: find column by header name (case-insensitive, trimmed)
+// Helper: find column by header name (case-insensitive, trimmed, partial match)
 function col(headers: string[], row: string[], ...names: string[]): string {
   for (const name of names) {
-    const idx = headers.findIndex(h => h === name.toLowerCase().trim());
+    const needle = name.toLowerCase().trim();
+    const idx = headers.findIndex(h => h.trim() === needle || h.includes(needle));
     if (idx >= 0 && row[idx] !== undefined) return row[idx];
   }
   return "";
@@ -220,26 +221,26 @@ Deno.serve(async (req) => {
           const headers = rows[0].map((h: string) => h.toLowerCase().trim());
           for (let i = 1; i < rows.length; i++) {
             const row = rows[i];
-            // Columns: SR ID, ΟΝΟΜΑΤΕΠΩΝΥΜΟ, ΔΙΕΥΘΥΝΣΗ, ΤΗΛΕΦΩΝΟ, A/K, CAB
-            const srId = col(headers, row, "sr id", "sr_id", "sr");
+            // Actual headers: SR, ΟΝΟΜΑ ΠΕΛΑΤΗ, ΠΕΡΙΟΧΗ, Column 1, ΗΜΕΡΟΜΗΝΙΑ, ΚΑΜΠΙΝΑ, ΣΧΟΛΙΑ, Ε MAIL, ΚΑΤΑΣΤΑΣΗ ΑΥΤΟΨΙΑΣ
+            const srId = col(headers, row, "sr");
             if (!srId) continue;
 
-            const customerName = col(headers, row, "ονοματεπωνυμο", "ονοματεπώνυμο", "ονομα");
-            const address = col(headers, row, "διευθυνση", "διεύθυνση");
-            const phone = col(headers, row, "τηλεφωνο", "τηλέφωνο");
-            const cab = col(headers, row, "cab");
+            const customerInfo = col(headers, row, "ονομα πελατη");
+            const cab = col(headers, row, "καμπινα");
+            const comments = col(headers, row, "σχολια");
+            const email = col(headers, row, "ε mail", "e mail");
+            const status = col(headers, row, "κατασταση αυτοψιασ");
 
             const { error } = await supabase.from("assignments").upsert(
               {
                 sr_id: srId.trim(),
                 area: "ΡΟΔΟΣ",
-                status: "pending",
-                customer_name: customerName.trim() || null,
-                address: address.trim() || null,
-                phone: phone.trim() || null,
+                status: status ? status.trim().toLowerCase() : "pending",
+                customer_name: customerInfo.trim() || null,
                 cab: cab.trim() || null,
+                comments: comments.trim() || null,
                 source_tab: "ΡΟΔΟΣ",
-                google_sheet_row_id: 10000 + i, // offset to avoid conflict with Form Responses
+                google_sheet_row_id: 10000 + i,
               },
               { onConflict: "google_sheet_row_id" }
             );
@@ -256,23 +257,22 @@ Deno.serve(async (req) => {
           const headers = rows[0].map((h: string) => h.toLowerCase().trim());
           for (let i = 1; i < rows.length; i++) {
             const row = rows[i];
-            const srId = col(headers, row, "sr id", "sr_id", "sr");
+            // Actual headers: SR, ΟΝΟΜΑ ΠΕΛΑΤΗ, ΠΕΡΙΟΧΗ, Column 1, ΗΜΕΡΟΜΗΝΙΑ, ΚΑΜΠΙΝΑ, ΣΧΟΛΙΑ, Ε MAIL
+            const srId = col(headers, row, "sr");
             if (!srId) continue;
 
-            const customerName = col(headers, row, "ονοματεπωνυμο", "ονοματεπώνυμο", "ονομα");
-            const address = col(headers, row, "διευθυνση", "διεύθυνση");
-            const phone = col(headers, row, "τηλεφωνο", "τηλέφωνο");
-            const cab = col(headers, row, "cab");
+            const customerInfo = col(headers, row, "ονομα πελατη");
+            const cab = col(headers, row, "καμπινα");
+            const comments = col(headers, row, "σχολια");
 
             const { error } = await supabase.from("assignments").upsert(
               {
                 sr_id: srId.trim(),
                 area: "ΚΩΣ",
                 status: "pending",
-                customer_name: customerName.trim() || null,
-                address: address.trim() || null,
-                phone: phone.trim() || null,
+                customer_name: customerInfo.trim() || null,
                 cab: cab.trim() || null,
+                comments: comments.trim() || null,
                 source_tab: "ΚΩΣ",
                 google_sheet_row_id: 20000 + i,
               },
