@@ -26,7 +26,6 @@ async function getAccessToken(serviceAccountKey: any): Promise<string> {
     })
   );
 
-  // Import private key and sign JWT
   const pemContent = serviceAccountKey.private_key
     .replace(/-----BEGIN PRIVATE KEY-----/, "")
     .replace(/-----END PRIVATE KEY-----/, "")
@@ -48,9 +47,7 @@ async function getAccessToken(serviceAccountKey: any): Promise<string> {
     signatureInput
   );
 
-  const signatureB64 = btoa(
-    String.fromCharCode(...new Uint8Array(signature))
-  )
+  const signatureB64 = btoa(String.fromCharCode(...new Uint8Array(signature)))
     .replace(/\+/g, "-")
     .replace(/\//g, "_")
     .replace(/=+$/, "");
@@ -89,11 +86,30 @@ async function readSheet(
   return data.values || [];
 }
 
-// Extract sheet ID from a full Google Sheets URL or return as-is if already an ID
 function extractSheetId(input: string): string {
   if (!input) return input;
   const match = input.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
   return match ? match[1] : input.trim();
+}
+
+// Helper: find column by header name (case-insensitive, trimmed)
+function col(headers: string[], row: string[], ...names: string[]): string {
+  for (const name of names) {
+    const idx = headers.findIndex(h => h === name.toLowerCase().trim());
+    if (idx >= 0 && row[idx] !== undefined) return row[idx];
+  }
+  return "";
+}
+
+function parseNum(val: string): number {
+  if (!val) return 0;
+  const cleaned = val.replace(/[€\s]/g, "").replace(",", ".");
+  return parseFloat(cleaned) || 0;
+}
+
+function countPhotos(val: string): number {
+  if (!val) return 0;
+  return val.split(",").filter((s) => s.trim().startsWith("http")).length;
 }
 
 Deno.serve(async (req) => {
@@ -103,11 +119,7 @@ Deno.serve(async (req) => {
 
   try {
     let body: any = {};
-    try {
-      body = await req.json();
-    } catch {
-      // empty body is fine
-    }
+    try { body = await req.json(); } catch { /* empty body */ }
 
     const serviceAccountKeyStr = Deno.env.get("GOOGLE_SERVICE_ACCOUNT_KEY");
     if (!serviceAccountKeyStr) {
@@ -126,36 +138,26 @@ Deno.serve(async (req) => {
     const constructionsSheetId = extractSheetId(
       body.constructions_sheet_id || Deno.env.get("GOOGLE_SHEET_CONSTRUCTIONS_ID") || ""
     );
-    const materialsSheetId = extractSheetId(
-      body.materials_sheet_id || Deno.env.get("GOOGLE_SHEET_MATERIALS_ID") || ""
-    );
 
-    // Debug mode: return sheet headers and sample data
+    // Debug mode
     if (body.debug) {
       const debugInfo: any = {};
-      for (const [name, sheetId] of Object.entries({ assignments: assignmentsSheetId, constructions: constructionsSheetId, materials: materialsSheetId })) {
+      for (const [name, sheetId] of Object.entries({ assignments: assignmentsSheetId, constructions: constructionsSheetId })) {
         if (sheetId) {
           try {
             const metaUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}?fields=sheets.properties.title`;
             const metaRes = await fetch(metaUrl, { headers: { Authorization: `Bearer ${accessToken}` } });
             const metaData = await metaRes.json();
             const tabs = metaData.sheets?.map((s: any) => s.properties.title) || [];
-            
-            // Read all tabs
             const tabsData: any = {};
             for (const tab of tabs) {
               try {
                 const rows = await readSheet(accessToken, sheetId as string, `'${tab}'!A1:Z2`);
                 tabsData[tab] = { headers: rows[0] || [], sample_row: rows[1] || [] };
-              } catch (e) {
-                tabsData[tab] = { error: e.message };
-              }
+              } catch (e) { tabsData[tab] = { error: e.message }; }
             }
-            
             debugInfo[name] = { sheet_id: sheetId, tabs, tabs_data: tabsData };
-          } catch (e) {
-            debugInfo[name] = { error: e.message };
-          }
+          } catch (e) { debugInfo[name] = { error: e.message }; }
         }
       }
       return new Response(JSON.stringify({ debug: debugInfo }), {
@@ -167,32 +169,14 @@ Deno.serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const results: any = { assignments: 0, constructions: 0, materials: 0, errors: [] };
+    const results: any = {
+      assignments: 0, constructions: 0, materials: 0, work_pricing: 0,
+      rodos: 0, kos: 0, errors: []
+    };
 
-    // Helper: find column by header name (case-insensitive, trimmed)
-    function col(headers: string[], row: string[], ...names: string[]): string {
-      for (const name of names) {
-        const idx = headers.indexOf(name.toLowerCase().trim());
-        if (idx >= 0 && row[idx] !== undefined) return row[idx];
-      }
-      return "";
-    }
-
-    function parseNum(val: string): number {
-      if (!val) return 0;
-      // Handle Greek number format: "0.65 €" or "500.00"
-      const cleaned = val.replace(/[€\s]/g, "").replace(",", ".");
-      return parseFloat(cleaned) || 0;
-    }
-
-    // Count photo links
-    function countPhotos(val: string): number {
-      if (!val) return 0;
-      return val.split(",").filter((s) => s.trim().startsWith("http")).length;
-    }
-
-    // Sync Assignments from "Form Responses 4" tab
+    // ===== ASSIGNMENTS SHEET =====
     if (assignmentsSheetId) {
+      // --- Form Responses 4 (Audits) ---
       try {
         const rows = await readSheet(accessToken, assignmentsSheetId, "'Form Responses 4'!A:Z");
         if (rows.length > 1) {
@@ -219,23 +203,91 @@ Deno.serve(async (req) => {
                 photos_count: photosCount,
                 drive_folder_url: photosStr.split(",")[0]?.trim() || null,
                 google_sheet_row_id: i,
+                source_tab: "Form Responses 4",
               },
               { onConflict: "google_sheet_row_id" }
             );
-            if (error) {
-              results.errors.push(`Assignment row ${i}: ${error.message}`);
-            } else {
-              results.assignments++;
-            }
+            if (error) results.errors.push(`Assignment row ${i}: ${error.message}`);
+            else results.assignments++;
           }
         }
-      } catch (e) {
-        results.errors.push(`Assignments sheet: ${e.message}`);
-      }
+      } catch (e) { results.errors.push(`Form Responses 4: ${e.message}`); }
+
+      // --- ΡΟΔΟΣ tab ---
+      try {
+        const rows = await readSheet(accessToken, assignmentsSheetId, "'ΡΟΔΟΣ'!A:Z");
+        if (rows.length > 1) {
+          const headers = rows[0].map((h: string) => h.toLowerCase().trim());
+          for (let i = 1; i < rows.length; i++) {
+            const row = rows[i];
+            // Columns: SR ID, ΟΝΟΜΑΤΕΠΩΝΥΜΟ, ΔΙΕΥΘΥΝΣΗ, ΤΗΛΕΦΩΝΟ, A/K, CAB
+            const srId = col(headers, row, "sr id", "sr_id", "sr");
+            if (!srId) continue;
+
+            const customerName = col(headers, row, "ονοματεπωνυμο", "ονοματεπώνυμο", "ονομα");
+            const address = col(headers, row, "διευθυνση", "διεύθυνση");
+            const phone = col(headers, row, "τηλεφωνο", "τηλέφωνο");
+            const cab = col(headers, row, "cab");
+
+            const { error } = await supabase.from("assignments").upsert(
+              {
+                sr_id: srId.trim(),
+                area: "ΡΟΔΟΣ",
+                status: "pending",
+                customer_name: customerName.trim() || null,
+                address: address.trim() || null,
+                phone: phone.trim() || null,
+                cab: cab.trim() || null,
+                source_tab: "ΡΟΔΟΣ",
+                google_sheet_row_id: 10000 + i, // offset to avoid conflict with Form Responses
+              },
+              { onConflict: "google_sheet_row_id" }
+            );
+            if (error) results.errors.push(`ΡΟΔΟΣ row ${i}: ${error.message}`);
+            else results.rodos++;
+          }
+        }
+      } catch (e) { results.errors.push(`ΡΟΔΟΣ: ${e.message}`); }
+
+      // --- ΚΩΣ tab ---
+      try {
+        const rows = await readSheet(accessToken, assignmentsSheetId, "'ΚΩΣ'!A:Z");
+        if (rows.length > 1) {
+          const headers = rows[0].map((h: string) => h.toLowerCase().trim());
+          for (let i = 1; i < rows.length; i++) {
+            const row = rows[i];
+            const srId = col(headers, row, "sr id", "sr_id", "sr");
+            if (!srId) continue;
+
+            const customerName = col(headers, row, "ονοματεπωνυμο", "ονοματεπώνυμο", "ονομα");
+            const address = col(headers, row, "διευθυνση", "διεύθυνση");
+            const phone = col(headers, row, "τηλεφωνο", "τηλέφωνο");
+            const cab = col(headers, row, "cab");
+
+            const { error } = await supabase.from("assignments").upsert(
+              {
+                sr_id: srId.trim(),
+                area: "ΚΩΣ",
+                status: "pending",
+                customer_name: customerName.trim() || null,
+                address: address.trim() || null,
+                phone: phone.trim() || null,
+                cab: cab.trim() || null,
+                source_tab: "ΚΩΣ",
+                google_sheet_row_id: 20000 + i,
+              },
+              { onConflict: "google_sheet_row_id" }
+            );
+            if (error) results.errors.push(`ΚΩΣ row ${i}: ${error.message}`);
+            else results.kos++;
+          }
+        }
+      } catch (e) { results.errors.push(`ΚΩΣ: ${e.message}`); }
     }
 
-    // Sync Constructions from "Form Responses 8" tab
+    // ===== CONSTRUCTIONS/MATERIALS SHEET =====
     if (constructionsSheetId) {
+      // --- Form Responses 8 (Constructions) ---
       try {
         const rows = await readSheet(accessToken, constructionsSheetId, "'Form Responses 8'!A:Z");
         if (rows.length > 1) {
@@ -264,19 +316,13 @@ Deno.serve(async (req) => {
               },
               { onConflict: "google_sheet_row_id" }
             );
-            if (error) {
-              results.errors.push(`Construction row ${i}: ${error.message}`);
-            } else {
-              results.constructions++;
-            }
+            if (error) results.errors.push(`Construction row ${i}: ${error.message}`);
+            else results.constructions++;
           }
         }
-      } catch (e) {
-        results.errors.push(`Constructions sheet: ${e.message}`);
-      }
+      } catch (e) { results.errors.push(`Form Responses 8: ${e.message}`); }
 
-      // Sync Materials from "ΑΠΟΘΗΚΗ" tab (same spreadsheet)
-      // Headers: ["", "ΚΩΔΙΚΟΣ ΠΡΟΙΟΝΤΟΣ", "ΠΕΡΙΓΡΑΦΗ", "ΑΞΙΑ", "ΠΟΣΟΤΗΤΑ", "Μ.Μ", "ΣΤΟΚ ΑΠΟΘΗΚΗΣ", "ΣΥΝΟΛΟ"]
+      // --- ΑΠΟΘΗΚΗ (Materials) ---
       try {
         const rows = await readSheet(accessToken, constructionsSheetId, "'ΑΠΟΘΗΚΗ'!A:H");
         if (rows.length > 1) {
@@ -291,26 +337,44 @@ Deno.serve(async (req) => {
             if (!code) continue;
 
             const { error } = await supabase.from("materials").upsert(
+              { code, name, stock, unit, source: "OTE", price },
+              { onConflict: "code" }
+            );
+            if (error) results.errors.push(`Material row ${i}: ${error.message}`);
+            else results.materials++;
+          }
+        }
+      } catch (e) { results.errors.push(`ΑΠΟΘΗΚΗ: ${e.message}`); }
+
+      // --- ΒΑΣΗ_ΤΙΜΟΛΟΓΗΣΗΣ (Work Pricing) ---
+      try {
+        const rows = await readSheet(accessToken, constructionsSheetId, "'ΒΑΣΗ_ΤΙΜΟΛΟΓΗΣΗΣ'!A:Z");
+        if (rows.length > 1) {
+          const headers = rows[0].map((h: string) => h.toLowerCase().trim());
+          for (let i = 1; i < rows.length; i++) {
+            const row = rows[i];
+            // Columns: ΚΩΔΙΚΟΣ, ΠΕΡΙΓΡΑΦΗ, Μ.Μ, ΤΙΜΗ ΜΟΝΑΔΑΣ
+            const code = col(headers, row, "κωδικοσ", "κωδικός", "κωδ.");
+            const description = col(headers, row, "περιγραφη", "περιγραφή");
+            const unit = col(headers, row, "μ.μ", "μ.μ.", "μονάδα");
+            const unitPrice = parseNum(col(headers, row, "τιμη μοναδασ", "τιμή μονάδας", "τιμη", "τιμή"));
+
+            if (!code) continue;
+
+            const { error } = await supabase.from("work_pricing").upsert(
               {
-                code,
-                name,
-                stock,
-                unit,
-                source: "OTE",
-                price,
+                code: code.trim(),
+                description: description.trim(),
+                unit: unit.trim() || "τεμ.",
+                unit_price: unitPrice,
               },
               { onConflict: "code" }
             );
-            if (error) {
-              results.errors.push(`Material row ${i}: ${error.message}`);
-            } else {
-              results.materials++;
-            }
+            if (error) results.errors.push(`Work pricing row ${i}: ${error.message}`);
+            else results.work_pricing++;
           }
         }
-      } catch (e) {
-        results.errors.push(`Materials (ΑΠΟΘΗΚΗ): ${e.message}`);
-      }
+      } catch (e) { results.errors.push(`ΒΑΣΗ_ΤΙΜΟΛΟΓΗΣΗΣ: ${e.message}`); }
     }
 
     return new Response(JSON.stringify({ success: true, synced: results }), {

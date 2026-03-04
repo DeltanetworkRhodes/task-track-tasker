@@ -16,42 +16,57 @@ export type Database = {
     Tables: {
       assignments: {
         Row: {
+          address: string | null
           area: string
+          cab: string | null
           comments: string | null
           created_at: string
+          customer_name: string | null
           drive_folder_url: string | null
           google_sheet_row_id: number | null
           id: string
           pdf_url: string | null
+          phone: string | null
           photos_count: number | null
+          source_tab: string | null
           sr_id: string
           status: string
           technician_id: string | null
           updated_at: string
         }
         Insert: {
+          address?: string | null
           area: string
+          cab?: string | null
           comments?: string | null
           created_at?: string
+          customer_name?: string | null
           drive_folder_url?: string | null
           google_sheet_row_id?: number | null
           id?: string
           pdf_url?: string | null
+          phone?: string | null
           photos_count?: number | null
+          source_tab?: string | null
           sr_id: string
           status?: string
           technician_id?: string | null
           updated_at?: string
         }
         Update: {
+          address?: string | null
           area?: string
+          cab?: string | null
           comments?: string | null
           created_at?: string
+          customer_name?: string | null
           drive_folder_url?: string | null
           google_sheet_row_id?: number | null
           id?: string
           pdf_url?: string | null
+          phone?: string | null
           photos_count?: number | null
+          source_tab?: string | null
           sr_id?: string
           status?: string
           technician_id?: string | null
@@ -199,6 +214,39 @@ export type Database = {
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
+        }
+        Relationships: []
+      }
+      work_pricing: {
+        Row: {
+          category: string | null
+          code: string
+          created_at: string
+          description: string
+          id: string
+          unit: string
+          unit_price: number
+          updated_at: string
+        }
+        Insert: {
+          category?: string | null
+          code: string
+          created_at?: string
+          description: string
+          id?: string
+          unit?: string
+          unit_price?: number
+          updated_at?: string
+        }
+        Update: {
+          category?: string | null
+          code?: string
+          created_at?: string
+          description?: string
+          id?: string
+          unit?: string
+          unit_price?: number
+          updated_at?: string
         }
         Relationships: []
       }

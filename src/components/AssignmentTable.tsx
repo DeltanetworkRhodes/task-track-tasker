@@ -21,7 +21,9 @@ const AssignmentTable = ({ assignments }: AssignmentTableProps) => {
           <tr className="border-b border-border/50">
             <th className="py-3 px-4 text-left font-medium text-muted-foreground text-xs uppercase tracking-wider">SR ID</th>
             <th className="py-3 px-4 text-left font-medium text-muted-foreground text-xs uppercase tracking-wider">Περιοχή</th>
-            <th className="py-3 px-4 text-left font-medium text-muted-foreground text-xs uppercase tracking-wider">Τεχνικός</th>
+            <th className="py-3 px-4 text-left font-medium text-muted-foreground text-xs uppercase tracking-wider">Πελάτης</th>
+            <th className="py-3 px-4 text-left font-medium text-muted-foreground text-xs uppercase tracking-wider">Διεύθυνση</th>
+            <th className="py-3 px-4 text-left font-medium text-muted-foreground text-xs uppercase tracking-wider">CAB</th>
             <th className="py-3 px-4 text-left font-medium text-muted-foreground text-xs uppercase tracking-wider">Κατάσταση</th>
             <th className="py-3 px-4 text-left font-medium text-muted-foreground text-xs uppercase tracking-wider">Ημ/νία</th>
             <th className="py-3 px-4 text-center font-medium text-muted-foreground text-xs uppercase tracking-wider">Φωτο</th>
@@ -33,7 +35,9 @@ const AssignmentTable = ({ assignments }: AssignmentTableProps) => {
             <tr key={a.id} className="border-b border-border/30 hover:bg-secondary/50 transition-colors cursor-pointer">
               <td className="py-3 px-4 font-mono font-semibold text-primary">{a.srId}</td>
               <td className="py-3 px-4">{a.area}</td>
-              <td className="py-3 px-4 text-muted-foreground">{a.technician}</td>
+              <td className="py-3 px-4 text-muted-foreground">{(a as any).customerName || a.technician || '—'}</td>
+              <td className="py-3 px-4 text-xs text-muted-foreground max-w-[150px] truncate">{(a as any).address || '—'}</td>
+              <td className="py-3 px-4 font-mono text-xs">{(a as any).cab || '—'}</td>
               <td className="py-3 px-4">
                 <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${statusColors[a.status]}`}>
                   {statusLabels[a.status]}

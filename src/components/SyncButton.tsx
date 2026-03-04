@@ -31,13 +31,14 @@ const SyncButton = () => {
       }
 
       setLastResult(data?.synced);
-      const total = (data?.synced?.assignments || 0) + (data?.synced?.constructions || 0) + (data?.synced?.materials || 0);
+      const total = (data?.synced?.assignments || 0) + (data?.synced?.constructions || 0) + (data?.synced?.materials || 0) + (data?.synced?.rodos || 0) + (data?.synced?.kos || 0) + (data?.synced?.work_pricing || 0);
       const errors = data?.synced?.errors?.length || 0;
 
       // Invalidate queries to refresh data
       queryClient.invalidateQueries({ queryKey: ["assignments"] });
       queryClient.invalidateQueries({ queryKey: ["constructions"] });
       queryClient.invalidateQueries({ queryKey: ["materials"] });
+      queryClient.invalidateQueries({ queryKey: ["work_pricing"] });
 
       toast({
         title: "Συγχρονισμός ολοκληρώθηκε",
@@ -74,7 +75,7 @@ const SyncButton = () => {
           ) : (
             <CheckCircle className="h-3 w-3 text-green-500" />
           )}
-          {lastResult.assignments}A / {lastResult.constructions}C / {lastResult.materials}M
+          {lastResult.assignments}A / {lastResult.rodos || 0}Ρ / {lastResult.kos || 0}Κ / {lastResult.constructions}C / {lastResult.materials}M / {lastResult.work_pricing || 0}P
         </span>
       )}
     </div>
