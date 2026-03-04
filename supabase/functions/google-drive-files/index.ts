@@ -40,9 +40,7 @@ async function getAccessToken(serviceAccountKey: any): Promise<string> {
     signatureInput
   );
 
-  const signatureB64 = btoa(
-    String.fromCharCode(...new Uint8Array(signature))
-  )
+  const signatureB64 = btoa(String.fromCharCode(...new Uint8Array(signature)))
     .replace(/\+/g, "-")
     .replace(/\//g, "_")
     .replace(/=+$/, "");
@@ -64,6 +62,16 @@ async function getAccessToken(serviceAccountKey: any): Promise<string> {
   return tokenData.access_token;
 }
 
+async function driveSearch(accessToken: string, query: string): Promise<any[]> {
+  const url = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&fields=files(id,name,mimeType,thumbnailLink,webViewLink,size,createdTime)&pageSize=100`;
+  const res = await fetch(url, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!res.ok) throw new Error(await res.text());
+  const data = await res.json();
+  return data.files || [];
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -71,7 +79,7 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { action, folder_id, file_id } = body;
+    const { action, folder_id, file_id, sr_id } = body;
 
     const serviceAccountKeyStr = Deno.env.get("GOOGLE_SERVICE_ACCOUNT_KEY");
     if (!serviceAccountKeyStr) {
@@ -84,27 +92,76 @@ Deno.serve(async (req) => {
     const serviceAccountKey = JSON.parse(serviceAccountKeyStr);
     const accessToken = await getAccessToken(serviceAccountKey);
 
+    // Search for SR folder and list all contents with subfolders
+    if (action === "sr_folder" && sr_id) {
+      // Find the folder named with the SR ID
+      const folders = await driveSearch(
+        accessToken,
+        `name = '${sr_id}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`
+      );
+
+      if (folders.length === 0) {
+        return new Response(
+          JSON.stringify({ found: false, sr_id, folder: null, subfolders: {} }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const folder = folders[0];
+      
+      // List subfolders
+      const subfolders = await driveSearch(
+        accessToken,
+        `'${folder.id}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`
+      );
+
+      // List files in main folder
+      const mainFiles = await driveSearch(
+        accessToken,
+        `'${folder.id}' in parents and mimeType != 'application/vnd.google-apps.folder' and trashed = false`
+      );
+
+      // List files in each subfolder
+      const subfoldersData: any = {};
+      for (const sub of subfolders) {
+        const files = await driveSearch(
+          accessToken,
+          `'${sub.id}' in parents and trashed = false`
+        );
+        subfoldersData[sub.name] = {
+          id: sub.id,
+          webViewLink: sub.webViewLink,
+          files,
+        };
+      }
+
+      return new Response(
+        JSON.stringify({
+          found: true,
+          sr_id,
+          folder: {
+            id: folder.id,
+            name: folder.name,
+            webViewLink: folder.webViewLink,
+          },
+          files: mainFiles,
+          subfolders: subfoldersData,
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     if (action === "list") {
-      // List files in a folder
       const query = folder_id
         ? `'${folder_id}' in parents and trashed = false`
         : "trashed = false";
-      const url = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&fields=files(id,name,mimeType,thumbnailLink,webViewLink,size,createdTime)&pageSize=100`;
-
-      const res = await fetch(url, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
-
-      if (!res.ok) throw new Error(await res.text());
-      const data = await res.json();
-
-      return new Response(JSON.stringify({ files: data.files }), {
+      const files = await driveSearch(accessToken, query);
+      return new Response(JSON.stringify({ files }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     if (action === "download" && file_id) {
-      // Download a file and store it in Supabase Storage
       const metaRes = await fetch(
         `https://www.googleapis.com/drive/v3/files/${file_id}?fields=name,mimeType`,
         { headers: { Authorization: `Bearer ${accessToken}` } }
@@ -119,13 +176,12 @@ Deno.serve(async (req) => {
       if (!fileRes.ok) throw new Error(await fileRes.text());
       const fileBlob = await fileRes.blob();
 
-      // Upload to Supabase Storage
       const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
       const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
       const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
       const filePath = `drive/${file_id}/${meta.name}`;
-      const { data: uploadData, error: uploadError } = await supabase.storage
+      const { error: uploadError } = await supabase.storage
         .from("photos")
         .upload(filePath, fileBlob, {
           contentType: meta.mimeType,
@@ -150,7 +206,7 @@ Deno.serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ error: "Invalid action. Use 'list' or 'download'" }),
+      JSON.stringify({ error: "Invalid action. Use 'sr_folder', 'list', or 'download'" }),
       { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
