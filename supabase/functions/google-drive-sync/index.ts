@@ -89,13 +89,19 @@ async function readSheet(
   return data.values || [];
 }
 
+// Extract sheet ID from a full Google Sheets URL or return as-is if already an ID
+function extractSheetId(input: string): string {
+  if (!input) return input;
+  const match = input.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
+  return match ? match[1] : input.trim();
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // Parse request body for optional sheet IDs override
     let body: any = {};
     try {
       body = await req.json();
@@ -103,7 +109,6 @@ Deno.serve(async (req) => {
       // empty body is fine
     }
 
-    // Get service account key
     const serviceAccountKeyStr = Deno.env.get("GOOGLE_SERVICE_ACCOUNT_KEY");
     if (!serviceAccountKeyStr) {
       return new Response(
@@ -118,15 +123,16 @@ Deno.serve(async (req) => {
     const serviceAccountKey = JSON.parse(serviceAccountKeyStr);
     const accessToken = await getAccessToken(serviceAccountKey);
 
-    // Sheet IDs from secrets or request body
-    const assignmentsSheetId =
-      body.assignments_sheet_id || Deno.env.get("GOOGLE_SHEET_ASSIGNMENTS_ID");
-    const constructionsSheetId =
-      body.constructions_sheet_id || Deno.env.get("GOOGLE_SHEET_CONSTRUCTIONS_ID");
-    const materialsSheetId =
-      body.materials_sheet_id || Deno.env.get("GOOGLE_SHEET_MATERIALS_ID");
+    const assignmentsSheetId = extractSheetId(
+      body.assignments_sheet_id || Deno.env.get("GOOGLE_SHEET_ASSIGNMENTS_ID") || ""
+    );
+    const constructionsSheetId = extractSheetId(
+      body.constructions_sheet_id || Deno.env.get("GOOGLE_SHEET_CONSTRUCTIONS_ID") || ""
+    );
+    const materialsSheetId = extractSheetId(
+      body.materials_sheet_id || Deno.env.get("GOOGLE_SHEET_MATERIALS_ID") || ""
+    );
 
-    // Create Supabase admin client
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
