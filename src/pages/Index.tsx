@@ -1,4 +1,5 @@
 import AppLayout from "@/components/AppLayout";
+import fiberHero from "@/assets/fiber-hero.jpg";
 import StatCard from "@/components/StatCard";
 import AssignmentTable from "@/components/AssignmentTable";
 import SyncButton from "@/components/SyncButton";
@@ -92,21 +93,42 @@ const Index = () => {
   return (
     <AppLayout>
       <div className="space-y-6 max-w-[1400px]">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl cosmote-gradient shadow-lg shadow-primary/20">
-              <Wifi className="h-6 w-6 text-primary-foreground" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-extrabold tracking-tight text-foreground">Πίνακας Ελέγχου</h1>
-              <p className="text-sm text-muted-foreground">
-                Επισκόπηση λειτουργιών FTTH
-                {!hasRealData && <span className="ml-2 text-[11px] rounded-full bg-warning/10 text-warning px-2 py-0.5 font-medium">demo</span>}
+        {/* Hero Banner */}
+        <div className="relative rounded-2xl overflow-hidden shadow-xl">
+          <img src={fiberHero} alt="Fiber Optic Network" className="absolute inset-0 w-full h-full object-cover" />
+          <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/50 to-transparent" />
+          <div className="relative z-10 px-8 py-8 flex items-center justify-between">
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <div className="h-1 w-8 rounded-full cosmote-gradient" />
+                <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-white/60">FTTH Operations</span>
+              </div>
+              <h1 className="text-3xl font-extrabold tracking-tight text-white">Πίνακας Ελέγχου</h1>
+              <p className="text-sm text-white/60 max-w-md">
+                Διαχείριση αυτοψιών, κατασκευών & υλικών — Δίκτυο Οπτικών Ινών Ρόδος & Κως
+                {!hasRealData && <span className="ml-2 text-[11px] rounded-full bg-white/10 text-white/50 px-2 py-0.5 font-medium">demo</span>}
               </p>
             </div>
+            <div className="hidden md:flex items-center gap-6">
+              <div className="text-center">
+                <p className="text-3xl font-extrabold text-white font-mono">{assignments.length}</p>
+                <p className="text-[10px] uppercase tracking-wider text-white/50 mt-0.5">Αναθέσεις</p>
+              </div>
+              <div className="h-10 w-px bg-white/15" />
+              <div className="text-center">
+                <p className="text-3xl font-extrabold text-white font-mono">{constructions.length}</p>
+                <p className="text-[10px] uppercase tracking-wider text-white/50 mt-0.5">Κατασκευές</p>
+              </div>
+              <div className="h-10 w-px bg-white/15" />
+              <div className="text-center">
+                <p className="text-3xl font-extrabold text-white font-mono">{totalProfit.toLocaleString('el-GR')}€</p>
+                <p className="text-[10px] uppercase tracking-wider text-white/50 mt-0.5">Κέρδος</p>
+              </div>
+              <div className="ml-4">
+                <SyncButton />
+              </div>
+            </div>
           </div>
-          <SyncButton />
         </div>
 
         {/* Stat Cards */}
