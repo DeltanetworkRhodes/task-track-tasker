@@ -112,10 +112,7 @@ Deno.serve(async (req) => {
     const serviceAccountKeyStr = Deno.env.get("GOOGLE_SERVICE_ACCOUNT_KEY");
     if (!serviceAccountKeyStr) {
       return new Response(
-        JSON.stringify({
-          error: "GOOGLE_SERVICE_ACCOUNT_KEY not configured",
-          setup_required: true,
-        }),
+        JSON.stringify({ error: "GOOGLE_SERVICE_ACCOUNT_KEY not configured", setup_required: true }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -133,33 +130,94 @@ Deno.serve(async (req) => {
       body.materials_sheet_id || Deno.env.get("GOOGLE_SHEET_MATERIALS_ID") || ""
     );
 
+    // Debug mode: return sheet headers and sample data
+    if (body.debug) {
+      const debugInfo: any = {};
+      for (const [name, sheetId] of Object.entries({ assignments: assignmentsSheetId, constructions: constructionsSheetId, materials: materialsSheetId })) {
+        if (sheetId) {
+          try {
+            const metaUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}?fields=sheets.properties.title`;
+            const metaRes = await fetch(metaUrl, { headers: { Authorization: `Bearer ${accessToken}` } });
+            const metaData = await metaRes.json();
+            const tabs = metaData.sheets?.map((s: any) => s.properties.title) || [];
+            
+            // Read all tabs
+            const tabsData: any = {};
+            for (const tab of tabs) {
+              try {
+                const rows = await readSheet(accessToken, sheetId as string, `'${tab}'!A1:Z2`);
+                tabsData[tab] = { headers: rows[0] || [], sample_row: rows[1] || [] };
+              } catch (e) {
+                tabsData[tab] = { error: e.message };
+              }
+            }
+            
+            debugInfo[name] = { sheet_id: sheetId, tabs, tabs_data: tabsData };
+          } catch (e) {
+            debugInfo[name] = { error: e.message };
+          }
+        }
+      }
+      return new Response(JSON.stringify({ debug: debugInfo }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const results: any = { assignments: 0, constructions: 0, materials: 0, errors: [] };
 
-    // Sync Assignments (Form Responses 4)
+    // Helper: find column by header name (case-insensitive, trimmed)
+    function col(headers: string[], row: string[], ...names: string[]): string {
+      for (const name of names) {
+        const idx = headers.indexOf(name.toLowerCase().trim());
+        if (idx >= 0 && row[idx] !== undefined) return row[idx];
+      }
+      return "";
+    }
+
+    function parseNum(val: string): number {
+      if (!val) return 0;
+      // Handle Greek number format: "0.65 €" or "500.00"
+      const cleaned = val.replace(/[€\s]/g, "").replace(",", ".");
+      return parseFloat(cleaned) || 0;
+    }
+
+    // Count photo links
+    function countPhotos(val: string): number {
+      if (!val) return 0;
+      return val.split(",").filter((s) => s.trim().startsWith("http")).length;
+    }
+
+    // Sync Assignments from "Form Responses 4" tab
     if (assignmentsSheetId) {
       try {
-        const rows = await readSheet(accessToken, assignmentsSheetId, "A:Z");
+        const rows = await readSheet(accessToken, assignmentsSheetId, "'Form Responses 4'!A:Z");
         if (rows.length > 1) {
           const headers = rows[0].map((h: string) => h.toLowerCase().trim());
           for (let i = 1; i < rows.length; i++) {
             const row = rows[i];
-            const srId = row[headers.indexOf("sr id")] || row[headers.indexOf("sr_id")] || row[1] || "";
-            const area = row[headers.indexOf("area")] || row[headers.indexOf("περιοχή")] || row[2] || "";
-            const status = row[headers.indexOf("status")] || row[headers.indexOf("κατάσταση")] || "pending";
-            const comments = row[headers.indexOf("comments")] || row[headers.indexOf("σχόλια")] || "";
+            const srId = col(headers, row, "sr id", "sr_id");
+            const area = col(headers, row, "περιοχη", "περιοχή");
+            const comments = col(headers, row, "σχολια", "σχόλια");
+            const photosStr = col(headers, row, "φωτογραφιεσ κτιριου", "φωτογραφίες κτιρίου");
+            const screenshotsStr = col(headers, row, "screenshots (χεμδ & autocad)", "screenshots");
+            const pdfStr = col(headers, row, "φωτογραφια εντυπου αυτοψιασ", "φωτογραφία εντύπου αυτοψίας");
 
             if (!srId) continue;
+
+            const photosCount = countPhotos(photosStr) + countPhotos(screenshotsStr) + countPhotos(pdfStr);
 
             const { error } = await supabase.from("assignments").upsert(
               {
                 sr_id: srId.trim(),
                 area: area.trim(),
-                status: status.trim().toLowerCase().replace(/\s+/g, "_"),
+                status: "pending",
                 comments: comments.trim(),
+                photos_count: photosCount,
+                drive_folder_url: photosStr.split(",")[0]?.trim() || null,
                 google_sheet_row_id: i,
               },
               { onConflict: "google_sheet_row_id" }
@@ -176,22 +234,19 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Sync Constructions (Form Responses 8)
+    // Sync Constructions from "Form Responses 8" tab
     if (constructionsSheetId) {
       try {
-        const rows = await readSheet(accessToken, constructionsSheetId, "A:Z");
+        const rows = await readSheet(accessToken, constructionsSheetId, "'Form Responses 8'!A:Z");
         if (rows.length > 1) {
           const headers = rows[0].map((h: string) => h.toLowerCase().trim());
           for (let i = 1; i < rows.length; i++) {
             const row = rows[i];
-            const srId = row[headers.indexOf("sr id")] || row[headers.indexOf("sr_id")] || row[1] || "";
-            const sesId = row[headers.indexOf("ses id")] || row[headers.indexOf("ses_id")] || row[2] || "";
-            const ak = row[headers.indexOf("ak")] || row[3] || "";
-            const cab = row[headers.indexOf("cab")] || row[4] || "";
-            const floors = parseInt(row[headers.indexOf("floors")] || row[headers.indexOf("όροφοι")] || row[5] || "0") || 0;
-            const revenue = parseFloat(row[headers.indexOf("revenue")] || row[headers.indexOf("έσοδα")] || row[6] || "0") || 0;
-            const materialCost = parseFloat(row[headers.indexOf("material_cost")] || row[headers.indexOf("κόστος υλικών")] || row[7] || "0") || 0;
-            const status = row[headers.indexOf("status")] || row[headers.indexOf("κατάσταση")] || "in_progress";
+            const srId = col(headers, row, "αριθμός sr", "αριθμος sr");
+            const sesId = col(headers, row, "ses id");
+            const ak = col(headers, row, "α/κ");
+            const cab = col(headers, row, "cab");
+            const floors = parseInt(col(headers, row, "οροφοι", "όροφοι") || "0") || 0;
 
             if (!srId) continue;
 
@@ -202,9 +257,9 @@ Deno.serve(async (req) => {
                 ak: ak.trim() || null,
                 cab: cab.trim() || null,
                 floors,
-                revenue,
-                material_cost: materialCost,
-                status: status.trim().toLowerCase().replace(/\s+/g, "_"),
+                revenue: 0,
+                material_cost: 0,
+                status: "in_progress",
                 google_sheet_row_id: i,
               },
               { onConflict: "google_sheet_row_id" }
@@ -219,32 +274,29 @@ Deno.serve(async (req) => {
       } catch (e) {
         results.errors.push(`Constructions sheet: ${e.message}`);
       }
-    }
 
-    // Sync Materials
-    if (materialsSheetId) {
+      // Sync Materials from "ΑΠΟΘΗΚΗ" tab (same spreadsheet)
+      // Headers: ["", "ΚΩΔΙΚΟΣ ΠΡΟΙΟΝΤΟΣ", "ΠΕΡΙΓΡΑΦΗ", "ΑΞΙΑ", "ΠΟΣΟΤΗΤΑ", "Μ.Μ", "ΣΤΟΚ ΑΠΟΘΗΚΗΣ", "ΣΥΝΟΛΟ"]
       try {
-        const rows = await readSheet(accessToken, materialsSheetId, "A:Z");
+        const rows = await readSheet(accessToken, constructionsSheetId, "'ΑΠΟΘΗΚΗ'!A:H");
         if (rows.length > 1) {
-          const headers = rows[0].map((h: string) => h.toLowerCase().trim());
           for (let i = 1; i < rows.length; i++) {
             const row = rows[i];
-            const code = row[headers.indexOf("code")] || row[headers.indexOf("κωδικός")] || row[0] || "";
-            const name = row[headers.indexOf("name")] || row[headers.indexOf("όνομα")] || row[1] || "";
-            const stock = parseFloat(row[headers.indexOf("stock")] || row[headers.indexOf("απόθεμα")] || row[2] || "0") || 0;
-            const unit = row[headers.indexOf("unit")] || row[headers.indexOf("μονάδα")] || row[3] || "τεμ.";
-            const source = row[headers.indexOf("source")] || row[headers.indexOf("πηγή")] || row[4] || "OTE";
-            const price = parseFloat(row[headers.indexOf("price")] || row[headers.indexOf("τιμή")] || row[5] || "0") || 0;
+            const code = (row[1] || "").trim();
+            const name = (row[2] || "").trim();
+            const price = parseNum(row[3] || "");
+            const unit = (row[5] || "τεμ.").trim();
+            const stock = parseNum(row[6] || "");
 
             if (!code) continue;
 
             const { error } = await supabase.from("materials").upsert(
               {
-                code: code.trim(),
-                name: name.trim(),
+                code,
+                name,
                 stock,
-                unit: unit.trim(),
-                source: source.trim(),
+                unit,
+                source: "OTE",
                 price,
               },
               { onConflict: "code" }
@@ -257,7 +309,7 @@ Deno.serve(async (req) => {
           }
         }
       } catch (e) {
-        results.errors.push(`Materials sheet: ${e.message}`);
+        results.errors.push(`Materials (ΑΠΟΘΗΚΗ): ${e.message}`);
       }
     }
 
