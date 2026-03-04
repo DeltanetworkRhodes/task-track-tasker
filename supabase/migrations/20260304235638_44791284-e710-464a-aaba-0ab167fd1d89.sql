@@ -1,0 +1,1 @@
+ALTER TABLE public.materials ADD CONSTRAINT materials_code_unique UNIQUE (code);
