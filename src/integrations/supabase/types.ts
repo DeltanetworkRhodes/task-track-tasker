@@ -14,16 +14,203 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      assignments: {
+        Row: {
+          area: string
+          comments: string | null
+          created_at: string
+          drive_folder_url: string | null
+          id: string
+          pdf_url: string | null
+          photos_count: number | null
+          sr_id: string
+          status: string
+          technician_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          area: string
+          comments?: string | null
+          created_at?: string
+          drive_folder_url?: string | null
+          id?: string
+          pdf_url?: string | null
+          photos_count?: number | null
+          sr_id: string
+          status?: string
+          technician_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          area?: string
+          comments?: string | null
+          created_at?: string
+          drive_folder_url?: string | null
+          id?: string
+          pdf_url?: string | null
+          photos_count?: number | null
+          sr_id?: string
+          status?: string
+          technician_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      constructions: {
+        Row: {
+          ak: string | null
+          assignment_id: string | null
+          cab: string | null
+          created_at: string
+          floors: number | null
+          id: string
+          material_cost: number
+          profit: number | null
+          revenue: number
+          ses_id: string | null
+          sr_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          ak?: string | null
+          assignment_id?: string | null
+          cab?: string | null
+          created_at?: string
+          floors?: number | null
+          id?: string
+          material_cost?: number
+          profit?: number | null
+          revenue?: number
+          ses_id?: string | null
+          sr_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          ak?: string | null
+          assignment_id?: string | null
+          cab?: string | null
+          created_at?: string
+          floors?: number | null
+          id?: string
+          material_cost?: number
+          profit?: number | null
+          revenue?: number
+          ses_id?: string | null
+          sr_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "constructions_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "assignments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      materials: {
+        Row: {
+          code: string
+          created_at: string
+          id: string
+          name: string
+          price: number
+          source: string
+          stock: number
+          unit: string
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          id?: string
+          name: string
+          price?: number
+          source: string
+          stock?: number
+          unit?: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          id?: string
+          name?: string
+          price?: number
+          source?: string
+          stock?: number
+          unit?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          area: string | null
+          created_at: string
+          full_name: string
+          id: string
+          phone: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          area?: string | null
+          created_at?: string
+          full_name?: string
+          id?: string
+          phone?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          area?: string | null
+          created_at?: string
+          full_name?: string
+          id?: string
+          phone?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "technician"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +337,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "technician"],
+    },
   },
 } as const
