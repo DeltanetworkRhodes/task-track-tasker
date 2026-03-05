@@ -11,6 +11,7 @@ import TechnicianMap from "@/components/TechnicianMap";
 const TechnicianDashboard = () => {
   const { user, signOut } = useAuth();
   const [activeTab, setActiveTab] = useState("assignments");
+  const [hideCancelled, setHideCancelled] = useState(true);
 
   const { data: profile } = useQuery({
     queryKey: ["profile", user?.id],
