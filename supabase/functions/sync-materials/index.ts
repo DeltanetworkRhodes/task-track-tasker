@@ -171,29 +171,39 @@ Deno.serve(async (req) => {
       }
     }
 
-    // ========== 4. ΚΕΡΔΟΣ_ΑΝΑ_SR → return data (not stored, displayed live) ==========
+    // ========== 4. ΚΕΡΔΟΣ_ΑΝΑ_SR → profit_per_sr table ==========
     const kerdosRes = await fetch(
       `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent("ΚΕΡΔΟΣ_ΑΝΑ_SR")}!A1:D100`,
       { headers: { Authorization: `Bearer ${accessToken}` } }
     );
     const kerdosData = await kerdosRes.json();
     const kerdosRows = (kerdosData.values || []).slice(1); // skip header
-    const profitPerSR = kerdosRows
-      .filter((r: string[]) => r[0] && r[0].trim())
-      .map((r: string[]) => ({
-        sr_id: (r[0] || "").trim(),
-        revenue: parsePrice(r[1] || "0"),
-        expenses: parsePrice(r[2] || "0"),
-        profit: parsePrice(r[3] || "0"),
-      }));
+    let profitCount = 0;
 
+    for (const r of kerdosRows) {
+      const sr_id = (r[0] || "").trim();
+      if (!sr_id) continue;
+      const revenue = parsePrice(r[1] || "0");
+      const expenses = parsePrice(r[2] || "0");
+      const profit = parsePrice(r[3] || "0");
+
+      const { error } = await supabase.from("profit_per_sr").upsert(
+        { sr_id, revenue, expenses, profit },
+        { onConflict: "sr_id" }
+      );
+      if (error) {
+        results.errors.push(`ProfitSR ${sr_id}: ${error.message}`);
+      } else {
+        profitCount++;
+      }
+    }
     return new Response(JSON.stringify({
       success: true,
       synced: {
         materials: results.materials,
         work_pricing: results.work_pricing,
+        profit_per_sr: profitCount,
       },
-      profit_per_sr: profitPerSR,
       errors: results.errors,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

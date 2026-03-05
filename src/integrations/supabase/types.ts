@@ -199,6 +199,36 @@ export type Database = {
         }
         Relationships: []
       }
+      profit_per_sr: {
+        Row: {
+          created_at: string
+          expenses: number
+          id: string
+          profit: number
+          revenue: number
+          sr_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          expenses?: number
+          id?: string
+          profit?: number
+          revenue?: number
+          sr_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          expenses?: number
+          id?: string
+          profit?: number
+          revenue?: number
+          sr_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
