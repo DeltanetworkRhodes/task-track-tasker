@@ -224,7 +224,15 @@ const AssignmentTable = ({ assignments }: AssignmentTableProps) => {
                 </td>
                 <td className="py-3 px-4 text-center">
                   {(a as any).driveUrl ? (
-                    <FolderOpen className="h-3.5 w-3.5 text-primary mx-auto" />
+                    <a
+                      href={(a as any).driveUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className="inline-flex"
+                    >
+                      <FolderOpen className="h-3.5 w-3.5 text-primary mx-auto hover:text-primary/70 transition-colors" />
+                    </a>
                   ) : (
                     <FolderOpen className="h-3.5 w-3.5 text-muted-foreground/30 mx-auto" />
                   )}
