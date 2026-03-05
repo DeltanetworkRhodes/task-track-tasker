@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { zipSync, strToU8 } from "https://esm.sh/fflate@0.8.2";
+import { zipSync } from "https://esm.sh/fflate@0.8.2";
+import { PDFDocument, StandardFonts, rgb } from "https://esm.sh/pdf-lib@1.17.1";
 
 function uint8ToBase64(bytes: Uint8Array): string {
   let binary = "";
@@ -17,7 +18,6 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-// Greek month names for folder search
 const greekMonths: Record<number, string> = {
   0: "ΙΑΝΟΥΑΡΙΟΣ", 1: "ΦΕΒΡΟΥΑΡΙΟΣ", 2: "ΜΑΡΤΙΟΣ",
   3: "ΑΠΡΙΛΙΟΣ", 4: "ΜΑΙΟΣ", 5: "ΙΟΥΝΙΟΣ",
@@ -25,11 +25,15 @@ const greekMonths: Record<number, string> = {
   9: "ΟΚΤΩΒΡΙΟΣ", 10: "ΝΟΕΜΒΡΙΟΣ", 11: "ΔΕΚΕΜΒΡΙΟΣ",
 };
 
-// Area root folder IDs in Drive
 const areaRootFolders: Record<string, string> = {
   "ΡΟΔΟΣ": "1JvcSG3tiOplSujXhb3yj_ELQLjfrgOzO",
   "ΚΩΣ": "1X1mtK4tV_sgGM9IdizNSK7AS19qX1nYl",
 };
+
+// Required file types for a complete survey
+const REQUIRED_FILE_TYPES = ["building_photo", "screenshot", "inspection_form"];
+
+// ─── Google Drive helpers ────────────────────────────────────────────
 
 async function getAccessToken(serviceAccountKey: any): Promise<string> {
   const now = Math.floor(Date.now() / 1000);
@@ -59,11 +63,7 @@ async function getAccessToken(serviceAccountKey: any): Promise<string> {
   );
 
   const signatureInput = new TextEncoder().encode(`${header}.${payload}`);
-  const signature = await crypto.subtle.sign(
-    "RSASSA-PKCS1-v1_5",
-    cryptoKey,
-    signatureInput
-  );
+  const signature = await crypto.subtle.sign("RSASSA-PKCS1-v1_5", cryptoKey, signatureInput);
 
   const signatureB64 = uint8ToBase64(new Uint8Array(signature))
     .replace(/\+/g, "-")
@@ -71,7 +71,6 @@ async function getAccessToken(serviceAccountKey: any): Promise<string> {
     .replace(/=+$/, "");
 
   const jwt = `${header}.${payload}.${signatureB64}`;
-
   const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -84,9 +83,7 @@ async function getAccessToken(serviceAccountKey: any): Promise<string> {
 
 async function driveSearch(accessToken: string, query: string): Promise<any[]> {
   const url = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&fields=files(id,name,mimeType,webViewLink)&pageSize=50&supportsAllDrives=true&includeItemsFromAllDrives=true`;
-  const res = await fetch(url, {
-    headers: { Authorization: `Bearer ${accessToken}` },
-  });
+  const res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
   if (!res.ok) throw new Error(await res.text());
   return (await res.json()).files || [];
 }
@@ -94,10 +91,7 @@ async function driveSearch(accessToken: string, query: string): Promise<any[]> {
 async function createDriveFolder(accessToken: string, name: string, parentId: string): Promise<any> {
   const res = await fetch("https://www.googleapis.com/drive/v3/files?fields=id,name,webViewLink&supportsAllDrives=true", {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      "Content-Type": "application/json",
-    },
+    headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
     body: JSON.stringify({
       name,
       mimeType: "application/vnd.google-apps.folder",
@@ -109,11 +103,8 @@ async function createDriveFolder(accessToken: string, name: string, parentId: st
 }
 
 async function uploadFileToDrive(
-  accessToken: string,
-  fileName: string,
-  mimeType: string,
-  fileData: Uint8Array,
-  parentId: string
+  accessToken: string, fileName: string, mimeType: string,
+  fileData: Uint8Array, parentId: string
 ): Promise<any> {
   const metadata = JSON.stringify({ name: fileName, parents: [parentId] });
   const boundary = "===boundary===";
@@ -138,45 +129,167 @@ async function uploadFileToDrive(
   return await res.json();
 }
 
-async function findOlokliromenesFolderId(
-  accessToken: string,
-  area: string
-): Promise<string | null> {
+async function moveDriveFile(accessToken: string, fileId: string, fromParentId: string, toParentId: string): Promise<void> {
+  const res = await fetch(
+    `https://www.googleapis.com/drive/v3/files/${fileId}?addParents=${toParentId}&removeParents=${fromParentId}&supportsAllDrives=true`,
+    {
+      method: "PATCH",
+      headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+    }
+  );
+  if (!res.ok) throw new Error(`Move failed: ${await res.text()}`);
+}
+
+// Find or create a subfolder inside a parent
+async function findOrCreateFolder(accessToken: string, name: string, parentId: string): Promise<any> {
+  const existing = await driveSearch(
+    accessToken,
+    `name = '${name}' and '${parentId}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`
+  );
+  if (existing.length > 0) return existing[0];
+  return await createDriveFolder(accessToken, name, parentId);
+}
+
+// Get the target parent folder (ΑΝΑΜΟΝΗ or ΟΛΟΚΛΗΡΩΜΕΝΕΣ ΑΥΤΟΨΙΕΣ) under area → month
+async function getTargetParentFolder(
+  accessToken: string, area: string, isComplete: boolean
+): Promise<{ folderId: string; folderType: string } | null> {
   const rootId = areaRootFolders[area];
   if (!rootId) return null;
 
-  // Structure: Root (ΡΟΔΟΣ/ΚΩΣ) → ΜΗΝΑΣ (π.χ. ΜΑΡΤΙΟΣ) → ΟΛΟΚΛΗΡΩΜΕΝΕΣ ΑΥΤΟΨΙΕΣ
   const currentMonth = greekMonths[new Date().getMonth()];
   console.log(`Looking for month folder: ${currentMonth} under root ${rootId}`);
 
-  // Step 1: Find the current month folder
-  const monthFolders = await driveSearch(
-    accessToken,
-    `name = '${currentMonth}' and '${rootId}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`
-  );
+  // Find month folder
+  const monthFolder = await findOrCreateFolder(accessToken, currentMonth, rootId);
+  console.log(`Month folder: ${monthFolder.name} (${monthFolder.id})`);
 
-  if (monthFolders.length === 0) {
-    console.warn(`Month folder ${currentMonth} not found for area: ${area}`);
-    return null;
-  }
+  // Determine target subfolder
+  const targetName = isComplete ? "ΟΛΟΚΛΗΡΩΜΕΝΕΣ ΑΥΤΟΨΙΕΣ" : "ΑΝΑΜΟΝΗ";
+  const targetFolder = await findOrCreateFolder(accessToken, targetName, monthFolder.id);
+  console.log(`Target folder: ${targetFolder.name} (${targetFolder.id})`);
 
-  const monthFolderId = monthFolders[0].id;
-  console.log(`Found month folder: ${currentMonth} (${monthFolderId})`);
-
-  // Step 2: Find ΟΛΟΚΛΗΡΩΜΕΝΕΣ ΑΥΤΟΨΙΕΣ inside the month folder
-  const folders = await driveSearch(
-    accessToken,
-    `name = 'ΟΛΟΚΛΗΡΩΜΕΝΕΣ ΑΥΤΟΨΙΕΣ' and '${monthFolderId}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`
-  );
-
-  if (folders.length === 0) {
-    console.warn(`ΟΛΟΚΛΗΡΩΜΕΝΕΣ ΑΥΤΟΨΙΕΣ folder not found under ${currentMonth} for area: ${area}`);
-    return null;
-  }
-
-  console.log(`Found ΟΛΟΚΛΗΡΩΜΕΝΕΣ ΑΥΤΟΨΙΕΣ folder: ${folders[0].id}`);
-  return folders[0].id;
+  return { folderId: targetFolder.id, folderType: targetName };
 }
+
+// ─── PDF Generation ──────────────────────────────────────────────────
+
+async function generateInspectionPDF(data: {
+  sr_id: string;
+  customerName: string;
+  address: string;
+  phone: string;
+  area: string;
+  comments: string;
+  fileTypes: string[];
+  missingTypes: string[];
+  technicianName: string;
+  date: string;
+}): Promise<Uint8Array> {
+  const pdfDoc = await PDFDocument.create();
+  const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+  const page = pdfDoc.addPage([595, 842]); // A4
+
+  const blue = rgb(0.1, 0.45, 0.91);
+  const black = rgb(0, 0, 0);
+  const gray = rgb(0.4, 0.4, 0.4);
+  const green = rgb(0.1, 0.6, 0.2);
+  const red = rgb(0.8, 0.1, 0.1);
+
+  let y = 780;
+  const leftMargin = 50;
+
+  // Header
+  page.drawText("DELTIO AUTOPSIA", { x: leftMargin, y, font: fontBold, size: 22, color: blue });
+  y -= 30;
+  page.drawText("DeltaNet FTTH - Inspection Report", { x: leftMargin, y, font, size: 11, color: gray });
+  y -= 10;
+
+  // Divider
+  page.drawLine({ start: { x: leftMargin, y }, end: { x: 545, y }, thickness: 1, color: blue });
+  y -= 30;
+
+  // Info rows
+  const drawRow = (label: string, value: string, color = black) => {
+    page.drawText(label, { x: leftMargin, y, font: fontBold, size: 11, color: gray });
+    page.drawText(value, { x: leftMargin + 140, y, font, size: 11, color });
+    y -= 22;
+  };
+
+  drawRow("SR ID:", data.sr_id);
+  drawRow("Customer:", data.customerName);
+  drawRow("Address:", data.address || "-");
+  drawRow("Phone:", data.phone || "-");
+  drawRow("Area:", data.area);
+  drawRow("Technician:", data.technicianName);
+  drawRow("Date:", data.date);
+
+  y -= 10;
+  page.drawLine({ start: { x: leftMargin, y }, end: { x: 545, y }, thickness: 0.5, color: gray });
+  y -= 25;
+
+  // File status
+  page.drawText("FILE STATUS", { x: leftMargin, y, font: fontBold, size: 14, color: blue });
+  y -= 25;
+
+  const fileTypeLabels: Record<string, string> = {
+    building_photo: "Building Photos",
+    screenshot: "Screenshots (XEMD & AutoCAD)",
+    inspection_form: "Inspection Form Photo",
+  };
+
+  for (const ft of REQUIRED_FILE_TYPES) {
+    const present = data.fileTypes.includes(ft);
+    const status = present ? "[OK]" : "[MISSING]";
+    const statusColor = present ? green : red;
+    page.drawText(status, { x: leftMargin, y, font: fontBold, size: 10, color: statusColor });
+    page.drawText(fileTypeLabels[ft] || ft, { x: leftMargin + 70, y, font, size: 10, color: black });
+    y -= 20;
+  }
+
+  y -= 10;
+
+  // Overall status
+  const isComplete = data.missingTypes.length === 0;
+  const statusText = isComplete ? "COMPLETE - PRODESMEUSI YLIKON" : "INCOMPLETE - PENDING FILES";
+  const statusColor = isComplete ? green : red;
+  page.drawText("Status: ", { x: leftMargin, y, font: fontBold, size: 12, color: black });
+  page.drawText(statusText, { x: leftMargin + 60, y, font: fontBold, size: 12, color: statusColor });
+  y -= 30;
+
+  // Comments
+  if (data.comments) {
+    page.drawText("COMMENTS", { x: leftMargin, y, font: fontBold, size: 14, color: blue });
+    y -= 22;
+    // Word-wrap comments
+    const words = data.comments.split(" ");
+    let line = "";
+    for (const word of words) {
+      const test = line ? `${line} ${word}` : word;
+      if (font.widthOfTextAtSize(test, 10) > 480) {
+        page.drawText(line, { x: leftMargin, y, font, size: 10, color: black });
+        y -= 16;
+        line = word;
+      } else {
+        line = test;
+      }
+    }
+    if (line) {
+      page.drawText(line, { x: leftMargin, y, font, size: 10, color: black });
+      y -= 16;
+    }
+  }
+
+  // Footer
+  page.drawText(`Generated: ${new Date().toISOString()}`, {
+    x: leftMargin, y: 30, font, size: 8, color: gray,
+  });
+
+  return await pdfDoc.save();
+}
+
+// ─── Main handler ────────────────────────────────────────────────────
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -184,7 +297,6 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Auth check
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
@@ -198,8 +310,6 @@ Deno.serve(async (req) => {
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
     const token = authHeader.replace("Bearer ", "");
-    
-    // Allow service role key as auth (for internal/automated calls)
     const isServiceRole = token === serviceRoleKey;
     if (!isServiceRole) {
       const { data: { user }, error: userError } = await adminClient.auth.getUser(token);
@@ -219,9 +329,9 @@ Deno.serve(async (req) => {
       });
     }
 
-    console.log(`Processing survey completion: SR ${sr_id}, area ${area}`);
+    console.log(`Processing survey: SR ${sr_id}, area ${area}`);
 
-    // 1. Get assignment info for customer details
+    // 1. Get assignment info
     const { data: assignment } = await adminClient
       .from("assignments")
       .select("customer_name, address, phone")
@@ -229,11 +339,28 @@ Deno.serve(async (req) => {
       .limit(1)
       .single();
 
-    const customerName = assignment?.customer_name || "ΑΓΝΩΣΤΟ";
+    const customerName = assignment?.customer_name || "UNKNOWN";
     const address = assignment?.address || "";
     const phone = assignment?.phone || "";
 
-    // 2. Get survey files from DB
+    // 2. Get survey info (for technician name)
+    const { data: survey } = await adminClient
+      .from("surveys")
+      .select("technician_id, comments")
+      .eq("id", survey_id)
+      .single();
+
+    let technicianName = "Technician";
+    if (survey?.technician_id) {
+      const { data: profile } = await adminClient
+        .from("profiles")
+        .select("full_name")
+        .eq("user_id", survey.technician_id)
+        .single();
+      technicianName = profile?.full_name || "Technician";
+    }
+
+    // 3. Get survey files & check completeness
     const { data: surveyFiles } = await adminClient
       .from("survey_files")
       .select("*")
@@ -246,7 +373,13 @@ Deno.serve(async (req) => {
       });
     }
 
-    // 3. Download all files from Supabase storage
+    const presentTypes = [...new Set(surveyFiles.map((f: any) => f.file_type))];
+    const missingTypes = REQUIRED_FILE_TYPES.filter((t) => !presentTypes.includes(t));
+    const isComplete = missingTypes.length === 0;
+
+    console.log(`File check: present=${presentTypes.join(",")}, missing=${missingTypes.join(",")}, complete=${isComplete}`);
+
+    // 4. Download all files from storage
     const fileEntries: Record<string, Uint8Array> = {};
     for (const sf of surveyFiles) {
       const { data: fileData, error: dlError } = await adminClient.storage
@@ -267,24 +400,92 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Folder name: SR_ID - ΟΝΟΜΑ - ΔΙΕΥΘΥΝΣΗ
-    const folderName = `${sr_id} - ${customerName}${address ? ` - ${address}` : ""}`;
+    // 5. Generate PDF inspection report
+    const now = new Date();
+    const dateStr = `${now.getDate().toString().padStart(2, "0")}/${(now.getMonth() + 1).toString().padStart(2, "0")}/${now.getFullYear()}`;
+    
+    const pdfBytes = await generateInspectionPDF({
+      sr_id,
+      customerName,
+      address,
+      phone,
+      area,
+      comments: survey?.comments || "",
+      fileTypes: presentTypes,
+      missingTypes,
+      technicianName,
+      date: dateStr,
+    });
 
-    // 4. Google Drive: Create folder in ΟΛΟΚΛΗΡΩΜΕΝΕΣ ΑΥΤΟΨΙΕΣ
+    const pdfFileName = `Deltio_Autopsias_${sr_id}.pdf`;
+    fileEntries[pdfFileName] = pdfBytes;
+    console.log(`Generated PDF: ${pdfFileName} (${pdfBytes.length} bytes)`);
+
+    // 6. Google Drive: create folder in correct location
+    const folderName = `${sr_id} - ${customerName}`;
     let driveFolderUrl = "";
+    let driveTargetType = "";
+
     const serviceAccountKeyStr = Deno.env.get("GOOGLE_SERVICE_ACCOUNT_KEY");
     if (serviceAccountKeyStr) {
       try {
         const serviceAccountKey = JSON.parse(serviceAccountKeyStr);
         const accessToken = await getAccessToken(serviceAccountKey);
 
-        const parentFolderId = await findOlokliromenesFolderId(accessToken, area);
-        if (parentFolderId) {
-          const folder = await createDriveFolder(accessToken, folderName, parentFolderId);
-          driveFolderUrl = folder.webViewLink || `https://drive.google.com/drive/folders/${folder.id}`;
-          console.log(`Created Drive folder: ${folder.name} (${folder.id})`);
+        const target = await getTargetParentFolder(accessToken, area, isComplete);
+        if (target) {
+          driveTargetType = target.folderType;
 
-          // Upload files to Drive folder
+          // Check if folder already exists (e.g. was in ΑΝΑΜΟΝΗ, now moving to ΟΛΟΚΛΗΡΩΜΕΝΕΣ)
+          const existingInTarget = await driveSearch(
+            accessToken,
+            `name = '${folderName}' and '${target.folderId}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`
+          );
+
+          let folder: any;
+          if (existingInTarget.length > 0) {
+            folder = existingInTarget[0];
+            console.log(`Found existing folder in ${target.folderType}: ${folder.id}`);
+          } else {
+            // Check if it exists in the OTHER folder (needs moving)
+            const otherTargetName = isComplete ? "ΑΝΑΜΟΝΗ" : "ΟΛΟΚΛΗΡΩΜΕΝΕΣ ΑΥΤΟΨΙΕΣ";
+            const rootId = areaRootFolders[area];
+            const currentMonth = greekMonths[now.getMonth()];
+            const monthFolders = await driveSearch(
+              accessToken,
+              `name = '${currentMonth}' and '${rootId}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`
+            );
+
+            let movedFromOther = false;
+            if (monthFolders.length > 0) {
+              const otherFolders = await driveSearch(
+                accessToken,
+                `name = '${otherTargetName}' and '${monthFolders[0].id}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`
+              );
+              if (otherFolders.length > 0) {
+                const existingInOther = await driveSearch(
+                  accessToken,
+                  `name = '${folderName}' and '${otherFolders[0].id}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`
+                );
+                if (existingInOther.length > 0) {
+                  // Move from other folder to target
+                  await moveDriveFile(accessToken, existingInOther[0].id, otherFolders[0].id, target.folderId);
+                  folder = existingInOther[0];
+                  movedFromOther = true;
+                  console.log(`Moved folder from ${otherTargetName} to ${target.folderType}`);
+                }
+              }
+            }
+
+            if (!folder) {
+              folder = await createDriveFolder(accessToken, folderName, target.folderId);
+              console.log(`Created folder: ${folder.name} in ${target.folderType}`);
+            }
+          }
+
+          driveFolderUrl = folder.webViewLink || `https://drive.google.com/drive/folders/${folder.id}`;
+
+          // Upload all files (including PDF) to Drive folder
           for (const [fileName, fileData] of Object.entries(fileEntries)) {
             const ext = fileName.split(".").pop()?.toLowerCase() || "";
             const mimeMap: Record<string, string> = {
@@ -301,113 +502,114 @@ Deno.serve(async (req) => {
             .from("assignments")
             .update({ drive_folder_url: driveFolderUrl })
             .eq("sr_id", sr_id);
-        } else {
-          console.warn(`ΟΛΟΚΛΗΡΩΜΕΝΕΣ ΑΥΤΟΨΙΕΣ folder not found for area: ${area}`);
         }
       } catch (driveErr) {
         console.error("Drive error (non-blocking):", driveErr);
       }
     }
 
-    // 5. Update assignment status to pre_committed
+    // 7. Update status based on completeness
+    const newStatus = isComplete ? "pre_committed" : "pending";
     await adminClient
       .from("assignments")
-      .update({ status: "pre_committed" })
+      .update({ status: newStatus })
       .eq("sr_id", sr_id);
-    console.log(`Assignment ${sr_id} status → pre_committed`);
+    console.log(`Assignment ${sr_id} status → ${newStatus}`);
 
-    // 6. Create ZIP file
-    const zipData = zipSync(fileEntries);
-    const zipFileName = `${folderName}.zip`;
+    // 8. Send email only if COMPLETE
+    let emailSent = false;
+    if (isComplete) {
+      const resendApiKey = Deno.env.get("RESEND_API_KEY");
+      const { data: emailSettings } = await adminClient
+        .from("email_settings")
+        .select("setting_key, setting_value");
 
-    // 7. Send email with ZIP via Resend
-    const resendApiKey = Deno.env.get("RESEND_API_KEY");
-    
-    // Get email recipients from email_settings table
-    const { data: emailSettings } = await adminClient
-      .from("email_settings")
-      .select("setting_key, setting_value");
+      const settingsMap: Record<string, string> = {};
+      (emailSettings || []).forEach((s: any) => {
+        settingsMap[s.setting_key] = s.setting_value;
+      });
 
-    const settingsMap: Record<string, string> = {};
-    (emailSettings || []).forEach((s: any) => {
-      settingsMap[s.setting_key] = s.setting_value;
-    });
+      const toEmails = settingsMap["report_to_emails"] || "";
+      const ccEmails = settingsMap["report_cc_emails"] || "";
+      const recipients = toEmails.split(",").map((e: string) => e.trim()).filter(Boolean);
+      const ccRecipients = ccEmails.split(",").map((e: string) => e.trim()).filter(Boolean);
 
-    const toEmails = settingsMap["report_to_emails"] || "";
-    const ccEmails = settingsMap["report_cc_emails"] || "";
-    const recipients = toEmails.split(",").map((e: string) => e.trim()).filter(Boolean);
-    const ccRecipients = ccEmails.split(",").map((e: string) => e.trim()).filter(Boolean);
+      if (resendApiKey && recipients.length > 0) {
+        try {
+          const zipData = zipSync(fileEntries);
+          const zipBase64 = uint8ToBase64(zipData);
+          const zipFileName = `${folderName}.zip`;
 
-    if (resendApiKey && recipients.length > 0) {
-      try {
-        const zipBase64 = uint8ToBase64(zipData);
+          const escapedSrId = sr_id.replace(/[<>&"']/g, (c: string) => `&#${c.charCodeAt(0)};`);
+          const escapedName = customerName.replace(/[<>&"']/g, (c: string) => `&#${c.charCodeAt(0)};`);
+          const escapedAddress = address.replace(/[<>&"']/g, (c: string) => `&#${c.charCodeAt(0)};`);
+          const escapedPhone = phone.replace(/[<>&"']/g, (c: string) => `&#${c.charCodeAt(0)};`);
 
-        const emailHtml = `
-          <div style="font-family:Arial,sans-serif;padding:20px;">
-            <h2 style="color:#1a73e8;">Ολοκληρωμένη Αυτοψία - ${sr_id}</h2>
-            <table style="border-collapse:collapse;margin:16px 0;">
-              <tr><td style="padding:4px 12px 4px 0;font-weight:bold;">SR ID:</td><td>${sr_id}</td></tr>
-              <tr><td style="padding:4px 12px 4px 0;font-weight:bold;">Πελάτης:</td><td>${customerName}</td></tr>
-              <tr><td style="padding:4px 12px 4px 0;font-weight:bold;">Διεύθυνση:</td><td>${address || "—"}</td></tr>
-              <tr><td style="padding:4px 12px 4px 0;font-weight:bold;">Τηλέφωνο:</td><td>${phone || "—"}</td></tr>
-              <tr><td style="padding:4px 12px 4px 0;font-weight:bold;">Περιοχή:</td><td>${area}</td></tr>
-              <tr><td style="padding:4px 12px 4px 0;font-weight:bold;">Αρχεία:</td><td>${surveyFiles.length} αρχεία</td></tr>
-              ${driveFolderUrl ? `<tr><td style="padding:4px 12px 4px 0;font-weight:bold;">Drive:</td><td><a href="${driveFolderUrl}">Άνοιγμα φακέλου</a></td></tr>` : ""}
-            </table>
-            <p style="color:#666;font-size:13px;">Το συνημμένο ZIP περιέχει όλα τα αρχεία αυτοψίας.</p>
-          </div>
-        `;
+          const emailHtml = `
+            <div style="font-family:Arial,sans-serif;padding:20px;">
+              <h2 style="color:#1a73e8;">Ολοκληρωμένη Αυτοψία - ${escapedSrId}</h2>
+              <table style="border-collapse:collapse;margin:16px 0;">
+                <tr><td style="padding:4px 12px 4px 0;font-weight:bold;">SR ID:</td><td>${escapedSrId}</td></tr>
+                <tr><td style="padding:4px 12px 4px 0;font-weight:bold;">Πελάτης:</td><td>${escapedName}</td></tr>
+                <tr><td style="padding:4px 12px 4px 0;font-weight:bold;">Διεύθυνση:</td><td>${escapedAddress || "—"}</td></tr>
+                <tr><td style="padding:4px 12px 4px 0;font-weight:bold;">Τηλέφωνο:</td><td>${escapedPhone || "—"}</td></tr>
+                <tr><td style="padding:4px 12px 4px 0;font-weight:bold;">Περιοχή:</td><td>${area}</td></tr>
+                <tr><td style="padding:4px 12px 4px 0;font-weight:bold;">Τεχνικός:</td><td>${technicianName}</td></tr>
+                <tr><td style="padding:4px 12px 4px 0;font-weight:bold;">Αρχεία:</td><td>${surveyFiles.length} αρχεία + PDF δελτίο</td></tr>
+                ${driveFolderUrl ? `<tr><td style="padding:4px 12px 4px 0;font-weight:bold;">Drive:</td><td><a href="${driveFolderUrl}">Άνοιγμα φακέλου</a></td></tr>` : ""}
+              </table>
+              <p style="color:#666;font-size:13px;">Το συνημμένο ZIP περιέχει όλα τα αρχεία αυτοψίας και το PDF δελτίο.</p>
+            </div>
+          `;
 
-        const emailPayload: any = {
+          const emailPayload: any = {
             from: "DeltaNet FTTH <onboarding@resend.dev>",
             to: recipients,
             subject: `Αυτοψία ${sr_id} - ${customerName} - ΠΡΟΔΕΣΜΕΥΣΗ ΥΛΙΚΩΝ`,
             html: emailHtml,
-            attachments: [
-              {
-                filename: zipFileName,
-                content: zipBase64,
-              },
-            ],
+            attachments: [{ filename: zipFileName, content: zipBase64 }],
           };
 
           if (ccRecipients.length > 0) {
             emailPayload.cc = ccRecipients;
           }
 
-        const emailRes = await fetch("https://api.resend.com/emails", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${resendApiKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(emailPayload),
-        });
+          const emailRes = await fetch("https://api.resend.com/emails", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${resendApiKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(emailPayload),
+          });
 
-        if (!emailRes.ok) {
-          console.error("Resend error:", await emailRes.text());
-        } else {
-          console.log(`Email sent to: ${recipients.join(", ")}`);
-          // Mark survey email_sent
-          await adminClient
-            .from("surveys")
-            .update({ email_sent: true })
-            .eq("id", survey_id);
+          if (!emailRes.ok) {
+            console.error("Resend error:", await emailRes.text());
+          } else {
+            console.log(`Email sent to: ${recipients.join(", ")}`);
+            emailSent = true;
+            await adminClient
+              .from("surveys")
+              .update({ email_sent: true })
+              .eq("id", survey_id);
+          }
+        } catch (emailErr) {
+          console.error("Email error (non-blocking):", emailErr);
         }
-      } catch (emailErr) {
-        console.error("Email error (non-blocking):", emailErr);
       }
-    } else {
-      console.warn("No Resend API key or no recipients configured");
     }
 
     return new Response(
       JSON.stringify({
         success: true,
+        is_complete: isComplete,
+        missing_types: missingTypes,
         folder_name: folderName,
         drive_folder_url: driveFolderUrl || null,
-        email_sent: resendApiKey && recipients.length > 0,
+        drive_target: driveTargetType,
+        email_sent: emailSent,
         files_count: Object.keys(fileEntries).length,
+        pdf_generated: true,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
