@@ -65,7 +65,7 @@ async function getAccessToken(serviceAccountKey: any): Promise<string> {
     signatureInput
   );
 
-  const signatureB64 = base64Encode(new Uint8Array(signature))
+  const signatureB64 = uint8ToBase64(new Uint8Array(signature))
     .replace(/\+/g, "-")
     .replace(/\//g, "_")
     .replace(/=+$/, "");
