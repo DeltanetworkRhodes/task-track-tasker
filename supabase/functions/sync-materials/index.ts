@@ -96,14 +96,34 @@ Deno.serve(async (req) => {
       // Items with price > 0 are DELTANETWORK, price = 0 are OTE
       const source = price > 0 ? "DELTANETWORK" : "OTE";
 
-      const { error } = await supabase.from("materials").upsert(
-        { code, name, price, stock, unit, source },
-        { onConflict: "code" }
-      );
-      if (error) {
-        results.errors.push(`Material ${code}: ${error.message}`);
+      // Check if material already exists
+      const { data: existing } = await supabase
+        .from("materials")
+        .select("id")
+        .eq("code", code)
+        .limit(1);
+
+      if (existing && existing.length > 0) {
+        // Update name, price, unit but NOT stock (stock is managed via PDF uploads / manual edits)
+        const { error } = await supabase
+          .from("materials")
+          .update({ name, price, unit, source })
+          .eq("code", code);
+        if (error) {
+          results.errors.push(`Material ${code}: ${error.message}`);
+        } else {
+          results.materials++;
+        }
       } else {
-        results.materials++;
+        // New material — insert with stock from sheet
+        const { error } = await supabase.from("materials").insert(
+          { code, name, price, stock, unit, source }
+        );
+        if (error) {
+          results.errors.push(`Material ${code}: ${error.message}`);
+        } else {
+          results.materials++;
+        }
       }
     }
 
