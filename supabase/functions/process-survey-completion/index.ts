@@ -378,10 +378,6 @@ Deno.serve(async (req) => {
           },
           body: JSON.stringify(emailPayload),
         });
-              },
-            ],
-          }),
-        });
 
         if (!emailRes.ok) {
           console.error("Resend error:", await emailRes.text());
