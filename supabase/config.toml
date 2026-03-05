@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.send-survey-report]
 verify_jwt = false
+
+[functions.send-inspection-email]
+verify_jwt = false
