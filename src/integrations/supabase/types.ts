@@ -232,6 +232,74 @@ export type Database = {
         }
         Relationships: []
       }
+      survey_files: {
+        Row: {
+          created_at: string
+          file_name: string
+          file_path: string
+          file_type: string
+          id: string
+          survey_id: string
+        }
+        Insert: {
+          created_at?: string
+          file_name: string
+          file_path: string
+          file_type: string
+          id?: string
+          survey_id: string
+        }
+        Update: {
+          created_at?: string
+          file_name?: string
+          file_path?: string
+          file_type?: string
+          id?: string
+          survey_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "survey_files_survey_id_fkey"
+            columns: ["survey_id"]
+            isOneToOne: false
+            referencedRelation: "surveys"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      surveys: {
+        Row: {
+          area: string
+          comments: string | null
+          created_at: string
+          id: string
+          sr_id: string
+          status: string
+          technician_id: string
+          updated_at: string
+        }
+        Insert: {
+          area: string
+          comments?: string | null
+          created_at?: string
+          id?: string
+          sr_id: string
+          status?: string
+          technician_id: string
+          updated_at?: string
+        }
+        Update: {
+          area?: string
+          comments?: string | null
+          created_at?: string
+          id?: string
+          sr_id?: string
+          status?: string
+          technician_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
