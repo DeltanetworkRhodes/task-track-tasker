@@ -120,7 +120,7 @@ async function uploadFileToDrive(
   const body =
     `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${metadata}\r\n` +
     `--${boundary}\r\nContent-Type: ${mimeType}\r\nContent-Transfer-Encoding: base64\r\n\r\n` +
-    base64Encode(fileData) +
+    uint8ToBase64(fileData) +
     `\r\n--${boundary}--`;
 
   const res = await fetch(
