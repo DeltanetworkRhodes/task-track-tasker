@@ -17,6 +17,7 @@ import UserManagement from "./pages/UserManagement";
 import TechnicianDashboard from "./pages/TechnicianDashboard";
 import PendingApproval from "./pages/PendingApproval";
 import ResetPassword from "./pages/ResetPassword";
+import InstallApp from "./pages/InstallApp";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -57,6 +58,7 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
+            <Route path="/install" element={<InstallApp />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/" element={<ProtectedRoute><RoleGate><RoleRouter /></RoleGate></ProtectedRoute>} />
