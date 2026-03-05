@@ -339,26 +339,19 @@ Deno.serve(async (req) => {
       });
     }
 
-    // 5. Generate PDF inspection report
-    const now = new Date();
-    const dateStr = `${now.getDate().toString().padStart(2, "0")}/${(now.getMonth() + 1).toString().padStart(2, "0")}/${now.getFullYear()}`;
-    
-    const pdfBytes = await generateInspectionPDF({
-      sr_id,
-      customerName,
-      address,
-      phone,
-      area,
-      comments: survey?.comments || "",
-      fileTypes: presentTypes,
-      missingTypes,
-      technicianName,
-      date: dateStr,
-    });
+    // 5. Generate PDF from inspection form photos
+    const inspectionFiles = surveyFiles.filter((f: any) => f.file_type === "inspection_form");
+    const inspectionImages: { fileName: string; data: Uint8Array }[] = [];
+    for (const sf of inspectionFiles) {
+      if (fileEntries[sf.file_name]) {
+        inspectionImages.push({ fileName: sf.file_name, data: fileEntries[sf.file_name] });
+      }
+    }
 
+    const pdfBytes = await generateInspectionPDF(inspectionImages);
     const pdfFileName = `Deltio_Autopsias_${sr_id}.pdf`;
     fileEntries[pdfFileName] = pdfBytes;
-    console.log(`Generated PDF: ${pdfFileName} (${pdfBytes.length} bytes)`);
+    console.log(`Generated PDF from ${inspectionImages.length} inspection photos: ${pdfFileName} (${pdfBytes.length} bytes)`);
 
     // 6. Google Drive: create folder in correct location
     const folderName = `${sr_id} - ${customerName}`;
