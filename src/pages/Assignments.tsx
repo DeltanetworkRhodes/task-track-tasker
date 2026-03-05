@@ -44,6 +44,8 @@ const Assignments = () => {
 
   const filtered = assignments.filter((a) => {
     const q = search.toLowerCase();
+    if (statusFilter === "active" && a.status === "cancelled") return false;
+    if (statusFilter === "cancelled" && a.status !== "cancelled") return false;
     if (areaFilter !== "all" && a.area !== areaFilter) return false;
     if (sourceFilter !== "all" && (a as any).sourceTab !== sourceFilter) return false;
     if (q && !a.srId.toLowerCase().includes(q) && !(a as any).customerName?.toLowerCase().includes(q)) return false;
