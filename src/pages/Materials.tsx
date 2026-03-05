@@ -26,11 +26,11 @@ const MaterialTable = ({ items, hasRealData, editingId, editValues, onEdit, onSa
   items: MaterialItem[];
   hasRealData: boolean;
   editingId: string | null;
-  editValues: { stock: string; price: string };
+  editValues: { stock: string; price: string; name: string; unit: string };
   onEdit: (m: MaterialItem) => void;
   onSave: () => void;
   onCancel: () => void;
-  onEditChange: (field: 'stock' | 'price', val: string) => void;
+  onEditChange: (field: 'stock' | 'price' | 'name' | 'unit', val: string) => void;
   sortField: SortField;
   sortDir: SortDir;
   toggleSort: (f: SortField) => void;
@@ -68,7 +68,16 @@ const MaterialTable = ({ items, hasRealData, editingId, editValues, onEdit, onSa
             return (
               <tr key={m.id} className={`border-b border-border/50 transition-colors ${isEditing ? 'bg-primary/5' : 'hover:bg-muted/30'}`}>
                 <td className="py-3 px-4 font-mono text-xs font-semibold text-primary">{m.code}</td>
-                <td className="py-3 px-4 font-medium">{m.name}</td>
+                <td className="py-3 px-4 font-medium">
+                  {isEditing ? (
+                    <input
+                      type="text"
+                      value={editValues.name}
+                      onChange={e => onEditChange('name', e.target.value)}
+                      className="w-full rounded-lg border border-primary/30 bg-card px-2 py-1 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    />
+                  ) : m.name}
+                </td>
                 <td className="py-3 px-4 text-right font-mono">
                   {isEditing ? (
                     <input
@@ -81,7 +90,15 @@ const MaterialTable = ({ items, hasRealData, editingId, editValues, onEdit, onSa
                   ) : (
                     <span className={`inline-flex items-center gap-1.5 ${isLow ? 'text-warning font-semibold' : ''}`}>
                       {isLow && <AlertTriangle className="h-3 w-3" />}
-                      {m.stock.toLocaleString('el-GR')} {m.unit}
+                      {m.stock.toLocaleString('el-GR')}{' '}
+                      {isEditing ? (
+                        <input
+                          type="text"
+                          value={editValues.unit}
+                          onChange={e => onEditChange('unit', e.target.value)}
+                          className="w-16 rounded-lg border border-primary/30 bg-card px-1 py-0.5 text-xs focus:border-primary focus:outline-none"
+                        />
+                      ) : m.unit}
                     </span>
                   )}
                 </td>
@@ -137,7 +154,7 @@ const Materials = () => {
   const [addOpen, setAddOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editValues, setEditValues] = useState({ stock: '', price: '' });
+  const [editValues, setEditValues] = useState({ stock: '', price: '', name: '', unit: '' });
   const [syncing, setSyncing] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadOpen, setUploadOpen] = useState(false);
@@ -273,7 +290,7 @@ const Materials = () => {
 
   const startEdit = (m: MaterialItem) => {
     setEditingId(m.id);
-    setEditValues({ stock: String(m.stock), price: String(m.price) });
+    setEditValues({ stock: String(m.stock), price: String(m.price), name: m.name, unit: m.unit });
   };
 
   const cancelEdit = () => setEditingId(null);
@@ -284,6 +301,8 @@ const Materials = () => {
       const { error } = await supabase.from('materials').update({
         stock: Number(editValues.stock) || 0,
         price: Number(editValues.price) || 0,
+        name: editValues.name.trim(),
+        unit: editValues.unit.trim(),
       }).eq('id', editingId);
       if (error) throw error;
       toast.success('Υλικό ενημερώθηκε');
@@ -321,7 +340,7 @@ const Materials = () => {
     onEdit: startEdit,
     onSave: saveEdit,
     onCancel: cancelEdit,
-    onEditChange: (field: 'stock' | 'price', val: string) => setEditValues(v => ({ ...v, [field]: val })),
+    onEditChange: (field: 'stock' | 'price' | 'name' | 'unit', val: string) => setEditValues(v => ({ ...v, [field]: val })),
     sortField,
     sortDir,
     toggleSort,
