@@ -44,6 +44,7 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
   const [updating, setUpdating] = useState<string | null>(null);
   const [selectedAssignment, setSelectedAssignment] = useState<any | null>(null);
   const [showSurveyForm, setShowSurveyForm] = useState(false);
+  const [showConstructionForm, setShowConstructionForm] = useState(false);
   const queryClient = useQueryClient();
 
   // Fetch existing survey for selected assignment
