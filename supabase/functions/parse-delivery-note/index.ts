@@ -116,31 +116,11 @@ IMPORTANT: Return ONLY the JSON array, no markdown, no explanation.`
       extractedMaterials = parsed.materials || [];
     }
 
-    if (extractedMaterials.length === 0) {
-      return new Response(JSON.stringify({
-        success: true,
-        message: "Δεν βρέθηκαν υλικά στο PDF",
-        extracted: [],
-        updated: 0,
-      }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // Reset all OTE materials stock to 0
-    const { error: resetError } = await supabase
-      .from("materials")
-      .update({ stock: 0 })
-      .eq("source", "OTE");
-
-    if (resetError) throw new Error(`Reset error: ${resetError.message}`);
-
-    // Update stock for each extracted material
+    // Update stock for each extracted material (ADD to existing stock)
     let updated = 0;
     const notFound: string[] = [];
 
     for (const item of extractedMaterials) {
-      // Try to match by code
       const { data: existing } = await supabase
         .from("materials")
         .select("id, code, stock")
@@ -149,9 +129,10 @@ IMPORTANT: Return ONLY the JSON array, no markdown, no explanation.`
         .limit(1);
 
       if (existing && existing.length > 0) {
+        const newStock = Number(existing[0].stock) + item.quantity;
         const { error } = await supabase
           .from("materials")
-          .update({ stock: item.quantity })
+          .update({ stock: newStock })
           .eq("id", existing[0].id);
         
         if (!error) updated++;
@@ -165,7 +146,6 @@ IMPORTANT: Return ONLY the JSON array, no markdown, no explanation.`
       extracted: extractedMaterials,
       updated,
       not_found: notFound,
-      total_reset: true,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

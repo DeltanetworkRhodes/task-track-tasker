@@ -147,44 +147,61 @@ const Materials = () => {
   const [form, setForm] = useState({ code: '', name: '', source: 'OTE' as string, stock: '', unit: 'τεμ.', price: '' });
 
   const handlePdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (file.type !== 'application/pdf') {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    
+    const pdfFiles = Array.from(files).filter(f => f.type === 'application/pdf');
+    if (pdfFiles.length === 0) {
       toast.error('Μόνο PDF αρχεία');
       return;
     }
+    
     setUploading(true);
     setUploadResult(null);
+    
+    let totalExtracted = 0;
+    let totalUpdated = 0;
+    const allNotFound: string[] = [];
+    const allExtracted: any[] = [];
+    
     try {
-      const formData = new FormData();
-      formData.append('file', file);
+      for (let i = 0; i < pdfFiles.length; i++) {
+        toast.info(`Ανάγνωση PDF ${i + 1}/${pdfFiles.length}...`);
+        const formData = new FormData();
+        formData.append('file', pdfFiles[i]);
+        
+        const response = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/parse-delivery-note`,
+          {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            },
+            body: formData,
+          }
+        );
+        
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || `Failed: ${pdfFiles[i].name}`);
+        
+        totalExtracted += data.extracted?.length || 0;
+        totalUpdated += data.updated || 0;
+        if (data.not_found) allNotFound.push(...data.not_found);
+        if (data.extracted) allExtracted.push(...data.extracted);
+      }
       
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/parse-delivery-note`,
-        {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-          },
-          body: formData,
-        }
-      );
-      
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Upload failed');
-      
-      setUploadResult(data);
+      setUploadResult({ extracted: allExtracted, updated: totalUpdated, not_found: allNotFound });
       refetch();
       queryClient.invalidateQueries({ queryKey: ["materials"] });
       
-      if (data.updated > 0) {
-        toast.success(`Ενημερώθηκαν ${data.updated} υλικά OTE από το δελτίο αποστολής`);
+      if (totalUpdated > 0) {
+        toast.success(`Ενημερώθηκαν ${totalUpdated} υλικά OTE από ${pdfFiles.length} δελτία`);
       }
-      if (data.not_found?.length > 0) {
-        toast.warning(`${data.not_found.length} κωδικοί δεν βρέθηκαν: ${data.not_found.join(', ')}`);
+      if (allNotFound.length > 0) {
+        toast.warning(`${allNotFound.length} κωδικοί δεν βρέθηκαν`);
       }
-      if (data.extracted?.length === 0) {
-        toast.info('Δεν βρέθηκαν υλικά στο PDF');
+      if (totalExtracted === 0) {
+        toast.info('Δεν βρέθηκαν υλικά στα PDF');
       }
     } catch (err: any) {
       toast.error(err.message);
@@ -325,8 +342,8 @@ const Materials = () => {
           <div className="flex items-center gap-2">
             <label className={`flex items-center gap-2 rounded-xl border border-primary/30 bg-primary/5 px-4 py-2.5 text-sm font-semibold text-primary hover:bg-primary/10 transition-all cursor-pointer ${uploading ? 'opacity-50 pointer-events-none' : ''}`}>
               <Upload className={`h-4 w-4 ${uploading ? 'animate-pulse' : ''}`} />
-              {uploading ? 'Ανάγνωση PDF...' : 'Δελτίο Αποστολής OTE'}
-              <input type="file" accept=".pdf" onChange={handlePdfUpload} className="hidden" disabled={uploading} />
+              {uploading ? 'Ανάγνωση PDF...' : 'Δελτία Αποστολής OTE'}
+              <input type="file" accept=".pdf" multiple onChange={handlePdfUpload} className="hidden" disabled={uploading} />
             </label>
             <button
               onClick={syncFromSheet}
