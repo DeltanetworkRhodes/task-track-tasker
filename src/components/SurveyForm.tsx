@@ -126,6 +126,22 @@ const SurveyForm = ({ assignments }: Props) => {
       toast.success("Η αυτοψία υποβλήθηκε επιτυχώς!");
       setSubmitted(true);
 
+      // Trigger automation: Drive folder, email, status update
+      if (autoStatus === "ΠΡΟΔΕΣΜΕΥΣΗ ΥΛΙΚΩΝ") {
+        try {
+          const { error: procError } = await supabase.functions.invoke("process-survey-completion", {
+            body: { survey_id: survey.id, sr_id: srId.trim(), area },
+          });
+          if (procError) {
+            console.error("Process survey error:", procError);
+          } else {
+            toast.success("Φάκελος Drive + email αποστάλη αυτόματα");
+          }
+        } catch (autoErr) {
+          console.error("Automation error:", autoErr);
+        }
+      }
+
       // Cleanup previews
       [...buildingPhotos, ...screenshots, ...inspectionPhotos].forEach((f) =>
         URL.revokeObjectURL(f.preview)
