@@ -83,7 +83,7 @@ async function getAccessToken(serviceAccountKey: any): Promise<string> {
 }
 
 async function driveSearch(accessToken: string, query: string): Promise<any[]> {
-  const url = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&fields=files(id,name,mimeType,webViewLink)&pageSize=50`;
+  const url = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&fields=files(id,name,mimeType,webViewLink)&pageSize=50&supportsAllDrives=true&includeItemsFromAllDrives=true`;
   const res = await fetch(url, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
@@ -92,7 +92,7 @@ async function driveSearch(accessToken: string, query: string): Promise<any[]> {
 }
 
 async function createDriveFolder(accessToken: string, name: string, parentId: string): Promise<any> {
-  const res = await fetch("https://www.googleapis.com/drive/v3/files?fields=id,name,webViewLink", {
+  const res = await fetch("https://www.googleapis.com/drive/v3/files?fields=id,name,webViewLink&supportsAllDrives=true", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${accessToken}`,
@@ -124,7 +124,7 @@ async function uploadFileToDrive(
     `\r\n--${boundary}--`;
 
   const res = await fetch(
-    "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,webViewLink",
+    "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,webViewLink&supportsAllDrives=true",
     {
       method: "POST",
       headers: {
