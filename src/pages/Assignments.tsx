@@ -12,6 +12,7 @@ const Assignments = () => {
   const { data: dbAssignments, isLoading } = useAssignments();
   const [areaFilter, setAreaFilter] = useState<string>("all");
   const [sourceFilter, setSourceFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("active");
   const [search, setSearch] = useState("");
   const [showCreate, setShowCreate] = useState(false);
 
