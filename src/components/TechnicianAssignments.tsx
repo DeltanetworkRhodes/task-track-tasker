@@ -12,6 +12,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import SurveyForm from "@/components/SurveyForm";
 import IncompleteSurveys from "@/components/IncompleteSurveys";
+import ConstructionForm from "@/components/ConstructionForm";
 
 const statusFlow: { value: string; label: string }[] = [
   { value: "pending", label: "Αναμονή" },
@@ -43,6 +44,7 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
   const [updating, setUpdating] = useState<string | null>(null);
   const [selectedAssignment, setSelectedAssignment] = useState<any | null>(null);
   const [showSurveyForm, setShowSurveyForm] = useState(false);
+  const [showConstructionForm, setShowConstructionForm] = useState(false);
   const queryClient = useQueryClient();
 
   // Fetch existing survey for selected assignment
@@ -151,9 +153,9 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
 
     if (status === "pre_committed") {
       return (
-        <Button size="sm" className="w-full gap-2" disabled>
+        <Button size="sm" className="w-full gap-2" onClick={() => setShowConstructionForm(true)}>
           <HardHat className="h-4 w-4" />
-          Φόρμα Κατασκευής (σύντομα)
+          Φόρμα Κατασκευής
         </Button>
       );
     }
@@ -230,7 +232,7 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
       </div>
 
       {/* SR Detail Sheet */}
-      <Sheet open={!!selectedAssignment} onOpenChange={(open) => { if (!open) { setSelectedAssignment(null); setShowSurveyForm(false); } }}>
+      <Sheet open={!!selectedAssignment} onOpenChange={(open) => { if (!open) { setSelectedAssignment(null); setShowSurveyForm(false); setShowConstructionForm(false); } }}>
         <SheetContent side="bottom" className="h-[90vh] p-0">
           <SheetHeader className="px-4 pt-4 pb-2">
             <SheetTitle className="text-left">
@@ -242,7 +244,7 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
           </SheetHeader>
 
           <ScrollArea className="h-[calc(90vh-80px)] px-4 pb-6">
-            {selectedAssignment && !showSurveyForm && (
+            {selectedAssignment && !showSurveyForm && !showConstructionForm && (
               <div className="space-y-4">
                 {/* Status badge */}
                 <div className="flex items-center gap-2">
@@ -319,6 +321,18 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
                 prefillSrId={selectedAssignment.sr_id}
                 prefillArea={selectedAssignment.area}
                 onComplete={handleSurveyComplete}
+              />
+            )}
+
+            {/* Construction Form (inline in sheet) */}
+            {selectedAssignment && showConstructionForm && (
+              <ConstructionForm
+                assignment={selectedAssignment}
+                onComplete={() => {
+                  setShowConstructionForm(false);
+                  setSelectedAssignment(null);
+                  queryClient.invalidateQueries({ queryKey: ["technician-assignments"] });
+                }}
               />
             )}
           </ScrollArea>

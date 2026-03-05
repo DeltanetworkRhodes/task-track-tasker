@@ -115,6 +115,93 @@ export type Database = {
         }
         Relationships: []
       }
+      construction_materials: {
+        Row: {
+          construction_id: string
+          created_at: string
+          id: string
+          material_id: string
+          quantity: number
+          source: string
+        }
+        Insert: {
+          construction_id: string
+          created_at?: string
+          id?: string
+          material_id: string
+          quantity?: number
+          source?: string
+        }
+        Update: {
+          construction_id?: string
+          created_at?: string
+          id?: string
+          material_id?: string
+          quantity?: number
+          source?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "construction_materials_construction_id_fkey"
+            columns: ["construction_id"]
+            isOneToOne: false
+            referencedRelation: "constructions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "construction_materials_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      construction_works: {
+        Row: {
+          construction_id: string
+          created_at: string
+          id: string
+          quantity: number
+          subtotal: number
+          unit_price: number
+          work_pricing_id: string
+        }
+        Insert: {
+          construction_id: string
+          created_at?: string
+          id?: string
+          quantity?: number
+          subtotal?: number
+          unit_price?: number
+          work_pricing_id: string
+        }
+        Update: {
+          construction_id?: string
+          created_at?: string
+          id?: string
+          quantity?: number
+          subtotal?: number
+          unit_price?: number
+          work_pricing_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "construction_works_construction_id_fkey"
+            columns: ["construction_id"]
+            isOneToOne: false
+            referencedRelation: "constructions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "construction_works_work_pricing_id_fkey"
+            columns: ["work_pricing_id"]
+            isOneToOne: false
+            referencedRelation: "work_pricing"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       constructions: {
         Row: {
           ak: string | null
