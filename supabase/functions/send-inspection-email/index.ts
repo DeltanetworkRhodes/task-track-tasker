@@ -93,8 +93,8 @@ Deno.serve(async (req) => {
     const emailHtml = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
         <div style="background: #2563eb; color: white; padding: 16px 24px; border-radius: 8px 8px 0 0;">
-          <h2 style="margin: 0; font-size: 18px;">🔍 ΑΥΤΟΨΙΑ — SR: ${sr_id}</h2>
-          <p style="margin: 4px 0 0; font-size: 13px; opacity: 0.9;">Περιοχή: ${area || "—"}</p>
+          <h2 style="margin: 0; font-size: 18px;">🔍 ΑΥΤΟΨΙΑ — SR: ${escapeHtml(sr_id)}</h2>
+          <p style="margin: 4px 0 0; font-size: 13px; opacity: 0.9;">Περιοχή: ${escapeHtml(area || "—")}</p>
         </div>
         
         <div style="border: 1px solid #e5e7eb; border-top: none; padding: 24px; border-radius: 0 0 8px 8px;">
@@ -102,40 +102,40 @@ Deno.serve(async (req) => {
             Αξιότιμοι συνεργάτες,
           </p>
           <p style="color: #374151; font-size: 14px; line-height: 1.6;">
-            Σας ενημερώνουμε ότι ο τεχνικός <strong>${techName}</strong> μετέβη για αυτοψία στο <strong>SR: ${sr_id}</strong>.
+            Σας ενημερώνουμε ότι ο τεχνικός <strong>${escapeHtml(techName)}</strong> μετέβη για αυτοψία στο <strong>SR: ${escapeHtml(sr_id)}</strong>.
           </p>
           
           <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
             <tr>
               <td style="padding: 8px 12px; background: #f9fafb; border: 1px solid #e5e7eb; font-size: 13px; color: #6b7280; width: 120px;">SR ID</td>
-              <td style="padding: 8px 12px; border: 1px solid #e5e7eb; font-size: 14px; font-weight: bold;">${sr_id}</td>
+              <td style="padding: 8px 12px; border: 1px solid #e5e7eb; font-size: 14px; font-weight: bold;">${escapeHtml(sr_id)}</td>
             </tr>
             <tr>
               <td style="padding: 8px 12px; background: #f9fafb; border: 1px solid #e5e7eb; font-size: 13px; color: #6b7280;">Περιοχή</td>
-              <td style="padding: 8px 12px; border: 1px solid #e5e7eb; font-size: 14px;">${area || "—"}</td>
+              <td style="padding: 8px 12px; border: 1px solid #e5e7eb; font-size: 14px;">${escapeHtml(area || "—")}</td>
             </tr>
             <tr>
               <td style="padding: 8px 12px; background: #f9fafb; border: 1px solid #e5e7eb; font-size: 13px; color: #6b7280;">Πελάτης</td>
-              <td style="padding: 8px 12px; border: 1px solid #e5e7eb; font-size: 14px;">${customer_name || "—"}</td>
+              <td style="padding: 8px 12px; border: 1px solid #e5e7eb; font-size: 14px;">${escapeHtml(customer_name || "—")}</td>
             </tr>
             <tr>
               <td style="padding: 8px 12px; background: #f9fafb; border: 1px solid #e5e7eb; font-size: 13px; color: #6b7280;">Διεύθυνση</td>
-              <td style="padding: 8px 12px; border: 1px solid #e5e7eb; font-size: 14px;">${address || "—"}</td>
+              <td style="padding: 8px 12px; border: 1px solid #e5e7eb; font-size: 14px;">${escapeHtml(address || "—")}</td>
             </tr>
             <tr>
               <td style="padding: 8px 12px; background: #f9fafb; border: 1px solid #e5e7eb; font-size: 13px; color: #6b7280;">CAB</td>
-              <td style="padding: 8px 12px; border: 1px solid #e5e7eb; font-size: 14px;">${cab || "—"}</td>
+              <td style="padding: 8px 12px; border: 1px solid #e5e7eb; font-size: 14px;">${escapeHtml(cab || "—")}</td>
             </tr>
             <tr>
               <td style="padding: 8px 12px; background: #f9fafb; border: 1px solid #e5e7eb; font-size: 13px; color: #6b7280;">Τεχνικός</td>
-              <td style="padding: 8px 12px; border: 1px solid #e5e7eb; font-size: 14px;">${techName}${techPhone ? ` (${techPhone})` : ""}</td>
+              <td style="padding: 8px 12px; border: 1px solid #e5e7eb; font-size: 14px;">${escapeHtml(techName)}${techPhone ? ` (${escapeHtml(techPhone)})` : ""}</td>
             </tr>
           </table>
 
           ${comments ? `
           <div style="background: #f0f9ff; border-left: 4px solid #2563eb; padding: 12px 16px; margin: 16px 0; border-radius: 0 8px 8px 0;">
             <p style="font-weight: bold; color: #1f2937; font-size: 13px; margin: 0 0 6px;">📝 Σχόλια:</p>
-            <p style="color: #4b5563; font-size: 14px; margin: 0;">${comments}</p>
+            <p style="color: #4b5563; font-size: 14px; margin: 0;">${escapeHtml(comments)}</p>
           </div>
           ` : ""}
           
