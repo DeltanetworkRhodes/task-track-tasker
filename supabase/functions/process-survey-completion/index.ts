@@ -1,6 +1,16 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { zipSync, strToU8 } from "https://esm.sh/fflate@0.8.2";
 
+function uint8ToBase64(bytes: Uint8Array): string {
+  let binary = "";
+  const chunkSize = 8192;
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    const chunk = bytes.subarray(i, i + chunkSize);
+    binary += String.fromCharCode(...chunk);
+  }
+  return btoa(binary);
+}
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -55,7 +65,7 @@ async function getAccessToken(serviceAccountKey: any): Promise<string> {
     signatureInput
   );
 
-  const signatureB64 = btoa(String.fromCharCode(...new Uint8Array(signature)))
+  const signatureB64 = uint8ToBase64(new Uint8Array(signature))
     .replace(/\+/g, "-")
     .replace(/\//g, "_")
     .replace(/=+$/, "");
@@ -110,7 +120,7 @@ async function uploadFileToDrive(
   const body =
     `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${metadata}\r\n` +
     `--${boundary}\r\nContent-Type: ${mimeType}\r\nContent-Transfer-Encoding: base64\r\n\r\n` +
-    btoa(String.fromCharCode(...fileData)) +
+    uint8ToBase64(fileData) +
     `\r\n--${boundary}--`;
 
   const res = await fetch(
@@ -310,7 +320,7 @@ Deno.serve(async (req) => {
 
     if (resendApiKey && recipients.length > 0) {
       try {
-        const zipBase64 = btoa(String.fromCharCode(...zipData));
+        const zipBase64 = uint8ToBase64(zipData);
 
         const emailHtml = `
           <div style="font-family:Arial,sans-serif;padding:20px;">
