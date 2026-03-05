@@ -12,7 +12,10 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 
 interface Props {
-  assignments: any[];
+  assignments?: any[];
+  prefillSrId?: string;
+  prefillArea?: string;
+  onComplete?: () => void;
 }
 
 interface FileUpload {
@@ -22,11 +25,11 @@ interface FileUpload {
 
 const MAX_FILES = 10;
 
-const SurveyForm = ({ assignments }: Props) => {
+const SurveyForm = ({ assignments, prefillSrId, prefillArea, onComplete }: Props) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const [area, setArea] = useState("");
-  const [srId, setSrId] = useState("");
+  const [area, setArea] = useState(prefillArea || "");
+  const [srId, setSrId] = useState(prefillSrId || "");
   const [comments, setComments] = useState("");
   const [buildingPhotos, setBuildingPhotos] = useState<FileUpload[]>([]);
   const [screenshots, setScreenshots] = useState<FileUpload[]>([]);
@@ -161,6 +164,8 @@ const SurveyForm = ({ assignments }: Props) => {
       }, 3000);
 
       queryClient.invalidateQueries({ queryKey: ["surveys"] });
+      queryClient.invalidateQueries({ queryKey: ["technician-assignments"] });
+      onComplete?.();
     } catch (err: any) {
       console.error(err);
       toast.error("Σφάλμα: " + (err.message || "Δοκιμάστε ξανά"));

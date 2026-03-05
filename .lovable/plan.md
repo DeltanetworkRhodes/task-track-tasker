@@ -1,48 +1,56 @@
 
 
-## Βήμα 1: Tap SR → Modal με Αυτοψία
+# Σύνδεση με Google Drive API
 
-Αυτό είναι το πρώτο βήμα της ροής. Ο τεχνικός πατάει πάνω σε ένα SR από τη λίστα αναθέσεων και ανοίγει ένα modal/dialog με τις διαθέσιμες ενέργειες και τη φόρμα αυτοψίας.
+## Κατάσταση
 
-### Τι αλλάζει
+Δεν υπάρχει έτοιμος Google Drive connector στο Lovable. Θα χρειαστεί σύνδεση μέσω **Google Drive API** με Service Account, ώστε να διαβάζουμε αυτόματα τα Google Sheets (Form Responses) και αρχεία από το Drive σου.
 
-1. **TechnicianAssignments.tsx** - Κάθε κάρτα SR γίνεται clickable. Ανοίγει ένα Dialog με:
-   - Στοιχεία SR (πελάτης, διεύθυνση, περιοχή, CAB, σχόλια)
-   - Κατάσταση (status badge)
-   - Κουμπί "Έναρξη Αυτοψίας" (αν status = pending ή inspection)
-   - Αν status = "ΕΛΛΙΠΗΣ ΑΥΤΟΨΙΑ": εμφάνιση ελλείψεων εγγράφων με upload
-   - Αν status = pre_committed: κουμπί "Φόρμα Κατασκευής" (disabled - θα γίνει στο βήμα 2)
+## Τι χρειάζεται από εσένα
 
-2. **SurveyForm.tsx** - Τροποποίηση ώστε να δέχεται pre-filled SR ID και area από το modal (αντί να τα πληκτρολογεί ο τεχνικός). Props: `prefillSrId`, `prefillArea`, `onComplete` callback.
+1. **Google Cloud Console** — Δημιουργία ενός Service Account:
+   - Πήγαινε στο [Google Cloud Console](https://console.cloud.google.com/)
+   - Ενεργοποίησε τα APIs: **Google Drive API** και **Google Sheets API**
+   - Δημιούργησε ένα **Service Account** και κατέβασε το JSON key
+   - Κάνε **Share** τα Google Sheets και τους φακέλους Drive σου με το email του Service Account (π.χ. `xxx@project.iam.gserviceaccount.com`)
 
-3. **TechnicianDashboard.tsx** - Αφαίρεση του ξεχωριστού tab "Αυτοψία", αφού η αυτοψία γίνεται πλέον μέσα από το SR modal. Τα tabs γίνονται 2: Αναθέσεις + Χάρτης.
+2. **Credentials** — Θα σου ζητήσω να τα αποθηκεύσεις ως secrets:
+   - `GOOGLE_SERVICE_ACCOUNT_KEY` (το JSON key)
+   - IDs των Google Sheets (Form Responses 4, Form Responses 8, ΒΑΣΗ_ΤΙΜΟΛΟΓΗΣΗΣ κλπ.)
 
-### Ροή χρήστη
+## Τι θα φτιαχτεί
 
-```text
-Λίστα Αναθέσεων
-  ├─ Tap SR card
-  └─ [Dialog ανοίγει]
-       ├─ Στοιχεία SR (read-only)
-       ├─ Status: pending/inspection
-       │    └─ Κουμπί "Έναρξη Αυτοψίας" → εμφανίζει SurveyForm (pre-filled)
-       ├─ Status: ΕΛΛΙΠΗΣ ΑΥΤΟΨΙΑ
-       │    └─ Λίστα ελλείψεων + upload (IncompleteSurveys logic)
-       ├─ Status: pre_committed
-       │    └─ "Φόρμα Κατασκευής" (βήμα 2)
-       └─ Status: completed
-            └─ "Ολοκληρωμένο" badge
-```
+### 1. Edge Function: `google-drive-sync`
+- Συνδέεται στο Google Drive/Sheets API μέσω Service Account
+- Διαβάζει τα δεδομένα από τα Google Sheets (Form Responses 4 → assignments, Form Responses 8 → constructions/materials)
+- Συγχρονίζει (upsert) τα δεδομένα στους πίνακες της βάσης
+- Μπορεί να καλείται χειροκίνητα ή με cron
 
-### Τεχνικές λεπτομέρειες
+### 2. Edge Function: `google-drive-files`
+- Λίστα αρχείων/φακέλων από το Drive
+- Download φωτογραφιών και PDFs
+- Αποθήκευση στο Cloud Storage (bucket `photos`)
 
-- Το Dialog θα είναι full-screen στο mobile (Sheet/Drawer pattern) για καλύτερη εμπειρία
-- Το SurveyForm θα αλλάξει assignment status αυτόματα σε "inspection" όταν ξεκινήσει η αυτοψία, και μετά σε "pre_committed" ή "pending" (ελλιπής) ανάλογα με τα αρχεία
-- Query για surveys linked στο συγκεκριμένο SR μέσα στο modal, ώστε να ξέρουμε αν υπάρχει ήδη αυτοψία
-- Δεν χρειάζονται database changes σε αυτό το βήμα
+### 3. Ενημέρωση σελίδων
+- Οι σελίδες Assignments, Construction, Materials θα χρησιμοποιούν τα πραγματικά δεδομένα από τη βάση (αντί mock data)
+- Κουμπί "Συγχρονισμός από Drive" στο dashboard
+- Εμφάνιση links προς τους φακέλους Drive ανά SR ID
 
-### Δεν περιλαμβάνεται (βήματα 2-3)
-- Φόρμα κατασκευής με εργασίες/υλικά
-- Αφαίρεση υλικών από αποθήκη
-- Αυτόματη δημιουργία φακέλου Drive κατασκευής
+### 4. Database updates
+- Προσθήκη πεδίου `google_sheet_row_id` στους πίνακες assignments/constructions για αντιστοίχιση εγγραφών
+- Migration για τα νέα πεδία
+
+## Σειρά υλοποίησης
+
+1. Αποθήκευση Google Service Account key ως secret
+2. Δημιουργία edge function για ανάγνωση Sheets
+3. Δημιουργία edge function για αρχεία Drive
+4. Ενημέρωση UI με sync κουμπί και πραγματικά δεδομένα
+5. Αντικατάσταση mock data με live queries
+
+## Σημείωση
+
+Πριν προχωρήσω στην υλοποίηση, θα χρειαστώ:
+- Το **Google Service Account JSON key**
+- Τα **IDs** (ή URLs) των Google Sheets που χρησιμοποιείς (Form Responses 4, Form Responses 8, ΒΑΣΗ_ΤΙΜΟΛΟΓΗΣΗΣ, ΒΑΣΗ_ΥΛΙΚΩΝ)
 

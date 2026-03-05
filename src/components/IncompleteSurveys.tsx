@@ -22,7 +22,7 @@ const REQUIRED_TYPES = [
   { key: "inspection_form", label: "Έντυπο Αυτοψίας" },
 ];
 
-const IncompleteSurveys = () => {
+const IncompleteSurveys = ({ filterSrId }: { filterSrId?: string }) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -32,14 +32,18 @@ const IncompleteSurveys = () => {
 
   // Fetch incomplete surveys for this technician
   const { data: surveys, isLoading } = useQuery({
-    queryKey: ["incomplete-surveys", user?.id],
+    queryKey: ["incomplete-surveys", user?.id, filterSrId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("surveys")
         .select("*, survey_files(*)")
         .eq("technician_id", user!.id)
         .eq("status", "ΕΛΛΙΠΗΣ ΑΥΤΟΨΙΑ")
         .order("created_at", { ascending: false });
+      if (filterSrId) {
+        query = query.eq("sr_id", filterSrId);
+      }
+      const { data, error } = await query;
       if (error) throw error;
       return data;
     },
