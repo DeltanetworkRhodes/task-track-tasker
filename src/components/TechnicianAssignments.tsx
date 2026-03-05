@@ -153,9 +153,9 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
 
     if (status === "pre_committed") {
       return (
-        <Button size="sm" className="w-full gap-2" disabled>
+        <Button size="sm" className="w-full gap-2" onClick={() => setShowConstructionForm(true)}>
           <HardHat className="h-4 w-4" />
-          Φόρμα Κατασκευής (σύντομα)
+          Φόρμα Κατασκευής
         </Button>
       );
     }
