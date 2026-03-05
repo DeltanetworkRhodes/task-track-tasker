@@ -221,14 +221,19 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
         if (matsError) console.error("Materials insert error:", matsError);
       }
 
-      // 4. Deduct DELTANETWORK materials from stock
-      for (const m of deltanetMaterials) {
-        const { error: deductError } = await supabase.rpc("has_role", {
-          _user_id: user!.id,
-          _role: "technician" as any,
+      // 4. Deduct DELTANETWORK materials from stock via edge function
+      if (deltanetMaterials.length > 0) {
+        const { error: deductErr } = await supabase.functions.invoke("deduct-stock", {
+          body: {
+            construction_id: construction.id,
+            materials: deltanetMaterials.map((m) => ({
+              material_id: m.material_id,
+              quantity: m.quantity,
+              source: m.source,
+            })),
+          },
         });
-        // Use direct update for stock deduction - admin RLS won't allow this
-        // So we'll handle it via a simpler approach
+        if (deductErr) console.error("Stock deduction error:", deductErr);
       }
 
       // 5. Update assignment status to completed and cab
