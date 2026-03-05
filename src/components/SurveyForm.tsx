@@ -12,7 +12,10 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 
 interface Props {
-  assignments: any[];
+  assignments?: any[];
+  prefillSrId?: string;
+  prefillArea?: string;
+  onComplete?: () => void;
 }
 
 interface FileUpload {
