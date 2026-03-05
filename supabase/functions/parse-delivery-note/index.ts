@@ -72,10 +72,11 @@ Deno.serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: `You are extracting material delivery data from OTE delivery note PDFs (Δελτίο Αποστολής).
+            content: `You are extracting material delivery data from delivery note PDFs (Δελτίο Αποστολής).
+These can be from OTE or DELTANETWORK suppliers.
 Extract each material line item with its code, name, quantity, and unit.
-The codes are typically alphanumeric (e.g. "ΚΩΔ.123", "ABC-456", etc).
-Return ONLY a JSON array with objects having "code" (string), "name" (string - material description), "quantity" (number), and "unit" (string - e.g. "τεμ.", "μ.", "kg").
+The codes are typically alphanumeric (e.g. "ΚΩΔ.123", "ABC-456", "01-10250160", etc).
+Return ONLY a JSON array with objects having "code" (string), "name" (string - material description), "quantity" (number), and "unit" (string - e.g. "τεμ.", "μ.", "kg", "Μέτρα").
 IMPORTANT: For quantities, "1.000" means 1000 (Greek thousands separator). Convert to actual numbers.
 Example: [{"code": "ABC-001", "name": "Καλώδιο UTP", "quantity": 1000, "unit": "μ."}]
 If you cannot find any materials, return an empty array [].
@@ -90,7 +91,7 @@ IMPORTANT: Return ONLY the JSON array, no markdown, no explanation.`
               },
               {
                 type: "text",
-                text: "Εξήγαγε τα υλικά και τις ποσότητες από αυτό το δελτίο αποστολής OTE. Επέστρεψε μόνο JSON array."
+                text: "Εξήγαγε τα υλικά και τις ποσότητες από αυτό το δελτίο αποστολής. Επέστρεψε μόνο JSON array."
               }
             ]
           }
@@ -161,10 +162,10 @@ IMPORTANT: Return ONLY the JSON array, no markdown, no explanation.`
     const notFound: string[] = [];
 
     for (const item of extractedMaterials) {
+      // Search in ALL sources (OTE + DELTANETWORK)
       const { data: existing } = await supabase
         .from("materials")
-        .select("id, code, stock")
-        .eq("source", "OTE")
+        .select("id, code, stock, source")
         .ilike("code", `%${item.code}%`)
         .limit(1);
 
@@ -177,12 +178,14 @@ IMPORTANT: Return ONLY the JSON array, no markdown, no explanation.`
         
         if (!error) updated++;
       } else {
-        // Auto-create missing OTE material
+        // Auto-create missing material - detect source from code pattern
+        // DELTANETWORK codes start with "01-", OTE codes start with "14"
+        const source = item.code.startsWith("01-") ? "DELTANETWORK" : "OTE";
         const { error } = await supabase.from("materials").insert({
           code: item.code,
           name: item.name || item.code,
           stock: item.quantity,
-          source: "OTE",
+          source,
           price: 0,
           unit: item.unit || "τεμ.",
         });
