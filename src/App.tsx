@@ -15,6 +15,7 @@ import Surveys from "./pages/Surveys";
 import LoginPage from "./pages/LoginPage";
 import UserManagement from "./pages/UserManagement";
 import TechnicianDashboard from "./pages/TechnicianDashboard";
+import PendingApproval from "./pages/PendingApproval";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -23,6 +24,13 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
   if (loading) return <div className="flex min-h-screen items-center justify-center bg-background"><div className="text-muted-foreground">Φόρτωση...</div></div>;
   if (!user) return <Navigate to="/login" replace />;
+  return <>{children}</>;
+};
+
+const RoleGate = ({ children }: { children: React.ReactNode }) => {
+  const { data: role, isLoading } = useUserRole();
+  if (isLoading) return <div className="flex min-h-screen items-center justify-center bg-background"><div className="text-muted-foreground">Φόρτωση...</div></div>;
+  if (!role) return <PendingApproval />;
   return <>{children}</>;
 };
 
@@ -49,15 +57,15 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/login" element={<LoginPage />} />
-            <Route path="/" element={<ProtectedRoute><RoleRouter /></ProtectedRoute>} />
-            <Route path="/technician" element={<ProtectedRoute><TechnicianDashboard /></ProtectedRoute>} />
-            <Route path="/assignments" element={<ProtectedRoute><AdminRoute><Assignments /></AdminRoute></ProtectedRoute>} />
-            <Route path="/surveys" element={<ProtectedRoute><AdminRoute><Surveys /></AdminRoute></ProtectedRoute>} />
-            <Route path="/construction" element={<ProtectedRoute><AdminRoute><Construction /></AdminRoute></ProtectedRoute>} />
-            <Route path="/materials" element={<ProtectedRoute><AdminRoute><Materials /></AdminRoute></ProtectedRoute>} />
-            <Route path="/work-pricing" element={<ProtectedRoute><AdminRoute><WorkPricing /></AdminRoute></ProtectedRoute>} />
-            <Route path="/profit" element={<ProtectedRoute><AdminRoute><ProfitPerSR /></AdminRoute></ProtectedRoute>} />
-            <Route path="/users" element={<ProtectedRoute><AdminRoute><UserManagement /></AdminRoute></ProtectedRoute>} />
+            <Route path="/" element={<ProtectedRoute><RoleGate><RoleRouter /></RoleGate></ProtectedRoute>} />
+            <Route path="/technician" element={<ProtectedRoute><RoleGate><TechnicianDashboard /></RoleGate></ProtectedRoute>} />
+            <Route path="/assignments" element={<ProtectedRoute><RoleGate><AdminRoute><Assignments /></AdminRoute></RoleGate></ProtectedRoute>} />
+            <Route path="/surveys" element={<ProtectedRoute><RoleGate><AdminRoute><Surveys /></AdminRoute></RoleGate></ProtectedRoute>} />
+            <Route path="/construction" element={<ProtectedRoute><RoleGate><AdminRoute><Construction /></AdminRoute></RoleGate></ProtectedRoute>} />
+            <Route path="/materials" element={<ProtectedRoute><RoleGate><AdminRoute><Materials /></AdminRoute></RoleGate></ProtectedRoute>} />
+            <Route path="/work-pricing" element={<ProtectedRoute><RoleGate><AdminRoute><WorkPricing /></AdminRoute></RoleGate></ProtectedRoute>} />
+            <Route path="/profit" element={<ProtectedRoute><RoleGate><AdminRoute><ProfitPerSR /></AdminRoute></RoleGate></ProtectedRoute>} />
+            <Route path="/users" element={<ProtectedRoute><RoleGate><AdminRoute><UserManagement /></AdminRoute></RoleGate></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
