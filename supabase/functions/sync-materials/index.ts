@@ -62,6 +62,7 @@ Deno.serve(async (req) => {
 
   try {
     const serviceAccountKey = JSON.parse(Deno.env.get("GOOGLE_SERVICE_ACCOUNT_KEY") || "{}");
+    console.log("Service Account Email:", serviceAccountKey.client_email);
     const accessToken = await getAccessToken(serviceAccountKey);
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
