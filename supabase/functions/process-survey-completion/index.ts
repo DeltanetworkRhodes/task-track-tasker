@@ -353,13 +353,7 @@ Deno.serve(async (req) => {
           </div>
         `;
 
-        const emailRes = await fetch("https://api.resend.com/emails", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${resendApiKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
+        const emailPayload: any = {
             from: "DeltaNet FTTH <onboarding@resend.dev>",
             to: recipients,
             subject: `Αυτοψία ${sr_id} - ${customerName} - ΠΡΟΔΕΣΜΕΥΣΗ ΥΛΙΚΩΝ`,
@@ -368,6 +362,22 @@ Deno.serve(async (req) => {
               {
                 filename: zipFileName,
                 content: zipBase64,
+              },
+            ],
+          };
+
+          if (ccRecipients.length > 0) {
+            emailPayload.cc = ccRecipients;
+          }
+
+        const emailRes = await fetch("https://api.resend.com/emails", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${resendApiKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(emailPayload),
+        });
               },
             ],
           }),
