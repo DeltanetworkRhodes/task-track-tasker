@@ -80,25 +80,25 @@ const MaterialTable = ({ items, hasRealData, editingId, editValues, onEdit, onSa
                 </td>
                 <td className="py-3 px-4 text-right font-mono">
                   {isEditing ? (
-                    <input
-                      type="number"
-                      value={editValues.stock}
-                      onChange={e => onEditChange('stock', e.target.value)}
-                      className="w-24 ml-auto rounded-lg border border-primary/30 bg-card px-2 py-1 text-right text-sm font-mono focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-                      autoFocus
-                    />
+                    <div className="flex items-center gap-1 justify-end">
+                      <input
+                        type="number"
+                        value={editValues.stock}
+                        onChange={e => onEditChange('stock', e.target.value)}
+                        className="w-20 rounded-lg border border-primary/30 bg-card px-2 py-1 text-right text-sm font-mono focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                        autoFocus
+                      />
+                      <input
+                        type="text"
+                        value={editValues.unit}
+                        onChange={e => onEditChange('unit', e.target.value)}
+                        className="w-16 rounded-lg border border-primary/30 bg-card px-1 py-1 text-xs focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                      />
+                    </div>
                   ) : (
                     <span className={`inline-flex items-center gap-1.5 ${isLow ? 'text-warning font-semibold' : ''}`}>
                       {isLow && <AlertTriangle className="h-3 w-3" />}
-                      {m.stock.toLocaleString('el-GR')}{' '}
-                      {isEditing ? (
-                        <input
-                          type="text"
-                          value={editValues.unit}
-                          onChange={e => onEditChange('unit', e.target.value)}
-                          className="w-16 rounded-lg border border-primary/30 bg-card px-1 py-0.5 text-xs focus:border-primary focus:outline-none"
-                        />
-                      ) : m.unit}
+                      {m.stock.toLocaleString('el-GR')} {m.unit}
                     </span>
                   )}
                 </td>
