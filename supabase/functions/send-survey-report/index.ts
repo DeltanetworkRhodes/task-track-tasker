@@ -6,6 +6,15 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+function escapeHtml(str: string): string {
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -90,8 +99,8 @@ Deno.serve(async (req) => {
     const emailHtml = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
         <div style="background: ${status_type === "BLOCKER" ? "#dc2626" : "#ea580c"}; color: white; padding: 16px 24px; border-radius: 8px 8px 0 0;">
-          <h2 style="margin: 0; font-size: 18px;">${statusLabel} — SR: ${survey.sr_id}</h2>
-          <p style="margin: 4px 0 0; font-size: 13px; opacity: 0.9;">Περιοχή: ${survey.area}</p>
+          <h2 style="margin: 0; font-size: 18px;">${escapeHtml(statusLabel)} — SR: ${escapeHtml(survey.sr_id)}</h2>
+          <p style="margin: 4px 0 0; font-size: 13px; opacity: 0.9;">Περιοχή: ${escapeHtml(survey.area)}</p>
         </div>
         
         <div style="border: 1px solid #e5e7eb; border-top: none; padding: 24px; border-radius: 0 0 8px 8px;">
@@ -99,7 +108,7 @@ Deno.serve(async (req) => {
             Αξιότιμοι συνεργάτες,
           </p>
           <p style="color: #374151; font-size: 14px; line-height: 1.6;">
-            Σε συνέχεια των εργασιών, θα θέλαμε να σας ενημερώσουμε σχετικά με το <strong>SR: ${survey.sr_id}</strong>.
+            Σε συνέχεια των εργασιών, θα θέλαμε να σας ενημερώσουμε σχετικά με το <strong>SR: ${escapeHtml(survey.sr_id)}</strong>.
           </p>
           <p style="color: #374151; font-size: 14px; line-height: 1.6;">
             Κατά την αυτοψία καταγράφηκε η παρακάτω αναφορά / εκκρεμότητα:
@@ -107,7 +116,7 @@ Deno.serve(async (req) => {
           
           <div style="background: #f9fafb; border-left: 4px solid ${status_type === "BLOCKER" ? "#dc2626" : "#ea580c"}; padding: 16px; margin: 16px 0; border-radius: 0 8px 8px 0;">
             <p style="font-weight: bold; color: #1f2937; font-size: 13px; margin: 0 0 8px;">📌 Σχόλιο / Περιγραφή Εκκρεμότητας:</p>
-            <p style="color: #4b5563; font-size: 14px; margin: 0;">${survey.comments || "(Δεν έχει καταγραφεί συγκεκριμένο σχόλιο)"}</p>
+            <p style="color: #4b5563; font-size: 14px; margin: 0;">${escapeHtml(survey.comments || "(Δεν έχει καταγραφεί συγκεκριμένο σχόλιο)")}</p>
           </div>
           
           <p style="color: #374151; font-size: 14px; line-height: 1.6;">

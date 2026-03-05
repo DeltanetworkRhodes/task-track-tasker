@@ -5,6 +5,15 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+function escapeHtml(str: string): string {
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -44,10 +53,10 @@ Deno.serve(async (req) => {
     // Build email HTML
     const rows = lowStockItems.map(item => `
       <tr style="border-bottom: 1px solid #e5e7eb;">
-        <td style="padding: 10px 12px; font-family: monospace; font-weight: 600; color: #e4006e;">${item.code}</td>
-        <td style="padding: 10px 12px;">${item.name}</td>
+        <td style="padding: 10px 12px; font-family: monospace; font-weight: 600; color: #e4006e;">${escapeHtml(item.code)}</td>
+        <td style="padding: 10px 12px;">${escapeHtml(item.name)}</td>
         <td style="padding: 10px 12px; text-align: right; font-family: monospace; font-weight: 700; color: ${Number(item.stock) < 50 ? '#dc2626' : '#f59e0b'};">
-          ${Number(item.stock).toLocaleString('el-GR')} ${item.unit}
+          ${Number(item.stock).toLocaleString('el-GR')} ${escapeHtml(item.unit)}
         </td>
       </tr>
     `).join('');
