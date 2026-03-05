@@ -90,7 +90,6 @@ const TechnicianDashboard = () => {
           <IncompleteSurveys />
           <SurveyForm assignments={assignments || []} />
         </TabsContent>
-        </TabsContent>
 
         <TabsContent value="map">
           <TechnicianMap assignments={assignments || []} />
