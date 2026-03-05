@@ -317,13 +317,21 @@ Deno.serve(async (req) => {
 
     // 7. Send email with ZIP via Resend
     const resendApiKey = Deno.env.get("RESEND_API_KEY");
-    const { data: emailSetting } = await adminClient
+    
+    // Get email recipients from email_settings table
+    const { data: emailSettings } = await adminClient
       .from("email_settings")
-      .select("setting_value")
-      .eq("setting_key", "survey_recipients")
-      .single();
+      .select("setting_key, setting_value");
 
-    const recipients = emailSetting?.setting_value?.split(",").map((e: string) => e.trim()).filter(Boolean) || [];
+    const settingsMap: Record<string, string> = {};
+    (emailSettings || []).forEach((s: any) => {
+      settingsMap[s.setting_key] = s.setting_value;
+    });
+
+    const toEmails = settingsMap["report_to_emails"] || "";
+    const ccEmails = settingsMap["report_cc_emails"] || "";
+    const recipients = toEmails.split(",").map((e: string) => e.trim()).filter(Boolean);
+    const ccRecipients = ccEmails.split(",").map((e: string) => e.trim()).filter(Boolean);
 
     if (resendApiKey && recipients.length > 0) {
       try {
