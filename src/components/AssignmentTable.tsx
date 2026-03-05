@@ -2,7 +2,10 @@ import { useState, useEffect } from "react";
 import { Assignment, statusLabels } from "@/data/mockData";
 import { Camera, MessageSquare, ExternalLink, User, MapPin, Phone, Hash, FolderOpen, FileText, Image, Loader2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 
 const statusColors: Record<string, string> = {
   pending: 'bg-muted text-muted-foreground',
@@ -63,10 +66,61 @@ const FileItem = ({ file }: { file: DriveFile }) => {
   );
 };
 
+// Hook to get technician profiles
+const useTechnicians = () => {
+  return useQuery({
+    queryKey: ["technicians"],
+    queryFn: async () => {
+      // Get all user_ids with technician role
+      const { data: roles, error: rolesError } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .eq("role", "technician" as any);
+      if (rolesError) throw rolesError;
+      if (!roles || roles.length === 0) return [];
+
+      const techIds = roles.map((r) => r.user_id);
+      const { data: profiles, error: profilesError } = await supabase
+        .from("profiles")
+        .select("user_id, full_name, area")
+        .in("user_id", techIds);
+      if (profilesError) throw profilesError;
+      return profiles || [];
+    },
+  });
+};
+
 const AssignmentTable = ({ assignments }: AssignmentTableProps) => {
   const [selected, setSelected] = useState<any>(null);
   const [driveData, setDriveData] = useState<DriveData | null>(null);
   const [driveLoading, setDriveLoading] = useState(false);
+  const [assigning, setAssigning] = useState<string | null>(null);
+  const { data: technicians } = useTechnicians();
+  const queryClient = useQueryClient();
+
+  // Build a map of technician_id -> name
+  const techMap = (technicians || []).reduce((acc: Record<string, string>, t) => {
+    acc[t.user_id] = t.full_name || "—";
+    return acc;
+  }, {});
+
+  const handleAssign = async (assignmentId: string, technicianId: string) => {
+    setAssigning(assignmentId);
+    try {
+      const newValue = technicianId === "__none__" ? null : technicianId;
+      const { error } = await supabase
+        .from("assignments")
+        .update({ technician_id: newValue })
+        .eq("id", assignmentId);
+      if (error) throw error;
+      toast.success(newValue ? `Ανατέθηκε σε ${techMap[newValue] || "τεχνικό"}` : "Αφαιρέθηκε η ανάθεση");
+      queryClient.invalidateQueries({ queryKey: ["assignments"] });
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setAssigning(null);
+    }
+  };
 
   useEffect(() => {
     if (!selected?.srId) {
@@ -102,6 +156,7 @@ const AssignmentTable = ({ assignments }: AssignmentTableProps) => {
               <th className="py-3 px-4 text-left font-medium text-muted-foreground text-xs uppercase tracking-wider">Περιοχή</th>
               <th className="py-3 px-4 text-left font-medium text-muted-foreground text-xs uppercase tracking-wider">Πελάτης</th>
               <th className="py-3 px-4 text-left font-medium text-muted-foreground text-xs uppercase tracking-wider">CAB</th>
+              <th className="py-3 px-4 text-left font-medium text-muted-foreground text-xs uppercase tracking-wider">Τεχνικός</th>
               <th className="py-3 px-4 text-left font-medium text-muted-foreground text-xs uppercase tracking-wider">Κατάσταση</th>
               <th className="py-3 px-4 text-left font-medium text-muted-foreground text-xs uppercase tracking-wider">Ημ/νία</th>
               <th className="py-3 px-4 text-center font-medium text-muted-foreground text-xs uppercase tracking-wider">Φωτο</th>
@@ -113,13 +168,38 @@ const AssignmentTable = ({ assignments }: AssignmentTableProps) => {
             {assignments.map((a) => (
               <tr
                 key={a.id}
-                onClick={() => setSelected(a)}
-                className="border-b border-border/30 hover:bg-secondary/50 transition-colors cursor-pointer"
+                className="border-b border-border/30 hover:bg-secondary/50 transition-colors"
               >
-                <td className="py-3 px-4 font-mono font-semibold text-primary">{a.srId}</td>
+                <td
+                  className="py-3 px-4 font-mono font-semibold text-primary cursor-pointer"
+                  onClick={() => setSelected(a)}
+                >
+                  {a.srId}
+                </td>
                 <td className="py-3 px-4">{a.area}</td>
                 <td className="py-3 px-4 text-muted-foreground max-w-[180px] truncate">{(a as any).customerName || '—'}</td>
                 <td className="py-3 px-4 font-mono text-xs">{(a as any).cab || '—'}</td>
+                <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
+                  <Select
+                    value={(a as any).technicianId || "__none__"}
+                    onValueChange={(val) => handleAssign(a.id, val)}
+                    disabled={assigning === a.id}
+                  >
+                    <SelectTrigger className="w-[140px] h-7 text-xs border-border/50">
+                      <SelectValue placeholder="Χωρίς" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">
+                        <span className="text-muted-foreground">Χωρίς ανάθεση</span>
+                      </SelectItem>
+                      {(technicians || []).map((t) => (
+                        <SelectItem key={t.user_id} value={t.user_id}>
+                          {t.full_name}{t.area ? ` (${t.area})` : ""}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </td>
                 <td className="py-3 px-4">
                   <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${statusColors[a.status] || statusColors.pending}`}>
                     {statusLabels[a.status] || a.status}
@@ -175,8 +255,38 @@ const AssignmentTable = ({ assignments }: AssignmentTableProps) => {
             <DetailRow icon={MapPin} label="Διεύθυνση" value={selected?.address} />
             <DetailRow icon={Phone} label="Τηλέφωνο" value={selected?.phone} />
             <DetailRow icon={Hash} label="Καμπίνα (CAB)" value={selected?.cab} />
+            <DetailRow icon={User} label="Τεχνικός" value={selected?.technicianId ? techMap[selected.technicianId] : null} />
             <DetailRow icon={MessageSquare} label="Σχόλια" value={selected?.comments} />
           </div>
+
+          {/* Assign in modal */}
+          {selected && (
+            <div className="mt-3 pt-3 border-t border-border/30">
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground/70 mb-2">Ανάθεση σε Τεχνικό</p>
+              <Select
+                value={(selected as any).technicianId || "__none__"}
+                onValueChange={(val) => {
+                  handleAssign(selected.id, val);
+                  setSelected({ ...selected, technicianId: val === "__none__" ? null : val });
+                }}
+                disabled={assigning === selected.id}
+              >
+                <SelectTrigger className="w-full h-8 text-xs">
+                  <SelectValue placeholder="Χωρίς ανάθεση" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">
+                    <span className="text-muted-foreground">Χωρίς ανάθεση</span>
+                  </SelectItem>
+                  {(technicians || []).map((t) => (
+                    <SelectItem key={t.user_id} value={t.user_id}>
+                      {t.full_name}{t.area ? ` (${t.area})` : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           {/* Drive Folder Section */}
           <div className="mt-4 pt-4 border-t border-border/30">
@@ -194,7 +304,6 @@ const AssignmentTable = ({ assignments }: AssignmentTableProps) => {
 
             {!driveLoading && driveData?.found && (
               <div className="space-y-3">
-                {/* Main folder link */}
                 {driveData.folder?.webViewLink && (
                   <a
                     href={driveData.folder.webViewLink}
@@ -208,7 +317,6 @@ const AssignmentTable = ({ assignments }: AssignmentTableProps) => {
                   </a>
                 )}
 
-                {/* Root files (PDF δελτίο etc) */}
                 {driveData.files && driveData.files.length > 0 && (
                   <div>
                     <p className="text-[10px] uppercase tracking-wider text-muted-foreground/70 mb-1">Αρχεία</p>
@@ -220,7 +328,6 @@ const AssignmentTable = ({ assignments }: AssignmentTableProps) => {
                   </div>
                 )}
 
-                {/* Subfolders */}
                 {driveData.subfolders && Object.entries(driveData.subfolders).map(([name, sub]) => (
                   <div key={name}>
                     <div className="flex items-center gap-2 mb-1">

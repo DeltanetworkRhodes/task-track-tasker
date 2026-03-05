@@ -21,6 +21,7 @@ const Assignments = () => {
         area: a.area,
         status: a.status as any,
         technician: "—",
+        technicianId: a.technician_id || null,
         customerName: (a as any).customer_name || "",
         address: (a as any).address || "",
         cab: (a as any).cab || "",
