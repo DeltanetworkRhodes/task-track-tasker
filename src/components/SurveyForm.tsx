@@ -126,20 +126,22 @@ const SurveyForm = ({ assignments }: Props) => {
       toast.success("Η αυτοψία υποβλήθηκε επιτυχώς!");
       setSubmitted(true);
 
-      // Trigger automation: Drive folder, email, status update
-      if (autoStatus === "ΠΡΟΔΕΣΜΕΥΣΗ ΥΛΙΚΩΝ") {
-        try {
-          const { error: procError } = await supabase.functions.invoke("process-survey-completion", {
-            body: { survey_id: survey.id, sr_id: srId.trim(), area },
-          });
-          if (procError) {
-            console.error("Process survey error:", procError);
+      // Always trigger automation: file check, PDF, Drive folder, email (if complete)
+      try {
+        const { data: result, error: procError } = await supabase.functions.invoke("process-survey-completion", {
+          body: { survey_id: survey.id, sr_id: srId.trim(), area },
+        });
+        if (procError) {
+          console.error("Process survey error:", procError);
+        } else if (result) {
+          if (result.is_complete) {
+            toast.success(`Ολοκληρωμένη αυτοψία → ${result.drive_target || "Drive"} + email`);
           } else {
-            toast.success("Φάκελος Drive + email αποστάλη αυτόματα");
+            toast.info(`Ελλιπής αυτοψία → ${result.drive_target || "ΑΝΑΜΟΝΗ"}. Λείπουν: ${(result.missing_types || []).length} τύποι αρχείων`);
           }
-        } catch (autoErr) {
-          console.error("Automation error:", autoErr);
         }
+      } catch (autoErr) {
+        console.error("Automation error:", autoErr);
       }
 
       // Cleanup previews
