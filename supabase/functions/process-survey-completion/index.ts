@@ -145,30 +145,12 @@ async function findOlokliromenesFolderId(
   const rootId = areaRootFolders[area];
   if (!rootId) return null;
 
-  const currentMonth = greekMonths[new Date().getMonth()];
-
-  // Search for current month folder under area root
-  const monthFolders = await driveSearch(
+  // Structure: Root (ΡΟΔΟΣ/ΚΩΣ) → ΟΛΟΚΛΗΡΩΜΕΝΕΣ ΑΥΤΟΨΙΕΣ (directly, no month subfolder)
+  const folders = await driveSearch(
     accessToken,
-    `name = '${currentMonth}' and '${rootId}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`
+    `name = 'ΟΛΟΚΛΗΡΩΜΕΝΕΣ ΑΥΤΟΨΙΕΣ' and '${rootId}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`
   );
-
-  if (monthFolders.length === 0) {
-    // Try direct search for ΟΛΟΚΛΗΡΩΜΕΝΕΣ ΑΥΤΟΨΙΕΣ under root
-    const direct = await driveSearch(
-      accessToken,
-      `name = 'ΟΛΟΚΛΗΡΩΜΕΝΕΣ ΑΥΤΟΨΙΕΣ' and '${rootId}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`
-    );
-    return direct.length > 0 ? direct[0].id : null;
-  }
-
-  // Search for ΟΛΟΚΛΗΡΩΜΕΝΕΣ ΑΥΤΟΨΙΕΣ inside month folder
-  const olokFolders = await driveSearch(
-    accessToken,
-    `name = 'ΟΛΟΚΛΗΡΩΜΕΝΕΣ ΑΥΤΟΨΙΕΣ' and '${monthFolders[0].id}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`
-  );
-
-  return olokFolders.length > 0 ? olokFolders[0].id : null;
+  return folders.length > 0 ? folders[0].id : null;
 }
 
 Deno.serve(async (req) => {
