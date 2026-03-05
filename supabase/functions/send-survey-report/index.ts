@@ -99,8 +99,8 @@ Deno.serve(async (req) => {
     const emailHtml = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
         <div style="background: ${status_type === "BLOCKER" ? "#dc2626" : "#ea580c"}; color: white; padding: 16px 24px; border-radius: 8px 8px 0 0;">
-          <h2 style="margin: 0; font-size: 18px;">${statusLabel} — SR: ${survey.sr_id}</h2>
-          <p style="margin: 4px 0 0; font-size: 13px; opacity: 0.9;">Περιοχή: ${survey.area}</p>
+          <h2 style="margin: 0; font-size: 18px;">${escapeHtml(statusLabel)} — SR: ${escapeHtml(survey.sr_id)}</h2>
+          <p style="margin: 4px 0 0; font-size: 13px; opacity: 0.9;">Περιοχή: ${escapeHtml(survey.area)}</p>
         </div>
         
         <div style="border: 1px solid #e5e7eb; border-top: none; padding: 24px; border-radius: 0 0 8px 8px;">
