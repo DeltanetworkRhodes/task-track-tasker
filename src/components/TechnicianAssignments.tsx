@@ -244,7 +244,7 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
           </SheetHeader>
 
           <ScrollArea className="h-[calc(90vh-80px)] px-4 pb-6">
-            {selectedAssignment && !showSurveyForm && (
+            {selectedAssignment && !showSurveyForm && !showConstructionForm && (
               <div className="space-y-4">
                 {/* Status badge */}
                 <div className="flex items-center gap-2">
