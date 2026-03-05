@@ -44,6 +44,7 @@ const Surveys = () => {
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedSurvey, setSelectedSurvey] = useState<any>(null);
   const [sendingEmail, setSendingEmail] = useState(false);
+  const [sendingReminder, setSendingReminder] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [toEmails, setToEmails] = useState("");
   const [ccEmails, setCcEmails] = useState("");
