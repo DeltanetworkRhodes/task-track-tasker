@@ -22,7 +22,7 @@ const REQUIRED_TYPES = [
   { key: "inspection_form", label: "Έντυπο Αυτοψίας" },
 ];
 
-const IncompleteSurveys = () => {
+const IncompleteSurveys = ({ filterSrId }: { filterSrId?: string }) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [expandedId, setExpandedId] = useState<string | null>(null);
