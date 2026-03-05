@@ -11,6 +11,7 @@ import Construction from "./pages/Construction";
 import Materials from "./pages/Materials";
 import WorkPricing from "./pages/WorkPricing";
 import ProfitPerSR from "./pages/ProfitPerSR";
+import Surveys from "./pages/Surveys";
 import LoginPage from "./pages/LoginPage";
 import TechnicianDashboard from "./pages/TechnicianDashboard";
 import NotFound from "./pages/NotFound";
@@ -50,6 +51,7 @@ const App = () => (
             <Route path="/" element={<ProtectedRoute><RoleRouter /></ProtectedRoute>} />
             <Route path="/technician" element={<ProtectedRoute><TechnicianDashboard /></ProtectedRoute>} />
             <Route path="/assignments" element={<ProtectedRoute><AdminRoute><Assignments /></AdminRoute></ProtectedRoute>} />
+            <Route path="/surveys" element={<ProtectedRoute><AdminRoute><Surveys /></AdminRoute></ProtectedRoute>} />
             <Route path="/construction" element={<ProtectedRoute><AdminRoute><Construction /></AdminRoute></ProtectedRoute>} />
             <Route path="/materials" element={<ProtectedRoute><AdminRoute><Materials /></AdminRoute></ProtectedRoute>} />
             <Route path="/work-pricing" element={<ProtectedRoute><AdminRoute><WorkPricing /></AdminRoute></ProtectedRoute>} />
