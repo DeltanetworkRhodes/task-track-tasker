@@ -1,16 +1,19 @@
 import { useState } from "react";
 import AppLayout from "@/components/AppLayout";
 import AssignmentTable from "@/components/AssignmentTable";
+import CreateAssignmentDialog from "@/components/CreateAssignmentDialog";
 import SyncButton from "@/components/SyncButton";
 import { useAssignments } from "@/hooks/useData";
 import { mockAssignments } from "@/data/mockData";
-import { ClipboardCheck, Filter, Search } from "lucide-react";
+import { ClipboardCheck, Filter, Search, Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 const Assignments = () => {
   const { data: dbAssignments, isLoading } = useAssignments();
   const [areaFilter, setAreaFilter] = useState<string>("all");
   const [sourceFilter, setSourceFilter] = useState<string>("all");
   const [search, setSearch] = useState("");
+  const [showCreate, setShowCreate] = useState(false);
 
   const hasRealData = (dbAssignments?.length ?? 0) > 0;
 
@@ -57,7 +60,13 @@ const Assignments = () => {
               {!hasRealData && <span className="ml-2 text-xs opacity-60">(demo data)</span>}
             </p>
           </div>
-          <SyncButton />
+          <div className="flex items-center gap-2">
+            <Button size="sm" className="gap-1.5" onClick={() => setShowCreate(true)}>
+              <Plus className="h-4 w-4" />
+              Νέα Ανάθεση
+            </Button>
+            <SyncButton />
+          </div>
         </div>
 
         {/* Filters */}
@@ -113,6 +122,8 @@ const Assignments = () => {
             <AssignmentTable assignments={filtered} />
           )}
         </div>
+
+        <CreateAssignmentDialog open={showCreate} onOpenChange={setShowCreate} />
       </div>
     </AppLayout>
   );
