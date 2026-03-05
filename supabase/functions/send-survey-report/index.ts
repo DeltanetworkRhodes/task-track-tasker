@@ -116,7 +116,7 @@ Deno.serve(async (req) => {
           
           <div style="background: #f9fafb; border-left: 4px solid ${status_type === "BLOCKER" ? "#dc2626" : "#ea580c"}; padding: 16px; margin: 16px 0; border-radius: 0 8px 8px 0;">
             <p style="font-weight: bold; color: #1f2937; font-size: 13px; margin: 0 0 8px;">📌 Σχόλιο / Περιγραφή Εκκρεμότητας:</p>
-            <p style="color: #4b5563; font-size: 14px; margin: 0;">${survey.comments || "(Δεν έχει καταγραφεί συγκεκριμένο σχόλιο)"}</p>
+            <p style="color: #4b5563; font-size: 14px; margin: 0;">${escapeHtml(survey.comments || "(Δεν έχει καταγραφεί συγκεκριμένο σχόλιο)")}</p>
           </div>
           
           <p style="color: #374151; font-size: 14px; line-height: 1.6;">
