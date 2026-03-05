@@ -1,11 +1,13 @@
 import { useState } from "react";
-import { MapPin, Phone, Calendar, MessageSquare, Loader2, Eye, FileEdit, CheckCircle, Clock, HardHat } from "lucide-react";
+import { MapPin, Phone, Calendar, MessageSquare, Loader2, Eye, FileEdit, CheckCircle, Clock, HardHat, XCircle, Ban } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
@@ -20,6 +22,7 @@ const statusFlow: { value: string; label: string }[] = [
   { value: "pre_committed", label: "Προδέσμευση" },
   { value: "construction", label: "Κατασκευή" },
   { value: "completed", label: "Ολοκληρώθηκε" },
+  { value: "cancelled", label: "Ακυρωμένο" },
 ];
 
 const statusLabels: Record<string, string> = Object.fromEntries(
@@ -32,6 +35,7 @@ const statusColors: Record<string, string> = {
   pre_committed: "bg-blue-500/10 text-blue-600 border-blue-500/20",
   construction: "bg-purple-500/10 text-purple-600 border-purple-500/20",
   completed: "bg-green-500/10 text-green-600 border-green-500/20",
+  cancelled: "bg-red-500/10 text-red-600 border-red-500/20",
 };
 
 interface Props {
@@ -45,6 +49,9 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
   const [selectedAssignment, setSelectedAssignment] = useState<any | null>(null);
   const [showSurveyForm, setShowSurveyForm] = useState(false);
   const [showConstructionForm, setShowConstructionForm] = useState(false);
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [cancelReason, setCancelReason] = useState("");
+  const [cancelling, setCancelling] = useState(false);
   const queryClient = useQueryClient();
 
   // Fetch existing survey for selected assignment
@@ -103,7 +110,6 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
   };
 
   const handleStartSurvey = async (assignment: any) => {
-    // Auto-change status to inspection if pending
     if (assignment.status === "pending") {
       await handleStatusChange(assignment.id, "inspection", assignment.status);
     }
@@ -114,6 +120,56 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
     setShowSurveyForm(false);
     setSelectedAssignment(null);
     queryClient.invalidateQueries({ queryKey: ["technician-assignments"] });
+  };
+
+  const handleCancelAssignment = async () => {
+    if (!cancelReason.trim()) {
+      toast.error("Παρακαλώ εισάγετε λόγο ακύρωσης");
+      return;
+    }
+    if (!selectedAssignment) return;
+
+    setCancelling(true);
+    try {
+      // 1. Update assignment status to cancelled with comment
+      const { error } = await supabase
+        .from("assignments")
+        .update({
+          status: "cancelled",
+          comments: selectedAssignment.comments
+            ? `${selectedAssignment.comments}\n\n[ΑΚΥΡΩΣΗ]: ${cancelReason}`
+            : `[ΑΚΥΡΩΣΗ]: ${cancelReason}`,
+        })
+        .eq("id", selectedAssignment.id);
+      if (error) throw error;
+
+      // 2. Send cancellation email
+      try {
+        await supabase.functions.invoke("send-cancellation-email", {
+          body: {
+            assignment_id: selectedAssignment.id,
+            sr_id: selectedAssignment.sr_id,
+            area: selectedAssignment.area,
+            customer_name: selectedAssignment.customer_name,
+            address: selectedAssignment.address,
+            cancellation_reason: cancelReason,
+          },
+        });
+        toast.success("Email ακύρωσης εστάλη");
+      } catch (emailErr) {
+        console.error("Cancellation email error:", emailErr);
+      }
+
+      toast.success("Η ανάθεση ακυρώθηκε");
+      queryClient.invalidateQueries({ queryKey: ["technician-assignments"] });
+      setShowCancelDialog(false);
+      setCancelReason("");
+      setSelectedAssignment(null);
+    } catch (err: any) {
+      toast.error(err.message || "Σφάλμα ακύρωσης");
+    } finally {
+      setCancelling(false);
+    }
   };
 
   if (loading) {
@@ -138,25 +194,56 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
   const renderStatusAction = (assignment: any) => {
     const status = assignment.status;
 
+    if (status === "cancelled") {
+      return (
+        <div className="flex items-center gap-2 text-red-600 justify-center py-2">
+          <Ban className="h-5 w-5" />
+          <span className="text-sm font-medium">Ακυρωμένο</span>
+        </div>
+      );
+    }
+
     if (status === "pending" || status === "inspection") {
       return (
-        <Button
-          size="sm"
-          className="w-full gap-2"
-          onClick={() => handleStartSurvey(assignment)}
-        >
-          <FileEdit className="h-4 w-4" />
-          {existingSurvey ? "Συνέχεια Αυτοψίας" : "Έναρξη Αυτοψίας"}
-        </Button>
+        <div className="space-y-2">
+          <Button
+            size="sm"
+            className="w-full gap-2"
+            onClick={() => handleStartSurvey(assignment)}
+          >
+            <FileEdit className="h-4 w-4" />
+            {existingSurvey ? "Συνέχεια Αυτοψίας" : "Έναρξη Αυτοψίας"}
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="w-full gap-2 text-destructive border-destructive/30 hover:bg-destructive/10"
+            onClick={() => { setShowCancelDialog(true); }}
+          >
+            <XCircle className="h-4 w-4" />
+            Ακύρωση
+          </Button>
+        </div>
       );
     }
 
     if (status === "pre_committed") {
       return (
-        <Button size="sm" className="w-full gap-2" onClick={() => setShowConstructionForm(true)}>
-          <HardHat className="h-4 w-4" />
-          Φόρμα Κατασκευής
-        </Button>
+        <div className="space-y-2">
+          <Button size="sm" className="w-full gap-2" onClick={() => setShowConstructionForm(true)}>
+            <HardHat className="h-4 w-4" />
+            Φόρμα Κατασκευής
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="w-full gap-2 text-destructive border-destructive/30 hover:bg-destructive/10"
+            onClick={() => { setShowCancelDialog(true); }}
+          >
+            <XCircle className="h-4 w-4" />
+            Ακύρωση
+          </Button>
+        </div>
       );
     }
 
@@ -179,7 +266,7 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
           <Card
             key={a.id}
             className="p-4 space-y-2 cursor-pointer hover:border-primary/30 transition-colors"
-            onClick={() => { setSelectedAssignment(a); setShowSurveyForm(false); }}
+            onClick={() => { setSelectedAssignment(a); setShowSurveyForm(false); setShowConstructionForm(false); }}
           >
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
@@ -338,6 +425,46 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
           </ScrollArea>
         </SheetContent>
       </Sheet>
+
+      {/* Cancel Assignment Dialog */}
+      <Dialog open={showCancelDialog} onOpenChange={(open) => { if (!open) { setShowCancelDialog(false); setCancelReason(""); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <XCircle className="h-5 w-5" />
+              Ακύρωση Ανάθεσης
+            </DialogTitle>
+            <DialogDescription>
+              SR {selectedAssignment?.sr_id} — {selectedAssignment?.area}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <label className="text-sm font-medium">
+              Λόγος Ακύρωσης <span className="text-destructive">*</span>
+            </label>
+            <Textarea
+              value={cancelReason}
+              onChange={(e) => setCancelReason(e.target.value)}
+              placeholder="π.χ. Ο πελάτης δεν ήταν διαθέσιμος, ακύρωσε το ραντεβού..."
+              rows={4}
+            />
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => { setShowCancelDialog(false); setCancelReason(""); }}>
+              Πίσω
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleCancelAssignment}
+              disabled={cancelling || !cancelReason.trim()}
+              className="gap-2"
+            >
+              {cancelling && <Loader2 className="h-4 w-4 animate-spin" />}
+              Ακύρωση Ανάθεσης
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };
