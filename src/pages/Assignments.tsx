@@ -121,6 +121,8 @@ const Assignments = () => {
             <AssignmentTable assignments={filtered} />
           )}
         </div>
+
+        <CreateAssignmentDialog open={showCreate} onOpenChange={setShowCreate} />
       </div>
     </AppLayout>
   );
