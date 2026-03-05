@@ -8,6 +8,7 @@ import Index from "./pages/Index";
 import Assignments from "./pages/Assignments";
 import Construction from "./pages/Construction";
 import Materials from "./pages/Materials";
+import WorkPricing from "./pages/WorkPricing";
 import LoginPage from "./pages/LoginPage";
 import NotFound from "./pages/NotFound";
 
@@ -33,6 +34,7 @@ const App = () => (
             <Route path="/assignments" element={<ProtectedRoute><Assignments /></ProtectedRoute>} />
             <Route path="/construction" element={<ProtectedRoute><Construction /></ProtectedRoute>} />
             <Route path="/materials" element={<ProtectedRoute><Materials /></ProtectedRoute>} />
+            <Route path="/work-pricing" element={<ProtectedRoute><WorkPricing /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
