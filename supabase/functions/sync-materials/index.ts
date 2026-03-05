@@ -10,7 +10,7 @@ async function getAccessToken(serviceAccountKey: any): Promise<string> {
   const header = btoa(JSON.stringify({ alg: "RS256", typ: "JWT" }));
   const payload = btoa(JSON.stringify({
     iss: serviceAccountKey.client_email,
-    scope: "https://www.googleapis.com/auth/spreadsheets.readonly",
+    scope: "https://www.googleapis.com/auth/spreadsheets",
     aud: "https://oauth2.googleapis.com/token",
     exp: now + 3600, iat: now,
   }));

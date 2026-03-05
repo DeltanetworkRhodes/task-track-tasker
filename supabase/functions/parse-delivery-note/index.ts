@@ -5,6 +5,42 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const SPREADSHEET_ID = "1H7W4_SnDpnrHvFGGDhAWAf4KjRbilpUhmzdaO7fN2qU";
+
+async function getAccessToken(serviceAccountKey: any): Promise<string> {
+  const now = Math.floor(Date.now() / 1000);
+  const header = btoa(JSON.stringify({ alg: "RS256", typ: "JWT" }));
+  const payload = btoa(JSON.stringify({
+    iss: serviceAccountKey.client_email,
+    scope: "https://www.googleapis.com/auth/spreadsheets",
+    aud: "https://oauth2.googleapis.com/token",
+    exp: now + 3600, iat: now,
+  }));
+  const pemContent = serviceAccountKey.private_key
+    .replace(/-----BEGIN PRIVATE KEY-----/, "")
+    .replace(/-----END PRIVATE KEY-----/, "")
+    .replace(/\n/g, "");
+  const binaryKey = Uint8Array.from(atob(pemContent), (c) => c.charCodeAt(0));
+  const cryptoKey = await crypto.subtle.importKey(
+    "pkcs8", binaryKey,
+    { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
+    false, ["sign"]
+  );
+  const signatureInput = new TextEncoder().encode(`${header}.${payload}`);
+  const signature = await crypto.subtle.sign("RSASSA-PKCS1-v1_5", cryptoKey, signatureInput);
+  const signatureB64 = btoa(String.fromCharCode(...new Uint8Array(signature)))
+    .replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  const jwt = `${header}.${payload}.${signatureB64}`;
+  const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: `grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Ajwt-bearer&assertion=${jwt}`,
+  });
+  const tokenData = await tokenRes.json();
+  if (!tokenData.access_token) throw new Error("Failed to get access token");
+  return tokenData.access_token;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -158,12 +194,69 @@ IMPORTANT: Return ONLY the JSON array, no markdown, no explanation.`
       }
     }
 
+    // ===== Write back to Google Sheet ΑΠΟΘΗΚΗ =====
+    let sheetUpdated = 0;
+    try {
+      const serviceAccountKey = JSON.parse(Deno.env.get("GOOGLE_SERVICE_ACCOUNT_KEY") || "{}");
+      const accessToken = await getAccessToken(serviceAccountKey);
+
+      // Read current ΑΠΟΘΗΚΗ sheet to find matching rows
+      const sheetRes = await fetch(
+        `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent("ΑΠΟΘΗΚΗ")}!A1:H200`,
+        { headers: { Authorization: `Bearer ${accessToken}` } }
+      );
+      const sheetData = await sheetRes.json();
+      const rows = sheetData.values || [];
+
+      // Get all OTE materials from DB with latest stock
+      const { data: allOteMaterials } = await supabase
+        .from("materials")
+        .select("code, stock")
+        .eq("source", "OTE");
+
+      const stockMap = new Map((allOteMaterials || []).map(m => [m.code, Number(m.stock)]));
+
+      // Update stock column (G = index 6) for matching rows
+      const updates: { range: string; values: any[][] }[] = [];
+      for (let i = 1; i < rows.length; i++) {
+        const rowCode = (rows[i]?.[1] || "").trim();
+        if (rowCode && stockMap.has(rowCode)) {
+          updates.push({
+            range: `ΑΠΟΘΗΚΗ!G${i + 1}`,
+            values: [[stockMap.get(rowCode)]],
+          });
+        }
+      }
+
+      if (updates.length > 0) {
+        const batchRes = await fetch(
+          `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values:batchUpdate`,
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              valueInputOption: "RAW",
+              data: updates,
+            }),
+          }
+        );
+        const batchResult = await batchRes.json();
+        sheetUpdated = batchResult.totalUpdatedCells || 0;
+      }
+    } catch (sheetErr: any) {
+      console.error("Sheet write-back error:", sheetErr);
+    }
+
     return new Response(JSON.stringify({
       success: true,
       extracted: extractedMaterials,
       updated,
       created,
       not_found: notFound,
+      sheet_updated: sheetUpdated,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
