@@ -196,11 +196,13 @@ IMPORTANT: Return ONLY the JSON array, no markdown, no explanation.`
 
     // ===== Write back to Google Sheet ΑΠΟΘΗΚΗ =====
     let sheetUpdated = 0;
+    let sheetUpdatesRequested = 0;
+    let sheetError: string | null = null;
     try {
       const serviceAccountKey = JSON.parse(Deno.env.get("GOOGLE_SERVICE_ACCOUNT_KEY") || "{}");
       const accessToken = await getAccessToken(serviceAccountKey);
 
-     // Read current ΑΠΟΘΗΚΗ sheet to find matching rows
+      // Read current ΑΠΟΘΗΚΗ sheet to find matching rows
       const sheetRes = await fetch(
         `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent("ΑΠΟΘΗΚΗ")}!A1:H500`,
         { headers: { Authorization: `Bearer ${accessToken}` } }
@@ -228,7 +230,9 @@ IMPORTANT: Return ONLY the JSON array, no markdown, no explanation.`
           });
         }
       }
-      console.log(`Sheet updates to write: ${updates.length}`);
+
+      sheetUpdatesRequested = updates.length;
+      console.log(`Sheet updates to write: ${sheetUpdatesRequested}`);
 
       if (updates.length > 0) {
         const batchRes = await fetch(
@@ -245,11 +249,27 @@ IMPORTANT: Return ONLY the JSON array, no markdown, no explanation.`
             }),
           }
         );
-        const batchResult = await batchRes.json();
-        sheetUpdated = batchResult.totalUpdatedCells || 0;
+
+        const batchText = await batchRes.text();
+        if (!batchRes.ok) {
+          throw new Error(`Google Sheets write failed [${batchRes.status}]: ${batchText}`);
+        }
+
+        let batchResult: any = {};
+        try {
+          batchResult = batchText ? JSON.parse(batchText) : {};
+        } catch {
+          batchResult = {};
+        }
+
+        sheetUpdated = Number(batchResult.totalUpdatedCells || 0);
+        console.log(`Sheet updated cells: ${sheetUpdated}`);
+      } else {
+        console.log("No matching rows found in Sheet for DB material codes");
       }
     } catch (sheetErr: any) {
-      console.error("Sheet write-back error:", sheetErr);
+      sheetError = sheetErr?.message || String(sheetErr);
+      console.error("Sheet write-back error:", sheetError);
     }
 
     return new Response(JSON.stringify({
@@ -259,6 +279,8 @@ IMPORTANT: Return ONLY the JSON array, no markdown, no explanation.`
       created,
       not_found: notFound,
       sheet_updated: sheetUpdated,
+      sheet_updates_requested: sheetUpdatesRequested,
+      sheet_error: sheetError,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
