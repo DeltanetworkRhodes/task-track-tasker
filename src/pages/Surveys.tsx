@@ -214,6 +214,36 @@ const Surveys = () => {
     setShowSettings(false);
   };
 
+  // Send reminder notification to technician for incomplete survey
+  const handleSendReminder = async (survey: any) => {
+    setSendingReminder(true);
+    try {
+      const techName = profileMap[survey.technician_id]?.full_name || "Τεχνικός";
+      const hoursAgo = Math.round(
+        (Date.now() - new Date(survey.created_at).getTime()) / (1000 * 60 * 60)
+      );
+
+      const { error } = await supabase.from("notifications").insert({
+        user_id: survey.technician_id,
+        title: "Υπενθύμιση: Ελλιπής Αυτοψία",
+        message: `Η αυτοψία ${survey.sr_id} (${survey.area}) είναι ελλιπής εδώ και ${hoursAgo} ώρες. Παρακαλώ ανεβάστε τα αρχεία που λείπουν.`,
+        data: {
+          survey_id: survey.id,
+          sr_id: survey.sr_id,
+          area: survey.area,
+          type: "reminder",
+        },
+      });
+
+      if (error) throw error;
+      toast.success(`Υπενθύμιση στάλθηκε στον ${techName}`);
+    } catch (err: any) {
+      toast.error("Σφάλμα: " + (err.message || "Δοκιμάστε ξανά"));
+    } finally {
+      setSendingReminder(false);
+    }
+  };
+
   const filtered = (surveys || []).filter((s) => {
     const matchesSearch = s.sr_id.toLowerCase().includes(search.toLowerCase());
     const matchesArea = areaFilter === "all" || s.area === areaFilter;
