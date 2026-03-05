@@ -85,8 +85,8 @@ Deno.serve(async (req) => {
 
     // Separate DELTANETWORK (top section with prices) and OTE (bottom section, price=0)
     for (const row of apothikiRows) {
-      const code = (row[1] || "").trim();
-      const name = (row[2] || "").trim();
+      const code = String(row[1] || "").trim();
+      const name = String(row[2] || "").trim();
       if (!code || !name) continue;
 
       const price = parseValue(row[3] || 0);
