@@ -18,5 +18,8 @@ export const useUserRole = () => {
       return data?.[0]?.role ?? null;
     },
     enabled: !!user,
+    retry: 3,
+    retryDelay: 1000,
+    staleTime: 1000 * 60 * 5,
   });
 };
