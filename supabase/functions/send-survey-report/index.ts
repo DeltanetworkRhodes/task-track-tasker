@@ -1,5 +1,4 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { sendGmail } from "../_shared/gmail.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -15,8 +14,6 @@ function escapeHtml(str: string): string {
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
 }
-
-const GMAIL_SENDER = "info@deltanetwork.gr";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -34,12 +31,19 @@ Deno.serve(async (req) => {
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const resendApiKey = Deno.env.get("RESEND_API_KEY");
+
+    if (!resendApiKey) {
+      return new Response(JSON.stringify({ error: "RESEND_API_KEY not configured" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     const supabase = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } },
     });
 
-    // Verify user
     const token = authHeader.replace("Bearer ", "");
     const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
     if (claimsError || !claimsData?.claims) {
@@ -58,7 +62,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Get survey details
     const { data: survey, error: surveyError } = await supabase
       .from("surveys")
       .select("*")
@@ -72,7 +75,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Get email settings using service role
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
@@ -99,9 +101,7 @@ Deno.serve(async (req) => {
         </div>
         
         <div style="border: 1px solid #e5e7eb; border-top: none; padding: 24px; border-radius: 0 0 8px 8px;">
-          <p style="color: #374151; font-size: 14px; line-height: 1.6;">
-            Αξιότιμοι συνεργάτες,
-          </p>
+          <p style="color: #374151; font-size: 14px; line-height: 1.6;">Αξιότιμοι συνεργάτες,</p>
           <p style="color: #374151; font-size: 14px; line-height: 1.6;">
             Σε συνέχεια των εργασιών, θα θέλαμε να σας ενημερώσουμε σχετικά με το <strong>SR: ${escapeHtml(survey.sr_id)}</strong>.
           </p>
@@ -114,9 +114,7 @@ Deno.serve(async (req) => {
             <p style="color: #4b5563; font-size: 14px; margin: 0;">${escapeHtml(survey.comments || "(Δεν έχει καταγραφεί συγκεκριμένο σχόλιο)")}</p>
           </div>
           
-          <p style="color: #374151; font-size: 14px; line-height: 1.6;">
-            Παρακαλούμε όπως εξετάσετε το θέμα.
-          </p>
+          <p style="color: #374151; font-size: 14px; line-height: 1.6;">Παρακαλούμε όπως εξετάσετε το θέμα.</p>
           
           <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;" />
           
@@ -129,19 +127,37 @@ Deno.serve(async (req) => {
       </div>
     `;
 
-    const sendOptions: any = {
+    const emailPayload: any = {
+      from: "DeltaNet FTTH <noreply@deltanetwork.gr>",
       to: toEmails.split(",").map((e: string) => e.trim()),
+      reply_to: "info@deltanetwork.gr",
       subject,
       html: emailHtml,
     };
 
     if (ccEmails.trim()) {
-      sendOptions.cc = ccEmails.split(",").map((e: string) => e.trim());
+      emailPayload.cc = ccEmails.split(",").map((e: string) => e.trim());
     }
 
-    const result = await sendGmail(GMAIL_SENDER, sendOptions);
+    const resendResponse = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${resendApiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(emailPayload),
+    });
 
-    // Mark email as sent
+    const resendData = await resendResponse.json();
+
+    if (!resendResponse.ok) {
+      console.error("Resend error:", resendData);
+      return new Response(
+        JSON.stringify({ error: "Failed to send email", details: resendData }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     await adminClient
       .from("surveys")
       .update({ email_sent: true, status: status_type })
@@ -150,7 +166,7 @@ Deno.serve(async (req) => {
     console.log("Email sent successfully for SR:", survey.sr_id);
 
     return new Response(
-      JSON.stringify({ success: true, messageId: result.messageId }),
+      JSON.stringify({ success: true, emailId: resendData.id }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
