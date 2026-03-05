@@ -108,7 +108,7 @@ Deno.serve(async (req) => {
             Αξιότιμοι συνεργάτες,
           </p>
           <p style="color: #374151; font-size: 14px; line-height: 1.6;">
-            Σε συνέχεια των εργασιών, θα θέλαμε να σας ενημερώσουμε σχετικά με το <strong>SR: ${survey.sr_id}</strong>.
+            Σε συνέχεια των εργασιών, θα θέλαμε να σας ενημερώσουμε σχετικά με το <strong>SR: ${escapeHtml(survey.sr_id)}</strong>.
           </p>
           <p style="color: #374151; font-size: 14px; line-height: 1.6;">
             Κατά την αυτοψία καταγράφηκε η παρακάτω αναφορά / εκκρεμότητα:
