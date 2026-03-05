@@ -134,9 +134,12 @@ Deno.serve(async (req) => {
           </div>
           ` : ""}
           
+          <p style="color: #374151; font-size: 14px; line-height: 1.6; margin-top: 24px;">Με εκτίμηση,</p>
+
           <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;" />
           
           <div style="font-size: 12px; color: #6b7280;">
+            <img src="https://task-track-tasker.lovable.app/assets/delta-logo.jpg" alt="DeltaNet Logo" style="width: 120px; margin-bottom: 8px;" />
             <p style="margin: 0;"><strong>Κούλλαρος Μιχαήλ Άγγελος</strong></p>
             <p style="margin: 2px 0;">Technical Operations Manager | FTTx Projects | South Aegean</p>
             <p style="margin: 2px 0;">M: +30 690 710 5282 | E: info@deltanetwork.gr</p>
