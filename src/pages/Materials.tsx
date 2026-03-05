@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import AppLayout from "@/components/AppLayout";
 import { useMaterials } from "@/hooks/useData";
 import { mockMaterials } from "@/data/mockData";
@@ -386,39 +387,55 @@ const Materials = () => {
           </div>
         </div>
 
-        {/* OTE Table */}
-        <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
-          <div className="flex items-center justify-between border-b border-border px-5 py-4 bg-primary/5">
-            <div className="flex items-center gap-2">
-              <div className="h-3 w-3 rounded-full bg-primary" />
-              <h2 className="font-bold text-sm">Υλικά OTE</h2>
-              <span className="text-[11px] text-muted-foreground font-mono ml-1">({oteItems.length} είδη)</span>
-            </div>
-            {oteValue > 0 && (
-              <span className="text-[11px] text-muted-foreground font-mono">
-                Αξία: <span className="font-semibold text-foreground">{oteValue.toLocaleString('el-GR', { minimumFractionDigits: 2 })}€</span>
-              </span>
-            )}
-          </div>
-          <MaterialTable items={oteItems} {...sharedTableProps} />
-        </div>
+        {/* Tabs OTE / DELTANETWORK */}
+        <Tabs defaultValue="ote" className="w-full">
+          <TabsList className="mb-4">
+            <TabsTrigger value="ote" className="gap-2">
+              <div className="h-2.5 w-2.5 rounded-full bg-primary" />
+              OTE <span className="text-[11px] text-muted-foreground font-mono ml-1">({oteItems.length})</span>
+            </TabsTrigger>
+            <TabsTrigger value="delta" className="gap-2">
+              <div className="h-2.5 w-2.5 rounded-full bg-accent" />
+              DELTANETWORK <span className="text-[11px] text-muted-foreground font-mono ml-1">({deltaItems.length})</span>
+            </TabsTrigger>
+          </TabsList>
 
-        {/* DELTANETWORK Table */}
-        <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
-          <div className="flex items-center justify-between border-b border-border px-5 py-4 bg-accent/5">
-            <div className="flex items-center gap-2">
-              <div className="h-3 w-3 rounded-full bg-accent" />
-              <h2 className="font-bold text-sm">Υλικά DELTANETWORK</h2>
-              <span className="text-[11px] text-muted-foreground font-mono ml-1">({deltaItems.length} είδη)</span>
+          <TabsContent value="ote">
+            <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
+              <div className="flex items-center justify-between border-b border-border px-5 py-4 bg-primary/5">
+                <div className="flex items-center gap-2">
+                  <div className="h-3 w-3 rounded-full bg-primary" />
+                  <h2 className="font-bold text-sm">Υλικά OTE</h2>
+                  <span className="text-[11px] text-muted-foreground font-mono ml-1">({oteItems.length} είδη)</span>
+                </div>
+                {oteValue > 0 && (
+                  <span className="text-[11px] text-muted-foreground font-mono">
+                    Αξία: <span className="font-semibold text-foreground">{oteValue.toLocaleString('el-GR', { minimumFractionDigits: 2 })}€</span>
+                  </span>
+                )}
+              </div>
+              <MaterialTable items={oteItems} {...sharedTableProps} />
             </div>
-            {deltaValue > 0 && (
-              <span className="text-[11px] text-muted-foreground font-mono">
-                Αξία: <span className="font-semibold text-foreground">{deltaValue.toLocaleString('el-GR', { minimumFractionDigits: 2 })}€</span>
-              </span>
-            )}
-          </div>
-          <MaterialTable items={deltaItems} {...sharedTableProps} />
-        </div>
+          </TabsContent>
+
+          <TabsContent value="delta">
+            <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
+              <div className="flex items-center justify-between border-b border-border px-5 py-4 bg-accent/5">
+                <div className="flex items-center gap-2">
+                  <div className="h-3 w-3 rounded-full bg-accent" />
+                  <h2 className="font-bold text-sm">Υλικά DELTANETWORK</h2>
+                  <span className="text-[11px] text-muted-foreground font-mono ml-1">({deltaItems.length} είδη)</span>
+                </div>
+                {deltaValue > 0 && (
+                  <span className="text-[11px] text-muted-foreground font-mono">
+                    Αξία: <span className="font-semibold text-foreground">{deltaValue.toLocaleString('el-GR', { minimumFractionDigits: 2 })}€</span>
+                  </span>
+                )}
+              </div>
+              <MaterialTable items={deltaItems} {...sharedTableProps} />
+            </div>
+          </TabsContent>
+        </Tabs>
       </div>
     </AppLayout>
   );
