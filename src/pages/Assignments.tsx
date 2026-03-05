@@ -12,6 +12,7 @@ const Assignments = () => {
   const { data: dbAssignments, isLoading } = useAssignments();
   const [areaFilter, setAreaFilter] = useState<string>("all");
   const [sourceFilter, setSourceFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("active");
   const [search, setSearch] = useState("");
   const [showCreate, setShowCreate] = useState(false);
 
@@ -43,6 +44,8 @@ const Assignments = () => {
 
   const filtered = assignments.filter((a) => {
     const q = search.toLowerCase();
+    if (statusFilter === "active" && a.status === "cancelled") return false;
+    if (statusFilter === "cancelled" && a.status !== "cancelled") return false;
     if (areaFilter !== "all" && a.area !== areaFilter) return false;
     if (sourceFilter !== "all" && (a as any).sourceTab !== sourceFilter) return false;
     if (q && !a.srId.toLowerCase().includes(q) && !(a as any).customerName?.toLowerCase().includes(q)) return false;
@@ -93,6 +96,15 @@ const Assignments = () => {
             {areas.map((area) => (
               <option key={area} value={area}>{area}</option>
             ))}
+          </select>
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="rounded-md border border-border/50 bg-card px-3 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+          >
+            <option value="active">Ενεργές</option>
+            <option value="all">Όλες</option>
+            <option value="cancelled">Ακυρωμένες</option>
           </select>
           {sources.length > 0 && (
             <select
