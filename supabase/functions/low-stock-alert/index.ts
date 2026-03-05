@@ -93,6 +93,7 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         from: "DeltaNet Alerts <onboarding@resend.dev>",
         to: [alertEmail],
+        reply_to: "info@deltanetwork.gr",
         subject: `⚠️ ${lowStockItems.length} υλικά OTE σε χαμηλό απόθεμα`,
         html,
       }),
