@@ -89,6 +89,10 @@ const SurveyForm = ({ assignments }: Props) => {
 
     setSubmitting(true);
     try {
+      // Auto-detect completeness
+      const hasAllFiles = buildingPhotos.length > 0 && screenshots.length > 0 && inspectionPhotos.length > 0;
+      const autoStatus = hasAllFiles ? "ΠΡΟΔΕΣΜΕΥΣΗ ΥΛΙΚΩΝ" : "ΕΛΛΙΠΗΣ ΑΥΤΟΨΙΑ";
+
       // Create survey record
       const { data: survey, error: surveyError } = await supabase
         .from("surveys")
@@ -97,6 +101,7 @@ const SurveyForm = ({ assignments }: Props) => {
           area,
           technician_id: user!.id,
           comments: comments.trim(),
+          status: autoStatus,
         })
         .select("id")
         .single();
