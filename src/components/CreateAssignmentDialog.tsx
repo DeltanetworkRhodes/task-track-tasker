@@ -170,16 +170,6 @@ const CreateAssignmentDialog = ({ open, onOpenChange }: Props) => {
               />
             </div>
             </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs">Καμπίνα (CAB)</Label>
-              <Input
-                value={form.cab}
-                onChange={(e) => update("cab", e.target.value)}
-                placeholder="π.χ. G151"
-                className="text-sm"
-              />
-            </div>
-          </div>
 
           <div className="space-y-1.5">
             <Label className="text-xs">Τεχνικός</Label>
