@@ -14,6 +14,47 @@ export type Database = {
   }
   public: {
     Tables: {
+      appointments: {
+        Row: {
+          appointment_at: string
+          area: string | null
+          created_at: string
+          customer_name: string | null
+          description: string | null
+          id: string
+          sr_id: string
+          survey_id: string | null
+        }
+        Insert: {
+          appointment_at: string
+          area?: string | null
+          created_at?: string
+          customer_name?: string | null
+          description?: string | null
+          id?: string
+          sr_id: string
+          survey_id?: string | null
+        }
+        Update: {
+          appointment_at?: string
+          area?: string | null
+          created_at?: string
+          customer_name?: string | null
+          description?: string | null
+          id?: string
+          sr_id?: string
+          survey_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "appointments_survey_id_fkey"
+            columns: ["survey_id"]
+            isOneToOne: false
+            referencedRelation: "surveys"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       assignments: {
         Row: {
           address: string | null
@@ -132,6 +173,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      email_settings: {
+        Row: {
+          id: string
+          setting_key: string
+          setting_value: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          setting_key: string
+          setting_value: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          setting_key?: string
+          setting_value?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       materials: {
         Row: {
@@ -272,6 +334,7 @@ export type Database = {
           area: string
           comments: string | null
           created_at: string
+          email_sent: boolean | null
           id: string
           sr_id: string
           status: string
@@ -282,6 +345,7 @@ export type Database = {
           area: string
           comments?: string | null
           created_at?: string
+          email_sent?: boolean | null
           id?: string
           sr_id: string
           status?: string
@@ -292,6 +356,7 @@ export type Database = {
           area?: string
           comments?: string | null
           created_at?: string
+          email_sent?: boolean | null
           id?: string
           sr_id?: string
           status?: string

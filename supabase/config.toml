@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.get-service-email]
 verify_jwt = false
+
+[functions.send-survey-report]
+verify_jwt = false
