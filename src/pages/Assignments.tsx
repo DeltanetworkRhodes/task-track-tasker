@@ -97,6 +97,15 @@ const Assignments = () => {
               <option key={area} value={area}>{area}</option>
             ))}
           </select>
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="rounded-md border border-border/50 bg-card px-3 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+          >
+            <option value="active">Ενεργές</option>
+            <option value="all">Όλες</option>
+            <option value="cancelled">Ακυρωμένες</option>
+          </select>
           {sources.length > 0 && (
             <select
               value={sourceFilter}

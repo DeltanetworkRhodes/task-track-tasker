@@ -78,7 +78,21 @@ const TechnicianDashboard = () => {
         </TabsList>
 
         <TabsContent value="assignments">
-          <TechnicianAssignments assignments={assignments || []} loading={isLoading} />
+          <div className="flex items-center justify-end mb-3">
+            <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
+              <input
+                type="checkbox"
+                checked={hideCancelled}
+                onChange={(e) => setHideCancelled(e.target.checked)}
+                className="rounded border-border"
+              />
+              Απόκρυψη ακυρωμένων
+            </label>
+          </div>
+          <TechnicianAssignments
+            assignments={(assignments || []).filter(a => hideCancelled ? a.status !== "cancelled" : true)}
+            loading={isLoading}
+          />
         </TabsContent>
 
         <TabsContent value="map">
