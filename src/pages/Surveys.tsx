@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Eye, Calendar, MapPin, User, MessageSquare, FileImage, Image, FileText,
-  Download, CheckCircle, AlertTriangle, Clock, Mail, Send, Settings, XCircle, CalendarPlus
+  Download, CheckCircle, AlertTriangle, Clock, Mail, Send, Settings, XCircle, CalendarPlus, Bell
 } from "lucide-react";
 
 const fileTypeLabels: Record<string, string> = {
@@ -44,6 +44,7 @@ const Surveys = () => {
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedSurvey, setSelectedSurvey] = useState<any>(null);
   const [sendingEmail, setSendingEmail] = useState(false);
+  const [sendingReminder, setSendingReminder] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [toEmails, setToEmails] = useState("");
   const [ccEmails, setCcEmails] = useState("");
@@ -211,6 +212,36 @@ const Surveys = () => {
     toast.success("Ρυθμίσεις αποθηκεύτηκαν");
     queryClient.invalidateQueries({ queryKey: ["email-settings"] });
     setShowSettings(false);
+  };
+
+  // Send reminder notification to technician for incomplete survey
+  const handleSendReminder = async (survey: any) => {
+    setSendingReminder(true);
+    try {
+      const techName = profileMap[survey.technician_id]?.full_name || "Τεχνικός";
+      const hoursAgo = Math.round(
+        (Date.now() - new Date(survey.created_at).getTime()) / (1000 * 60 * 60)
+      );
+
+      const { error } = await supabase.from("notifications").insert({
+        user_id: survey.technician_id,
+        title: "Υπενθύμιση: Ελλιπής Αυτοψία",
+        message: `Η αυτοψία ${survey.sr_id} (${survey.area}) είναι ελλιπής εδώ και ${hoursAgo} ώρες. Παρακαλώ ανεβάστε τα αρχεία που λείπουν.`,
+        data: {
+          survey_id: survey.id,
+          sr_id: survey.sr_id,
+          area: survey.area,
+          type: "reminder",
+        },
+      });
+
+      if (error) throw error;
+      toast.success(`Υπενθύμιση στάλθηκε στον ${techName}`);
+    } catch (err: any) {
+      toast.error("Σφάλμα: " + (err.message || "Δοκιμάστε ξανά"));
+    } finally {
+      setSendingReminder(false);
+    }
   };
 
   const filtered = (surveys || []).filter((s) => {
@@ -464,6 +495,16 @@ const Surveys = () => {
                         <CalendarPlus className="h-3.5 w-3.5 text-purple-600" />
                         Ραντεβού
                       </Button>
+                      {selectedSurvey.status === "ΕΛΛΙΠΗΣ ΑΥΤΟΨΙΑ" && (
+                        <Button
+                          size="sm" variant="outline" className="gap-1.5 text-xs border-amber-500/30"
+                          disabled={sendingReminder}
+                          onClick={() => handleSendReminder(selectedSurvey)}
+                        >
+                          <Bell className="h-3.5 w-3.5 text-amber-600" />
+                          {sendingReminder ? "Αποστολή..." : "Υπενθύμιση Τεχνικού"}
+                        </Button>
+                      )}
                     </div>
                     {selectedSurvey.email_sent && (
                       <p className="text-xs text-green-600 flex items-center gap-1">
