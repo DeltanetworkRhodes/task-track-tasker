@@ -172,119 +172,58 @@ async function getTargetParentFolder(
   return { folderId: targetFolder.id, folderType: targetName };
 }
 
-// ─── PDF Generation ──────────────────────────────────────────────────
+// ─── PDF Generation (from inspection form photos) ───────────────────
 
-async function generateInspectionPDF(data: {
-  sr_id: string;
-  customerName: string;
-  address: string;
-  phone: string;
-  area: string;
-  comments: string;
-  fileTypes: string[];
-  missingTypes: string[];
-  technicianName: string;
-  date: string;
-}): Promise<Uint8Array> {
+async function generateInspectionPDF(
+  inspectionImages: { fileName: string; data: Uint8Array }[]
+): Promise<Uint8Array> {
   const pdfDoc = await PDFDocument.create();
-  const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-  const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-  const page = pdfDoc.addPage([595, 842]); // A4
 
-  const blue = rgb(0.1, 0.45, 0.91);
-  const black = rgb(0, 0, 0);
-  const gray = rgb(0.4, 0.4, 0.4);
-  const green = rgb(0.1, 0.6, 0.2);
-  const red = rgb(0.8, 0.1, 0.1);
-
-  let y = 780;
-  const leftMargin = 50;
-
-  // Header
-  page.drawText("DELTIO AUTOPSIA", { x: leftMargin, y, font: fontBold, size: 22, color: blue });
-  y -= 30;
-  page.drawText("DeltaNet FTTH - Inspection Report", { x: leftMargin, y, font, size: 11, color: gray });
-  y -= 10;
-
-  // Divider
-  page.drawLine({ start: { x: leftMargin, y }, end: { x: 545, y }, thickness: 1, color: blue });
-  y -= 30;
-
-  // Info rows
-  const drawRow = (label: string, value: string, color = black) => {
-    page.drawText(label, { x: leftMargin, y, font: fontBold, size: 11, color: gray });
-    page.drawText(value, { x: leftMargin + 140, y, font, size: 11, color });
-    y -= 22;
-  };
-
-  drawRow("SR ID:", data.sr_id);
-  drawRow("Customer:", data.customerName);
-  drawRow("Address:", data.address || "-");
-  drawRow("Phone:", data.phone || "-");
-  drawRow("Area:", data.area);
-  drawRow("Technician:", data.technicianName);
-  drawRow("Date:", data.date);
-
-  y -= 10;
-  page.drawLine({ start: { x: leftMargin, y }, end: { x: 545, y }, thickness: 0.5, color: gray });
-  y -= 25;
-
-  // File status
-  page.drawText("FILE STATUS", { x: leftMargin, y, font: fontBold, size: 14, color: blue });
-  y -= 25;
-
-  const fileTypeLabels: Record<string, string> = {
-    building_photo: "Building Photos",
-    screenshot: "Screenshots (XEMD & AutoCAD)",
-    inspection_form: "Inspection Form Photo",
-  };
-
-  for (const ft of REQUIRED_FILE_TYPES) {
-    const present = data.fileTypes.includes(ft);
-    const status = present ? "[OK]" : "[MISSING]";
-    const statusColor = present ? green : red;
-    page.drawText(status, { x: leftMargin, y, font: fontBold, size: 10, color: statusColor });
-    page.drawText(fileTypeLabels[ft] || ft, { x: leftMargin + 70, y, font, size: 10, color: black });
-    y -= 20;
-  }
-
-  y -= 10;
-
-  // Overall status
-  const isComplete = data.missingTypes.length === 0;
-  const statusText = isComplete ? "COMPLETE - PRODESMEUSI YLIKON" : "INCOMPLETE - PENDING FILES";
-  const statusColor = isComplete ? green : red;
-  page.drawText("Status: ", { x: leftMargin, y, font: fontBold, size: 12, color: black });
-  page.drawText(statusText, { x: leftMargin + 60, y, font: fontBold, size: 12, color: statusColor });
-  y -= 30;
-
-  // Comments
-  if (data.comments) {
-    page.drawText("COMMENTS", { x: leftMargin, y, font: fontBold, size: 14, color: blue });
-    y -= 22;
-    // Word-wrap comments
-    const words = data.comments.split(" ");
-    let line = "";
-    for (const word of words) {
-      const test = line ? `${line} ${word}` : word;
-      if (font.widthOfTextAtSize(test, 10) > 480) {
-        page.drawText(line, { x: leftMargin, y, font, size: 10, color: black });
-        y -= 16;
-        line = word;
+  for (const img of inspectionImages) {
+    const ext = img.fileName.split(".").pop()?.toLowerCase() || "";
+    let embeddedImage;
+    try {
+      if (ext === "png") {
+        embeddedImage = await pdfDoc.embedPng(img.data);
       } else {
-        line = test;
+        // Try JPEG for jpg/jpeg/webp and any other format
+        embeddedImage = await pdfDoc.embedJpg(img.data);
       }
+    } catch (embedErr) {
+      console.error(`Failed to embed image ${img.fileName}:`, embedErr);
+      continue;
     }
-    if (line) {
-      page.drawText(line, { x: leftMargin, y, font, size: 10, color: black });
-      y -= 16;
+
+    // Create A4 page and fit image inside with aspect ratio
+    const pageWidth = 595;
+    const pageHeight = 842;
+    const margin = 30;
+    const maxW = pageWidth - margin * 2;
+    const maxH = pageHeight - margin * 2;
+
+    const imgAspect = embeddedImage.width / embeddedImage.height;
+    let drawW = maxW;
+    let drawH = drawW / imgAspect;
+    if (drawH > maxH) {
+      drawH = maxH;
+      drawW = drawH * imgAspect;
     }
+
+    const page = pdfDoc.addPage([pageWidth, pageHeight]);
+    page.drawImage(embeddedImage, {
+      x: (pageWidth - drawW) / 2,
+      y: (pageHeight - drawH) / 2,
+      width: drawW,
+      height: drawH,
+    });
   }
 
-  // Footer
-  page.drawText(`Generated: ${new Date().toISOString()}`, {
-    x: leftMargin, y: 30, font, size: 8, color: gray,
-  });
+  // If no images were embedded, create a blank page with a note
+  if (pdfDoc.getPageCount() === 0) {
+    const page = pdfDoc.addPage([595, 842]);
+    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    page.drawText("No inspection form images available", { x: 50, y: 400, font, size: 14 });
+  }
 
   return await pdfDoc.save();
 }
@@ -400,26 +339,19 @@ Deno.serve(async (req) => {
       });
     }
 
-    // 5. Generate PDF inspection report
-    const now = new Date();
-    const dateStr = `${now.getDate().toString().padStart(2, "0")}/${(now.getMonth() + 1).toString().padStart(2, "0")}/${now.getFullYear()}`;
-    
-    const pdfBytes = await generateInspectionPDF({
-      sr_id,
-      customerName,
-      address,
-      phone,
-      area,
-      comments: survey?.comments || "",
-      fileTypes: presentTypes,
-      missingTypes,
-      technicianName,
-      date: dateStr,
-    });
+    // 5. Generate PDF from inspection form photos
+    const inspectionFiles = surveyFiles.filter((f: any) => f.file_type === "inspection_form");
+    const inspectionImages: { fileName: string; data: Uint8Array }[] = [];
+    for (const sf of inspectionFiles) {
+      if (fileEntries[sf.file_name]) {
+        inspectionImages.push({ fileName: sf.file_name, data: fileEntries[sf.file_name] });
+      }
+    }
 
+    const pdfBytes = await generateInspectionPDF(inspectionImages);
     const pdfFileName = `Deltio_Autopsias_${sr_id}.pdf`;
     fileEntries[pdfFileName] = pdfBytes;
-    console.log(`Generated PDF: ${pdfFileName} (${pdfBytes.length} bytes)`);
+    console.log(`Generated PDF from ${inspectionImages.length} inspection photos: ${pdfFileName} (${pdfBytes.length} bytes)`);
 
     // 6. Google Drive: create folder in correct location
     const folderName = `${sr_id} - ${customerName}`;
