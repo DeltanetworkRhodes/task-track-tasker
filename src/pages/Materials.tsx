@@ -3,7 +3,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import AppLayout from "@/components/AppLayout";
 import { useMaterials } from "@/hooks/useData";
 import { mockMaterials } from "@/data/mockData";
-import { Package, AlertTriangle, Search, Plus, Box, ArrowUpDown, Check, X, Pencil, RefreshCw } from "lucide-react";
+import { Package, AlertTriangle, Search, Plus, Box, ArrowUpDown, Check, X, Pencil, RefreshCw, Upload, FileText } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -139,9 +139,60 @@ const Materials = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValues, setEditValues] = useState({ stock: '', price: '' });
   const [syncing, setSyncing] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadOpen, setUploadOpen] = useState(false);
+  const [uploadResult, setUploadResult] = useState<any>(null);
   const queryClient = useQueryClient();
 
   const [form, setForm] = useState({ code: '', name: '', source: 'OTE' as string, stock: '', unit: 'τεμ.', price: '' });
+
+  const handlePdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.type !== 'application/pdf') {
+      toast.error('Μόνο PDF αρχεία');
+      return;
+    }
+    setUploading(true);
+    setUploadResult(null);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/parse-delivery-note`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: formData,
+        }
+      );
+      
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Upload failed');
+      
+      setUploadResult(data);
+      refetch();
+      queryClient.invalidateQueries({ queryKey: ["materials"] });
+      
+      if (data.updated > 0) {
+        toast.success(`Ενημερώθηκαν ${data.updated} υλικά OTE από το δελτίο αποστολής`);
+      }
+      if (data.not_found?.length > 0) {
+        toast.warning(`${data.not_found.length} κωδικοί δεν βρέθηκαν: ${data.not_found.join(', ')}`);
+      }
+      if (data.extracted?.length === 0) {
+        toast.info('Δεν βρέθηκαν υλικά στο PDF');
+      }
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setUploading(false);
+      e.target.value = '';
+    }
+  };
 
   const syncFromSheet = async () => {
     setSyncing(true);
@@ -272,6 +323,11 @@ const Materials = () => {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            <label className={`flex items-center gap-2 rounded-xl border border-primary/30 bg-primary/5 px-4 py-2.5 text-sm font-semibold text-primary hover:bg-primary/10 transition-all cursor-pointer ${uploading ? 'opacity-50 pointer-events-none' : ''}`}>
+              <Upload className={`h-4 w-4 ${uploading ? 'animate-pulse' : ''}`} />
+              {uploading ? 'Ανάγνωση PDF...' : 'Δελτίο Αποστολής OTE'}
+              <input type="file" accept=".pdf" onChange={handlePdfUpload} className="hidden" disabled={uploading} />
+            </label>
             <button
               onClick={syncFromSheet}
               disabled={syncing}
@@ -386,6 +442,40 @@ const Materials = () => {
             />
           </div>
         </div>
+
+        {/* Upload Result */}
+        {uploadResult && uploadResult.extracted?.length > 0 && (
+          <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <FileText className="h-4 w-4 text-primary" />
+                <h3 className="font-bold text-sm">Αποτελέσματα Δελτίου Αποστολής</h3>
+              </div>
+              <button onClick={() => setUploadResult(null)} className="text-muted-foreground hover:text-foreground">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="grid grid-cols-3 gap-3 text-sm">
+              <div className="rounded-lg bg-card p-3 text-center">
+                <p className="text-lg font-bold font-mono text-primary">{uploadResult.extracted.length}</p>
+                <p className="text-[10px] text-muted-foreground uppercase">Υλικά στο PDF</p>
+              </div>
+              <div className="rounded-lg bg-card p-3 text-center">
+                <p className="text-lg font-bold font-mono text-accent">{uploadResult.updated}</p>
+                <p className="text-[10px] text-muted-foreground uppercase">Ενημερώθηκαν</p>
+              </div>
+              <div className="rounded-lg bg-card p-3 text-center">
+                <p className="text-lg font-bold font-mono text-destructive">{uploadResult.not_found?.length || 0}</p>
+                <p className="text-[10px] text-muted-foreground uppercase">Δεν βρέθηκαν</p>
+              </div>
+            </div>
+            {uploadResult.not_found?.length > 0 && (
+              <p className="text-xs text-muted-foreground">
+                Μη αναγνωρισμένοι κωδικοί: <span className="font-mono">{uploadResult.not_found.join(', ')}</span>
+              </p>
+            )}
+          </div>
+        )}
 
         {/* Tabs OTE / DELTANETWORK */}
         <Tabs defaultValue="ote" className="w-full">
