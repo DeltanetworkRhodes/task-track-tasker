@@ -13,6 +13,7 @@ const Assignments = () => {
   const [areaFilter, setAreaFilter] = useState<string>("all");
   const [sourceFilter, setSourceFilter] = useState<string>("all");
   const [search, setSearch] = useState("");
+  const [showCreate, setShowCreate] = useState(false);
 
   const hasRealData = (dbAssignments?.length ?? 0) > 0;
 
