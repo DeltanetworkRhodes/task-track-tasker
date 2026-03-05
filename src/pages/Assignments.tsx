@@ -1,10 +1,12 @@
 import { useState } from "react";
 import AppLayout from "@/components/AppLayout";
 import AssignmentTable from "@/components/AssignmentTable";
+import CreateAssignmentDialog from "@/components/CreateAssignmentDialog";
 import SyncButton from "@/components/SyncButton";
 import { useAssignments } from "@/hooks/useData";
 import { mockAssignments } from "@/data/mockData";
-import { ClipboardCheck, Filter, Search } from "lucide-react";
+import { ClipboardCheck, Filter, Search, Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 const Assignments = () => {
   const { data: dbAssignments, isLoading } = useAssignments();
