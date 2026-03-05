@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LogOut, ClipboardList, FileEdit, MapPin } from "lucide-react";
 import NotificationBell from "@/components/NotificationBell";
 import SurveyForm from "@/components/SurveyForm";
+import IncompleteSurveys from "@/components/IncompleteSurveys";
 import TechnicianAssignments from "@/components/TechnicianAssignments";
 import TechnicianMap from "@/components/TechnicianMap";
 
@@ -85,7 +86,8 @@ const TechnicianDashboard = () => {
           <TechnicianAssignments assignments={assignments || []} loading={isLoading} />
         </TabsContent>
 
-        <TabsContent value="survey">
+        <TabsContent value="survey" className="space-y-6">
+          <IncompleteSurveys />
           <SurveyForm assignments={assignments || []} />
         </TabsContent>
 

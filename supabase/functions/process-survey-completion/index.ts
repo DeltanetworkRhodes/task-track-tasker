@@ -441,12 +441,20 @@ Deno.serve(async (req) => {
     }
 
     // 7. Update status based on completeness
-    const newStatus = isComplete ? "pre_committed" : "pending";
+    const newAssignmentStatus = isComplete ? "pre_committed" : "pending";
+    const newSurveyStatus = isComplete ? "ΠΡΟΔΕΣΜΕΥΣΗ ΥΛΙΚΩΝ" : "ΕΛΛΙΠΗΣ ΑΥΤΟΨΙΑ";
+    
     await adminClient
       .from("assignments")
-      .update({ status: newStatus })
+      .update({ status: newAssignmentStatus })
       .eq("sr_id", sr_id);
-    console.log(`Assignment ${sr_id} status → ${newStatus}`);
+    
+    await adminClient
+      .from("surveys")
+      .update({ status: newSurveyStatus })
+      .eq("id", survey_id);
+    
+    console.log(`Assignment ${sr_id} status → ${newAssignmentStatus}, Survey → ${newSurveyStatus}`);
 
     // 8. Send email only if COMPLETE
     let emailSent = false;
