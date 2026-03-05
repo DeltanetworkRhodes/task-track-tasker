@@ -320,7 +320,7 @@ Deno.serve(async (req) => {
 
     if (resendApiKey && recipients.length > 0) {
       try {
-        const zipBase64 = base64Encode(zipData);
+        const zipBase64 = uint8ToBase64(zipData);
 
         const emailHtml = `
           <div style="font-family:Arial,sans-serif;padding:20px;">
