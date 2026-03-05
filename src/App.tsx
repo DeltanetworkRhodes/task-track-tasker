@@ -16,6 +16,7 @@ import LoginPage from "./pages/LoginPage";
 import UserManagement from "./pages/UserManagement";
 import TechnicianDashboard from "./pages/TechnicianDashboard";
 import PendingApproval from "./pages/PendingApproval";
+import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -57,6 +58,7 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/" element={<ProtectedRoute><RoleGate><RoleRouter /></RoleGate></ProtectedRoute>} />
             <Route path="/technician" element={<ProtectedRoute><RoleGate><TechnicianDashboard /></RoleGate></ProtectedRoute>} />
             <Route path="/assignments" element={<ProtectedRoute><RoleGate><AdminRoute><Assignments /></AdminRoute></RoleGate></ProtectedRoute>} />
