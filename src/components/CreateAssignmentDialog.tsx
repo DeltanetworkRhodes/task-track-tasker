@@ -159,7 +159,6 @@ const CreateAssignmentDialog = ({ open, onOpenChange }: Props) => {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label className="text-xs">Τηλέφωνο</Label>
               <Input
@@ -169,6 +168,7 @@ const CreateAssignmentDialog = ({ open, onOpenChange }: Props) => {
                 className="text-sm"
                 type="tel"
               />
+            </div>
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs">Καμπίνα (CAB)</Label>
