@@ -164,6 +164,8 @@ const SurveyForm = ({ assignments, prefillSrId, prefillArea, onComplete }: Props
       }, 3000);
 
       queryClient.invalidateQueries({ queryKey: ["surveys"] });
+      queryClient.invalidateQueries({ queryKey: ["technician-assignments"] });
+      onComplete?.();
     } catch (err: any) {
       console.error(err);
       toast.error("Σφάλμα: " + (err.message || "Δοκιμάστε ξανά"));

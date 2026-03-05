@@ -65,14 +65,10 @@ const TechnicianDashboard = () => {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="px-4 pt-4 pb-20">
-        <TabsList className="grid w-full grid-cols-3 mb-4">
+        <TabsList className="grid w-full grid-cols-2 mb-4">
           <TabsTrigger value="assignments" className="gap-1.5 text-xs">
             <ClipboardList className="h-3.5 w-3.5" />
             Αναθέσεις
-          </TabsTrigger>
-          <TabsTrigger value="survey" className="gap-1.5 text-xs">
-            <FileEdit className="h-3.5 w-3.5" />
-            Αυτοψία
           </TabsTrigger>
           <TabsTrigger value="map" className="gap-1.5 text-xs">
             <MapPin className="h-3.5 w-3.5" />
@@ -82,11 +78,6 @@ const TechnicianDashboard = () => {
 
         <TabsContent value="assignments">
           <TechnicianAssignments assignments={assignments || []} loading={isLoading} />
-        </TabsContent>
-
-        <TabsContent value="survey" className="space-y-6">
-          <IncompleteSurveys />
-          <SurveyForm assignments={assignments || []} />
         </TabsContent>
 
         <TabsContent value="map">
