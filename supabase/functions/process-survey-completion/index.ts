@@ -145,12 +145,37 @@ async function findOlokliromenesFolderId(
   const rootId = areaRootFolders[area];
   if (!rootId) return null;
 
-  // Structure: Root (ΡΟΔΟΣ/ΚΩΣ) → ΟΛΟΚΛΗΡΩΜΕΝΕΣ ΑΥΤΟΨΙΕΣ (directly, no month subfolder)
+  // Structure: Root (ΡΟΔΟΣ/ΚΩΣ) → ΜΗΝΑΣ (π.χ. ΜΑΡΤΙΟΣ) → ΟΛΟΚΛΗΡΩΜΕΝΕΣ ΑΥΤΟΨΙΕΣ
+  const currentMonth = greekMonths[new Date().getMonth()];
+  console.log(`Looking for month folder: ${currentMonth} under root ${rootId}`);
+
+  // Step 1: Find the current month folder
+  const monthFolders = await driveSearch(
+    accessToken,
+    `name = '${currentMonth}' and '${rootId}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`
+  );
+
+  if (monthFolders.length === 0) {
+    console.warn(`Month folder ${currentMonth} not found for area: ${area}`);
+    return null;
+  }
+
+  const monthFolderId = monthFolders[0].id;
+  console.log(`Found month folder: ${currentMonth} (${monthFolderId})`);
+
+  // Step 2: Find ΟΛΟΚΛΗΡΩΜΕΝΕΣ ΑΥΤΟΨΙΕΣ inside the month folder
   const folders = await driveSearch(
     accessToken,
-    `name = 'ΟΛΟΚΛΗΡΩΜΕΝΕΣ ΑΥΤΟΨΙΕΣ' and '${rootId}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`
+    `name = 'ΟΛΟΚΛΗΡΩΜΕΝΕΣ ΑΥΤΟΨΙΕΣ' and '${monthFolderId}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`
   );
-  return folders.length > 0 ? folders[0].id : null;
+
+  if (folders.length === 0) {
+    console.warn(`ΟΛΟΚΛΗΡΩΜΕΝΕΣ ΑΥΤΟΨΙΕΣ folder not found under ${currentMonth} for area: ${area}`);
+    return null;
+  }
+
+  console.log(`Found ΟΛΟΚΛΗΡΩΜΕΝΕΣ ΑΥΤΟΨΙΕΣ folder: ${folders[0].id}`);
+  return folders[0].id;
 }
 
 Deno.serve(async (req) => {
