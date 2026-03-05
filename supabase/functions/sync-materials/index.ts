@@ -43,18 +43,22 @@ async function getAccessToken(serviceAccountKey: any): Promise<string> {
   return tokenData.access_token;
 }
 
-function parsePrice(val: string): number {
-  if (!val) return 0;
-  // Greek format: 1.000,50 → remove dots (thousands), replace comma with dot (decimal)
-  const cleaned = val.replace(/[€\s]/g, "").replace(/\./g, "").replace(",", ".");
-  return parseFloat(cleaned) || 0;
-}
-
-function parseNumber(val: string): number {
-  if (!val) return 0;
-  // Greek format: 1.000 → remove dots (thousands separator)
-  const cleaned = val.replace(/\./g, "").replace(/[,\s]/g, "");
-  return parseFloat(cleaned) || 0;
+function parseValue(val: any): number {
+  if (val === null || val === undefined || val === "") return 0;
+  // If already a number (from UNFORMATTED_VALUE), return as-is
+  if (typeof val === "number") return val;
+  // String fallback: handle Greek format "1.000,50" or plain "0.65"
+  const str = String(val).replace(/[€\s]/g, "");
+  // If has both dot and comma, it's Greek: 1.000,50
+  if (str.includes(".") && str.includes(",")) {
+    return parseFloat(str.replace(/\./g, "").replace(",", ".")) || 0;
+  }
+  // If only comma, it's decimal: 0,65
+  if (str.includes(",")) {
+    return parseFloat(str.replace(",", ".")) || 0;
+  }
+  // Plain number or dot-decimal: 0.65 or 464
+  return parseFloat(str) || 0;
 }
 
 Deno.serve(async (req) => {
@@ -73,7 +77,7 @@ Deno.serve(async (req) => {
 
     // ========== 1. ΑΠΟΘΗΚΗ → materials (DELTANETWORK items with stock) ==========
     const apothikiRes = await fetch(
-      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent("ΑΠΟΘΗΚΗ")}!A1:H100`,
+      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent("ΑΠΟΘΗΚΗ")}!A1:H100?valueRenderOption=UNFORMATTED_VALUE`,
       { headers: { Authorization: `Bearer ${accessToken}` } }
     );
     const apothikiData = await apothikiRes.json();
@@ -85,9 +89,9 @@ Deno.serve(async (req) => {
       const name = (row[2] || "").trim();
       if (!code || !name) continue;
 
-      const price = parsePrice(row[3] || "0");
-      const stock = parseNumber(row[6] || "0");
-      const unit = (row[5] || "τεμ.").trim();
+      const price = parseValue(row[3] || 0);
+      const stock = parseValue(row[6] || 0);
+      const unit = String(row[5] || "τεμ.").trim();
 
       // Items with price > 0 are DELTANETWORK, price = 0 are OTE
       const source = price > 0 ? "DELTANETWORK" : "OTE";
@@ -105,19 +109,19 @@ Deno.serve(async (req) => {
 
     // ========== 2. ΒΑΣΗ_ΥΛΙΚΩΝ → materials (catalog with prices, update existing) ==========
     const basiYlikonRes = await fetch(
-      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent("ΒΑΣΗ_ΥΛΙΚΩΝ")}!A2:G100`,
+      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent("ΒΑΣΗ_ΥΛΙΚΩΝ")}!A2:G100?valueRenderOption=UNFORMATTED_VALUE`,
       { headers: { Authorization: `Bearer ${accessToken}` } }
     );
     const basiYlikonData = await basiYlikonRes.json();
     const basiYlikonRows = (basiYlikonData.values || []).slice(1); // skip header row
 
     for (const row of basiYlikonRows) {
-      const code = (row[1] || "").trim();
-      const name = (row[2] || "").trim();
+      const code = String(row[1] || "").trim();
+      const name = String(row[2] || "").trim();
       if (!code || !name) continue;
 
-      const price = parsePrice(row[3] || "0");
-      const unit = (row[5] || "τεμ.").trim();
+      const price = parseValue(row[3] || 0);
+      const unit = String(row[5] || "τεμ.").trim();
       const source = price > 0 ? "DELTANETWORK" : "OTE";
 
       // Update price if material already exists from ΑΠΟΘΗΚΗ, otherwise insert
@@ -132,7 +136,7 @@ Deno.serve(async (req) => {
 
     // ========== 3. ΒΑΣΗ_ΤΙΜΟΛΟΓΗΣΗΣ → work_pricing ==========
     const basiTimRes = await fetch(
-      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent("ΒΑΣΗ_ΤΙΜΟΛΟΓΗΣΗΣ")}!A1:F100`,
+      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent("ΒΑΣΗ_ΤΙΜΟΛΟΓΗΣΗΣ")}!A1:F100?valueRenderOption=UNFORMATTED_VALUE`,
       { headers: { Authorization: `Bearer ${accessToken}` } }
     );
     const basiTimData = await basiTimRes.json();
@@ -140,14 +144,13 @@ Deno.serve(async (req) => {
 
     let currentCategory = "";
     for (const row of basiTimRows) {
-      const col1 = (row[0] || "").trim();
-      const col2 = (row[1] || "").trim();
-      const col3 = (row[2] || "").trim();
-      const col4 = (row[3] || "").trim();
+      const col1 = String(row[0] || "").trim();
+      const col2 = String(row[1] || "").trim();
+      const col3 = String(row[2] || "").trim();
+      const col4 = row[3];
 
       // Category headers (like "BCP 1991", "BΕP 1970", etc.)
-      if (col2 && !col3 && !col4) {
-        // This is a category/subcategory header
+      if (col2 && !col3 && (col4 === undefined || col4 === null || col4 === "")) {
         currentCategory = col2;
         continue;
       }
@@ -156,10 +159,10 @@ Deno.serve(async (req) => {
       if (col2 === "ΠΕΡΙΓΡΑΦΗ" || col1 === "OTE" || !col2) continue;
 
       // Data row: code in col2, description in col3, price in col4
-      if (col2 && col3 && col4) {
+      if (col2 && col3 && col4 !== undefined && col4 !== null && col4 !== "") {
         const code = col2;
         const description = col3;
-        const unitPrice = parsePrice(col4);
+        const unitPrice = parseValue(col4);
 
         const { error } = await supabase.from("work_pricing").upsert(
           { code, description, unit_price: unitPrice, category: currentCategory, unit: "τεμ." },
@@ -175,7 +178,7 @@ Deno.serve(async (req) => {
 
     // ========== 4. ΚΕΡΔΟΣ_ΑΝΑ_SR → profit_per_sr table ==========
     const kerdosRes = await fetch(
-      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent("ΚΕΡΔΟΣ_ΑΝΑ_SR")}!A1:D100`,
+      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent("ΚΕΡΔΟΣ_ΑΝΑ_SR")}!A1:D100?valueRenderOption=UNFORMATTED_VALUE`,
       { headers: { Authorization: `Bearer ${accessToken}` } }
     );
     const kerdosData = await kerdosRes.json();
@@ -183,11 +186,11 @@ Deno.serve(async (req) => {
     let profitCount = 0;
 
     for (const r of kerdosRows) {
-      const sr_id = (r[0] || "").trim();
+      const sr_id = String(r[0] || "").trim();
       if (!sr_id) continue;
-      const revenue = parsePrice(r[1] || "0");
-      const expenses = parsePrice(r[2] || "0");
-      const profit = parsePrice(r[3] || "0");
+      const revenue = parseValue(r[1] || 0);
+      const expenses = parseValue(r[2] || 0);
+      const profit = parseValue(r[3] || 0);
 
       const { error } = await supabase.from("profit_per_sr").upsert(
         { sr_id, revenue, expenses, profit },
