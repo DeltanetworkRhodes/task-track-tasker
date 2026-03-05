@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Eye, Calendar, MapPin, User, MessageSquare, FileImage, Image, FileText,
-  Download, CheckCircle, AlertTriangle, Clock, Mail, Send, Settings, XCircle, CalendarPlus
+  Download, CheckCircle, AlertTriangle, Clock, Mail, Send, Settings, XCircle, CalendarPlus, Bell
 } from "lucide-react";
 
 const fileTypeLabels: Record<string, string> = {
