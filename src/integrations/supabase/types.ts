@@ -138,6 +138,7 @@ export type Database = {
           code: string
           created_at: string
           id: string
+          low_stock_threshold: number
           name: string
           price: number
           source: string
@@ -149,6 +150,7 @@ export type Database = {
           code: string
           created_at?: string
           id?: string
+          low_stock_threshold?: number
           name: string
           price?: number
           source: string
@@ -160,6 +162,7 @@ export type Database = {
           code?: string
           created_at?: string
           id?: string
+          low_stock_threshold?: number
           name?: string
           price?: number
           source?: string

@@ -45,13 +45,15 @@ async function getAccessToken(serviceAccountKey: any): Promise<string> {
 
 function parsePrice(val: string): number {
   if (!val) return 0;
-  const cleaned = val.replace(/[€\s]/g, "").replace(",", ".");
+  // Greek format: 1.000,50 → remove dots (thousands), replace comma with dot (decimal)
+  const cleaned = val.replace(/[€\s]/g, "").replace(/\./g, "").replace(",", ".");
   return parseFloat(cleaned) || 0;
 }
 
 function parseNumber(val: string): number {
   if (!val) return 0;
-  const cleaned = val.replace(/[,\s]/g, "");
+  // Greek format: 1.000 → remove dots (thousands separator)
+  const cleaned = val.replace(/\./g, "").replace(/[,\s]/g, "");
   return parseFloat(cleaned) || 0;
 }
 

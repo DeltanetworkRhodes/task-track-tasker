@@ -20,13 +20,18 @@ Deno.serve(async (req) => {
       throw new Error("Missing RESEND_API_KEY or LOW_STOCK_ALERT_EMAIL");
     }
 
-    // Get OTE materials with stock < 100
-    const { data: lowStockItems, error } = await supabase
+    // Get OTE materials where stock < their individual low_stock_threshold
+    const { data: allOte, error } = await supabase
       .from("materials")
-      .select("code, name, stock, unit")
+      .select("code, name, stock, unit, low_stock_threshold")
       .eq("source", "OTE")
-      .lt("stock", 100)
       .order("stock", { ascending: true });
+
+    if (error) throw error;
+
+    const lowStockItems = (allOte || []).filter(
+      (m: any) => Number(m.stock) < Number(m.low_stock_threshold)
+    );
 
     if (error) throw error;
 
