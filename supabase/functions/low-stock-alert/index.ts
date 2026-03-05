@@ -1,5 +1,4 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { sendGmail } from "../_shared/gmail.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -15,8 +14,6 @@ function escapeHtml(str: string): string {
     .replace(/'/g, "&#39;");
 }
 
-const GMAIL_SENDER = "info@deltanetwork.gr";
-
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -25,12 +22,13 @@ Deno.serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
+    const resendApiKey = Deno.env.get("RESEND_API_KEY");
     const alertEmail = Deno.env.get("LOW_STOCK_ALERT_EMAIL");
-    if (!alertEmail) {
-      throw new Error("Missing LOW_STOCK_ALERT_EMAIL");
+
+    if (!resendApiKey || !alertEmail) {
+      throw new Error("Missing RESEND_API_KEY or LOW_STOCK_ALERT_EMAIL");
     }
 
-    // Get OTE materials where stock < their individual low_stock_threshold
     const { data: allOte, error } = await supabase
       .from("materials")
       .select("code, name, stock, unit, low_stock_threshold")
@@ -49,7 +47,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Build email HTML
     const rows = lowStockItems.map(item => `
       <tr style="border-bottom: 1px solid #e5e7eb;">
         <td style="padding: 10px 12px; font-family: monospace; font-weight: 600; color: #e4006e;">${escapeHtml(item.code)}</td>
@@ -82,17 +79,32 @@ Deno.serve(async (req) => {
       </div>
     `;
 
-    const result = await sendGmail(GMAIL_SENDER, {
-      to: [alertEmail],
-      subject: `⚠️ ${lowStockItems.length} υλικά OTE σε χαμηλό απόθεμα`,
-      html,
+    const emailRes = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${resendApiKey}`,
+      },
+      body: JSON.stringify({
+        from: "DeltaNet Alerts <noreply@deltanetwork.gr>",
+        to: [alertEmail],
+        reply_to: "info@deltanetwork.gr",
+        subject: `⚠️ ${lowStockItems.length} υλικά OTE σε χαμηλό απόθεμα`,
+        html,
+      }),
     });
+
+    const emailResult = await emailRes.json();
+
+    if (!emailRes.ok) {
+      throw new Error(`Resend error: ${JSON.stringify(emailResult)}`);
+    }
 
     return new Response(JSON.stringify({
       success: true,
       sent: true,
       low_stock_count: lowStockItems.length,
-      messageId: result.messageId,
+      email_id: emailResult.id,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
