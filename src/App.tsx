@@ -13,6 +13,7 @@ import WorkPricing from "./pages/WorkPricing";
 import ProfitPerSR from "./pages/ProfitPerSR";
 import Surveys from "./pages/Surveys";
 import LoginPage from "./pages/LoginPage";
+import UserManagement from "./pages/UserManagement";
 import TechnicianDashboard from "./pages/TechnicianDashboard";
 import NotFound from "./pages/NotFound";
 
@@ -56,6 +57,7 @@ const App = () => (
             <Route path="/materials" element={<ProtectedRoute><AdminRoute><Materials /></AdminRoute></ProtectedRoute>} />
             <Route path="/work-pricing" element={<ProtectedRoute><AdminRoute><WorkPricing /></AdminRoute></ProtectedRoute>} />
             <Route path="/profit" element={<ProtectedRoute><AdminRoute><ProfitPerSR /></AdminRoute></ProtectedRoute>} />
+            <Route path="/users" element={<ProtectedRoute><AdminRoute><UserManagement /></AdminRoute></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

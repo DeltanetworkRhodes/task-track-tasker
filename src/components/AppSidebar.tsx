@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, ClipboardCheck, Wrench, Package, LogOut, Wifi, FileText, TrendingUp, Search } from "lucide-react";
+import { LayoutDashboard, ClipboardCheck, Wrench, Package, LogOut, Wifi, FileText, TrendingUp, Search, UserCog } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import deltaLogo from "@/assets/delta-logo.jpg";
 
@@ -11,6 +11,7 @@ const navItems = [
   { to: '/materials', label: 'Αποθήκη', icon: Package },
   { to: '/work-pricing', label: 'Τιμοκατάλογος', icon: FileText },
   { to: '/profit', label: 'Κέρδος/SR', icon: TrendingUp },
+  { to: '/users', label: 'Χρήστες', icon: UserCog },
 ];
 
 const AppSidebar = () => {
