@@ -86,8 +86,10 @@ const TechnicianDashboard = () => {
           <TechnicianAssignments assignments={assignments || []} loading={isLoading} />
         </TabsContent>
 
-        <TabsContent value="survey">
+        <TabsContent value="survey" className="space-y-6">
+          <IncompleteSurveys />
           <SurveyForm assignments={assignments || []} />
+        </TabsContent>
         </TabsContent>
 
         <TabsContent value="map">
