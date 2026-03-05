@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { sendGmail } from "../_shared/gmail.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -14,6 +15,8 @@ function escapeHtml(str: string): string {
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
 }
+
+const GMAIL_SENDER = "info@deltanetwork.gr";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -31,14 +34,6 @@ Deno.serve(async (req) => {
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-    const resendApiKey = Deno.env.get("RESEND_API_KEY");
-
-    if (!resendApiKey) {
-      return new Response(JSON.stringify({ error: "RESEND_API_KEY not configured" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
 
     const supabase = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } },
@@ -150,41 +145,22 @@ Deno.serve(async (req) => {
       </div>
     `;
 
-    const emailPayload: any = {
-      from: "DeltaNet FTTH <onboarding@resend.dev>",
+    const sendOptions: any = {
       to: toEmails.split(",").map((e: string) => e.trim()),
-      reply_to: "info@deltanetwork.gr",
       subject,
       html: emailHtml,
     };
 
     if (ccEmails.trim()) {
-      emailPayload.cc = ccEmails.split(",").map((e: string) => e.trim());
+      sendOptions.cc = ccEmails.split(",").map((e: string) => e.trim());
     }
 
-    const resendResponse = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${resendApiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(emailPayload),
-    });
-
-    const resendData = await resendResponse.json();
-
-    if (!resendResponse.ok) {
-      console.error("Resend error:", resendData);
-      return new Response(
-        JSON.stringify({ error: "Failed to send email", details: resendData }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    const result = await sendGmail(GMAIL_SENDER, sendOptions);
 
     console.log("Inspection email sent for SR:", sr_id);
 
     return new Response(
-      JSON.stringify({ success: true, emailId: resendData.id }),
+      JSON.stringify({ success: true, messageId: result.messageId }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
