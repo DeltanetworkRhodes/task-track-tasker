@@ -1,0 +1,1 @@
+ALTER TABLE public.materials ADD COLUMN low_stock_threshold numeric NOT NULL DEFAULT 100;

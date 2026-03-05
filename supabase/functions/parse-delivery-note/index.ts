@@ -37,10 +37,11 @@ Deno.serve(async (req) => {
           {
             role: "system",
             content: `You are extracting material delivery data from OTE delivery note PDFs (Δελτίο Αποστολής).
-Extract each material line item with its code and quantity delivered.
+Extract each material line item with its code, name, quantity, and unit.
 The codes are typically alphanumeric (e.g. "ΚΩΔ.123", "ABC-456", etc).
-Return ONLY a JSON array with objects having "code" (string) and "quantity" (number).
-Example: [{"code": "ABC-001", "quantity": 50}, {"code": "DEF-002", "quantity": 100}]
+Return ONLY a JSON array with objects having "code" (string), "name" (string - material description), "quantity" (number), and "unit" (string - e.g. "τεμ.", "μ.", "kg").
+IMPORTANT: For quantities, "1.000" means 1000 (Greek thousands separator). Convert to actual numbers.
+Example: [{"code": "ABC-001", "name": "Καλώδιο UTP", "quantity": 1000, "unit": "μ."}]
 If you cannot find any materials, return an empty array [].
 IMPORTANT: Return ONLY the JSON array, no markdown, no explanation.`
           },
@@ -73,9 +74,11 @@ IMPORTANT: Return ONLY the JSON array, no markdown, no explanation.`
                       type: "object",
                       properties: {
                         code: { type: "string", description: "Material code" },
-                        quantity: { type: "number", description: "Quantity delivered" }
+                        name: { type: "string", description: "Material description/name" },
+                        quantity: { type: "number", description: "Quantity delivered (1.000 = 1000)" },
+                        unit: { type: "string", description: "Unit of measurement (τεμ., μ., kg, etc.)" }
                       },
-                      required: ["code", "quantity"],
+                      required: ["code", "name", "quantity", "unit"],
                       additionalProperties: false
                     }
                   }
@@ -118,6 +121,7 @@ IMPORTANT: Return ONLY the JSON array, no markdown, no explanation.`
 
     // Update stock for each extracted material (ADD to existing stock)
     let updated = 0;
+    let created = 0;
     const notFound: string[] = [];
 
     for (const item of extractedMaterials) {
@@ -137,7 +141,20 @@ IMPORTANT: Return ONLY the JSON array, no markdown, no explanation.`
         
         if (!error) updated++;
       } else {
-        notFound.push(item.code);
+        // Auto-create missing OTE material
+        const { error } = await supabase.from("materials").insert({
+          code: item.code,
+          name: item.name || item.code,
+          stock: item.quantity,
+          source: "OTE",
+          price: 0,
+          unit: item.unit || "τεμ.",
+        });
+        if (!error) {
+          created++;
+        } else {
+          notFound.push(item.code);
+        }
       }
     }
 
@@ -145,6 +162,7 @@ IMPORTANT: Return ONLY the JSON array, no markdown, no explanation.`
       success: true,
       extracted: extractedMaterials,
       updated,
+      created,
       not_found: notFound,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

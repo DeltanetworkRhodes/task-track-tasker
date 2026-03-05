@@ -20,17 +20,18 @@ interface MaterialItem {
   unit: string;
   source: 'OTE' | 'DELTANETWORK';
   price: number;
+  low_stock_threshold: number;
 }
 
 const MaterialTable = ({ items, hasRealData, editingId, editValues, onEdit, onSave, onCancel, onEditChange, sortField, sortDir, toggleSort }: {
   items: MaterialItem[];
   hasRealData: boolean;
   editingId: string | null;
-  editValues: { stock: string; price: string; name: string; unit: string };
+  editValues: { stock: string; price: string; name: string; unit: string; low_stock_threshold: string };
   onEdit: (m: MaterialItem) => void;
   onSave: () => void;
   onCancel: () => void;
-  onEditChange: (field: 'stock' | 'price' | 'name' | 'unit', val: string) => void;
+  onEditChange: (field: 'stock' | 'price' | 'name' | 'unit' | 'low_stock_threshold', val: string) => void;
   sortField: SortField;
   sortDir: SortDir;
   toggleSort: (f: SortField) => void;
@@ -57,6 +58,7 @@ const MaterialTable = ({ items, hasRealData, editingId, editValues, onEdit, onSa
             <SortHeader field="stock" label="Απόθεμα" align="right" />
             <SortHeader field="price" label="Τιμή" align="right" />
             <th className="py-3 px-4 text-right font-semibold text-muted-foreground text-[11px] uppercase tracking-wider">Αξία</th>
+            <th className="py-3 px-4 text-right font-semibold text-muted-foreground text-[11px] uppercase tracking-wider">Όριο</th>
             {hasRealData && <th className="py-3 px-2 w-10" />}
           </tr>
         </thead>
@@ -64,7 +66,7 @@ const MaterialTable = ({ items, hasRealData, editingId, editValues, onEdit, onSa
           {items.map((m) => {
             const isEditing = editingId === m.id;
             const value = m.stock * m.price;
-            const isLow = m.stock < 100;
+            const isLow = m.stock < m.low_stock_threshold;
             return (
               <tr key={m.id} className={`border-b border-border/50 transition-colors ${isEditing ? 'bg-primary/5' : 'hover:bg-muted/30'}`}>
                 <td className="py-3 px-4 font-mono text-xs font-semibold text-primary">{m.code}</td>
@@ -118,6 +120,18 @@ const MaterialTable = ({ items, hasRealData, editingId, editValues, onEdit, onSa
                 <td className="py-3 px-4 text-right font-mono font-semibold">
                   {value === 0 ? <span className="text-muted-foreground/40">—</span> : `${value.toLocaleString('el-GR', { minimumFractionDigits: 2 })}€`}
                 </td>
+                <td className="py-3 px-4 text-right font-mono text-xs">
+                  {isEditing ? (
+                    <input
+                      type="number"
+                      value={editValues.low_stock_threshold}
+                      onChange={e => onEditChange('low_stock_threshold', e.target.value)}
+                      className="w-16 ml-auto rounded-lg border border-primary/30 bg-card px-2 py-1 text-right text-sm font-mono focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    />
+                  ) : (
+                    <span className="text-muted-foreground">{m.low_stock_threshold}</span>
+                  )}
+                </td>
                 {hasRealData && (
                   <td className="py-3 px-2 text-right">
                     {isEditing ? (
@@ -135,7 +149,7 @@ const MaterialTable = ({ items, hasRealData, editingId, editValues, onEdit, onSa
           })}
           {items.length === 0 && (
             <tr>
-              <td colSpan={hasRealData ? 6 : 5} className="py-12 text-center text-muted-foreground text-sm">
+              <td colSpan={hasRealData ? 7 : 6} className="py-12 text-center text-muted-foreground text-sm">
                 Δεν βρέθηκαν υλικά
               </td>
             </tr>
@@ -154,7 +168,7 @@ const Materials = () => {
   const [addOpen, setAddOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editValues, setEditValues] = useState({ stock: '', price: '', name: '', unit: '' });
+  const [editValues, setEditValues] = useState({ stock: '', price: '', name: '', unit: '', low_stock_threshold: '' });
   const [syncing, setSyncing] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadOpen, setUploadOpen] = useState(false);
@@ -257,8 +271,9 @@ const Materials = () => {
         unit: m.unit,
         source: m.source as 'OTE' | 'DELTANETWORK',
         price: Number(m.price),
+        low_stock_threshold: Number((m as any).low_stock_threshold ?? 100),
       }))
-    : mockMaterials;
+    : mockMaterials.map(m => ({ ...m, low_stock_threshold: 100 }));
 
   const filterAndSort = (items: MaterialItem[]) => {
     let result = items.filter(m =>
@@ -279,7 +294,7 @@ const Materials = () => {
 
   const oteItems = useMemo(() => filterAndSort(materials.filter(m => m.source === 'OTE')), [materials, search, sortField, sortDir]);
   const deltaItems = useMemo(() => filterAndSort(materials.filter(m => m.source === 'DELTANETWORK')), [materials, search, sortField, sortDir]);
-  const lowStock = materials.filter(m => m.stock < 100).length;
+  const lowStock = materials.filter(m => m.stock < m.low_stock_threshold).length;
   const oteValue = materials.filter(m => m.source === 'OTE').reduce((s, m) => s + m.stock * m.price, 0);
   const deltaValue = materials.filter(m => m.source === 'DELTANETWORK').reduce((s, m) => s + m.stock * m.price, 0);
 
@@ -290,7 +305,7 @@ const Materials = () => {
 
   const startEdit = (m: MaterialItem) => {
     setEditingId(m.id);
-    setEditValues({ stock: String(m.stock), price: String(m.price), name: m.name, unit: m.unit });
+    setEditValues({ stock: String(m.stock), price: String(m.price), name: m.name, unit: m.unit, low_stock_threshold: String(m.low_stock_threshold) });
   };
 
   const cancelEdit = () => setEditingId(null);
@@ -303,7 +318,8 @@ const Materials = () => {
         price: Number(editValues.price) || 0,
         name: editValues.name.trim(),
         unit: editValues.unit.trim(),
-      }).eq('id', editingId);
+        low_stock_threshold: Number(editValues.low_stock_threshold) || 100,
+      } as any).eq('id', editingId);
       if (error) throw error;
       toast.success('Υλικό ενημερώθηκε');
       setEditingId(null);
@@ -340,7 +356,7 @@ const Materials = () => {
     onEdit: startEdit,
     onSave: saveEdit,
     onCancel: cancelEdit,
-    onEditChange: (field: 'stock' | 'price' | 'name' | 'unit', val: string) => setEditValues(v => ({ ...v, [field]: val })),
+    onEditChange: (field: 'stock' | 'price' | 'name' | 'unit' | 'low_stock_threshold', val: string) => setEditValues(v => ({ ...v, [field]: val })),
     sortField,
     sortDir,
     toggleSort,
