@@ -200,26 +200,27 @@ IMPORTANT: Return ONLY the JSON array, no markdown, no explanation.`
       const serviceAccountKey = JSON.parse(Deno.env.get("GOOGLE_SERVICE_ACCOUNT_KEY") || "{}");
       const accessToken = await getAccessToken(serviceAccountKey);
 
-      // Read current ΑΠΟΘΗΚΗ sheet to find matching rows
+     // Read current ΑΠΟΘΗΚΗ sheet to find matching rows
       const sheetRes = await fetch(
-        `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent("ΑΠΟΘΗΚΗ")}!A1:H200`,
+        `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent("ΑΠΟΘΗΚΗ")}!A1:H500`,
         { headers: { Authorization: `Bearer ${accessToken}` } }
       );
       const sheetData = await sheetRes.json();
       const rows = sheetData.values || [];
+      console.log(`Sheet ΑΠΟΘΗΚΗ: ${rows.length} rows found`);
 
-      // Get all OTE materials from DB with latest stock
-      const { data: allOteMaterials } = await supabase
+      // Get all materials from DB with latest stock (both OTE and DELTA)
+      const { data: allMaterials } = await supabase
         .from("materials")
-        .select("code, stock")
-        .eq("source", "OTE");
+        .select("code, stock");
 
-      const stockMap = new Map((allOteMaterials || []).map(m => [m.code, Number(m.stock)]));
+      const stockMap = new Map((allMaterials || []).map(m => [m.code.trim(), Number(m.stock)]));
+      console.log(`DB materials: ${stockMap.size} items`);
 
       // Update stock column (G = index 6) for matching rows
       const updates: { range: string; values: any[][] }[] = [];
       for (let i = 1; i < rows.length; i++) {
-        const rowCode = (rows[i]?.[1] || "").trim();
+        const rowCode = (rows[i]?.[1] || "").toString().trim();
         if (rowCode && stockMap.has(rowCode)) {
           updates.push({
             range: `ΑΠΟΘΗΚΗ!G${i + 1}`,
@@ -227,6 +228,7 @@ IMPORTANT: Return ONLY the JSON array, no markdown, no explanation.`
           });
         }
       }
+      console.log(`Sheet updates to write: ${updates.length}`);
 
       if (updates.length > 0) {
         const batchRes = await fetch(
