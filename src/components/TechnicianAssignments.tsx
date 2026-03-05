@@ -323,6 +323,18 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
                 onComplete={handleSurveyComplete}
               />
             )}
+
+            {/* Construction Form (inline in sheet) */}
+            {selectedAssignment && showConstructionForm && (
+              <ConstructionForm
+                assignment={selectedAssignment}
+                onComplete={() => {
+                  setShowConstructionForm(false);
+                  setSelectedAssignment(null);
+                  queryClient.invalidateQueries({ queryKey: ["technician-assignments"] });
+                }}
+              />
+            )}
           </ScrollArea>
         </SheetContent>
       </Sheet>
