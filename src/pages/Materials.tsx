@@ -37,7 +37,6 @@ const MaterialTable = ({ items, hasRealData, editingId, editValues, onEdit, onSa
   sortDir: SortDir;
   toggleSort: (f: SortField) => void;
 }) => {
-}) => {
   const SortHeader = ({ field, label, align = 'left' }: { field: SortField; label: string; align?: string }) => (
     <th
       className={`py-3 px-4 font-semibold text-muted-foreground text-[11px] uppercase tracking-wider cursor-pointer hover:text-foreground transition-colors ${align === 'right' ? 'text-right' : 'text-left'}`}
