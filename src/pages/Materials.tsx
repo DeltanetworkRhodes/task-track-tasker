@@ -10,6 +10,22 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useQueryClient } from "@tanstack/react-query";
 
 type SortField = 'code' | 'name' | 'stock' | 'price';
+
+const exportToCsv = (items: MaterialItem[], source: string) => {
+  const BOM = '\uFEFF';
+  const header = 'Κωδικός;Περιγραφή;Απόθεμα;Μονάδα;Τιμή;Αξία;Όριο';
+  const rows = items.map(m =>
+    `${m.code};${m.name};${m.stock};${m.unit};${m.price.toFixed(2)};${(m.stock * m.price).toFixed(2)};${m.low_stock_threshold}`
+  );
+  const csv = BOM + [header, ...rows].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `Υλικά_${source}_${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+};
 type SortDir = 'asc' | 'desc';
 
 interface MaterialItem {
