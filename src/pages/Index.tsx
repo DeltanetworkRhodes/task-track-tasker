@@ -189,7 +189,7 @@ const Index = () => {
             {/* Quick stats row */}
             <div className="mt-5 grid grid-cols-3 gap-3 sm:flex sm:items-center sm:gap-6 lg:gap-8">
               <div className="text-center sm:text-left">
-                <p className="text-2xl sm:text-3xl font-extrabold text-white font-mono">{assignments.length}</p>
+                <p className="text-2xl sm:text-3xl font-extrabold text-white">{assignments.length}</p>
                 <p className="text-[9px] sm:text-[10px] uppercase tracking-wider text-white/40 mt-0.5">Αναθέσεις</p>
               </div>
               <div className="hidden sm:block h-8 w-px bg-white/10" />
