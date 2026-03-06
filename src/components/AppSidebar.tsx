@@ -28,7 +28,7 @@ const AppSidebar = ({ onClose }: AppSidebarProps) => {
       {/* Logo */}
       <div className="flex items-center justify-between px-4 py-4 border-b border-sidebar-border">
         <div className="flex-1 min-w-0">
-          <img src={deltaLogo} alt="DeltaNetwork" className="h-8 w-auto object-contain brightness-0 invert" />
+          <img src={deltaLogoLight} alt="DeltaNetwork" className="h-10 w-auto object-contain" />
           <p className="text-[9px] text-sidebar-foreground/50 uppercase tracking-widest mt-1 pl-0.5">FTTx Operations</p>
         </div>
         {/* Close button on mobile */}

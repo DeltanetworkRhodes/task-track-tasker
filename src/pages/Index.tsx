@@ -1,5 +1,5 @@
 import AppLayout from "@/components/AppLayout";
-import deltaLogo from "@/assets/delta-logo.jpg";
+import deltaLogoLight from "@/assets/delta-logo-light.png";
 import StatCard from "@/components/StatCard";
 import AssignmentTable from "@/components/AssignmentTable";
 import SyncButton from "@/components/SyncButton";
