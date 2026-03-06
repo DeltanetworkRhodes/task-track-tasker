@@ -141,7 +141,7 @@ const TechnicianKPIs = () => {
                   {tech.area && <p className="text-[10px] text-muted-foreground">{tech.area}</p>}
                 </div>
                 <div className="text-right shrink-0">
-                  <p className="text-2xl font-extrabold font-mono text-primary">{tech.completionRate}%</p>
+                  <p className="text-2xl font-extrabold text-primary">{tech.completionRate}%</p>
                   <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Completion</p>
                 </div>
               </div>
