@@ -181,7 +181,7 @@ const MaterialTable = ({ items, hasRealData, editingId, editValues, onEdit, onSa
                     </span>
                   )}
                 </td>
-                <td className="py-3 px-4 text-right font-mono text-muted-foreground">
+                <td className="py-3 px-4 text-right font-bold text-muted-foreground">
                   {isEditing ? (
                     <input
                       type="number"
