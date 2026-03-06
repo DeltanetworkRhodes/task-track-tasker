@@ -243,6 +243,8 @@ const MaterialTable = ({ items, hasRealData, editingId, editValues, onEdit, onSa
 
 const Materials = () => {
   const { data: dbMaterials, refetch } = useMaterials();
+  const { organization } = useOrganization();
+  const orgName = organization?.name || 'DELTANETWORK';
   const [search, setSearch] = useState("");
   const [sortField, setSortField] = useState<SortField>('code');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
