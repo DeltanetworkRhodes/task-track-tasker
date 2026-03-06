@@ -120,15 +120,37 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
     cat.workPrefixes.length === 0 || cat.workPrefixes.some((p) => selectedWorkPrefixes.has(p))
   );
 
-  // OTDR PDF measurement categories
-  const OTDR_CATEGORIES = [
+  // OTDR PDF measurement categories (FB is dynamic based on floors)
+  const OTDR_CATEGORIES_STATIC = [
     { key: "BMO", storageName: "OTDR_BMO", label: "BMO" },
-    { key: "FB", storageName: "OTDR_FB", label: "Floor Box" },
     { key: "ΚΑΜΠΙΝΑ", storageName: "OTDR_KAMPINA", label: "Καμπίνα" },
     { key: "BEP", storageName: "OTDR_BEP", label: "BEP" },
     { key: "BCP", storageName: "OTDR_BCP", label: "BCP" },
     { key: "LIVE", storageName: "OTDR_LIVE", label: "Live" },
   ];
+
+  const floorCount = Math.max(0, parseInt(floors) || 0);
+  const fbOtdrCategories = useMemo(() => {
+    const cats = [];
+    for (let i = 0; i <= floorCount; i++) {
+      const floorLabel = i.toString().padStart(2, "0");
+      cats.push({
+        key: `FB_${floorLabel}`,
+        storageName: `OTDR_FB_${floorLabel}`,
+        label: `Floor Box - Όροφος ${floorLabel}`,
+      });
+    }
+    return cats;
+  }, [floorCount]);
+
+  const OTDR_CATEGORIES = useMemo(() => {
+    // Insert FB floors after BMO
+    return [
+      OTDR_CATEGORIES_STATIC[0], // BMO
+      ...fbOtdrCategories,
+      ...OTDR_CATEGORIES_STATIC.slice(1), // ΚΑΜΠΙΝΑ, BEP, BCP, LIVE
+    ];
+  }, [fbOtdrCategories]);
 
   const [categorizedPhotos, setCategorizedPhotos] = useState<Record<string, File[]>>({});
   const [categorizedPreviews, setCategorizedPreviews] = useState<Record<string, string[]>>({});
