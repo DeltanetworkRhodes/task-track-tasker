@@ -19,7 +19,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const SHARED_DRIVE_ID = "1b6fX2Fkn7iU1YtC42FUkDIbQd9TGTYwj";
+const SHARED_DRIVE_ID = "0AN9VpmNEa7QBUk9PVA";
 
 const areaRootFolders: Record<string, string> = {
   "ΡΟΔΟΣ": "1JvcSG3tiOplSujXhb3yj_ELQLjfrgOzO",

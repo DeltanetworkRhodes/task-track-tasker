@@ -62,7 +62,7 @@ async function getAccessToken(serviceAccountKey: any): Promise<string> {
   return tokenData.access_token;
 }
 
-const SHARED_DRIVE_ID = "1b6fX2Fkn7iU1YtC42FUkDIbQd9TGTYwj";
+const SHARED_DRIVE_ID = "0AN9VpmNEa7QBUk9PVA";
 
 async function driveSearch(accessToken: string, query: string): Promise<any[]> {
   const url = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&fields=files(id,name,mimeType,thumbnailLink,webViewLink,size,createdTime)&pageSize=100&supportsAllDrives=true&includeItemsFromAllDrives=true&corpora=drive&driveId=${SHARED_DRIVE_ID}`;
