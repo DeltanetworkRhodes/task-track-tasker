@@ -578,7 +578,7 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
                       <div><span className="text-muted-foreground">BEP Τύπος:</span> <span className="font-medium">{existingGisData.bep_type || "—"}</span></div>
                       <div><span className="text-muted-foreground">BMO Τύπος:</span> <span className="font-medium">{existingGisData.bmo_type || "—"}</span></div>
                       <div><span className="text-muted-foreground">Conduit:</span> <span className="font-medium">{existingGisData.conduit || "—"}</span></div>
-                      <div><span className="text-muted-foreground">Απόσταση:</span> <span className="font-medium">{existingGisData.distance_from_cabinet}μ</span></div>
+                      <div><span className="text-muted-foreground">Απόσταση από καμπίνα έως κτίριο:</span> <span className="font-medium">{existingGisData.distance_from_cabinet}μ</span></div>
                       {existingGisData.building_id && <div><span className="text-muted-foreground">Building ID:</span> <span className="font-medium">{existingGisData.building_id}</span></div>}
                       {existingGisData.area_type && <div><span className="text-muted-foreground">Τύπος περιοχής:</span> <span className="font-medium">{existingGisData.area_type}</span></div>}
                       {existingGisData.associated_bcp && <div><span className="text-muted-foreground">BCP:</span> <span className="font-medium">{existingGisData.associated_bcp}</span></div>}
