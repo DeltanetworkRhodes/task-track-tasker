@@ -72,7 +72,7 @@ const ProfitPerSR = () => {
             <div className="flex items-center gap-3">
               <div className="rounded-lg bg-destructive/10 p-2"><TrendingDown className="h-4 w-4 text-destructive" /></div>
               <div>
-                <p className="text-xl font-extrabold font-mono text-destructive">{fmt(stats.totalExpenses)}</p>
+                <p className="text-xl font-extrabold text-destructive">{fmt(stats.totalExpenses)}</p>
                 <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Συνολικά Έξοδα</p>
               </div>
             </div>
