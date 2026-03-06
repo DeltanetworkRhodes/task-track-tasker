@@ -348,7 +348,7 @@ const Materials = () => {
   };
 
   const sharedTableProps = {
-    hasRealData,
+    hasRealData: (dbMaterials?.length ?? 0) > 0,
     editingId,
     editValues,
     onEdit: startEdit,
