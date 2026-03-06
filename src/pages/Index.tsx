@@ -10,6 +10,20 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/
 import { BarChart, Bar, XAxis, YAxis, Cell, PieChart, Pie, LineChart, Line, CartesianGrid } from "recharts";
 import { useMemo } from "react";
 
+function getTimeAgo(dateStr: string): string {
+  const now = new Date();
+  const date = new Date(dateStr);
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  if (diffMins < 1) return "τώρα";
+  if (diffMins < 60) return `${diffMins}λ`;
+  const diffHours = Math.floor(diffMins / 60);
+  if (diffHours < 24) return `${diffHours}ω`;
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays < 7) return `${diffDays}μ`;
+  return `${Math.floor(diffDays / 7)}εβδ`;
+}
+
 const STATUS_COLORS: Record<string, string> = {
   pending: "hsl(38 92% 50%)",
   inspection: "hsl(330 100% 44%)",
