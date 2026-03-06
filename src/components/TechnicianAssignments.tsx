@@ -619,7 +619,7 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
                                   <tr key={idx} className="border-t border-border hover:bg-muted/30">
                                     {allKeys.map((key) => (
                                       <td key={key} className="px-2 py-1 font-medium border-r border-border last:border-r-0">
-                                        {fd[key] || "—"}
+                                        {typeof fd[key] === 'object' ? JSON.stringify(fd[key]) : (fd[key] || "—")}
                                       </td>
                                     ))}
                                   </tr>
