@@ -4,7 +4,7 @@ import AssignmentTable from "@/components/AssignmentTable";
 import CreateAssignmentDialog from "@/components/CreateAssignmentDialog";
 import SyncButton from "@/components/SyncButton";
 import { useAssignments } from "@/hooks/useData";
-import { mockAssignments, statusLabels } from "@/data/mockData";
+import { statusLabels } from "@/data/mockData";
 import { ClipboardCheck, Filter, Search, Plus, UserX, CheckCircle2, XCircle, ListChecks, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
