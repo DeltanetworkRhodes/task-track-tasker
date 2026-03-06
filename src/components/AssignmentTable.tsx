@@ -282,7 +282,7 @@ const AssignmentTable = ({ assignments }: AssignmentTableProps) => {
                 </td>
                 <td className="py-3 px-4">{a.area}</td>
                 <td className="py-3 px-4 text-muted-foreground max-w-[180px] truncate">{(a as any).customerName || '—'}</td>
-                <td className="py-3 px-4 font-mono text-xs">{(a as any).cab || '—'}</td>
+                <td className="py-3 px-4 font-bold text-xs">{(a as any).cab || '—'}</td>
                 <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
                   <Select
                     value={(a as any).technicianId || "__none__"}
