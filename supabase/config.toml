@@ -26,3 +26,6 @@ verify_jwt = false
 
 [functions.parse-gis-excel]
 verify_jwt = false
+
+[functions.delete-drive-folder]
+verify_jwt = false

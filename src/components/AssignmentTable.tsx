@@ -133,11 +133,30 @@ const AssignmentTable = ({ assignments }: AssignmentTableProps) => {
     if (!deleteTarget) return;
     setDeleting(true);
     try {
+      // Find assignment details for Drive cleanup
+      const target = assignments.find((a: any) => a.id === deleteTarget.id) as any;
+      
+      // Delete from database first
       const { error } = await supabase
         .from("assignments")
         .delete()
         .eq("id", deleteTarget.id);
       if (error) throw error;
+      
+      // Delete Drive folder (non-blocking)
+      if (target) {
+        supabase.functions.invoke("delete-drive-folder", {
+          body: {
+            sr_id: target.sr_id || deleteTarget.srId,
+            area: target.area,
+            customer_name: target.customer_name,
+          },
+        }).then(({ error: driveErr }) => {
+          if (driveErr) console.error("Drive folder delete error:", driveErr);
+          else console.log(`Drive folder for ${deleteTarget.srId} deleted`);
+        });
+      }
+      
       toast.success(`Το SR ${deleteTarget.srId} διαγράφηκε`);
       queryClient.invalidateQueries({ queryKey: ["assignments"] });
       setDeleteTarget(null);
