@@ -374,11 +374,20 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
       return (
         <div className="space-y-2">
           {existingGisData && (
-            <div className="text-xs text-muted-foreground bg-blue-500/5 border border-blue-500/20 rounded-md p-2 space-y-1">
-              <p className="font-medium text-blue-600">✓ GIS Προδέσμευσης</p>
-              <p>Όροφοι: {existingGisData.floors} · BEP: {existingGisData.bep_type || "—"}</p>
-              <p>BMO: {existingGisData.bmo_type || "—"} · Απόσταση καμπίνα-κτίριο: {existingGisData.distance_from_cabinet}μ</p>
-            </div>
+             <div className="text-xs text-muted-foreground bg-blue-500/5 border border-blue-500/20 rounded-md p-2 space-y-1">
+               <p className="font-medium text-blue-600">✓ GIS Προδέσμευσης</p>
+               <p>Όροφοι: {existingGisData.floors} · BEP: {existingGisData.bep_type || "—"}</p>
+               <p>BMO: {existingGisData.bmo_type || "—"} · Απόσταση καμπίνα-κτίριο: {existingGisData.distance_from_cabinet}μ</p>
+               {existingGisData.building_id && <p>Building ID: {existingGisData.building_id}</p>}
+               {existingGisData.area_type && <p>Τύπος περιοχής: {existingGisData.area_type}</p>}
+               {existingGisData.associated_bcp && <p>BCP: {existingGisData.associated_bcp}</p>}
+               {existingGisData.new_bcp && <p>Νέο BCP: {existingGisData.new_bcp}</p>}
+               {existingGisData.bep_floor && <p>Όροφος BEP: {existingGisData.bep_floor}</p>}
+               {existingGisData.customer_floor && <p>Όροφος πελάτη: {existingGisData.customer_floor}</p>}
+               {(existingGisData.optical_paths as any[])?.length > 0 && (
+                 <p>Οπτικές διαδρομές: {(existingGisData.optical_paths as any[]).length}</p>
+               )}
+             </div>
           )}
           {/* Show incomplete survey files section */}
           {existingSurvey?.status === "ΕΛΛΙΠΗΣ ΑΥΤΟΨΙΑ" && (
