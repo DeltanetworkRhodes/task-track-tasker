@@ -293,7 +293,7 @@ const ConstructionPage = () => {
               <SelectItem value="invoiced">Τιμολογημένες</SelectItem>
             </SelectContent>
           </Select>
-          <span className="text-xs text-muted-foreground font-mono self-center bg-muted px-2.5 py-1.5 rounded-full">
+          <span className="text-xs text-muted-foreground font-bold self-center bg-muted px-2.5 py-1.5 rounded-full">
             {filtered.length} / {constructions.length}
           </span>
         </div>
