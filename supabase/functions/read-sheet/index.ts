@@ -2,7 +2,6 @@ const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
-
 async function getAccessToken(serviceAccountKey: any): Promise<string> {
   const now = Math.floor(Date.now() / 1000);
   const header = btoa(JSON.stringify({ alg: "RS256", typ: "JWT" }));
@@ -26,45 +25,31 @@ async function getAccessToken(serviceAccountKey: any): Promise<string> {
   });
   return (await tokenRes.json()).access_token;
 }
-
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   try {
     const serviceAccountKey = JSON.parse(Deno.env.get("GOOGLE_SERVICE_ACCOUNT_KEY")!);
     const accessToken = await getAccessToken(serviceAccountKey);
-    const spreadsheetId = "1Rc0rrrNbixf9G64G71aWDrQ_cFezADTt4JYbTeCSzic";
+    // New spreadsheet from last generation
+    const spreadsheetId = "1-NmmmLiIKWAbYQErlImVdw32-ErDG-0TssbXCt6ajmA";
     const sheetName = "ΦΥΛΛΟ ΑΠΟΛΟΓΙΣΜΟΥ FTTH";
-    
-    const rangeParam = `${sheetName}!A1:Z200`;
-    const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(rangeParam)}`;
-    const res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(sheetName + "!B19:H19,B30:H30,B49:H49,B54:H54")}`;
+    // Use batch get for specific rows
+    const batchUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values:batchGet?ranges=${encodeURIComponent(sheetName+"!B19:H19")}&ranges=${encodeURIComponent(sheetName+"!B30:H30")}&ranges=${encodeURIComponent(sheetName+"!B49:H49")}&ranges=${encodeURIComponent(sheetName+"!B54:H54")}`;
+    const res = await fetch(batchUrl, { headers: { Authorization: `Bearer ${accessToken}` } });
     if (!res.ok) throw new Error(await res.text());
     const data = await res.json();
-    const rows = data.values || [];
     
-    // Extract ALL work codes from column B (index 1) starting from row 10
-    const allWorkCodes: { row: number; code: string; qty: string }[] = [];
-    const allMatCodes: { row: number; code: string; qty: string }[] = [];
-    
-    for (let r = 10; r < rows.length; r++) {
-      const row = rows[r] || [];
-      const workCode = (row[1] || "").toString().trim();
-      const workQty = (row[7] || "").toString().trim();
-      if (workCode) {
-        allWorkCodes.push({ row: r + 1, code: workCode, qty: workQty || "0" });
-      }
-      const matCode = (row[9] || "").toString().trim();
-      const matQty = (row[12] || "").toString().trim();
-      if (matCode) {
-        allMatCodes.push({ row: r + 1, code: matCode, qty: matQty || "0" });
-      }
+    const result: any = {};
+    const labels = ["1956.II (row 19)", "1970.I (row 30)", "1985.2 (row 49)", "1986.III (row 54)"];
+    for (let i = 0; i < data.valueRanges?.length; i++) {
+      const row = data.valueRanges[i].values?.[0] || [];
+      result[labels[i]] = { code: row[0], description: row[1], quantity_H: row[6] };
     }
     
-    return new Response(JSON.stringify({
-      totalRows: rows.length,
-      allWorkCodes,
-      allMatCodes,
-    }, null, 2), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    return new Response(JSON.stringify(result, null, 2), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   } catch (error) {
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
