@@ -101,6 +101,6 @@
     background-size: 32px 32px;
   }
   .cosmote-gradient {
-    background: linear-gradient(135deg, hsl(200 85% 45%), hsl(190 75% 42%), hsl(160 65% 40%));
+    background: linear-gradient(135deg, hsl(185 70% 42%), hsl(160 55% 45%), hsl(140 50% 42%));
   }
 }
