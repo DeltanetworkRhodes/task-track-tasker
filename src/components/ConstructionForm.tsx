@@ -465,7 +465,7 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
           </div>
           <div>
             <Label className="text-xs">Αναμονή</Label>
-            <Input value={pendingNote} onChange={(e) => setPendingNote(e.target.value)} placeholder="π.χ. Αναμονή CAD" className="text-sm mt-1" />
+            <Input value={pendingNote} onChange={(e) => setPendingNote(e.target.value)} placeholder="π.χ. Β21 σωληνίσκος" className="text-sm mt-1" />
           </div>
         </div>
       </Card>
