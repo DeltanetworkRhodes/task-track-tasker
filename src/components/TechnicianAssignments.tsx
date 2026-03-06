@@ -340,7 +340,7 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
                   <p className="font-medium text-blue-600">✓ GIS Αναλύθηκε</p>
                   <p>Όροφοι: {existingGisData.floors} · BEP: {existingGisData.bep_type || "—"}</p>
                   <p>BMO: {existingGisData.bmo_type || "—"} · Conduit: {existingGisData.conduit || "—"}</p>
-                  <p>Απόσταση: {existingGisData.distance_from_cabinet}μ</p>
+                  <p>Απόσταση από καμπίνα έως κτίριο: {existingGisData.distance_from_cabinet}μ</p>
                 </div>
               )}
             </>
@@ -365,7 +365,7 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
             <div className="text-xs text-muted-foreground bg-blue-500/5 border border-blue-500/20 rounded-md p-2 space-y-1">
               <p className="font-medium text-blue-600">✓ GIS Προδέσμευσης</p>
               <p>Όροφοι: {existingGisData.floors} · BEP: {existingGisData.bep_type || "—"}</p>
-              <p>BMO: {existingGisData.bmo_type || "—"} · Απόσταση: {existingGisData.distance_from_cabinet}μ</p>
+              <p>BMO: {existingGisData.bmo_type || "—"} · Απόσταση καμπίνα-κτίριο: {existingGisData.distance_from_cabinet}μ</p>
             </div>
           )}
           <div className="flex items-center gap-2 text-cyan-600 justify-center py-2">
