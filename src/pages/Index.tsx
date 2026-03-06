@@ -257,8 +257,8 @@ const Index = () => {
             <ChartContainer config={trendConfig} className="h-[200px] sm:h-[220px] w-full">
               <BarChart data={monthlyTrend} margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(215 18% 25%)" />
-                <XAxis dataKey="label" tick={{ fill: "hsl(220 10% 46%)", fontSize: 11 }} axisLine={false} tickLine={false} />
-                <YAxis allowDecimals={false} tick={{ fill: "hsl(220 10% 46%)", fontSize: 11 }} axisLine={false} tickLine={false} width={30} />
+                <XAxis dataKey="label" tick={{ fill: "hsl(210 14% 55%)", fontSize: 11 }} axisLine={false} tickLine={false} />
+                <YAxis allowDecimals={false} tick={{ fill: "hsl(210 14% 55%)", fontSize: 11 }} axisLine={false} tickLine={false} width={30} />
                 <ChartTooltip content={<ChartTooltipContent />} />
                 <Bar dataKey="completed" name="Ολοκληρωμένα" fill="hsl(152 60% 42%)" radius={[6, 6, 0, 0]} barSize={24} />
               </BarChart>
