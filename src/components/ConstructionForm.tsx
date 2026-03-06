@@ -358,25 +358,37 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
     setMaterialItems((prev) => prev.map((m) => (m.material_id === id ? { ...m, quantity: qty } : m)));
   };
 
-  // Photo handling
-  const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Photo handling per category
+  const handleCategoryPhotoSelect = (category: string, e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
-    setPhotos((prev) => [...prev, ...files]);
+    setCategorizedPhotos((prev) => ({ ...prev, [category]: [...(prev[category] || []), ...files] }));
     files.forEach((file) => {
       const reader = new FileReader();
       reader.onload = (ev) => {
-        setPhotoPreviews((prev) => [...prev, ev.target?.result as string]);
+        setCategorizedPreviews((prev) => ({
+          ...prev,
+          [category]: [...(prev[category] || []), ev.target?.result as string],
+        }));
       };
       reader.readAsDataURL(file);
     });
-    if (fileInputRef.current) fileInputRef.current.value = "";
+    const ref = fileInputRefs.current[category];
+    if (ref) ref.value = "";
   };
 
-  const removePhoto = (index: number) => {
-    setPhotos((prev) => prev.filter((_, i) => i !== index));
-    setPhotoPreviews((prev) => prev.filter((_, i) => i !== index));
+  const removeCategoryPhoto = (category: string, index: number) => {
+    setCategorizedPhotos((prev) => ({
+      ...prev,
+      [category]: (prev[category] || []).filter((_, i) => i !== index),
+    }));
+    setCategorizedPreviews((prev) => ({
+      ...prev,
+      [category]: (prev[category] || []).filter((_, i) => i !== index),
+    }));
   };
+
+  const totalPhotos = Object.values(categorizedPhotos).reduce((sum, arr) => sum + arr.length, 0);
 
   // Totals
   const totalRevenue = workItems.reduce((sum, w) => sum + w.unit_price * w.quantity, 0);
