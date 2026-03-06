@@ -253,7 +253,7 @@ const Materials = () => {
 
   const [form, setForm] = useState({ code: '', name: '', source: 'OTE' as string, stock: '', unit: 'τεμ.', price: '' });
 
-  const handlePdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePdfUpload = async (e: React.ChangeEvent<HTMLInputElement>, uploadSource: 'OTE' | 'DELTANETWORK') => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
     
@@ -273,9 +273,10 @@ const Materials = () => {
     
     try {
       for (let i = 0; i < pdfFiles.length; i++) {
-        toast.info(`Ανάγνωση PDF ${i + 1}/${pdfFiles.length}...`);
+        toast.info(`Ανάγνωση PDF ${i + 1}/${pdfFiles.length} (${uploadSource})...`);
         const formData = new FormData();
         formData.append('file', pdfFiles[i]);
+        formData.append('source', uploadSource);
         
         const response = await fetch(
           `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/parse-delivery-note`,
@@ -302,7 +303,7 @@ const Materials = () => {
       queryClient.invalidateQueries({ queryKey: ["materials"] });
       
       if (totalUpdated > 0) {
-        toast.success(`Ενημερώθηκαν ${totalUpdated} υλικά OTE από ${pdfFiles.length} δελτία`);
+        toast.success(`Ενημερώθηκαν ${totalUpdated} υλικά ${uploadSource} από ${pdfFiles.length} δελτία`);
       }
       if (allNotFound.length > 0) {
         toast.warning(`${allNotFound.length} κωδικοί δεν βρέθηκαν`);
