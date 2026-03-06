@@ -159,20 +159,26 @@ Deno.serve(async (req) => {
     const toEmails = settingsMap["completion_to_emails"] || settingsMap["report_to_emails"] || "info@deltanetwork.gr";
     const ccEmails = settingsMap["completion_cc_emails"] || settingsMap["report_cc_emails"] || "";
 
-    // ─── Build ZIP ───────────────────────────────────────────────────
+    // ─── Build ZIP incrementally ────────────────────────────────────
     const zipFiles: Record<string, Uint8Array> = {};
     let totalSize = 0;
-    const MAX_ZIP_SIZE = 35 * 1024 * 1024; // 35MB limit (Resend allows 40MB)
+    const MAX_ZIP_SIZE = 20 * 1024 * 1024; // 20MB limit for memory safety
+
+    // Get Drive access token once (needed for spreadsheet + drive photos)
+    let driveAccessToken = "";
+    try {
+      const serviceAccountKey = JSON.parse(Deno.env.get("GOOGLE_SERVICE_ACCOUNT_KEY")!);
+      driveAccessToken = await getAccessToken(serviceAccountKey);
+    } catch (e: any) {
+      console.error(`Drive auth error: ${e.message}`);
+    }
 
     // 1. Download Google Sheet as xlsx
-    if (spreadsheet_id) {
+    if (spreadsheet_id && driveAccessToken) {
       try {
-        const serviceAccountKey = JSON.parse(Deno.env.get("GOOGLE_SERVICE_ACCOUNT_KEY")!);
-        const accessToken = await getAccessToken(serviceAccountKey);
-
         const exportUrl = `https://www.googleapis.com/drive/v3/files/${spreadsheet_id}/export?mimeType=application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`;
         const xlsxRes = await fetch(exportUrl, {
-          headers: { Authorization: `Bearer ${accessToken}` },
+          headers: { Authorization: `Bearer ${driveAccessToken}` },
         });
 
         if (xlsxRes.ok) {
@@ -182,34 +188,27 @@ Deno.serve(async (req) => {
           console.log(`Added spreadsheet to ZIP: ${xlsxData.length} bytes`);
         } else {
           console.error(`Failed to export spreadsheet: ${xlsxRes.status}`);
+          await xlsxRes.text();
         }
       } catch (err: any) {
         console.error(`Spreadsheet download error: ${err.message}`);
       }
     }
 
-    // 2. Download and add photos from Supabase Storage
+    // 2. Download photos from Supabase Storage
     if (photo_paths && photo_paths.length > 0) {
       for (let i = 0; i < photo_paths.length; i++) {
         if (totalSize > MAX_ZIP_SIZE) {
-          console.log(`ZIP size limit reached at ${totalSize} bytes, skipping remaining photos`);
+          console.log(`ZIP size limit reached, skipping remaining photos`);
           break;
         }
-
         try {
           const { data: fileData, error: dlErr } = await adminClient.storage
             .from("photos")
             .download(photo_paths[i]);
-
-          if (dlErr || !fileData) {
-            console.error(`Failed to download photo ${photo_paths[i]}:`, dlErr);
-            continue;
-          }
-
-          const arrayBuf = await fileData.arrayBuffer();
-          const photoBytes = new Uint8Array(arrayBuf);
+          if (dlErr || !fileData) { console.error(`Photo dl error:`, dlErr); continue; }
+          const photoBytes = new Uint8Array(await fileData.arrayBuffer());
           const fileName = photo_paths[i].split("/").pop() || `photo_${i + 1}.jpg`;
-          
           zipFiles[`ΦΩΤΟΓΡΑΦΙΕΣ/${fileName}`] = photoBytes;
           totalSize += photoBytes.length;
           console.log(`Added photo ${fileName}: ${photoBytes.length} bytes`);
@@ -219,64 +218,60 @@ Deno.serve(async (req) => {
       }
     }
 
-    // 2b. Download photos from Google Drive (when drive_photo_ids provided)
-    if (drive_photo_ids && drive_photo_ids.length > 0) {
-      try {
-        const serviceAccountKey = JSON.parse(Deno.env.get("GOOGLE_SERVICE_ACCOUNT_KEY")!);
-        // Reuse existing token if spreadsheet was already downloaded, otherwise get new one
-        let driveAccessToken: string;
+    // 2b. Download photos from Google Drive
+    if (drive_photo_ids && drive_photo_ids.length > 0 && driveAccessToken) {
+      for (let i = 0; i < drive_photo_ids.length; i++) {
+        if (totalSize > MAX_ZIP_SIZE) {
+          console.log(`ZIP size limit reached, skipping remaining Drive photos`);
+          break;
+        }
         try {
-          driveAccessToken = await getAccessToken(serviceAccountKey);
-        } catch (e: any) {
-          console.error(`Drive auth error: ${e.message}`);
-          driveAccessToken = "";
+          const photoId = drive_photo_ids[i].id || drive_photo_ids[i];
+          const photoName = drive_photo_ids[i].name || `photo_${i + 1}.jpg`;
+          const dlUrl = `https://www.googleapis.com/drive/v3/files/${photoId}?alt=media&supportsAllDrives=true`;
+          const dlRes = await fetch(dlUrl, { headers: { Authorization: `Bearer ${driveAccessToken}` } });
+          if (!dlRes.ok) { console.error(`Drive photo ${photoId}: ${dlRes.status}`); await dlRes.text(); continue; }
+          const photoBytes = new Uint8Array(await dlRes.arrayBuffer());
+          zipFiles[`ΦΩΤΟΓΡΑΦΙΕΣ/${photoName}`] = photoBytes;
+          totalSize += photoBytes.length;
+          console.log(`Added Drive photo ${photoName}: ${photoBytes.length} bytes`);
+        } catch (photoErr: any) {
+          console.error(`Drive photo error: ${photoErr.message}`);
         }
-
-        if (driveAccessToken) {
-          for (let i = 0; i < drive_photo_ids.length; i++) {
-            if (totalSize > MAX_ZIP_SIZE) {
-              console.log(`ZIP size limit reached at ${totalSize} bytes, skipping remaining Drive photos`);
-              break;
-            }
-
-            try {
-              const photoId = drive_photo_ids[i].id || drive_photo_ids[i];
-              const photoName = drive_photo_ids[i].name || `photo_${i + 1}.jpg`;
-
-              const dlUrl = `https://www.googleapis.com/drive/v3/files/${photoId}?alt=media&supportsAllDrives=true`;
-              const dlRes = await fetch(dlUrl, {
-                headers: { Authorization: `Bearer ${driveAccessToken}` },
-              });
-
-              if (!dlRes.ok) {
-                console.error(`Failed to download Drive photo ${photoId}: ${dlRes.status}`);
-                await dlRes.text();
-                continue;
-              }
-
-              const photoBytes = new Uint8Array(await dlRes.arrayBuffer());
-              zipFiles[`ΦΩΤΟΓΡΑΦΙΕΣ/${photoName}`] = photoBytes;
-              totalSize += photoBytes.length;
-              console.log(`Added Drive photo ${photoName}: ${photoBytes.length} bytes`);
-            } catch (photoErr: any) {
-              console.error(`Drive photo download error: ${photoErr.message}`);
-            }
-          }
-        }
-      } catch (err: any) {
-        console.error(`Drive photos error: ${err.message}`);
       }
     }
 
-    // 3. Create ZIP
-    let zipBase64 = "";
-    let zipFileName = `SR_${sr_id}_ΟΛΟΚΛΗΡΩΣΗ.zip`;
+    // 3. Create ZIP and upload to Storage (avoids memory issues with base64)
+    let zipDownloadUrl = "";
+    const zipFileName = `SR_${sr_id}_ΟΛΟΚΛΗΡΩΣΗ.zip`;
+    const zipStoragePath = `completions/${sr_id}/${zipFileName}`;
 
     if (Object.keys(zipFiles).length > 0) {
       console.log(`Creating ZIP with ${Object.keys(zipFiles).length} files, total ~${Math.round(totalSize / 1024)}KB`);
       const zipped = zipSync(zipFiles);
-      zipBase64 = uint8ToBase64(zipped);
       console.log(`ZIP created: ${zipped.length} bytes`);
+
+      // Free memory from individual files
+      for (const key in zipFiles) delete zipFiles[key];
+
+      // Upload ZIP to Supabase Storage
+      const { error: uploadErr } = await adminClient.storage
+        .from("photos")
+        .upload(zipStoragePath, zipped, {
+          contentType: "application/zip",
+          upsert: true,
+        });
+
+      if (uploadErr) {
+        console.error(`ZIP upload error:`, uploadErr);
+      } else {
+        // Create a signed URL valid for 7 days
+        const { data: signedData } = await adminClient.storage
+          .from("photos")
+          .createSignedUrl(zipStoragePath, 7 * 24 * 60 * 60);
+        zipDownloadUrl = signedData?.signedUrl || "";
+        console.log(`ZIP uploaded to storage, signed URL created`);
+      }
     }
 
     // ─── Build email HTML ────────────────────────────────────────────
