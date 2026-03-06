@@ -331,7 +331,7 @@ const Index = () => {
                     {item.label}
                   </span>
                   {item.timeAgo && (
-                    <span className="text-muted-foreground/60 shrink-0 font-mono text-[9px] sm:text-[10px]">{item.timeAgo}</span>
+                    <span className="text-muted-foreground/60 shrink-0 font-bold text-[9px] sm:text-[10px]">{item.timeAgo}</span>
                   )}
                 </div>
               ))}
