@@ -219,6 +219,55 @@ Deno.serve(async (req) => {
       }
     }
 
+    // 2b. Download photos from Google Drive (when drive_photo_ids provided)
+    if (drive_photo_ids && drive_photo_ids.length > 0) {
+      try {
+        const serviceAccountKey = JSON.parse(Deno.env.get("GOOGLE_SERVICE_ACCOUNT_KEY")!);
+        // Reuse existing token if spreadsheet was already downloaded, otherwise get new one
+        let driveAccessToken: string;
+        try {
+          driveAccessToken = await getAccessToken(serviceAccountKey);
+        } catch (e: any) {
+          console.error(`Drive auth error: ${e.message}`);
+          driveAccessToken = "";
+        }
+
+        if (driveAccessToken) {
+          for (let i = 0; i < drive_photo_ids.length; i++) {
+            if (totalSize > MAX_ZIP_SIZE) {
+              console.log(`ZIP size limit reached at ${totalSize} bytes, skipping remaining Drive photos`);
+              break;
+            }
+
+            try {
+              const photoId = drive_photo_ids[i].id || drive_photo_ids[i];
+              const photoName = drive_photo_ids[i].name || `photo_${i + 1}.jpg`;
+
+              const dlUrl = `https://www.googleapis.com/drive/v3/files/${photoId}?alt=media&supportsAllDrives=true`;
+              const dlRes = await fetch(dlUrl, {
+                headers: { Authorization: `Bearer ${driveAccessToken}` },
+              });
+
+              if (!dlRes.ok) {
+                console.error(`Failed to download Drive photo ${photoId}: ${dlRes.status}`);
+                await dlRes.text();
+                continue;
+              }
+
+              const photoBytes = new Uint8Array(await dlRes.arrayBuffer());
+              zipFiles[`ΦΩΤΟΓΡΑΦΙΕΣ/${photoName}`] = photoBytes;
+              totalSize += photoBytes.length;
+              console.log(`Added Drive photo ${photoName}: ${photoBytes.length} bytes`);
+            } catch (photoErr: any) {
+              console.error(`Drive photo download error: ${photoErr.message}`);
+            }
+          }
+        }
+      } catch (err: any) {
+        console.error(`Drive photos error: ${err.message}`);
+      }
+    }
+
     // 3. Create ZIP
     let zipBase64 = "";
     let zipFileName = `SR_${sr_id}_ΟΛΟΚΛΗΡΩΣΗ.zip`;
