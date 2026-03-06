@@ -310,7 +310,10 @@ const Index = () => {
                   <span className="text-muted-foreground shrink-0 text-[10px] px-2 py-0.5 rounded bg-muted">
                     {item.label}
                   </span>
-                  <span className="text-muted-foreground shrink-0 font-mono text-[10px]">{item.date.slice(5)}</span>
+                  {item.timeAgo && (
+                    <span className="text-muted-foreground/60 shrink-0 font-mono text-[10px]">{item.timeAgo}</span>
+                  )}
+                  <span className="text-muted-foreground shrink-0 font-mono text-[10px]">{item.date}</span>
                 </div>
               ))}
             </div>
