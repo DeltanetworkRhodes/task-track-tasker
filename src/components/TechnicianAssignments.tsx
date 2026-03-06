@@ -336,12 +336,24 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
                 {uploadingGis ? "Ανάλυση GIS..." : existingGisData ? "Αντικατάσταση GIS" : "Upload Προδέσμευσης GIS"}
               </Button>
               {existingGisData && (
-                <div className="text-xs text-muted-foreground bg-blue-500/5 border border-blue-500/20 rounded-md p-2 space-y-1">
-                  <p className="font-medium text-blue-600">✓ GIS Αναλύθηκε</p>
-                  <p>Όροφοι: {existingGisData.floors} · BEP: {existingGisData.bep_type || "—"}</p>
-                  <p>BMO: {existingGisData.bmo_type || "—"} · Conduit: {existingGisData.conduit || "—"}</p>
-                  <p>Απόσταση από καμπίνα έως κτίριο: {existingGisData.distance_from_cabinet}μ</p>
-                </div>
+                 <div className="text-xs text-muted-foreground bg-blue-500/5 border border-blue-500/20 rounded-md p-2 space-y-1">
+                   <p className="font-medium text-blue-600">✓ GIS Αναλύθηκε</p>
+                   <p>Όροφοι: {existingGisData.floors} · BEP: {existingGisData.bep_type || "—"}</p>
+                   <p>BMO: {existingGisData.bmo_type || "—"} · Conduit: {existingGisData.conduit || "—"}</p>
+                   <p>Απόσταση καμπίνα-κτίριο: {existingGisData.distance_from_cabinet}μ</p>
+                   {existingGisData.building_id && <p>Building ID: {existingGisData.building_id}</p>}
+                   {existingGisData.area_type && <p>Τύπος περιοχής: {existingGisData.area_type}</p>}
+                   {existingGisData.associated_bcp && <p>BCP: {existingGisData.associated_bcp}</p>}
+                   {existingGisData.new_bcp && <p>Νέο BCP: {existingGisData.new_bcp}</p>}
+                   {existingGisData.nearby_bcp && <p>Κοντινό BCP: {existingGisData.nearby_bcp}</p>}
+                   {existingGisData.bep_floor && <p>Όροφος BEP: {existingGisData.bep_floor}</p>}
+                   {existingGisData.bep_template && <p>Template BEP: {existingGisData.bep_template}</p>}
+                   {existingGisData.customer_floor && <p>Όροφος πελάτη: {existingGisData.customer_floor}</p>}
+                   {(existingGisData.optical_paths as any[])?.length > 0 && (
+                     <p>Οπτικές διαδρομές: {(existingGisData.optical_paths as any[]).length}</p>
+                   )}
+                   {existingGisData.notes && <p>Σημειώσεις: {existingGisData.notes}</p>}
+                 </div>
               )}
             </>
           )}
