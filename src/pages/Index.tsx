@@ -42,6 +42,7 @@ const GREEK_MONTHS: Record<number, string> = {
 };
 
 const Index = () => {
+  const [wizardDismissed, setWizardDismissed] = useState(false);
   const { data: dbAssignments } = useAssignments();
   const { data: dbConstructions } = useConstructions();
 
