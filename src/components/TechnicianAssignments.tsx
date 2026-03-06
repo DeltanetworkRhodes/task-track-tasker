@@ -75,6 +75,21 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
     enabled: !!selectedAssignment && !!user,
   });
 
+  // Fetch which assignments have GIS data (for card icons)
+  const { data: gisAssignmentIds } = useQuery({
+    queryKey: ["gis-assignment-ids", user?.id],
+    queryFn: async () => {
+      const ids = assignments.map((a: any) => a.id);
+      if (ids.length === 0) return [];
+      const { data } = await supabase
+        .from("gis_data")
+        .select("assignment_id")
+        .in("assignment_id", ids);
+      return (data || []).map((d: any) => d.assignment_id);
+    },
+    enabled: !!user && assignments.length > 0,
+  });
+
   // Fetch GIS data for selected assignment
   const { data: existingGisData } = useQuery({
     queryKey: ["assignment-gis", selectedAssignment?.id],
