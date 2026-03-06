@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -134,7 +134,115 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
     },
   });
 
-  // Group works by category
+  // Fetch GIS data for this assignment
+  const { data: gisData } = useQuery({
+    queryKey: ["gis_data_for_construction", assignment.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("gis_data")
+        .select("*")
+        .eq("assignment_id", assignment.id)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // Auto-fill OTE materials from GIS data
+  const [gisAutoFilled, setGisAutoFilled] = useState(false);
+  useEffect(() => {
+    if (!gisData || !materials || gisAutoFilled || materialItems.length > 0) return;
+    
+    const oteMaterials = materials.filter((m) => m.source === "OTE");
+    const autoItems: MaterialItem[] = [];
+
+    const addMaterial = (match: (m: any) => boolean, qty: number) => {
+      const found = oteMaterials.find(match);
+      if (found && qty > 0 && !autoItems.some((a) => a.material_id === found.id)) {
+        autoItems.push({
+          material_id: found.id,
+          code: found.code,
+          name: found.name,
+          unit: found.unit,
+          price: found.price,
+          source: found.source,
+          quantity: qty,
+        });
+      }
+    };
+
+    // 1. BEP - match size from bep_type (e.g. "MEDIUM/12/ZTT (01..12)")
+    if (gisData.bep_type) {
+      const bepSize = gisData.bep_type.toUpperCase();
+      if (bepSize.includes("SMALL")) {
+        addMaterial((m) => m.name.includes("Small BEP") && m.name.includes("splitter"), 1);
+      } else if (bepSize.includes("MEDIUM")) {
+        addMaterial((m) => m.name.includes("Medium BEP") && m.name.includes("splitter"), 1);
+      } else if (bepSize.includes("X-LARGE") || bepSize.includes("XLARGE")) {
+        addMaterial((m) => m.name.includes("X-Large BEP"), 1);
+      } else if (bepSize.includes("LARGE")) {
+        addMaterial((m) => m.name.includes("Large BEP") && m.name.includes("splitter"), 1);
+      }
+    }
+
+    // 2. BMO - match size from bmo_type (e.g. "SMALL/16/RAYCAP")
+    if (gisData.bmo_type) {
+      const bmoSize = gisData.bmo_type.toUpperCase();
+      if (bmoSize.includes("SMALL")) {
+        addMaterial((m) => m.name === "Small BMO", 1);
+      } else if (bmoSize.includes("MEDIUM")) {
+        addMaterial((m) => m.name === "Medium BMO", 1);
+      } else if (bmoSize.includes("LARGE")) {
+        addMaterial((m) => m.name === "Large BMO", 1);
+      }
+    }
+
+    // 3. Floor Boxes - count from floor_details
+    const floorDetails = (gisData.floor_details as any[]) || [];
+    let fb4Total = 0;
+    let fb12Total = 0;
+    for (const fd of floorDetails) {
+      const row = fd.raw && typeof fd.raw === "object" ? fd.raw : fd;
+      // Check FB01 through FB04
+      for (let i = 1; i <= 4; i++) {
+        const fbKey = `FB0${i}`;
+        const fbTypeKey = `FB0${i} TYPE`;
+        const fbCount = parseInt(row[fbKey]) || 0;
+        const fbType = (row[fbTypeKey] || "").toUpperCase();
+        if (fbCount > 0) {
+          if (fbType.includes("12")) {
+            fb12Total += fbCount;
+          } else {
+            fb4Total += fbCount; // Default to 4-port
+          }
+        }
+      }
+    }
+    if (fb4Total > 0) {
+      addMaterial((m) => m.name.includes("Floor Box with 4 adapters"), fb4Total);
+    }
+    if (fb12Total > 0) {
+      addMaterial((m) => m.name.includes("Floor Box with 12 adapters"), fb12Total);
+    }
+
+    // 4. Splitter from bep_template (e.g. "BEP 1SP 1:8(01..12)")
+    if (gisData.bep_template) {
+      const tmpl = gisData.bep_template.toUpperCase();
+      if (tmpl.includes("1:8")) {
+        addMaterial((m) => m.name.includes("SPLITTERS") && m.name.includes("1:8"), 1);
+      } else if (tmpl.includes("1:2")) {
+        addMaterial((m) => m.name.includes("SPLITTERS") && m.name.includes("1:2"), 1);
+      }
+    }
+
+    if (autoItems.length > 0) {
+      setMaterialItems(autoItems);
+      setMaterialTab("OTE");
+      setGisAutoFilled(true);
+      toast.success(`Αυτόματη συμπλήρωση ${autoItems.length} υλικών ΟΤΕ από GIS`);
+    }
+  }, [gisData, materials, gisAutoFilled, materialItems.length]);
+
   const worksByCategory = useMemo(() => {
     if (!workPricing) return {};
     const groups: Record<string, typeof workPricing> = {};
