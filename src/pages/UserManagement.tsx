@@ -208,6 +208,7 @@ const UserManagement = () => {
                           <SelectValue placeholder="Χωρίς ρόλο" />
                         </SelectTrigger>
                         <SelectContent>
+                          <SelectItem value="super_admin">Super Admin</SelectItem>
                           <SelectItem value="admin">Admin</SelectItem>
                           <SelectItem value="technician">Technician</SelectItem>
                         </SelectContent>

@@ -23,3 +23,8 @@ export const useUserRole = () => {
     staleTime: 1000 * 60 * 5,
   });
 };
+
+export const useIsSuperAdmin = () => {
+  const { data: role, isLoading } = useUserRole();
+  return { isSuperAdmin: role === "super_admin", isLoading };
+};

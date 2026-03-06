@@ -29,7 +29,7 @@ serve(async (req) => {
       .eq("user_id", caller.id)
       .single();
 
-    if (callerRole?.role !== "admin") {
+    if (callerRole?.role !== "admin" && callerRole?.role !== "super_admin") {
       throw new Error("Only admins can delete users");
     }
 
