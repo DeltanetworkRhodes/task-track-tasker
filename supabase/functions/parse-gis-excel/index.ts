@@ -198,11 +198,12 @@ Deno.serve(async (req) => {
     }
 
     // Parse the XLSX
-    const sheets = await parseXlsx(fileData);
-    console.log("Parsed sheets:", Object.keys(sheets));
+    const { sheetsByName, sheetsByIndex } = await parseXlsx(fileData);
+    console.log("Parsed sheets by name:", Object.keys(sheetsByName));
+    console.log("Parsed sheets by index:", Object.keys(sheetsByIndex));
     
-    // Debug: log sheet1 contents
-    const sheet1 = sheets["sheet1"] || [];
+    // Sheet 1: Main building data
+    const sheet1 = sheetsByIndex["sheet1"] || [];
     console.log("Sheet1 rows:", sheet1.length);
     console.log("Sheet1 headers:", JSON.stringify(sheet1[0]));
     console.log("Sheet1 data:", JSON.stringify(sheet1[1]));
@@ -244,38 +245,56 @@ Deno.serve(async (req) => {
       failure: getVal("FAILURE"),
     };
 
-    // ---- PARSE SHEET 2: Floor details ----
-    const sheet2 = sheets["sheet2"] || [];
-    const headers2 = sheet2[0] || [];
-    const floorDetails = sheet2.slice(1).map((row) => {
-      const obj: Record<string, string> = {};
-      headers2.forEach((h, i) => {
-        if (h && row[i]) obj[h] = row[i];
+    // ---- PARSE "ΟΡΟΦΟΙ" SHEET: Floor details with FB info ----
+    const floorSheet = sheetsByName["ΟΡΟΦΟΙ"] || sheetsByIndex["sheet2"] || [];
+    console.log("Floor sheet (ΟΡΟΦΟΙ) rows:", floorSheet.length);
+    if (floorSheet.length > 0) {
+      console.log("Floor sheet headers:", JSON.stringify(floorSheet[0]));
+      if (floorSheet.length > 1) console.log("Floor sheet row 1:", JSON.stringify(floorSheet[1]));
+    }
+    const floorHeaders = floorSheet[0] || [];
+    const floorDetails = floorSheet.slice(1)
+      .filter((row) => row.some((c) => c !== ""))
+      .map((row) => {
+        const obj: Record<string, string> = {};
+        floorHeaders.forEach((h, i) => {
+          if (h && row[i]) obj[h] = row[i];
+        });
+        // Normalize known fields for UI display
+        return {
+          floor: obj["ΟΡΟΦΟΣ"] || obj["FLOOR"] || obj["Όροφος"] || Object.values(obj)[0] || "",
+          fb_type: obj["ΤΥΠΟΣ FB"] || obj["FB TYPE"] || obj["ΤΥΠΟΣ"] || obj["FB"] || "",
+          fb_count: obj["ΤΕΜΑΧΙΑ"] || obj["ΤΕΜ"] || obj["QTY"] || obj["ΠΟΣΟΤΗΤΑ"] || "",
+          raw: obj,
+        };
       });
-      return obj;
-    });
+    console.log("Floor details parsed:", JSON.stringify(floorDetails));
 
-    // ---- PARSE SHEET 3: Optical paths ----
-    const sheet3 = sheets["sheet3"] || [];
-    const headers3 = sheet3[0] || [];
-    const opticalPaths = sheet3.slice(1).map((row) => {
-      const obj: Record<string, string> = {};
-      headers3.forEach((h, i) => {
-        if (h && row[i]) obj[h] = row[i];
+    // ---- PARSE Optical paths sheet ----
+    const opticalSheet = sheetsByName["ΟΠΤΙΚΕΣ ΔΙΑΔΡΟΜΕΣ"] || sheetsByName["OPTICAL PATHS"] || sheetsByIndex["sheet3"] || [];
+    const opticalHeaders = opticalSheet[0] || [];
+    const opticalPaths = opticalSheet.slice(1)
+      .filter((row) => row.some((c) => c !== ""))
+      .map((row) => {
+        const obj: Record<string, string> = {};
+        opticalHeaders.forEach((h, i) => {
+          if (h && row[i]) obj[h] = row[i];
+        });
+        return obj;
       });
-      return obj;
-    });
 
-    // ---- PARSE SHEET 4: Works ----
-    const sheet4 = sheets["sheet4"] || [];
-    const headers4 = sheet4[0] || [];
-    const gisWorks = sheet4.slice(1).map((row) => {
-      const obj: Record<string, string> = {};
-      headers4.forEach((h, i) => {
-        if (h && row[i]) obj[h] = row[i];
+    // ---- PARSE Works sheet ----
+    const worksSheet = sheetsByName["ΕΡΓΑΣΙΕΣ"] || sheetsByName["WORKS"] || sheetsByIndex["sheet4"] || [];
+    const worksHeaders = worksSheet[0] || [];
+    const gisWorks = worksSheet.slice(1)
+      .filter((row) => row.some((c) => c !== ""))
+      .map((row) => {
+        const obj: Record<string, string> = {};
+        worksHeaders.forEach((h, i) => {
+          if (h && row[i]) obj[h] = row[i];
+        });
+        return obj;
       });
-      return obj;
-    });
 
     // Use service role to insert (technician has INSERT policy)
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
