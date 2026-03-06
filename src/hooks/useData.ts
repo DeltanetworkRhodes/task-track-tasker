@@ -56,3 +56,33 @@ export const useWorkPricing = () => {
     },
   });
 };
+
+export const useProfiles = () => {
+  return useQuery({
+    queryKey: ["profiles"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("user_id, full_name, area, email");
+      if (error) throw error;
+      return data || [];
+    },
+  });
+};
+
+export const useAssignmentHistory = (assignmentId: string | null) => {
+  return useQuery({
+    queryKey: ["assignment_history", assignmentId],
+    queryFn: async () => {
+      if (!assignmentId) return [];
+      const { data, error } = await supabase
+        .from("assignment_history" as any)
+        .select("*")
+        .eq("assignment_id", assignmentId)
+        .order("created_at", { ascending: true });
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!assignmentId,
+  });
+};
