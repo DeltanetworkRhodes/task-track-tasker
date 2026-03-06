@@ -27,7 +27,7 @@ const LoginPage = () => {
     try {
       if (mode === "forgot") {
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: `${window.location.origin}/reset-password`,
+          redirectTo: `${window.location.origin}/reset-password`
         });
         if (error) throw error;
         setForgotSent(true);
@@ -40,8 +40,8 @@ const LoginPage = () => {
           password,
           options: {
             data: { full_name: fullName, phone },
-            emailRedirectTo: window.location.origin,
-          },
+            emailRedirectTo: window.location.origin
+          }
         });
         if (error) throw error;
       }
@@ -66,10 +66,10 @@ const LoginPage = () => {
             <div className="relative">
               <div className="absolute inset-0 rounded-3xl blur-2xl opacity-30" style={{ background: 'linear-gradient(135deg, hsl(185 70% 42%), hsl(160 55% 45%))' }} />
               <img
-                src={deltaLogo}
+
                 alt="DeltaNetwork"
-                className="relative h-32 sm:h-40 w-auto object-contain drop-shadow-2xl"
-              />
+                className="relative h-32 sm:h-40 w-auto object-contain drop-shadow-2xl" src="/lovable-uploads/7c06da0f-1e38-4719-a4cf-0af541e70aa3.jpg" />
+              
             </div>
             <div className="text-center space-y-2">
               <h1 className="text-2xl font-extrabold tracking-tight text-white">
@@ -97,118 +97,118 @@ const LoginPage = () => {
                 </p>
               </div>
 
-              {mode === "forgot" && forgotSent ? (
-                <div className="text-center space-y-4 py-6">
+              {mode === "forgot" && forgotSent ?
+              <div className="text-center space-y-4 py-6">
                   <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[hsl(135,60%,40%)]/10">
                     <Mail className="h-8 w-8 text-[hsl(135,60%,40%)]" />
                   </div>
                   <p className="text-sm text-white font-medium">Email στάλθηκε!</p>
                   <p className="text-xs text-[hsl(210,14%,55%)]">Ελέγξτε το inbox σας για τον σύνδεσμο επαναφοράς κωδικού.</p>
                   <button
-                    onClick={() => { setMode("login"); setForgotSent(false); setError(""); }}
-                    className="text-[hsl(185,70%,50%)] text-xs font-semibold hover:underline flex items-center gap-1.5 mx-auto mt-2"
-                  >
+                  onClick={() => {setMode("login");setForgotSent(false);setError("");}}
+                  className="text-[hsl(185,70%,50%)] text-xs font-semibold hover:underline flex items-center gap-1.5 mx-auto mt-2">
+                  
                     <ArrowLeft className="h-3 w-3" /> Πίσω στη Σύνδεση
                   </button>
-                </div>
-              ) : (
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  {mode === "signup" && (
-                    <>
+                </div> :
+
+              <form onSubmit={handleSubmit} className="space-y-4">
+                  {mode === "signup" &&
+                <>
                       <div>
                         <label className="text-[11px] font-semibold text-[hsl(210,14%,55%)] uppercase tracking-wider">Ονοματεπώνυμο</label>
                         <input
-                          type="text"
-                          value={fullName}
-                          onChange={(e) => setFullName(e.target.value)}
-                          className="mt-1.5 w-full rounded-xl border border-[hsl(215,18%,25%)] bg-[hsl(215,22%,11%)] px-4 py-3 text-sm text-white placeholder:text-[hsl(210,14%,40%)] focus:border-[hsl(185,70%,42%)] focus:outline-none focus:ring-2 focus:ring-[hsl(185,70%,42%)]/20 transition-all"
-                          required
-                        />
+                      type="text"
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      className="mt-1.5 w-full rounded-xl border border-[hsl(215,18%,25%)] bg-[hsl(215,22%,11%)] px-4 py-3 text-sm text-white placeholder:text-[hsl(210,14%,40%)] focus:border-[hsl(185,70%,42%)] focus:outline-none focus:ring-2 focus:ring-[hsl(185,70%,42%)]/20 transition-all"
+                      required />
+                    
                       </div>
                       <div>
                         <label className="text-[11px] font-semibold text-[hsl(210,14%,55%)] uppercase tracking-wider">Κινητό</label>
                         <input
-                          type="tel"
-                          value={phone}
-                          onChange={(e) => setPhone(e.target.value)}
-                          placeholder="69xxxxxxxx"
-                          className="mt-1.5 w-full rounded-xl border border-[hsl(215,18%,25%)] bg-[hsl(215,22%,11%)] px-4 py-3 text-sm text-white placeholder:text-[hsl(210,14%,40%)] focus:border-[hsl(185,70%,42%)] focus:outline-none focus:ring-2 focus:ring-[hsl(185,70%,42%)]/20 transition-all"
-                        />
+                      type="tel"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      placeholder="69xxxxxxxx"
+                      className="mt-1.5 w-full rounded-xl border border-[hsl(215,18%,25%)] bg-[hsl(215,22%,11%)] px-4 py-3 text-sm text-white placeholder:text-[hsl(210,14%,40%)] focus:border-[hsl(185,70%,42%)] focus:outline-none focus:ring-2 focus:ring-[hsl(185,70%,42%)]/20 transition-all" />
+                    
                       </div>
                     </>
-                  )}
+                }
                   <div>
                     <label className="text-[11px] font-semibold text-[hsl(210,14%,55%)] uppercase tracking-wider">Email</label>
                     <input
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="mt-1.5 w-full rounded-xl border border-[hsl(215,18%,25%)] bg-[hsl(215,22%,11%)] px-4 py-3 text-sm text-white placeholder:text-[hsl(210,14%,40%)] focus:border-[hsl(185,70%,42%)] focus:outline-none focus:ring-2 focus:ring-[hsl(185,70%,42%)]/20 transition-all"
-                      required
-                    />
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="mt-1.5 w-full rounded-xl border border-[hsl(215,18%,25%)] bg-[hsl(215,22%,11%)] px-4 py-3 text-sm text-white placeholder:text-[hsl(210,14%,40%)] focus:border-[hsl(185,70%,42%)] focus:outline-none focus:ring-2 focus:ring-[hsl(185,70%,42%)]/20 transition-all"
+                    required />
+                  
                   </div>
-                  {mode !== "forgot" && (
-                    <div>
+                  {mode !== "forgot" &&
+                <div>
                       <label className="text-[11px] font-semibold text-[hsl(210,14%,55%)] uppercase tracking-wider">Κωδικός</label>
                       <input
-                        type="password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        className="mt-1.5 w-full rounded-xl border border-[hsl(215,18%,25%)] bg-[hsl(215,22%,11%)] px-4 py-3 text-sm text-white placeholder:text-[hsl(210,14%,40%)] focus:border-[hsl(185,70%,42%)] focus:outline-none focus:ring-2 focus:ring-[hsl(185,70%,42%)]/20 transition-all"
-                        required
-                        minLength={6}
-                      />
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="mt-1.5 w-full rounded-xl border border-[hsl(215,18%,25%)] bg-[hsl(215,22%,11%)] px-4 py-3 text-sm text-white placeholder:text-[hsl(210,14%,40%)] focus:border-[hsl(185,70%,42%)] focus:outline-none focus:ring-2 focus:ring-[hsl(185,70%,42%)]/20 transition-all"
+                    required
+                    minLength={6} />
+                  
                     </div>
-                  )}
+                }
 
-                  {error && (
-                    <div className="rounded-xl bg-[hsl(0,72%,51%)]/10 border border-[hsl(0,72%,51%)]/20 px-4 py-3 text-xs text-[hsl(0,80%,70%)] font-medium">{error}</div>
-                  )}
+                  {error &&
+                <div className="rounded-xl bg-[hsl(0,72%,51%)]/10 border border-[hsl(0,72%,51%)]/20 px-4 py-3 text-xs text-[hsl(0,80%,70%)] font-medium">{error}</div>
+                }
 
                   <button
-                    type="submit"
-                    disabled={loading}
-                    className="flex w-full items-center justify-center gap-2.5 rounded-xl cosmote-gradient px-4 py-3.5 text-sm font-bold text-white shadow-lg shadow-[hsl(160,55%,45%)]/20 hover:shadow-xl hover:shadow-[hsl(160,55%,45%)]/30 hover:brightness-110 transition-all disabled:opacity-50 disabled:hover:brightness-100"
-                  >
+                  type="submit"
+                  disabled={loading}
+                  className="flex w-full items-center justify-center gap-2.5 rounded-xl cosmote-gradient px-4 py-3.5 text-sm font-bold text-white shadow-lg shadow-[hsl(160,55%,45%)]/20 hover:shadow-xl hover:shadow-[hsl(160,55%,45%)]/30 hover:brightness-110 transition-all disabled:opacity-50 disabled:hover:brightness-100">
+                  
                     {mode === "login" && <LogIn className="h-4 w-4" />}
                     {mode === "signup" && <UserPlus className="h-4 w-4" />}
-                    {loading
-                      ? "Παρακαλώ περιμένετε..."
-                      : mode === "login"
-                      ? "Σύνδεση"
-                      : mode === "signup"
-                      ? "Εγγραφή"
-                      : "Αποστολή Συνδέσμου"}
+                    {loading ?
+                  "Παρακαλώ περιμένετε..." :
+                  mode === "login" ?
+                  "Σύνδεση" :
+                  mode === "signup" ?
+                  "Εγγραφή" :
+                  "Αποστολή Συνδέσμου"}
                   </button>
 
-                  {mode === "login" && (
-                    <button
-                      type="button"
-                      onClick={() => { setMode("forgot"); setError(""); }}
-                      className="w-full text-center text-xs text-[hsl(210,14%,55%)] hover:text-[hsl(185,70%,50%)] transition-colors"
-                    >
+                  {mode === "login" &&
+                <button
+                  type="button"
+                  onClick={() => {setMode("forgot");setError("");}}
+                  className="w-full text-center text-xs text-[hsl(210,14%,55%)] hover:text-[hsl(185,70%,50%)] transition-colors">
+                  
                       Ξέχασα τον κωδικό μου
                     </button>
-                  )}
+                }
                 </form>
-              )}
+              }
 
               {/* Mode toggle */}
               <div className="mt-6 pt-6 border-t border-[hsl(215,18%,20%)]">
                 <p className="text-center text-xs text-[hsl(210,14%,55%)]">
-                  {mode === "forgot" && !forgotSent ? (
-                    <button onClick={() => { setMode("login"); setError(""); }} className="text-[hsl(185,70%,50%)] font-semibold hover:underline flex items-center gap-1.5 mx-auto">
+                  {mode === "forgot" && !forgotSent ?
+                  <button onClick={() => {setMode("login");setError("");}} className="text-[hsl(185,70%,50%)] font-semibold hover:underline flex items-center gap-1.5 mx-auto">
                       <ArrowLeft className="h-3 w-3" /> Πίσω στη Σύνδεση
-                    </button>
-                  ) : mode === "login" ? (
-                    <>Δεν έχεις λογαριασμό;{" "}
-                      <button onClick={() => { setMode("signup"); setError(""); }} className="text-[hsl(185,70%,50%)] font-semibold hover:underline">Εγγραφή</button>
-                    </>
-                  ) : mode === "signup" ? (
-                    <>Έχεις ήδη λογαριασμό;{" "}
-                      <button onClick={() => { setMode("login"); setError(""); }} className="text-[hsl(185,70%,50%)] font-semibold hover:underline">Σύνδεση</button>
-                    </>
-                  ) : null}
+                    </button> :
+                  mode === "login" ?
+                  <>Δεν έχεις λογαριασμό;{" "}
+                      <button onClick={() => {setMode("signup");setError("");}} className="text-[hsl(185,70%,50%)] font-semibold hover:underline">Εγγραφή</button>
+                    </> :
+                  mode === "signup" ?
+                  <>Έχεις ήδη λογαριασμό;{" "}
+                      <button onClick={() => {setMode("login");setError("");}} className="text-[hsl(185,70%,50%)] font-semibold hover:underline">Σύνδεση</button>
+                    </> :
+                  null}
                 </p>
               </div>
             </div>
@@ -224,16 +224,16 @@ const LoginPage = () => {
               href="https://deltanetwork.gr"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1.5 text-xs hover:text-[hsl(185,70%,50%)] transition-colors"
-            >
+              className="flex items-center gap-1.5 text-xs hover:text-[hsl(185,70%,50%)] transition-colors">
+              
               <Globe className="h-3.5 w-3.5" />
               deltanetwork.gr
             </a>
             <span className="text-[hsl(215,18%,25%)]">•</span>
             <a
               href="mailto:Info@deltanetwork.gr"
-              className="flex items-center gap-1.5 text-xs hover:text-[hsl(185,70%,50%)] transition-colors"
-            >
+              className="flex items-center gap-1.5 text-xs hover:text-[hsl(185,70%,50%)] transition-colors">
+              
               <Mail className="h-3.5 w-3.5" />
               Info@deltanetwork.gr
             </a>
@@ -243,8 +243,8 @@ const LoginPage = () => {
           </p>
         </div>
       </footer>
-    </div>
-  );
+    </div>);
+
 };
 
 export default LoginPage;
