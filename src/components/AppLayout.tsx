@@ -1,12 +1,49 @@
-import { ReactNode } from "react";
+import { ReactNode, useState } from "react";
 import AppSidebar from "./AppSidebar";
+import { Menu, X } from "lucide-react";
+import deltaLogo from "@/assets/delta-logo.jpg";
 
 const AppLayout = ({ children }: { children: ReactNode }) => {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
   return (
     <div className="flex min-h-screen bg-background">
-      <AppSidebar />
-      <main className="ml-60 flex-1 p-6 bg-grid min-h-screen">
-        {children}
+      {/* Mobile overlay */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {/* Sidebar - hidden on mobile unless toggled */}
+      <div className={`
+        fixed inset-y-0 left-0 z-50 w-64 transform transition-transform duration-300 ease-in-out
+        lg:translate-x-0
+        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+      `}>
+        <AppSidebar onClose={() => setSidebarOpen(false)} />
+      </div>
+
+      {/* Main content */}
+      <main className="flex-1 lg:ml-64 min-h-screen">
+        {/* Mobile top bar */}
+        <div className="sticky top-0 z-30 flex items-center gap-3 border-b border-border bg-background/95 backdrop-blur-sm px-4 py-3 lg:hidden">
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="rounded-lg p-2 hover:bg-muted transition-colors"
+          >
+            <Menu className="h-5 w-5 text-foreground" />
+          </button>
+          <img src={deltaLogo} alt="DeltaNetwork" className="h-7 w-7 rounded-md object-cover" />
+          <div className="min-w-0">
+            <p className="text-sm font-bold text-foreground tracking-tight leading-none">DeltaNetwork</p>
+            <p className="text-[9px] text-muted-foreground uppercase tracking-widest">FTTx App</p>
+          </div>
+        </div>
+        <div className="p-4 sm:p-6 bg-grid min-h-[calc(100vh-56px)] lg:min-h-screen">
+          {children}
+        </div>
       </main>
     </div>
   );
