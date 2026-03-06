@@ -568,6 +568,21 @@ const Materials = () => {
             </div>
           </TabsContent>
         </Tabs>
+
+        <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Διαγραφή Υλικού</AlertDialogTitle>
+              <AlertDialogDescription>
+                Θέλετε να διαγράψετε το υλικό <strong>{deleteTarget?.code}</strong> — {deleteTarget?.name};
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Ακύρωση</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Διαγραφή</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </AppLayout>
   );
