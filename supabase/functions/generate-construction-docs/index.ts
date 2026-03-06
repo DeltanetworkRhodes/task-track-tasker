@@ -115,27 +115,37 @@ async function uploadFileToDrive(
   accessToken: string, fileName: string, mimeType: string,
   fileData: Uint8Array, parentId: string
 ): Promise<any> {
-  const metadata = JSON.stringify({ name: fileName, parents: [parentId] });
-  const boundary = "===boundary===";
-  const body =
-    `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${metadata}\r\n` +
-    `--${boundary}\r\nContent-Type: ${mimeType}\r\nContent-Transfer-Encoding: base64\r\n\r\n` +
-    uint8ToBase64(fileData) +
-    `\r\n--${boundary}--`;
-
-  const res = await fetch(
-    "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,webViewLink&supportsAllDrives=true",
+  // Step 1: Initiate resumable upload session
+  const metadata = { name: fileName, parents: [parentId] };
+  const initRes = await fetch(
+    "https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&fields=id,name,webViewLink&supportsAllDrives=true",
     {
       method: "POST",
       headers: {
         Authorization: `Bearer ${accessToken}`,
-        "Content-Type": `multipart/related; boundary=${boundary}`,
+        "Content-Type": "application/json; charset=UTF-8",
+        "X-Upload-Content-Type": mimeType,
+        "X-Upload-Content-Length": String(fileData.byteLength),
       },
-      body,
+      body: JSON.stringify(metadata),
     }
   );
-  if (!res.ok) throw new Error(`Upload failed: ${await res.text()}`);
-  return await res.json();
+  if (!initRes.ok) throw new Error(`Upload init failed: ${await initRes.text()}`);
+  
+  const uploadUrl = initRes.headers.get("Location");
+  if (!uploadUrl) throw new Error("No upload URL returned");
+
+  // Step 2: Upload file content
+  const uploadRes = await fetch(uploadUrl, {
+    method: "PUT",
+    headers: {
+      "Content-Type": mimeType,
+      "Content-Length": String(fileData.byteLength),
+    },
+    body: fileData,
+  });
+  if (!uploadRes.ok) throw new Error(`Upload failed: ${await uploadRes.text()}`);
+  return await uploadRes.json();
 }
 
 // ─── XLSX Generation ─────────────────────────────────────────────────
