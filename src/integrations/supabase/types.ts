@@ -212,8 +212,11 @@ export type Database = {
           google_sheet_row_id: number | null
           id: string
           material_cost: number
+          pending_note: string | null
           profit: number | null
           revenue: number
+          routes: Json | null
+          routing_type: string | null
           ses_id: string | null
           sr_id: string
           status: string
@@ -228,8 +231,11 @@ export type Database = {
           google_sheet_row_id?: number | null
           id?: string
           material_cost?: number
+          pending_note?: string | null
           profit?: number | null
           revenue?: number
+          routes?: Json | null
+          routing_type?: string | null
           ses_id?: string | null
           sr_id: string
           status?: string
@@ -244,8 +250,11 @@ export type Database = {
           google_sheet_row_id?: number | null
           id?: string
           material_cost?: number
+          pending_note?: string | null
           profit?: number | null
           revenue?: number
+          routes?: Json | null
+          routing_type?: string | null
           ses_id?: string | null
           sr_id?: string
           status?: string

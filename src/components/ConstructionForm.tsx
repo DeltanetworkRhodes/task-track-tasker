@@ -3,7 +3,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Trash2, Loader2, CheckCircle, HardHat, Package, Wrench, Camera, Upload, X, ChevronDown, ChevronRight, Plus, Minus } from "lucide-react";
+import { Trash2, Loader2, CheckCircle, HardHat, Package, Wrench, Camera, Upload, X, ChevronDown, ChevronRight, Plus, Minus, MapPin, Route } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -72,6 +73,23 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
   const [ak, setAk] = useState("");
   const [cab, setCab] = useState(assignment.cab || "");
   const [floors, setFloors] = useState("0");
+  const [routingType, setRoutingType] = useState("");
+  const [pendingNote, setPendingNote] = useState("");
+
+  // Routes (ΔΙΑΔΡΟΜΕΣ)
+  const [routes, setRoutes] = useState([
+    { label: "FTTH ΥΠΟΓ ΔΔ (Cabin to BEP)", koi: "", fyraKoi: "" },
+    { label: "ΕΝΑΕΡΙΟ FTTH ΔΔ (Cabinet BCP to BEP)", koi: "", fyraKoi: "" },
+    { label: "ΕΝΑΕΡΙΟ FTTH ΣΥΝΔΡΟΜ (BEP to Floor Box)", koi: "", fyraKoi: "" },
+    { label: "FTTH INHOUSE (Κάθετη όδευση BEP-FI)", koi: "", fyraKoi: "" },
+  ]);
+
+  const updateRoute = (index: number, field: "koi" | "fyraKoi", value: string) => {
+    setRoutes((prev) => prev.map((r, i) => (i === index ? { ...r, [field]: value } : r)));
+  };
+
+  const totalKoi = routes.reduce((sum, r) => sum + (parseFloat(r.koi) || 0), 0);
+  const totalFyraKoi = routes.reduce((sum, r) => sum + (parseFloat(r.fyraKoi) || 0), 0);
 
   // Work items
   const [workItems, setWorkItems] = useState<WorkItem[]>([]);
@@ -260,6 +278,10 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
     try {
       setSubmitProgress("Καταχώρηση κατασκευής...");
 
+      const routesData = routes
+        .filter((r) => r.koi || r.fyraKoi)
+        .map((r) => ({ label: r.label, koi: parseFloat(r.koi) || 0, fyra_koi: parseFloat(r.fyraKoi) || 0 }));
+
       const { data: construction, error: constError } = await supabase
         .from("constructions")
         .insert({
@@ -273,7 +295,10 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
           material_cost: totalMaterialCost,
           profit: totalRevenue - totalMaterialCost,
           status: "completed",
-        })
+          routing_type: routingType.trim() || null,
+          pending_note: pendingNote.trim() || null,
+          routes: routesData.length > 0 ? routesData : null,
+        } as any)
         .select("id")
         .single();
       if (constError) throw constError;
@@ -424,6 +449,68 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
           <div>
             <Label className="text-xs">Όροφοι</Label>
             <Input value={floors} onChange={(e) => setFloors(e.target.value)} type="number" min="0" className="text-sm mt-1" />
+          </div>
+          <div>
+            <Label className="text-xs">Είδος Όδευσης</Label>
+            <select
+              value={routingType}
+              onChange={(e) => setRoutingType(e.target.value)}
+              className="w-full mt-1 text-sm border border-border rounded-md px-3 py-2 bg-background text-foreground"
+            >
+              <option value="">— Επιλέξτε —</option>
+              <option value="ΥΠΟΓΕΙΑ">ΥΠΟΓΕΙΑ</option>
+              <option value="ΕΝΑΕΡΙΑ">ΕΝΑΕΡΙΑ</option>
+              <option value="ΜΙΚΤΗ">ΜΙΚΤΗ</option>
+            </select>
+          </div>
+          <div>
+            <Label className="text-xs">Αναμονή</Label>
+            <Input value={pendingNote} onChange={(e) => setPendingNote(e.target.value)} placeholder="π.χ. Αναμονή CAD" className="text-sm mt-1" />
+          </div>
+        </div>
+      </Card>
+
+      {/* ΔΙΑΔΡΟΜΕΣ */}
+      <Card className="p-4 space-y-3">
+        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+          <Route className="h-3.5 w-3.5" />
+          Διαδρομές
+        </Label>
+        <div className="space-y-2">
+          {routes.map((route, idx) => (
+            <div key={idx} className="border border-border rounded-lg p-3 space-y-2">
+              <p className="text-xs font-medium text-foreground">{route.label}</p>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <Label className="text-[10px] text-muted-foreground">KOI (m)</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    step="0.1"
+                    value={route.koi}
+                    onChange={(e) => updateRoute(idx, "koi", e.target.value)}
+                    placeholder="0"
+                    className="text-sm mt-0.5 h-8"
+                  />
+                </div>
+                <div>
+                  <Label className="text-[10px] text-muted-foreground">ΦΥΡΑ KOI (m)</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    step="0.1"
+                    value={route.fyraKoi}
+                    onChange={(e) => updateRoute(idx, "fyraKoi", e.target.value)}
+                    placeholder="0"
+                    className="text-sm mt-0.5 h-8"
+                  />
+                </div>
+              </div>
+            </div>
+          ))}
+          <div className="flex justify-between text-xs font-semibold text-foreground bg-muted/50 rounded-lg p-2">
+            <span>Σύνολο</span>
+            <span>KOI: {totalKoi.toFixed(1)}m · ΦΥΡΑ: {totalFyraKoi.toFixed(1)}m</span>
           </div>
         </div>
       </Card>
