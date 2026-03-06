@@ -246,22 +246,16 @@ const Materials = () => {
     }
   };
 
-  const syncFromSheet = async () => {
-    setSyncing(true);
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
     try {
-      const { data, error } = await supabase.functions.invoke("sync-materials", { body: {} });
+      const { error } = await supabase.from('materials').delete().eq('id', deleteTarget.id);
       if (error) throw error;
-      queryClient.invalidateQueries({ queryKey: ["materials"] });
-      queryClient.invalidateQueries({ queryKey: ["work_pricing"] });
+      toast.success('Υλικό διαγράφηκε');
+      setDeleteTarget(null);
       refetch();
-      toast.success(`Συγχρονίστηκαν ${data?.synced?.materials || 0} υλικά, ${data?.synced?.work_pricing || 0} εργασίες`);
-      if (data?.errors?.length > 0) {
-        toast.error(`${data.errors.length} σφάλματα`);
-      }
     } catch (err: any) {
       toast.error(err.message);
-    } finally {
-      setSyncing(false);
     }
   };
 
