@@ -148,6 +148,23 @@ const AssignmentTable = ({ assignments }: AssignmentTableProps) => {
     }
   };
 
+  const handleStatusChange = async (assignmentId: string, newStatus: string) => {
+    try {
+      const { error } = await supabase
+        .from("assignments")
+        .update({ status: newStatus })
+        .eq("id", assignmentId);
+      if (error) throw error;
+      toast.success(`Κατάσταση → ${statusLabels[newStatus] || newStatus}`);
+      if (selected?.id === assignmentId) {
+        setSelected({ ...selected, status: newStatus });
+      }
+      queryClient.invalidateQueries({ queryKey: ["assignments"] });
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
+
   useEffect(() => {
     if (!selected?.srId) {
       setDriveData(null);
