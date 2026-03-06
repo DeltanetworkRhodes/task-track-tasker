@@ -33,29 +33,26 @@ const ConstructionPage = () => {
   const [sortField, setSortField] = useState<string>("date");
   const [sortAsc, setSortAsc] = useState(false);
 
-  const hasRealData = (dbConstructions?.length ?? 0) > 0;
   const constructions = useMemo(() => {
-    if (hasRealData) {
-      return dbConstructions!.map(c => ({
-        id: c.id,
-        srId: c.sr_id,
-        sesId: c.ses_id || '',
-        ak: c.ak || '',
-        cab: c.cab || '',
-        floors: c.floors || 0,
-        status: c.status,
-        revenue: Number(c.revenue),
-        materialCost: Number(c.material_cost),
-        profit: Number(c.profit || 0),
-        date: c.created_at.split('T')[0],
-        routingType: (c as any).routing_type || '',
-        pendingNote: (c as any).pending_note || '',
-        assignmentId: (c as any).assignment_id || '',
-        routes: (c as any).routes || [],
-      }));
-    }
-    return mockConstructions;
-  }, [dbConstructions, hasRealData]);
+    if (!dbConstructions) return [];
+    return dbConstructions.map(c => ({
+      id: c.id,
+      srId: c.sr_id,
+      sesId: c.ses_id || '',
+      ak: c.ak || '',
+      cab: c.cab || '',
+      floors: c.floors || 0,
+      status: c.status,
+      revenue: Number(c.revenue),
+      materialCost: Number(c.material_cost),
+      profit: Number(c.profit || 0),
+      date: c.created_at.split('T')[0],
+      routingType: (c as any).routing_type || '',
+      pendingNote: (c as any).pending_note || '',
+      assignmentId: (c as any).assignment_id || '',
+      routes: (c as any).routes || [],
+    }));
+  }, [dbConstructions]);
 
   // Match assignment data for extra info
   const assignmentMap = useMemo(() => {
