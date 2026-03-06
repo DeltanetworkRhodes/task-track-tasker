@@ -249,9 +249,15 @@ const IncompleteSurveys = ({ filterSrId }: { filterSrId?: string }) => {
                   <span className="text-sm font-semibold text-foreground truncate">
                     {survey.sr_id}
                   </span>
-                  <Badge variant="outline" className="text-[10px] bg-orange-500/10 text-orange-600 border-orange-500/20">
-                    {missingTypes.length} λείπουν
-                  </Badge>
+                  {missingTypes.length > 0 ? (
+                    <Badge variant="outline" className="text-[10px] bg-orange-500/10 text-orange-600 border-orange-500/20">
+                      {missingTypes.length} λείπουν
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="text-[10px] bg-green-500/10 text-green-600 border-green-500/20">
+                      Πλήρη
+                    </Badge>
+                  )}
                 </div>
                 <p className="text-xs text-muted-foreground mt-0.5">
                   {survey.area} · {new Date(survey.created_at).toLocaleDateString("el-GR")}
