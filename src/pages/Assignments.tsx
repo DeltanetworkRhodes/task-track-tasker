@@ -77,7 +77,7 @@ const Assignments = () => {
             <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight">Πυλώνας 1 — Αυτοψίες & Προδεσμεύσεις</h1>
             <p className="text-xs sm:text-sm text-muted-foreground mt-1">
               Διαχείριση αρχικών επισκέψεων και εγγράφων αυτοψίας
-              {!hasRealData && <span className="ml-2 text-[10px] opacity-60">(demo data)</span>}
+              
             </p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
