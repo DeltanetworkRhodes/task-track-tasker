@@ -165,7 +165,7 @@ const ConstructionPage = () => {
           <h1 className="text-2xl font-bold">Πυλώνας 2 — Κατασκευές</h1>
           <p className="text-sm text-muted-foreground mt-1">
             Διαχείριση κατασκευών, υλικών και φύλλων απολογισμού
-            {!hasRealData && <span className="ml-2 text-[11px] rounded-full bg-muted text-muted-foreground px-2 py-0.5 font-medium">demo</span>}
+            
           </p>
         </div>
 
