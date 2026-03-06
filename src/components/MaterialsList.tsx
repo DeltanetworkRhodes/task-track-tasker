@@ -1,5 +1,6 @@
 import { Material } from "@/data/mockData";
 import { AlertTriangle } from "lucide-react";
+import { useOrganization } from "@/contexts/OrganizationContext";
 
 interface MaterialsListProps {
   materials: Material[];
