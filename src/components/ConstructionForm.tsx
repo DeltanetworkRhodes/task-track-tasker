@@ -991,7 +991,7 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
         </div>
 
         <div className="space-y-2">
-          {PHOTO_CATEGORIES.map((cat) => {
+          {visiblePhotoCategories.map((cat) => {
             const catPhotos = categorizedPhotos[cat.key] || [];
             const catPreviews = categorizedPreviews[cat.key] || [];
             return (
