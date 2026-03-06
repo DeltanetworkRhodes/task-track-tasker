@@ -8,27 +8,75 @@ import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useQueryClient } from "@tanstack/react-query";
-import * as XLSX from "xlsx";
+import XLSX from "xlsx-js-style";
 
 type SortField = 'code' | 'name' | 'stock' | 'price';
 
+const headerStyle = {
+  font: { bold: true, color: { rgb: "FFFFFF" }, sz: 11, name: "Calibri" },
+  fill: { fgColor: { rgb: "1F4E79" } },
+  border: {
+    top: { style: "thin", color: { rgb: "000000" } },
+    bottom: { style: "thin", color: { rgb: "000000" } },
+    left: { style: "thin", color: { rgb: "000000" } },
+    right: { style: "thin", color: { rgb: "000000" } },
+  },
+  alignment: { horizontal: "center", vertical: "center" },
+};
+
+const cellBorder = {
+  top: { style: "thin", color: { rgb: "B0B0B0" } },
+  bottom: { style: "thin", color: { rgb: "B0B0B0" } },
+  left: { style: "thin", color: { rgb: "B0B0B0" } },
+  right: { style: "thin", color: { rgb: "B0B0B0" } },
+};
+
+const evenRowFill = { fgColor: { rgb: "D6E4F0" } };
+const oddRowFill = { fgColor: { rgb: "FFFFFF" } };
+
 const exportToExcel = (items: MaterialItem[], source: string) => {
-  const data = items.map(m => ({
-    'ΚΑΥ': m.code,
-    'ΠΕΡΙΓΡΑΦΗ': m.name,
-    'ΜΜ': m.unit,
-    'ΠΟΣΟΤΗΤΑ': m.stock,
-    'ΠΕΡΙΛΗΨΗ': '',
-  }));
-  const ws = XLSX.utils.json_to_sheet(data);
-  // Column widths matching template
+  const headers = ['ΚΑΥ', 'ΠΕΡΙΓΡΑΦΗ', 'ΜΜ', 'ΠΟΣΟΤΗΤΑ', 'ΠΕΡΙΛΗΨΗ'];
+  const ws = XLSX.utils.aoa_to_sheet([headers]);
+
+  // Style header row
+  headers.forEach((_, ci) => {
+    const cell = XLSX.utils.encode_cell({ r: 0, c: ci });
+    ws[cell].s = headerStyle;
+  });
+
+  // Add data rows with styling
+  items.forEach((m, ri) => {
+    const row = [m.code, m.name, m.unit, m.stock || '', ''];
+    XLSX.utils.sheet_add_aoa(ws, [row], { origin: ri + 1 });
+
+    const fill = ri % 2 === 0 ? evenRowFill : oddRowFill;
+    row.forEach((_, ci) => {
+      const cell = XLSX.utils.encode_cell({ r: ri + 1, c: ci });
+      if (!ws[cell]) ws[cell] = { v: '', t: 's' };
+      ws[cell].s = {
+        font: { sz: 10, name: "Calibri" },
+        fill,
+        border: cellBorder,
+        alignment: {
+          horizontal: ci === 0 || ci === 2 || ci === 3 ? "center" : "left",
+          vertical: "center",
+        },
+      };
+    });
+  });
+
+  // Column widths
   ws['!cols'] = [
     { wch: 12 },  // ΚΑΥ
     { wch: 45 },  // ΠΕΡΙΓΡΑΦΗ
     { wch: 6 },   // ΜΜ
     { wch: 12 },  // ΠΟΣΟΤΗΤΑ
-    { wch: 55 },  // ΠΕΡΙΛΗΨΗ
+    { wch: 60 },  // ΠΕΡΙΛΗΨΗ
   ];
+
+  // Row heights
+  ws['!rows'] = [{ hpx: 28 }]; // header taller
+
   const wb = XLSX.utils.book_new();
   const title = source === 'OTE' ? 'ΑΠΟΘΗΚΗ_ΥΛΙΚΑ_ΟΤΕ_FTTH' : 'ΑΠΟΘΗΚΗ_ΥΛΙΚΑ_DELTANETWORK';
   XLSX.utils.book_append_sheet(wb, ws, 'Υλικά');
