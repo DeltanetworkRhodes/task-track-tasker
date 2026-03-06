@@ -124,6 +124,7 @@ Deno.serve(async (req) => {
       cab,
       spreadsheet_id,
       photo_paths,
+      drive_photo_ids,
       drive_folder_url,
     } = await req.json();
 
@@ -134,7 +135,8 @@ Deno.serve(async (req) => {
       });
     }
 
-    console.log(`Preparing completion email for SR ${sr_id}: spreadsheet=${spreadsheet_id}, photos=${photo_paths?.length || 0}`);
+    const allPhotoCount = (photo_paths?.length || 0) + (drive_photo_ids?.length || 0);
+    console.log(`Preparing completion email for SR ${sr_id}: spreadsheet=${spreadsheet_id}, photos=${allPhotoCount}`);
 
     // Get technician info
     let techName = "Τεχνικός";
@@ -157,20 +159,26 @@ Deno.serve(async (req) => {
     const toEmails = settingsMap["completion_to_emails"] || settingsMap["report_to_emails"] || "info@deltanetwork.gr";
     const ccEmails = settingsMap["completion_cc_emails"] || settingsMap["report_cc_emails"] || "";
 
-    // ─── Build ZIP ───────────────────────────────────────────────────
+    // ─── Build ZIP incrementally ────────────────────────────────────
     const zipFiles: Record<string, Uint8Array> = {};
     let totalSize = 0;
-    const MAX_ZIP_SIZE = 35 * 1024 * 1024; // 35MB limit (Resend allows 40MB)
+    const MAX_ZIP_SIZE = 20 * 1024 * 1024; // 20MB limit for memory safety
+
+    // Get Drive access token once (needed for spreadsheet + drive photos)
+    let driveAccessToken = "";
+    try {
+      const serviceAccountKey = JSON.parse(Deno.env.get("GOOGLE_SERVICE_ACCOUNT_KEY")!);
+      driveAccessToken = await getAccessToken(serviceAccountKey);
+    } catch (e: any) {
+      console.error(`Drive auth error: ${e.message}`);
+    }
 
     // 1. Download Google Sheet as xlsx
-    if (spreadsheet_id) {
+    if (spreadsheet_id && driveAccessToken) {
       try {
-        const serviceAccountKey = JSON.parse(Deno.env.get("GOOGLE_SERVICE_ACCOUNT_KEY")!);
-        const accessToken = await getAccessToken(serviceAccountKey);
-
         const exportUrl = `https://www.googleapis.com/drive/v3/files/${spreadsheet_id}/export?mimeType=application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`;
         const xlsxRes = await fetch(exportUrl, {
-          headers: { Authorization: `Bearer ${accessToken}` },
+          headers: { Authorization: `Bearer ${driveAccessToken}` },
         });
 
         if (xlsxRes.ok) {
@@ -180,34 +188,27 @@ Deno.serve(async (req) => {
           console.log(`Added spreadsheet to ZIP: ${xlsxData.length} bytes`);
         } else {
           console.error(`Failed to export spreadsheet: ${xlsxRes.status}`);
+          await xlsxRes.text();
         }
       } catch (err: any) {
         console.error(`Spreadsheet download error: ${err.message}`);
       }
     }
 
-    // 2. Download and add photos from Supabase Storage
+    // 2. Download photos from Supabase Storage
     if (photo_paths && photo_paths.length > 0) {
       for (let i = 0; i < photo_paths.length; i++) {
         if (totalSize > MAX_ZIP_SIZE) {
-          console.log(`ZIP size limit reached at ${totalSize} bytes, skipping remaining photos`);
+          console.log(`ZIP size limit reached, skipping remaining photos`);
           break;
         }
-
         try {
           const { data: fileData, error: dlErr } = await adminClient.storage
             .from("photos")
             .download(photo_paths[i]);
-
-          if (dlErr || !fileData) {
-            console.error(`Failed to download photo ${photo_paths[i]}:`, dlErr);
-            continue;
-          }
-
-          const arrayBuf = await fileData.arrayBuffer();
-          const photoBytes = new Uint8Array(arrayBuf);
+          if (dlErr || !fileData) { console.error(`Photo dl error:`, dlErr); continue; }
+          const photoBytes = new Uint8Array(await fileData.arrayBuffer());
           const fileName = photo_paths[i].split("/").pop() || `photo_${i + 1}.jpg`;
-          
           zipFiles[`ΦΩΤΟΓΡΑΦΙΕΣ/${fileName}`] = photoBytes;
           totalSize += photoBytes.length;
           console.log(`Added photo ${fileName}: ${photoBytes.length} bytes`);
@@ -217,15 +218,60 @@ Deno.serve(async (req) => {
       }
     }
 
-    // 3. Create ZIP
-    let zipBase64 = "";
-    let zipFileName = `SR_${sr_id}_ΟΛΟΚΛΗΡΩΣΗ.zip`;
+    // 2b. Download photos from Google Drive
+    if (drive_photo_ids && drive_photo_ids.length > 0 && driveAccessToken) {
+      for (let i = 0; i < drive_photo_ids.length; i++) {
+        if (totalSize > MAX_ZIP_SIZE) {
+          console.log(`ZIP size limit reached, skipping remaining Drive photos`);
+          break;
+        }
+        try {
+          const photoId = drive_photo_ids[i].id || drive_photo_ids[i];
+          const photoName = drive_photo_ids[i].name || `photo_${i + 1}.jpg`;
+          const dlUrl = `https://www.googleapis.com/drive/v3/files/${photoId}?alt=media&supportsAllDrives=true`;
+          const dlRes = await fetch(dlUrl, { headers: { Authorization: `Bearer ${driveAccessToken}` } });
+          if (!dlRes.ok) { console.error(`Drive photo ${photoId}: ${dlRes.status}`); await dlRes.text(); continue; }
+          const photoBytes = new Uint8Array(await dlRes.arrayBuffer());
+          zipFiles[`ΦΩΤΟΓΡΑΦΙΕΣ/${photoName}`] = photoBytes;
+          totalSize += photoBytes.length;
+          console.log(`Added Drive photo ${photoName}: ${photoBytes.length} bytes`);
+        } catch (photoErr: any) {
+          console.error(`Drive photo error: ${photoErr.message}`);
+        }
+      }
+    }
+
+    // 3. Create ZIP and upload to Storage (avoids memory issues with base64)
+    let zipDownloadUrl = "";
+    const zipFileName = `SR_${sr_id}_COMPLETION.zip`;
+    const zipStoragePath = `completions/${sr_id}/completion.zip`;
 
     if (Object.keys(zipFiles).length > 0) {
       console.log(`Creating ZIP with ${Object.keys(zipFiles).length} files, total ~${Math.round(totalSize / 1024)}KB`);
       const zipped = zipSync(zipFiles);
-      zipBase64 = uint8ToBase64(zipped);
       console.log(`ZIP created: ${zipped.length} bytes`);
+
+      // Free memory from individual files
+      for (const key in zipFiles) delete zipFiles[key];
+
+      // Upload ZIP to Supabase Storage
+      const { error: uploadErr } = await adminClient.storage
+        .from("photos")
+        .upload(zipStoragePath, zipped, {
+          contentType: "application/zip",
+          upsert: true,
+        });
+
+      if (uploadErr) {
+        console.error(`ZIP upload error:`, uploadErr);
+      } else {
+        // Create a signed URL valid for 7 days
+        const { data: signedData } = await adminClient.storage
+          .from("photos")
+          .createSignedUrl(zipStoragePath, 7 * 24 * 60 * 60);
+        zipDownloadUrl = signedData?.signedUrl || "";
+        console.log(`ZIP uploaded to storage, signed URL created`);
+      }
     }
 
     // ─── Build email HTML ────────────────────────────────────────────
@@ -274,10 +320,14 @@ Deno.serve(async (req) => {
 
 
 
-
-          <p style="color: #6b7280; font-size: 12px; margin-top: 16px;">
-            📎 Συνημμένο: Φύλλο Απολογισμού & Φωτογραφίες (${photo_paths?.length || 0} φωτογραφίες)
+          ${zipDownloadUrl ? `
+          <div style="text-align: center; margin: 20px 0;">
+            <a href="${escapeHtml(zipDownloadUrl)}" style="background: #2563eb; color: white; padding: 12px 28px; border-radius: 6px; text-decoration: none; font-size: 14px; font-weight: bold; display: inline-block;">📥 Κατέβασε τα αρχεία (ZIP)</a>
+          </div>
+          <p style="color: #9ca3af; font-size: 11px; text-align: center; margin-top: 4px;">
+            Φύλλο Απολογισμού & ${allPhotoCount} φωτογραφίες · Ισχύει για 7 ημέρες
           </p>
+          ` : ""}
 
           <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;" />
           
@@ -302,16 +352,6 @@ Deno.serve(async (req) => {
 
     if (ccEmails.trim()) {
       emailPayload.cc = ccEmails.split(",").map((e: string) => e.trim());
-    }
-
-    // Attach ZIP if we have files
-    if (zipBase64) {
-      emailPayload.attachments = [
-        {
-          filename: zipFileName,
-          content: zipBase64,
-        },
-      ];
     }
 
     const resendResponse = await fetch("https://api.resend.com/emails", {
