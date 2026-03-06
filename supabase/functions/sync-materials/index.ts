@@ -162,30 +162,48 @@ Deno.serve(async (req) => {
     const basiTimData = await basiTimRes.json();
     const basiTimRows = basiTimData.values || [];
 
-    let currentCategory = "";
+    // Category mapping by code prefix
+    const categoryMap: Record<string, string> = {
+      "1956": "Αυτοψία",
+      "1991": "BCP 1991",
+      "1993": "BCP 1993 — Από BCP έως ΒΕΡ",
+      "1963": "BEP 1963 — ΕΣΚΑΛΙΤ",
+      "1965": "BEP 1965 — Σκάψιμο έως BEP",
+      "1970": "BEP 1970 — Τοποθέτηση ΒΕΡ",
+      "1984": "2 BOX 1984",
+      "1985": "FB 1985 — Κατακόρυφη ΚΟΙ",
+      "1986": "FB 1986 — Κολλήσεις & Διασυνδέσεις",
+      "1980": "1980 — Εμφύσηση CAB",
+      "1955": "Γ' ΦΑΣΗ 1955 — Σύνδεση Πελάτη",
+      "1930": "Λοιπά",
+    };
+
+    function getCategoryForCode(code: string): string {
+      for (const [prefix, cat] of Object.entries(categoryMap)) {
+        if (code.startsWith(prefix)) return cat;
+      }
+      return "Λοιπά";
+    }
+
     for (const row of basiTimRows) {
       const col1 = String(row[0] || "").trim();
       const col2 = String(row[1] || "").trim();
       const col3 = String(row[2] || "").trim();
       const col4 = row[3];
 
-      // Category headers (like "BCP 1991", "BΕP 1970", etc.)
-      if (col2 && !col3 && (col4 === undefined || col4 === null || col4 === "")) {
-        currentCategory = col2;
-        continue;
-      }
-
-      // Skip pure header rows
+      // Skip header/category rows
       if (col2 === "ΠΕΡΙΓΡΑΦΗ" || col1 === "OTE" || !col2) continue;
+      if (col2 && !col3 && (col4 === undefined || col4 === null || col4 === "")) continue;
 
       // Data row: code in col2, description in col3, price in col4
       if (col2 && col3 && col4 !== undefined && col4 !== null && col4 !== "") {
         const code = col2;
         const description = col3;
         const unitPrice = parseValue(col4);
+        const category = getCategoryForCode(code);
 
         const { error } = await supabase.from("work_pricing").upsert(
-          { code, description, unit_price: unitPrice, category: currentCategory, unit: "τεμ." },
+          { code, description, unit_price: unitPrice, category, unit: "τεμ." },
           { onConflict: "code" }
         );
         if (error) {
