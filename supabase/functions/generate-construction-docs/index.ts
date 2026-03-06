@@ -861,6 +861,12 @@ Deno.serve(async (req) => {
       uploadResults.push({ type: "delta_pdf", name: deltaResult.name, id: deltaResult.id });
     }
 
+    // Map ASCII storage folder names to Greek display names for Drive
+    const folderDisplayNames: Record<string, string> = {
+      SKAMA: "ΣΚΑΜΑ", ODEFSI: "ΟΔΕΥΣΗ", BCP: "BCP", BEP: "BEP",
+      BMO: "BMO", FB: "FB", KAMPINA: "ΚΑΜΠΙΝΑ", G_FASI: "Γ_ΦΑΣΗ",
+    };
+
     // 5. Upload photos from Supabase storage (organized by category folders)
     if (photo_paths && photo_paths.length > 0) {
       const categoryFolderCache: Record<string, any> = {};
@@ -881,11 +887,12 @@ Deno.serve(async (req) => {
           let fileName = pathParts.pop() || `photo_${Date.now()}.jpg`;
           
           if (pathParts.length >= 4) {
-            const category = pathParts[pathParts.length - 1];
-            if (!categoryFolderCache[category]) {
-              categoryFolderCache[category] = await findOrCreateFolder(accessToken, category, constructionFolder.id);
+            const asciiFolder = pathParts[pathParts.length - 1];
+            const displayName = folderDisplayNames[asciiFolder] || asciiFolder;
+            if (!categoryFolderCache[displayName]) {
+              categoryFolderCache[displayName] = await findOrCreateFolder(accessToken, displayName, constructionFolder.id);
             }
-            targetFolderId = categoryFolderCache[category].id;
+            targetFolderId = categoryFolderCache[displayName].id;
           }
           
           const arrayBuf = await fileData.arrayBuffer();
