@@ -2,6 +2,8 @@
 @import url("https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap");
 @import url("https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&display=swap");
 @import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono&display=swap");
 
 @tailwind base;
 @tailwind components;
@@ -9,31 +11,31 @@
 
 @layer base {
   :root {
-    --background: 240 4% 95%;
-    --foreground: 240 5% 10%;
+    --background: 210 18% 96%;
+    --foreground: 215 25% 14%;
 
-    --card: 0 0% 98%;
-    --card-foreground: 240 5% 10%;
+    --card: 0 0% 100%;
+    --card-foreground: 215 25% 14%;
 
-    --popover: 240 5% 90%;
-    --popover-foreground: 240 5% 10%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 215 25% 14%;
 
     /* DeltaNetwork Blue — from logo swirl */
-    --primary: 333 71% 50%;
-    --primary-foreground: 327 73% 97%;
+    --primary: 200 85% 45%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 240 5% 33%;
-    --secondary-foreground: 0 0% 98%;
+    --secondary: 210 16% 93%;
+    --secondary-foreground: 215 20% 30%;
 
-    --muted: 240 4% 83%;
-    --muted-foreground: 240 5% 10%;
+    --muted: 210 16% 93%;
+    --muted-foreground: 215 12% 46%;
 
     /* DeltaNetwork Green — from logo swirl */
-    --accent: 355 100% 97%;
-    --accent-foreground: 349 89% 60%;
+    --accent: 135 60% 40%;
+    --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 72% 50%;
-    --destructive-foreground: 0 85% 97%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
 
     --success: 135 60% 40%;
     --success-foreground: 0 0% 100%;
@@ -41,27 +43,27 @@
     --warning: 45 93% 47%;
     --warning-foreground: 45 93% 10%;
 
-    --border: 240 4% 83%;
-    --input: 240 4% 83%;
-    --ring: 333 71% 50%;
+    --border: 210 14% 87%;
+    --input: 210 14% 87%;
+    --ring: 200 85% 45%;
 
-    --radius: 1.5rem;
+    --radius: 0.75rem;
 
     --glow-primary: 0 4px 14px hsl(200 85% 45% / 0.18);
     --glow-accent: 0 4px 14px hsl(135 60% 40% / 0.14);
 
-    --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
-    --font-sans: 'Poppins', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+    --font-sans: 'Inter', system-ui, sans-serif;
 
     /* Sidebar — dark charcoal matching logo background */
     --sidebar-background: 215 22% 13%;
-    --sidebar-foreground: 240 5% 10%;
-    --sidebar-primary: 333 71% 50%;
-    --sidebar-primary-foreground: 327 73% 97%;
-    --sidebar-accent: 240 5% 33%;
-    --sidebar-accent-foreground: 0 0% 98%;
-    --sidebar-border: 240 4% 83%;
-    --sidebar-ring: 333 71% 50%;
+    --sidebar-foreground: 210 14% 75%;
+    --sidebar-primary: 200 85% 50%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 215 20% 19%;
+    --sidebar-accent-foreground: 0 0% 93%;
+    --sidebar-border: 215 18% 20%;
+    --sidebar-ring: 200 85% 45%;
     --chart-1: 328 85% 70%;
     --chart-2: 351 94% 71%;
     --chart-3: 327 87% 81%;
