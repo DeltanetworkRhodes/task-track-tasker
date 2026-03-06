@@ -153,11 +153,26 @@ function generateConstructionXlsx(
     ["SR ID:", assignment.sr_id, "", "SES ID:", construction.ses_id || "", "", "Α/Κ:", construction.ak || ""],
     ["CAB:", construction.cab || "", "", "ΟΡΟΦΟΙ:", construction.floors || 0, "", "ΠΕΡΙΟΧΗ:", assignment.area],
     ["ΔΙΕΥΘΥΝΣΗ:", assignment.address || "", "", "ΠΕΛΑΤΗΣ:", assignment.customer_name || ""],
+    ["ΕΙΔΟΣ ΟΔΕΥΣΗΣ:", construction.routing_type || "", "", "ΑΝΑΜΟΝΗ:", construction.pending_note || ""],
     ["ΗΜΕΡΟΜΗΝΙΑ:", new Date().toLocaleDateString("el-GR")],
     [],
-    // Works header
-    ["Άρθρο", "ΚΑΤΑΣΚΕΥΕΣ", "ΠΟΣΟΤΗΤΑ", "ΤΙΜΗ ΜΟΝΑΔΟΣ", "ΜΕΡΙΚΟ ΣΥΝΟΛΟ", "", "ΚΑΥ", "ΠΕΡΙΓΡΑΦΗ ΥΛΙΚΩΝ", "ΜΜ", "ΠΟΣΟΤΗΤΑ", "ΠΗΓΗ"],
   ];
+
+  // ΔΙΑΔΡΟΜΕΣ section
+  const routes = construction.routes || [];
+  if (routes.length > 0) {
+    data.push(["ΔΙΑΔΡΟΜΕΣ", "", "KOI (m)", "ΦΥΡΑ KOI (m)"]);
+    for (const r of routes) {
+      data.push(["", r.label || "", r.koi || 0, r.fyra_koi || 0]);
+    }
+    const totalKoi = routes.reduce((s: number, r: any) => s + (r.koi || 0), 0);
+    const totalFyra = routes.reduce((s: number, r: any) => s + (r.fyra_koi || 0), 0);
+    data.push(["", "ΣΥΝΟΛΟ", totalKoi, totalFyra]);
+    data.push([]);
+  }
+
+  // Works + Materials header
+  data.push(["Άρθρο", "ΚΑΤΑΣΚΕΥΕΣ", "ΠΟΣΟΤΗΤΑ", "ΤΙΜΗ ΜΟΝΑΔΟΣ", "ΜΕΡΙΚΟ ΣΥΝΟΛΟ", "", "ΚΑΥ", "ΠΕΡΙΓΡΑΦΗ ΥΛΙΚΩΝ", "ΜΜ", "ΠΟΣΟΤΗΤΑ", "ΠΗΓΗ"]);
 
   // Find max rows between works and all materials
   const allMaterials = [...oteMaterials, ...deltaMaterials];
