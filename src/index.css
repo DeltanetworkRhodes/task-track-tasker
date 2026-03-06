@@ -187,7 +187,7 @@
   }
   .bg-grid {
     background-image: 
-      radial-gradient(circle at 1px 1px, hsl(215 18% 20% / 0.5) 1px, transparent 0);
+      radial-gradient(circle at 1px 1px, hsl(var(--border) / 0.5) 1px, transparent 0);
     background-size: 32px 32px;
   }
   .cosmote-gradient {
