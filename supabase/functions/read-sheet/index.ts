@@ -1,5 +1,3 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -42,70 +40,74 @@ Deno.serve(async (req) => {
     
     const spreadsheetId = "1Rc0rrrNbixf9G64G71aWDrQ_cFezADTt4JYbTeCSzic";
     
-    // Read all data
-    const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/A1:Z200`;
-    const res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
-    if (!res.ok) throw new Error(await res.text());
-    const data = await res.json();
-    const rows = data.values || [];
+    // First get sheet names
+    const metaUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}?fields=sheets.properties.title`;
+    const metaRes = await fetch(metaUrl, { headers: { Authorization: `Bearer ${accessToken}` } });
+    const meta = await metaRes.json();
+    const sheetNames = meta.sheets?.map((s: any) => s.properties.title) || [];
     
-    // Find work codes and their quantities
-    const results: any = { headers: {}, works: {}, materials: {}, rawSample: [] };
+    // Read each sheet's first 200 rows
+    const results: any = { sheetNames, sheets: {} };
     
-    let workCodeCol = -1, workQtyCol = -1, matCodeCol = -1, matQtyCol = -1;
-    let headerRow = -1;
-    
-    // Find headers
-    for (let r = 0; r < Math.min(rows.length, 20); r++) {
-      for (let c = 0; c < (rows[r]?.length || 0); c++) {
-        const val = (rows[r][c] || "").trim();
-        if (val === "Άρθρο") { headerRow = r; workCodeCol = c; }
-        if (val === "ΠΟΣΟΤΗΤΑ" && headerRow === r) workQtyCol = c;
-        if (val === "ΚΑΥ") matCodeCol = c;
-        if (val === "SR ID:" || val === "ΠΕΡΙΟΧΗ" || val === "SES ID:" || val === "CAB:") {
-          const nextVal = rows[r]?.[c + 1] || "";
-          results.headers[val] = nextVal;
-        }
-      }
-    }
-    
-    // Find material ΠΟΣΟΤΗΤΑ
-    if (matCodeCol >= 0) {
-      for (let r = headerRow; r < headerRow + 3; r++) {
-        for (let c = matCodeCol + 1; c < (rows[r]?.length || 0); c++) {
-          if ((rows[r][c] || "").trim() === "ΠΟΣΟΤΗΤΑ") { matQtyCol = c; break; }
-        }
-        if (matQtyCol >= 0) break;
-      }
-    }
-    
-    results.columnPositions = { workCodeCol, workQtyCol, matCodeCol, matQtyCol, headerRow };
-    
-    // Extract filled work items
-    const dataStart = headerRow + 2;
-    const targetCodes = ["1956.2", "1970.1", "1985.2", "1986.3"];
-    
-    for (let r = dataStart; r < rows.length; r++) {
-      const row = rows[r] || [];
-      const code = (row[workCodeCol] || "").trim().replace(/\.+$/, "");
-      const qty = row[workQtyCol] || "";
+    for (const name of sheetNames) {
+      const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/'${encodeURIComponent(name)}'!A1:Z200`;
+      const res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+      if (!res.ok) continue;
+      const data = await res.json();
+      const rows = data.values || [];
       
-      if (targetCodes.includes(code) || (qty && qty !== "0" && qty !== "")) {
-        results.works[code] = { row: r + 1, quantity: qty };
+      // Find work codes and quantities
+      const sheetResult: any = { totalRows: rows.length, headers: {}, works: {}, materials: {} };
+      
+      let workCodeCol = -1, workQtyCol = -1, matCodeCol = -1, matQtyCol = -1, headerRow = -1;
+      
+      for (let r = 0; r < Math.min(rows.length, 20); r++) {
+        for (let c = 0; c < (rows[r]?.length || 0); c++) {
+          const val = (rows[r][c] || "").trim();
+          if (val === "Άρθρο") { headerRow = r; workCodeCol = c; }
+          if (val === "ΠΟΣΟΤΗΤΑ" && headerRow === r) workQtyCol = c;
+          if (val === "ΚΑΥ") matCodeCol = c;
+          if (["SR ID:", "ΠΕΡΙΟΧΗ", "SES ID:", "CAB:", "ΔΙΕΥΘΥΝΣΗ:", "ΕΙΔΟΣ ΟΔΕΥΣΗΣ:", "ΑΝΑΜΟΝΗ:", "ΟΡΟΦΟΙ:", "ΗΜ/ΝΙΑ", "Α/Κ:"].includes(val)) {
+            sheetResult.headers[val] = rows[r]?.[c + 1] || "";
+          }
+        }
       }
       
-      // Materials
-      if (matCodeCol >= 0) {
-        const matCode = (row[matCodeCol] || "").trim();
-        const matQty = matQtyCol >= 0 ? (row[matQtyCol] || "") : "";
-        if (matCode && matQty && matQty !== "0") {
-          results.materials[matCode] = { row: r + 1, quantity: matQty };
+      if (matCodeCol >= 0 && headerRow >= 0) {
+        for (let r = headerRow; r < headerRow + 3; r++) {
+          for (let c = matCodeCol + 1; c < (rows[r]?.length || 0); c++) {
+            if ((rows[r]?.[c] || "").trim() === "ΠΟΣΟΤΗΤΑ") { matQtyCol = c; break; }
+          }
+          if (matQtyCol >= 0) break;
         }
       }
+      
+      sheetResult.columnPositions = { workCodeCol, workQtyCol, matCodeCol, matQtyCol, headerRow };
+      
+      if (headerRow >= 0) {
+        const dataStart = headerRow + 2;
+        for (let r = dataStart; r < rows.length; r++) {
+          const row = rows[r] || [];
+          const code = (row[workCodeCol] || "").trim().replace(/\.+$/, "");
+          const qty = (row[workQtyCol] || "").toString().trim();
+          if (code && qty && qty !== "0" && qty !== "") {
+            sheetResult.works[code] = { row: r + 1, quantity: qty };
+          }
+          if (matCodeCol >= 0) {
+            const matCode = (row[matCodeCol] || "").trim();
+            const matQty = matQtyCol >= 0 ? (row[matQtyCol] || "").toString().trim() : "";
+            if (matCode && matQty && matQty !== "0" && matQty !== "") {
+              sheetResult.materials[matCode] = { row: r + 1, quantity: matQty };
+            }
+          }
+        }
+      }
+      
+      // Include first 5 rows as sample
+      sheetResult.sampleRows = rows.slice(0, 8);
+      
+      results.sheets[name] = sheetResult;
     }
-    
-    // Raw sample of first 15 rows
-    results.rawSample = rows.slice(0, 15);
     
     return new Response(JSON.stringify(results, null, 2), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
