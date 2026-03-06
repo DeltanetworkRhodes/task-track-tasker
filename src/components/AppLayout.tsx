@@ -35,7 +35,7 @@ const AppLayout = ({ children }: { children: ReactNode }) => {
           >
             <Menu className="h-5 w-5 text-foreground" />
           </button>
-          <img src={deltaLogo} alt="DeltaNetwork" className="h-6 w-auto object-contain" />
+          <img src={deltaLogoIcon} alt="DeltaNetwork" className="h-7 w-auto object-contain" />
           <span className="text-[9px] text-muted-foreground uppercase tracking-widest">FTTx</span>
         </div>
         <div className="p-4 sm:p-6 bg-grid min-h-[calc(100vh-56px)] lg:min-h-screen">
