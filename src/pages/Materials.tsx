@@ -570,7 +570,7 @@ const Materials = () => {
                       Αξία: <span className="font-semibold text-foreground">{oteValue.toLocaleString('el-GR', { minimumFractionDigits: 2 })}€</span>
                     </span>
                   )}
-                  <button onClick={() => exportToCsv(oteItems, 'OTE')} className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 py-1.5 text-[11px] font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
+                  <button onClick={() => exportToExcel(oteItems, 'OTE')} className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 py-1.5 text-[11px] font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
                     <Download className="h-3 w-3" /> Export
                   </button>
                 </div>
