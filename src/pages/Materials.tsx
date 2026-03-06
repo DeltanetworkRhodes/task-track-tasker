@@ -664,7 +664,7 @@ const Materials = () => {
               <div className="flex items-center justify-between border-b border-border px-5 py-4 bg-accent/5">
                 <div className="flex items-center gap-2">
                   <div className="h-3 w-3 rounded-full bg-accent" />
-                  <h2 className="font-bold text-sm">Υλικά DELTANETWORK</h2>
+                  <h2 className="font-bold text-sm">Υλικά {orgName}</h2>
                   <span className="text-[11px] text-muted-foreground font-mono ml-1">({deltaItems.length} είδη)</span>
                 </div>
                 <div className="flex items-center gap-3">
