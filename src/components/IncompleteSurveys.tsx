@@ -30,7 +30,7 @@ const IncompleteSurveys = ({ filterSrId }: { filterSrId?: string }) => {
   const [submitting, setSubmitting] = useState(false);
   const inputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
-  // Fetch incomplete surveys for this technician
+  // Fetch surveys for this technician (incomplete OR completed for editing)
   const { data: surveys, isLoading } = useQuery({
     queryKey: ["incomplete-surveys", user?.id, filterSrId],
     queryFn: async () => {
@@ -38,10 +38,12 @@ const IncompleteSurveys = ({ filterSrId }: { filterSrId?: string }) => {
         .from("surveys")
         .select("*, survey_files(*)")
         .eq("technician_id", user!.id)
-        .eq("status", "ΕΛΛΙΠΗΣ ΑΥΤΟΨΙΑ")
         .order("created_at", { ascending: false });
       if (filterSrId) {
         query = query.eq("sr_id", filterSrId);
+      } else {
+        // Only show incomplete when not filtering by SR
+        query = query.eq("status", "ΕΛΛΙΠΗΣ ΑΥΤΟΨΙΑ");
       }
       const { data, error } = await query;
       if (error) throw error;
