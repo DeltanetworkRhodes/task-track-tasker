@@ -25,6 +25,7 @@ interface AppSidebarProps {
 const AppSidebar = ({ onClose }: AppSidebarProps) => {
   const location = useLocation();
   const { user, signOut } = useAuth();
+  const { theme, setTheme } = useTheme();
 
   return (
     <aside className="flex h-full w-64 flex-col bg-sidebar border-r border-sidebar-border">
