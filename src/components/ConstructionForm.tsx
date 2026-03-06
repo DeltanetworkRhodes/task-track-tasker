@@ -926,54 +926,80 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
         )}
       </Card>
 
-      {/* Construction Photos */}
+      {/* Construction Photos - Categorized */}
       <Card className="p-4 space-y-3">
-        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-          <Camera className="h-3.5 w-3.5" />
-          Φωτογραφίες Κατασκευής
-        </Label>
+        <div className="flex items-center justify-between">
+          <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+            <Camera className="h-3.5 w-3.5" />
+            Φωτογραφίες Κατασκευής
+          </Label>
+          {totalPhotos > 0 && (
+            <Badge variant="secondary" className="text-xs">{totalPhotos} φωτο</Badge>
+          )}
+        </div>
 
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          multiple
-          capture="environment"
-          onChange={handlePhotoSelect}
-          className="hidden"
-        />
-
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={() => fileInputRef.current?.click()}
-          className="w-full gap-2 border-dashed"
-        >
-          <Upload className="h-4 w-4" />
-          Προσθήκη Φωτογραφιών
-        </Button>
-
-        {photoPreviews.length > 0 && (
-          <div className="grid grid-cols-3 gap-2">
-            {photoPreviews.map((preview, i) => (
-              <div key={i} className="relative group">
-                <img
-                  src={preview}
-                  alt={`Φωτογραφία ${i + 1}`}
-                  className="w-full h-24 object-cover rounded-lg border border-border"
-                />
-                <button
-                  type="button"
-                  onClick={() => removePhoto(i)}
-                  className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
-                >
-                  <X className="h-3 w-3" />
-                </button>
+        <div className="space-y-2">
+          {PHOTO_CATEGORIES.map((cat) => {
+            const catPhotos = categorizedPhotos[cat.key] || [];
+            const catPreviews = categorizedPreviews[cat.key] || [];
+            return (
+              <div key={cat.key} className="border border-border rounded-lg p-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-sm">{cat.icon}</span>
+                    <span className="text-xs font-medium">{cat.label}</span>
+                    {cat.optional && <span className="text-[10px] text-muted-foreground">(προαιρ.)</span>}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {catPhotos.length > 0 && (
+                      <Badge variant="outline" className="text-[10px] h-5">{catPhotos.length}</Badge>
+                    )}
+                    <input
+                      ref={(el) => { fileInputRefs.current[cat.key] = el; }}
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      capture="environment"
+                      onChange={(e) => handleCategoryPhotoSelect(cat.key, e)}
+                      className="hidden"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => fileInputRefs.current[cat.key]?.click()}
+                      className="h-7 text-[11px] gap-1 px-2"
+                    >
+                      <Camera className="h-3 w-3" />
+                      Φωτο
+                    </Button>
+                  </div>
+                </div>
+                
+                {catPreviews.length > 0 && (
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {catPreviews.map((preview, i) => (
+                      <div key={i} className="relative group">
+                        <img
+                          src={preview}
+                          alt={`${cat.label} ${i + 1}`}
+                          className="w-full h-16 object-cover rounded border border-border"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeCategoryPhoto(cat.key, i)}
+                          className="absolute top-0.5 right-0.5 bg-destructive text-destructive-foreground rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <X className="h-2.5 w-2.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-            ))}
-          </div>
-        )}
+            );
+          })}
+        </div>
       </Card>
 
       {/* Summary */}
