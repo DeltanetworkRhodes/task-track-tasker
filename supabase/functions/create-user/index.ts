@@ -35,6 +35,7 @@ serve(async (req) => {
 
     const { email, password, full_name, role, organization_id } = await req.json();
     if (!email || !password) throw new Error("email and password are required");
+    if (role === "super_admin") throw new Error("Cannot create super_admin users");
 
     // Create auth user
     const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
