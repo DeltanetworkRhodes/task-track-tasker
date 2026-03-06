@@ -611,7 +611,7 @@ const Materials = () => {
                 <p className="text-[10px] text-muted-foreground uppercase">Ενημερώθηκαν</p>
               </div>
               <div className="rounded-lg bg-card p-3 text-center">
-                <p className="text-lg font-bold font-mono text-destructive">{uploadResult.not_found?.length || 0}</p>
+                <p className="text-lg font-bold text-destructive">{uploadResult.not_found?.length || 0}</p>
                 <p className="text-[10px] text-muted-foreground uppercase">Δεν βρέθηκαν</p>
               </div>
             </div>
