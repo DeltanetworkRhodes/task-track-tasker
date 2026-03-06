@@ -152,9 +152,9 @@ Deno.serve(async (req) => {
     `;
 
     const emailPayload: any = {
-      from: "DeltaNet FTTH <noreply@deltanetwork.gr>",
+      from: `DeltaNet FTTH <${emailFrom}>`,
       to: toEmails.split(",").map((e: string) => e.trim()),
-      reply_to: "info@deltanetwork.gr",
+      reply_to: emailReplyTo,
       subject,
       html: emailHtml,
     };
