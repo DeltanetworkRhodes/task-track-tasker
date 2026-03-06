@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import AppLayout from "@/components/AppLayout";
 import { useMaterials } from "@/hooks/useData";
-import { Package, AlertTriangle, Search, Plus, Box, ArrowUpDown, Check, X, Pencil, Upload, FileText, Trash2 } from "lucide-react";
+import { Package, AlertTriangle, Search, Plus, Box, ArrowUpDown, Check, X, Pencil, Upload, FileText, Trash2, Download } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
