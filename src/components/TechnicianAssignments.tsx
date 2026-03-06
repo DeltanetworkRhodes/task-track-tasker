@@ -480,6 +480,7 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
                 </div>
               )}
             </div>
+          </Card>
         ))}
       </div>
 
