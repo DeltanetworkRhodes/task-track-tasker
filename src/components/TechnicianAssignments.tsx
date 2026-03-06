@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { MapPin, Phone, Calendar, MessageSquare, Loader2, Eye, FileEdit, CheckCircle, Clock, HardHat, XCircle, Ban } from "lucide-react";
+import { useState, useRef } from "react";
+import { MapPin, Phone, Calendar, MessageSquare, Loader2, Eye, FileEdit, CheckCircle, Clock, HardHat, XCircle, Ban, Upload, FileSpreadsheet } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -54,6 +54,8 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
   const [cancelling, setCancelling] = useState(false);
+  const [uploadingGis, setUploadingGis] = useState(false);
+  const gisFileInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
 
   // Fetch existing survey for selected assignment
@@ -72,6 +74,68 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
     },
     enabled: !!selectedAssignment && !!user,
   });
+
+  // Fetch GIS data for selected assignment
+  const { data: existingGisData } = useQuery({
+    queryKey: ["assignment-gis", selectedAssignment?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("gis_data")
+        .select("id, floors, bep_type, bmo_type, distance_from_cabinet, latitude, longitude, conduit")
+        .eq("assignment_id", selectedAssignment!.id)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!selectedAssignment && !!user,
+  });
+
+  const handleGisUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !selectedAssignment) return;
+
+    if (!file.name.endsWith('.xlsx') && !file.name.endsWith('.xls')) {
+      toast.error("Παρακαλώ ανεβάστε αρχείο Excel (.xlsx)");
+      return;
+    }
+
+    setUploadingGis(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("assignment_id", selectedAssignment.id);
+      formData.append("sr_id", selectedAssignment.sr_id);
+
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+
+      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+      const response = await fetch(
+        `https://${projectId}.supabase.co/functions/v1/parse-gis-excel`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          body: formData,
+        }
+      );
+
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Upload failed");
+
+      toast.success(
+        `GIS αναλύθηκε: ${result.parsed.floors} όροφοι, ${result.parsed.optical_paths} οπτικές διαδρομές`
+      );
+      queryClient.invalidateQueries({ queryKey: ["technician-assignments"] });
+      queryClient.invalidateQueries({ queryKey: ["assignment-gis"] });
+    } catch (err: any) {
+      console.error("GIS upload error:", err);
+      toast.error("Σφάλμα: " + (err.message || "Δοκιμάστε ξανά"));
+    } finally {
+      setUploadingGis(false);
+      if (gisFileInputRef.current) gisFileInputRef.current.value = "";
+    }
+  };
 
   const handleStatusChange = async (assignmentId: string, newStatus: string, oldStatus: string) => {
     setUpdating(assignmentId);
@@ -230,6 +294,42 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
             <FileEdit className="h-4 w-4" />
             {existingSurvey ? "Συνέχεια Αυτοψίας" : "Έναρξη Αυτοψίας"}
           </Button>
+          {/* GIS Upload Button - visible after survey exists */}
+          {existingSurvey && existingSurvey.status !== "ΕΛΛΙΠΗΣ ΑΥΤΟΨΙΑ" && (
+            <>
+              <input
+                ref={gisFileInputRef}
+                type="file"
+                accept=".xlsx,.xls"
+                className="hidden"
+                onChange={handleGisUpload}
+              />
+              <Button
+                size="sm"
+                variant="outline"
+                className="w-full gap-2 border-blue-500/30 text-blue-600 hover:bg-blue-500/10"
+                onClick={() => gisFileInputRef.current?.click()}
+                disabled={uploadingGis}
+              >
+                {uploadingGis ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : existingGisData ? (
+                  <FileSpreadsheet className="h-4 w-4" />
+                ) : (
+                  <Upload className="h-4 w-4" />
+                )}
+                {uploadingGis ? "Ανάλυση GIS..." : existingGisData ? "Αντικατάσταση GIS" : "Upload Προδέσμευσης GIS"}
+              </Button>
+              {existingGisData && (
+                <div className="text-xs text-muted-foreground bg-blue-500/5 border border-blue-500/20 rounded-md p-2 space-y-1">
+                  <p className="font-medium text-blue-600">✓ GIS Αναλύθηκε</p>
+                  <p>Όροφοι: {existingGisData.floors} · BEP: {existingGisData.bep_type || "—"}</p>
+                  <p>BMO: {existingGisData.bmo_type || "—"} · Conduit: {existingGisData.conduit || "—"}</p>
+                  <p>Απόσταση: {existingGisData.distance_from_cabinet}μ</p>
+                </div>
+              )}
+            </>
+          )}
           <Button
             size="sm"
             variant="outline"
@@ -246,6 +346,13 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
     if (status === "pre_committed") {
       return (
         <div className="space-y-2">
+          {existingGisData && (
+            <div className="text-xs text-muted-foreground bg-blue-500/5 border border-blue-500/20 rounded-md p-2 space-y-1">
+              <p className="font-medium text-blue-600">✓ GIS Προδέσμευσης</p>
+              <p>Όροφοι: {existingGisData.floors} · BEP: {existingGisData.bep_type || "—"}</p>
+              <p>BMO: {existingGisData.bmo_type || "—"} · Απόσταση: {existingGisData.distance_from_cabinet}μ</p>
+            </div>
+          )}
           <div className="flex items-center gap-2 text-cyan-600 justify-center py-2">
             <Clock className="h-5 w-5" />
             <span className="text-sm font-medium">Αναμονή απάντησης ΟΤΕ</span>

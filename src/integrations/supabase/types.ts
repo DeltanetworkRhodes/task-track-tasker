@@ -329,6 +329,122 @@ export type Database = {
         }
         Relationships: []
       }
+      gis_data: {
+        Row: {
+          admin_signature: boolean | null
+          area_type: string | null
+          assignment_id: string
+          associated_bcp: string | null
+          bep_floor: string | null
+          bep_only: boolean | null
+          bep_template: string | null
+          bep_type: string | null
+          bmo_type: string | null
+          building_id: string | null
+          conduit: string | null
+          created_at: string
+          customer_floor: string | null
+          deh_nanotronix: boolean | null
+          distance_from_cabinet: number | null
+          failure: string | null
+          file_path: string | null
+          floor_details: Json | null
+          floors: number | null
+          gis_works: Json | null
+          id: string
+          latitude: number | null
+          longitude: number | null
+          nanotronix: boolean | null
+          nearby_bcp: string | null
+          new_bcp: string | null
+          notes: string | null
+          optical_paths: Json | null
+          raw_data: Json | null
+          smart_readiness: boolean | null
+          sr_id: string
+          updated_at: string
+          warning: string | null
+        }
+        Insert: {
+          admin_signature?: boolean | null
+          area_type?: string | null
+          assignment_id: string
+          associated_bcp?: string | null
+          bep_floor?: string | null
+          bep_only?: boolean | null
+          bep_template?: string | null
+          bep_type?: string | null
+          bmo_type?: string | null
+          building_id?: string | null
+          conduit?: string | null
+          created_at?: string
+          customer_floor?: string | null
+          deh_nanotronix?: boolean | null
+          distance_from_cabinet?: number | null
+          failure?: string | null
+          file_path?: string | null
+          floor_details?: Json | null
+          floors?: number | null
+          gis_works?: Json | null
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          nanotronix?: boolean | null
+          nearby_bcp?: string | null
+          new_bcp?: string | null
+          notes?: string | null
+          optical_paths?: Json | null
+          raw_data?: Json | null
+          smart_readiness?: boolean | null
+          sr_id: string
+          updated_at?: string
+          warning?: string | null
+        }
+        Update: {
+          admin_signature?: boolean | null
+          area_type?: string | null
+          assignment_id?: string
+          associated_bcp?: string | null
+          bep_floor?: string | null
+          bep_only?: boolean | null
+          bep_template?: string | null
+          bep_type?: string | null
+          bmo_type?: string | null
+          building_id?: string | null
+          conduit?: string | null
+          created_at?: string
+          customer_floor?: string | null
+          deh_nanotronix?: boolean | null
+          distance_from_cabinet?: number | null
+          failure?: string | null
+          file_path?: string | null
+          floor_details?: Json | null
+          floors?: number | null
+          gis_works?: Json | null
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          nanotronix?: boolean | null
+          nearby_bcp?: string | null
+          new_bcp?: string | null
+          notes?: string | null
+          optical_paths?: Json | null
+          raw_data?: Json | null
+          smart_readiness?: boolean | null
+          sr_id?: string
+          updated_at?: string
+          warning?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gis_data_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "assignments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       materials: {
         Row: {
           code: string
