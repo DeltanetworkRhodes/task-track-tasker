@@ -597,31 +597,39 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
                         <span className="text-muted-foreground">Οπτικές διαδρομές:</span> <span className="font-medium">{(existingGisData.optical_paths as any[]).length}</span>
                       </div>
                     )}
-                    {(existingGisData.floor_details as any[])?.length > 0 && (
-                      <div className="text-xs space-y-1">
-                        <span className="text-muted-foreground font-semibold">Floor Box ανά όροφο:</span>
-                        <div className="border border-border rounded-md overflow-hidden">
-                          <table className="w-full text-xs">
-                            <thead>
-                              <tr className="bg-muted/50">
-                                <th className="text-left px-2 py-1 font-medium text-muted-foreground">Όροφος</th>
-                                <th className="text-left px-2 py-1 font-medium text-muted-foreground">Τύπος FB</th>
-                                <th className="text-right px-2 py-1 font-medium text-muted-foreground">Τεμ.</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {(existingGisData.floor_details as any[]).map((fd: any, idx: number) => (
-                                <tr key={idx} className="border-t border-border">
-                                  <td className="px-2 py-1">{fd.floor || fd.name || `Όροφος ${idx + 1}`}</td>
-                                  <td className="px-2 py-1">{fd.fb_type || fd.type || "—"}</td>
-                                  <td className="px-2 py-1 text-right">{fd.fb_count || fd.quantity || fd.count || "—"}</td>
+                    {(existingGisData.floor_details as any[])?.length > 0 && (() => {
+                      const details = existingGisData.floor_details as Record<string, string>[];
+                      const allKeys = Object.keys(details[0] || {});
+                      return (
+                        <div className="text-xs space-y-1">
+                          <span className="text-muted-foreground font-semibold">Στοιχεία Ορόφων:</span>
+                          <div className="border border-border rounded-md overflow-x-auto">
+                            <table className="w-full text-xs whitespace-nowrap">
+                              <thead>
+                                <tr className="bg-muted/50">
+                                  {allKeys.map((key) => (
+                                    <th key={key} className="text-left px-2 py-1.5 font-bold text-foreground border-r border-border last:border-r-0">
+                                      {key}
+                                    </th>
+                                  ))}
                                 </tr>
-                              ))}
-                            </tbody>
-                          </table>
+                              </thead>
+                              <tbody>
+                                {details.map((fd: any, idx: number) => (
+                                  <tr key={idx} className="border-t border-border hover:bg-muted/30">
+                                    {allKeys.map((key) => (
+                                      <td key={key} className="px-2 py-1 font-medium border-r border-border last:border-r-0">
+                                        {fd[key] || "—"}
+                                      </td>
+                                    ))}
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      );
+                    })()}
                     {existingGisData.warning && (
                       <p className="text-xs text-amber-600">⚠ {existingGisData.warning}</p>
                     )}
