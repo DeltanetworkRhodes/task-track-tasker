@@ -40,9 +40,9 @@ const ConstructionTable = ({ constructions }: ConstructionTableProps) => {
                   {constructionStatusLabels[c.status]}
                 </span>
               </td>
-              <td className="py-3 px-4 text-right font-mono">{c.revenue > 0 ? `${c.revenue.toLocaleString()}€` : '—'}</td>
-              <td className="py-3 px-4 text-right font-mono text-destructive">{c.materialCost}€</td>
-              <td className={`py-3 px-4 text-right font-mono font-semibold ${c.profit >= 0 ? 'text-success' : 'text-destructive'}`}>
+              <td className="py-3 px-4 text-right font-bold">{c.revenue > 0 ? `${c.revenue.toLocaleString()}€` : '—'}</td>
+              <td className="py-3 px-4 text-right font-bold text-destructive">{c.materialCost}€</td>
+              <td className={`py-3 px-4 text-right font-bold ${c.profit >= 0 ? 'text-success' : 'text-destructive'}`}>
                 {c.profit >= 0 ? '+' : ''}{c.profit.toLocaleString()}€
               </td>
             </tr>

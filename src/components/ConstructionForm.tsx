@@ -1020,7 +1020,7 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
                               </button>
 
                               <div className="flex-1 min-w-0" onClick={() => toggleMaterial(m)}>
-                                <span className="text-xs font-mono text-primary">{m.code}</span>
+                                <span className="text-xs text-primary font-bold">{m.code}</span>
                                 <p className="text-[11px] text-muted-foreground leading-tight truncate">{m.name}</p>
                               </div>
 

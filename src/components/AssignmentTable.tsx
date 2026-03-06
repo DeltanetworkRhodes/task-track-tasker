@@ -451,7 +451,7 @@ const AssignmentTable = ({ assignments }: AssignmentTableProps) => {
                           {statusLabels[h.new_status as keyof typeof statusLabels] || h.new_status}
                         </span>
                       </div>
-                      <p className="text-[10px] text-muted-foreground/60 mt-0.5 font-mono">
+                      <p className="text-[10px] text-muted-foreground/60 mt-0.5 font-bold">
                         {new Date(h.created_at).toLocaleDateString('el-GR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })}
                       </p>
                     </div>

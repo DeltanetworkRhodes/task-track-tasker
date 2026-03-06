@@ -39,7 +39,7 @@ const MaterialsList = ({ materials }: MaterialsListProps) => {
                   {m.stock} {m.unit}
                 </span>
               </td>
-              <td className="py-3 px-4 text-right font-mono text-muted-foreground">
+              <td className="py-3 px-4 text-right font-bold text-muted-foreground">
                 {m.price === 0 ? '—' : `${m.price.toFixed(2)}€`}
               </td>
             </tr>
