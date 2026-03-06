@@ -274,7 +274,7 @@ const IncompleteSurveys = ({ filterSrId }: { filterSrId?: string }) => {
                 }`}>
                   {exists ? "✓" : "✗"}
                 </div>
-                <span className={`font-bold ${exists ? "text-muted-foreground" : "text-foreground"}`}>
+                <span className="font-bold text-foreground">
                   {t.label}
                 </span>
               </div>
