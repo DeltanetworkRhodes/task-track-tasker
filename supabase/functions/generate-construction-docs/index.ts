@@ -619,8 +619,7 @@ Deno.serve(async (req) => {
 
     console.log(`Generating docs for SR ${assignment.sr_id}: ${works.length} works, ${oteMaterials.length} OTE mats, ${deltaMaterials.length} DN mats`);
 
-    // Generate files
-    const xlsxData = await generateConstructionXlsx(assignment, construction, works, oteMaterials, deltaMaterials, supabaseUrl, serviceRoleKey);
+    // Generate PDFs
     const worksPdf = await generateWorksPdf(assignment, construction, works);
     const otePdf = oteMaterials.length > 0
       ? await generateMaterialsPdf(assignment, construction, oteMaterials, "OTE", "ΔΕΛΤΙΟ ΑΠΟΣΤΟΛΗΣ ΥΛΙΚΩΝ ΟΤΕ")
@@ -675,7 +674,6 @@ Deno.serve(async (req) => {
     // If no SR folder found, create one
     if (!srFolder) {
       const folderName = `${assignment.sr_id} - ${assignment.customer_name || "ΠΕΛΑΤΗΣ"} - ${assignment.address || ""}`.trim();
-      // Create under the month folder directly
       srFolder = await createDriveFolder(accessToken, folderName, monthFolder.id);
       console.log(`Created new SR folder: ${srFolder.name}`);
     }
@@ -688,13 +686,14 @@ Deno.serve(async (req) => {
     const srId = assignment.sr_id;
     const uploadResults: any[] = [];
 
-    // 1. XLSX
-    const xlsxResult = await uploadFileToDrive(
-      accessToken, `ΦΥΛΛΟ_ΑΠΟΛΟΓΙΣΜΟΥ_${srId}.xlsx`,
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      xlsxData, constructionFolder.id
+    // 1. ΦΥΛΛΟ ΑΠΟΛΟΓΙΣΜΟΥ — upload template as Google Sheet & fill via Sheets API
+    const templateResult = await createAndFillTemplate(
+      accessToken, constructionFolder.id,
+      `ΦΥΛΛΟ_ΑΠΟΛΟΓΙΣΜΟΥ_${srId}`,
+      assignment, construction, works, oteMaterials, deltaMaterials,
+      supabaseUrl, serviceRoleKey
     );
-    uploadResults.push({ type: "xlsx", name: xlsxResult.name, id: xlsxResult.id });
+    uploadResults.push({ type: "spreadsheet", name: templateResult.name, id: templateResult.id });
 
     // 2. Works PDF
     const worksPdfResult = await uploadFileToDrive(
