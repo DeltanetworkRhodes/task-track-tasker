@@ -231,7 +231,7 @@ const IncompleteSurveys = ({ filterSrId }: { filterSrId?: string }) => {
       </div>
 
       {surveys.map((survey: any) => {
-        const isExpanded = expandedId === survey.id;
+        const isExpanded = expandedId === survey.id || (!!filterSrId && expandedId === null);
         const missingTypes = getMissingTypes(survey);
         const existingTypes = new Set(
           (survey.survey_files || []).map((f: any) => f.file_type)
