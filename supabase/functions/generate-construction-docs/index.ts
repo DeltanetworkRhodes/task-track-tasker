@@ -19,6 +19,8 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const SHARED_DRIVE_ID = "1b6fX2Fkn7iU1YtC42FUkDIbQd9TGTYwj";
+
 const areaRootFolders: Record<string, string> = {
   "ΡΟΔΟΣ": "1JvcSG3tiOplSujXhb3yj_ELQLjfrgOzO",
   "ΚΩΣ": "1X1mtK4tV_sgGM9IdizNSK7AS19qX1nYl",
@@ -80,7 +82,7 @@ async function getAccessToken(serviceAccountKey: any): Promise<string> {
 }
 
 async function driveSearch(accessToken: string, query: string): Promise<any[]> {
-  const url = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&fields=files(id,name,mimeType,webViewLink)&pageSize=50&supportsAllDrives=true&includeItemsFromAllDrives=true`;
+  const url = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&fields=files(id,name,mimeType,webViewLink)&pageSize=50&supportsAllDrives=true&includeItemsFromAllDrives=true&corpora=drive&driveId=${SHARED_DRIVE_ID}`;
   const res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
   if (!res.ok) throw new Error(await res.text());
   return (await res.json()).files || [];
@@ -113,27 +115,37 @@ async function uploadFileToDrive(
   accessToken: string, fileName: string, mimeType: string,
   fileData: Uint8Array, parentId: string
 ): Promise<any> {
-  const metadata = JSON.stringify({ name: fileName, parents: [parentId] });
-  const boundary = "===boundary===";
-  const body =
-    `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${metadata}\r\n` +
-    `--${boundary}\r\nContent-Type: ${mimeType}\r\nContent-Transfer-Encoding: base64\r\n\r\n` +
-    uint8ToBase64(fileData) +
-    `\r\n--${boundary}--`;
-
-  const res = await fetch(
-    "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,webViewLink&supportsAllDrives=true",
+  // Step 1: Initiate resumable upload session
+  const metadata = { name: fileName, parents: [parentId] };
+  const initRes = await fetch(
+    "https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&fields=id,name,webViewLink&supportsAllDrives=true",
     {
       method: "POST",
       headers: {
         Authorization: `Bearer ${accessToken}`,
-        "Content-Type": `multipart/related; boundary=${boundary}`,
+        "Content-Type": "application/json; charset=UTF-8",
+        "X-Upload-Content-Type": mimeType,
+        "X-Upload-Content-Length": String(fileData.byteLength),
       },
-      body,
+      body: JSON.stringify(metadata),
     }
   );
-  if (!res.ok) throw new Error(`Upload failed: ${await res.text()}`);
-  return await res.json();
+  if (!initRes.ok) throw new Error(`Upload init failed: ${await initRes.text()}`);
+  
+  const uploadUrl = initRes.headers.get("Location");
+  if (!uploadUrl) throw new Error("No upload URL returned");
+
+  // Step 2: Upload file content
+  const uploadRes = await fetch(uploadUrl, {
+    method: "PUT",
+    headers: {
+      "Content-Type": mimeType,
+      "Content-Length": String(fileData.byteLength),
+    },
+    body: fileData,
+  });
+  if (!uploadRes.ok) throw new Error(`Upload failed: ${await uploadRes.text()}`);
+  return await uploadRes.json();
 }
 
 // ─── XLSX Generation ─────────────────────────────────────────────────
