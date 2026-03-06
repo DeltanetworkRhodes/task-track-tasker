@@ -394,7 +394,7 @@ Deno.serve(async (req) => {
             // Check if it exists in the OTHER folder (needs moving)
             const otherTargetName = isComplete ? "ΑΝΑΜΟΝΗ" : "ΟΛΟΚΛΗΡΩΜΕΝΕΣ ΑΥΤΟΨΙΕΣ";
             const rootId = areaRootFolders[area];
-            const currentMonth = greekMonths[now.getMonth()];
+            const currentMonth = greekMonths[new Date().getMonth()];
             const monthFolders = await driveSearch(
               accessToken,
               `name = '${currentMonth}' and '${rootId}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`
