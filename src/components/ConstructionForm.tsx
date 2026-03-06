@@ -100,9 +100,21 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
   const [openMaterialCategories, setOpenMaterialCategories] = useState<string[]>([]);
   const [materialTab, setMaterialTab] = useState("OTE");
 
-  // Photos
-  const [photos, setPhotos] = useState<File[]>([]);
-  const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
+  // Photo categories
+  const PHOTO_CATEGORIES = [
+    { key: "ΣΚΑΜΑ", label: "Σκάμα", icon: "⛏️", optional: true },
+    { key: "ΟΔΕΥΣΗ", label: "Όδευση", icon: "🛤️", optional: false },
+    { key: "BCP", label: "BCP", icon: "📦", optional: true },
+    { key: "BEP", label: "BEP", icon: "🔌", optional: false },
+    { key: "BMO", label: "BMO", icon: "📡", optional: false },
+    { key: "FB", label: "Floor Box", icon: "📋", optional: true },
+    { key: "ΚΑΜΠΙΝΑ", label: "Καμπίνα", icon: "🏗️", optional: false },
+    { key: "Γ_ΦΑΣΗ", label: "Γ' Φάση", icon: "👤", optional: true },
+  ] as const;
+
+  const [categorizedPhotos, setCategorizedPhotos] = useState<Record<string, File[]>>({});
+  const [categorizedPreviews, setCategorizedPreviews] = useState<Record<string, string[]>>({});
+  const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
