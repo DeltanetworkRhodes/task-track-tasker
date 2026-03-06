@@ -188,7 +188,7 @@ const MaterialTable = ({ items, hasRealData, editingId, editValues, onEdit, onSa
                       step="0.01"
                       value={editValues.price}
                       onChange={e => onEditChange('price', e.target.value)}
-                      className="w-20 ml-auto rounded-lg border border-primary/30 bg-card px-2 py-1 text-right text-sm font-mono focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                      className="w-20 ml-auto rounded-lg border border-primary/30 bg-card px-2 py-1 text-right text-sm font-bold focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                     />
                   ) : (
                     m.price === 0 ? <span className="text-muted-foreground/40">—</span> : `${m.price.toFixed(2)}€`
