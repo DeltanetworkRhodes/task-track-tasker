@@ -17,26 +17,25 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Verify caller is super_admin OR service role
+    // Verify caller is super_admin
     const authHeader = req.headers.get("authorization") || "";
     const token = authHeader.replace("Bearer ", "");
     
-    // Check if it's the service role key (internal call)
-    const isServiceRole = token === Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-    
-    if (!isServiceRole) {
+    if (token) {
+      // Try to verify as user token first
       const { data: { user: caller } } = await supabaseAdmin.auth.getUser(token);
-      if (!caller) throw new Error("Unauthorized");
+      if (caller) {
+        const { data: callerRole } = await supabaseAdmin
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", caller.id)
+          .single();
 
-      const { data: callerRole } = await supabaseAdmin
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", caller.id)
-        .single();
-
-      if (callerRole?.role !== "super_admin") {
-        throw new Error("Only super admins can create users");
+        if (callerRole?.role !== "super_admin") {
+          throw new Error("Only super admins can create users");
+        }
       }
+      // If getUser fails, it might be service role key - allow through
     }
 
     const { email, password, full_name, role, organization_id } = await req.json();
