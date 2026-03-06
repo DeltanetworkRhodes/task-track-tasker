@@ -160,6 +160,25 @@ const AssignmentTable = ({ assignments }: AssignmentTableProps) => {
         setSelected({ ...selected, status: newStatus });
       }
       queryClient.invalidateQueries({ queryKey: ["assignments"] });
+
+      // If cancelled, move the SR folder in Drive to ΑΚΥΡΩΜΕΝΕΣ ΚΑΤΑΣΚΕΥΕΣ
+      if (newStatus === "cancelled") {
+        const assignment = assignments.find((a: any) => a.id === assignmentId) as any;
+        if (assignment) {
+          try {
+            await supabase.functions.invoke("move-cancelled-folder", {
+              body: {
+                sr_id: assignment.sr_id || assignment.srId,
+                area: assignment.area,
+                assignment_id: assignmentId,
+              },
+            });
+            toast.success("Ο φάκελος μεταφέρθηκε στις ΑΚΥΡΩΜΕΝΕΣ ΚΑΤΑΣΚΕΥΕΣ");
+          } catch (moveErr) {
+            console.error("Move folder error:", moveErr);
+          }
+        }
+      }
     } catch (err: any) {
       toast.error(err.message);
     }
