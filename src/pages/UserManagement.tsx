@@ -19,7 +19,9 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Shield, User, UserCog, Trash2, Mail, Phone, MapPin, Pencil, Check, X } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Shield, User, UserCog, Trash2, Mail, Phone, MapPin, Pencil, Check, X, UserPlus } from "lucide-react";
 
 const UserManagement = () => {
   const queryClient = useQueryClient();
@@ -27,6 +29,44 @@ const UserManagement = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValues, setEditValues] = useState<{ email: string; phone: string; area: string }>({ email: "", phone: "", area: "" });
   const [deleting, setDeleting] = useState<string | null>(null);
+
+  // Create user state
+  const [createOpen, setCreateOpen] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [newUser, setNewUser] = useState({ full_name: "", email: "", password: "", role: "technician" });
+
+  const handleCreateUser = async () => {
+    if (!newUser.email || !newUser.password || !newUser.full_name) {
+      toast.error("Συμπληρώστε όλα τα πεδία");
+      return;
+    }
+    if (newUser.password.length < 6) {
+      toast.error("Ο κωδικός πρέπει να έχει τουλάχιστον 6 χαρακτήρες");
+      return;
+    }
+    setCreating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("create-user", {
+        body: {
+          email: newUser.email,
+          password: newUser.password,
+          full_name: newUser.full_name,
+          role: newUser.role,
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast.success("Ο χρήστης δημιουργήθηκε!");
+      setNewUser({ full_name: "", email: "", password: "", role: "technician" });
+      setCreateOpen(false);
+      queryClient.invalidateQueries({ queryKey: ["all-profiles"] });
+      queryClient.invalidateQueries({ queryKey: ["all-roles"] });
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setCreating(false);
+    }
+  };
 
   const { data: profiles, isLoading } = useQuery({
     queryKey: ["all-profiles"],
