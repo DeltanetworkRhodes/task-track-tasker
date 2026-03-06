@@ -18,6 +18,7 @@ import TechnicianDashboard from "./pages/TechnicianDashboard";
 import PendingApproval from "./pages/PendingApproval";
 import ResetPassword from "./pages/ResetPassword";
 import InstallApp from "./pages/InstallApp";
+import TechnicianKPIs from "./pages/TechnicianKPIs";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
