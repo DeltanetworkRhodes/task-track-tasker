@@ -636,7 +636,7 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
                       const paths = existingGisData.optical_paths as Record<string, any>[];
                       const opKeysSet = new Set<string>();
                       paths.forEach((p: any) => Object.keys(p).forEach((k) => opKeysSet.add(k)));
-                      const opKeys = Array.from(opKeysSet);
+                      const opKeys = ["OPTICAL PATH TYPE", ...Array.from(opKeysSet).filter(k => k !== "OPTICAL PATH TYPE")];
                       return (
                         <div className="text-xs space-y-1">
                           <span className="font-semibold text-foreground">🔗 Οπτικές Διαδρομές ({paths.length}):</span>
