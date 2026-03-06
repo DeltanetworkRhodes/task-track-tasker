@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Plus, Loader2 } from "lucide-react";
+import { useOrganization } from "@/contexts/OrganizationContext";
 
 const useTechnicians = () => {
   return useQuery({
