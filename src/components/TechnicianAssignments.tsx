@@ -96,7 +96,7 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
     queryFn: async () => {
       const { data } = await supabase
         .from("gis_data")
-        .select("id, floors, bep_type, bmo_type, distance_from_cabinet, latitude, longitude, conduit")
+        .select("*")
         .eq("assignment_id", selectedAssignment!.id)
         .maybeSingle();
       return data;
