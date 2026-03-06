@@ -694,6 +694,71 @@ const Materials = () => {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* Stock History Dialog */}
+        <Dialog open={!!historyMaterial} onOpenChange={(open) => !open && setHistoryMaterial(null)}>
+          <DialogContent className="sm:max-w-lg max-h-[80vh] overflow-hidden flex flex-col">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <History className="h-4 w-4 text-primary" />
+                Ιστορικό Αποθέματος
+              </DialogTitle>
+              {historyMaterial && (
+                <p className="text-sm text-muted-foreground mt-1">
+                  <span className="font-mono text-primary font-semibold">{historyMaterial.code}</span> — {historyMaterial.name}
+                </p>
+              )}
+            </DialogHeader>
+            <div className="overflow-y-auto flex-1 -mx-6 px-6">
+              {historyLoading ? (
+                <div className="py-8 text-center text-muted-foreground text-sm">Φόρτωση...</div>
+              ) : !stockHistory || stockHistory.length === 0 ? (
+                <div className="py-8 text-center text-muted-foreground text-sm">
+                  Δεν υπάρχει ιστορικό αλλαγών ακόμα
+                </div>
+              ) : (
+                <div className="relative pl-6 space-y-0">
+                  {/* Timeline line */}
+                  <div className="absolute left-[9px] top-2 bottom-2 w-px bg-border" />
+                  {(stockHistory as any[]).map((entry: any, i: number) => {
+                    const change = Number(entry.change_amount);
+                    const isPositive = change > 0;
+                    const changedByProfile = profiles?.find(p => p.user_id === entry.changed_by);
+                    return (
+                      <div key={entry.id} className="relative pb-4">
+                        {/* Timeline dot */}
+                        <div className={`absolute -left-6 top-1.5 h-[14px] w-[14px] rounded-full border-2 ${
+                          isPositive ? 'bg-success/20 border-success' : 'bg-destructive/20 border-destructive'
+                        }`} />
+                        <div className="rounded-lg border border-border bg-card p-3">
+                          <div className="flex items-center justify-between">
+                            <span className={`text-sm font-bold font-mono ${isPositive ? 'text-success' : 'text-destructive'}`}>
+                              {isPositive ? '+' : ''}{change.toLocaleString('el-GR')}
+                            </span>
+                            <span className="text-[10px] text-muted-foreground">
+                              {formatDistanceToNow(new Date(entry.created_at), { addSuffix: true, locale: el })}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
+                            <span className="font-mono">{Number(entry.old_stock).toLocaleString('el-GR')}</span>
+                            <span>→</span>
+                            <span className="font-mono font-semibold text-foreground">{Number(entry.new_stock).toLocaleString('el-GR')}</span>
+                          </div>
+                          {(entry.reason || changedByProfile) && (
+                            <div className="mt-1.5 text-[11px] text-muted-foreground">
+                              {changedByProfile && <span>από {changedByProfile.full_name}</span>}
+                              {entry.reason && <span className="ml-1">— {entry.reason}</span>}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </AppLayout>
   );
