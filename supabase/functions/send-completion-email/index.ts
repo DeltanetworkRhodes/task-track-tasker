@@ -162,7 +162,7 @@ Deno.serve(async (req) => {
     // ─── Build ZIP incrementally ────────────────────────────────────
     const zipFiles: Record<string, Uint8Array> = {};
     let totalSize = 0;
-    const MAX_ZIP_SIZE = 20 * 1024 * 1024; // 20MB limit for memory safety
+    const MAX_ZIP_SIZE = 30 * 1024 * 1024; // 30MB limit for memory safety
 
     // Get Drive access token once (needed for spreadsheet + drive photos)
     let driveAccessToken = "";
@@ -171,6 +171,30 @@ Deno.serve(async (req) => {
       driveAccessToken = await getAccessToken(serviceAccountKey);
     } catch (e: any) {
       console.error(`Drive auth error: ${e.message}`);
+    }
+
+    // Helper: fetch a compressed/resized version of a Drive photo via its thumbnail URL
+    async function fetchCompressedDrivePhoto(photoId: string, accessToken: string): Promise<Uint8Array | null> {
+      try {
+        // Get file metadata to obtain thumbnailLink
+        const metaUrl = `https://www.googleapis.com/drive/v3/files/${photoId}?fields=thumbnailLink&supportsAllDrives=true`;
+        const metaRes = await fetch(metaUrl, { headers: { Authorization: `Bearer ${accessToken}` } });
+        if (!metaRes.ok) { await metaRes.text(); return null; }
+        const meta = await metaRes.json();
+        
+        if (meta.thumbnailLink) {
+          // Replace default size with larger compressed version (~500-800KB instead of multi-MB originals)
+          const compressedUrl = meta.thumbnailLink.replace(/=s\d+$/, "=s1600");
+          const imgRes = await fetch(compressedUrl);
+          if (imgRes.ok) {
+            return new Uint8Array(await imgRes.arrayBuffer());
+          }
+          await imgRes.text();
+        }
+      } catch (e: any) {
+        console.error(`Compressed fetch failed for ${photoId}: ${e.message}`);
+      }
+      return null;
     }
 
     // 1. Download Google Sheet as xlsx
@@ -195,7 +219,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    // 2. Download photos from Supabase Storage
+    // 2. Download photos from Supabase Storage (already compressed during upload)
     if (photo_paths && photo_paths.length > 0) {
       for (let i = 0; i < photo_paths.length; i++) {
         if (totalSize > MAX_ZIP_SIZE) {
@@ -218,7 +242,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    // 2b. Download photos from Google Drive
+    // 2b. Download photos from Google Drive (compressed via thumbnail API)
     if (drive_photo_ids && drive_photo_ids.length > 0 && driveAccessToken) {
       for (let i = 0; i < drive_photo_ids.length; i++) {
         if (totalSize > MAX_ZIP_SIZE) {
@@ -228,13 +252,22 @@ Deno.serve(async (req) => {
         try {
           const photoId = drive_photo_ids[i].id || drive_photo_ids[i];
           const photoName = drive_photo_ids[i].name || `photo_${i + 1}.jpg`;
-          const dlUrl = `https://www.googleapis.com/drive/v3/files/${photoId}?alt=media&supportsAllDrives=true`;
-          const dlRes = await fetch(dlUrl, { headers: { Authorization: `Bearer ${driveAccessToken}` } });
-          if (!dlRes.ok) { console.error(`Drive photo ${photoId}: ${dlRes.status}`); await dlRes.text(); continue; }
-          const photoBytes = new Uint8Array(await dlRes.arrayBuffer());
+          
+          // Try compressed version first, fall back to original
+          let photoBytes = await fetchCompressedDrivePhoto(photoId, driveAccessToken);
+          if (photoBytes) {
+            console.log(`Compressed Drive photo ${photoName}: ${photoBytes.length} bytes`);
+          } else {
+            // Fallback: download original
+            const dlUrl = `https://www.googleapis.com/drive/v3/files/${photoId}?alt=media&supportsAllDrives=true`;
+            const dlRes = await fetch(dlUrl, { headers: { Authorization: `Bearer ${driveAccessToken}` } });
+            if (!dlRes.ok) { console.error(`Drive photo ${photoId}: ${dlRes.status}`); await dlRes.text(); continue; }
+            photoBytes = new Uint8Array(await dlRes.arrayBuffer());
+            console.log(`Original Drive photo ${photoName}: ${photoBytes.length} bytes`);
+          }
+          
           zipFiles[`ΦΩΤΟΓΡΑΦΙΕΣ/${photoName}`] = photoBytes;
           totalSize += photoBytes.length;
-          console.log(`Added Drive photo ${photoName}: ${photoBytes.length} bytes`);
         } catch (photoErr: any) {
           console.error(`Drive photo error: ${photoErr.message}`);
         }
