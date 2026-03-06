@@ -28,7 +28,9 @@ const AppSidebar = ({ onClose }: AppSidebarProps) => {
   const { theme, setTheme } = useTheme();
 
   return (
-    <aside className="flex h-full w-64 flex-col bg-sidebar border-r border-sidebar-border">
+    <aside className="flex h-full w-64 flex-col bg-sidebar border-r border-sidebar-border overflow-hidden">
+      {/* Top gradient line */}
+      <div className="h-0.5 w-full cosmote-gradient shrink-0" />
       {/* Logo */}
       <div className="flex items-center justify-between px-4 py-4 border-b border-sidebar-border">
         <div className="flex-1 min-w-0">
