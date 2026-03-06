@@ -450,7 +450,6 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
             <Label className="text-xs">Όροφοι</Label>
             <Input value={floors} onChange={(e) => setFloors(e.target.value)} type="number" min="0" className="text-sm mt-1" />
           </div>
-        </div>
           <div>
             <Label className="text-xs">Είδος Όδευσης</Label>
             <select
