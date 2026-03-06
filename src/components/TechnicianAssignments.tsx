@@ -368,10 +368,40 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
               <p>BMO: {existingGisData.bmo_type || "—"} · Απόσταση καμπίνα-κτίριο: {existingGisData.distance_from_cabinet}μ</p>
             </div>
           )}
-          <div className="flex items-center gap-2 text-cyan-600 justify-center py-2">
-            <Clock className="h-5 w-5" />
-            <span className="text-sm font-medium">Αναμονή απάντησης ΟΤΕ</span>
-          </div>
+          {/* Show incomplete survey files section */}
+          {existingSurvey?.status === "ΕΛΛΙΠΗΣ ΑΥΤΟΨΙΑ" && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-amber-600 justify-center py-1">
+                <Clock className="h-4 w-4" />
+                <span className="text-sm font-medium">Ελλιπή αρχεία αυτοψίας</span>
+              </div>
+              <p className="text-xs text-muted-foreground text-center">
+                Συμπληρώστε τα αρχεία που λείπουν για να προχωρήσετε στην κατασκευή
+              </p>
+            </div>
+          )}
+          {/* GIS re-upload */}
+          <input
+            ref={gisFileInputRef}
+            type="file"
+            accept=".xlsx"
+            className="hidden"
+            onChange={handleGisUpload}
+          />
+          <Button
+            size="sm"
+            variant="outline"
+            className="w-full gap-2 border-blue-500/30 text-blue-600 hover:bg-blue-500/10"
+            onClick={() => gisFileInputRef.current?.click()}
+            disabled={uploadingGis}
+          >
+            {uploadingGis ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <FileSpreadsheet className="h-4 w-4" />
+            )}
+            {uploadingGis ? "Ανάλυση GIS..." : "Αντικατάσταση GIS"}
+          </Button>
           <Button
             size="sm"
             variant="outline"
