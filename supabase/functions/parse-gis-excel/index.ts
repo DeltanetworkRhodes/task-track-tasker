@@ -39,12 +39,25 @@ async function parseXlsx(data: Uint8Array): Promise<Record<string, string[][]>> 
     const rowMatches = xml.matchAll(/<row[^>]*>([\s\S]*?)<\/row>/g);
     for (const rowMatch of rowMatches) {
       const cells: string[] = [];
-      const cellMatches = rowMatch[1].matchAll(/<c\s+r="([A-Z]+)\d+"[^>]*(?:t="([^"]*)")?[^>]*>(?:[\s\S]*?<v>([\s\S]*?)<\/v>)?[\s\S]*?<\/c>/g);
+      // Match each cell element (handles both <c ...>...</c> and self-closing)
+      const cellMatches = rowMatch[1].matchAll(/<c\s([^>]*)(?:\/>|>([\s\S]*?)<\/c>)/g);
 
       for (const cellMatch of cellMatches) {
-        const colLetter = cellMatch[1];
-        const type = cellMatch[2];
-        const rawValue = cellMatch[3] || "";
+        const attrs = cellMatch[1];
+        const inner = cellMatch[2] || "";
+
+        // Extract column reference
+        const refMatch = attrs.match(/r="([A-Z]+)\d+"/);
+        if (!refMatch) continue;
+        const colLetter = refMatch[1];
+
+        // Extract type
+        const typeMatch = attrs.match(/t="([^"]*)"/);
+        const type = typeMatch ? typeMatch[1] : "";
+
+        // Extract value
+        const valMatch = inner.match(/<v>([\s\S]*?)<\/v>/);
+        const rawValue = valMatch ? valMatch[1] : "";
 
         // Convert column letter to index
         let colIndex = 0;
@@ -57,11 +70,14 @@ async function parseXlsx(data: Uint8Array): Promise<Record<string, string[][]>> 
         while (cells.length <= colIndex) cells.push("");
 
         if (type === "s") {
-          // Shared string reference
           const idx = parseInt(rawValue);
           cells[colIndex] = sharedStrings[idx] || "";
         } else if (type === "b") {
           cells[colIndex] = rawValue === "1" ? "TRUE" : "FALSE";
+        } else if (type === "inlineStr") {
+          // Inline string: extract from <is><t>...</t></is>
+          const isMatch = inner.match(/<is>[\s\S]*?<t[^>]*>([\s\S]*?)<\/t>[\s\S]*?<\/is>/);
+          cells[colIndex] = isMatch ? isMatch[1] : rawValue;
         } else {
           cells[colIndex] = rawValue;
         }
