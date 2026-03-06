@@ -24,10 +24,8 @@ const Assignments = () => {
   const [search, setSearch] = useState("");
   const [showCreate, setShowCreate] = useState(false);
 
-  const hasRealData = (dbAssignments?.length ?? 0) > 0;
-
-  const assignments = hasRealData
-    ? dbAssignments!.map((a) => ({
+  const assignments = dbAssignments
+    ? dbAssignments.map((a) => ({
         id: a.id,
         srId: a.sr_id,
         area: a.area,
@@ -44,7 +42,7 @@ const Assignments = () => {
         photos: a.photos_count || 0,
         driveUrl: a.drive_folder_url || "",
       }))
-    : mockAssignments;
+    : [];
 
   const areas = [...new Set(assignments.map((a) => a.area))].sort();
   const sources = [...new Set(assignments.map((a: any) => a.sourceTab).filter(Boolean))].sort();
