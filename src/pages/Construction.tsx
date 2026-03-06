@@ -60,6 +60,23 @@ const ConstructionPage = () => {
     }
   };
 
+  const handleConstructionStatusChange = async (constructionId: string, newStatus: string) => {
+    try {
+      const { error } = await supabase
+        .from("constructions")
+        .update({ status: newStatus })
+        .eq("id", constructionId);
+      if (error) throw error;
+      toast.success(`Κατάσταση → ${(constructionStatusLabels as any)[newStatus] || newStatus}`);
+      if (selectedConstruction?.id === constructionId) {
+        setSelectedConstruction({ ...selectedConstruction, status: newStatus });
+      }
+      queryClient.invalidateQueries({ queryKey: ["constructions"] });
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
+
   const constructions = useMemo(() => {
     if (!dbConstructions) return [];
     return dbConstructions.map(c => ({
