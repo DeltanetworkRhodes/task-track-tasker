@@ -603,7 +603,7 @@ const Materials = () => {
             </div>
             <div className="grid grid-cols-3 gap-3 text-sm">
               <div className="rounded-lg bg-card p-3 text-center">
-                <p className="text-lg font-bold font-mono text-primary">{uploadResult.extracted.length}</p>
+                <p className="text-lg font-bold text-primary">{uploadResult.extracted.length}</p>
                 <p className="text-[10px] text-muted-foreground uppercase">Υλικά στο PDF</p>
               </div>
               <div className="rounded-lg bg-card p-3 text-center">
