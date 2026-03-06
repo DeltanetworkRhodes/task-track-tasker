@@ -360,19 +360,46 @@ async function createAndFillTemplate(
   }
 
   // ── Work quantities ──
+  // Normalize codes: convert Roman numerals (I,II,III,...) to Arabic (1,2,3,...) and vice versa
+  const romanToArabic: Record<string, string> = {
+    "I": "1", "II": "2", "III": "3", "IV": "4", "V": "5",
+    "VI": "6", "VII": "7", "VIII": "8", "IX": "9", "X": "10",
+    "i": "1", "ii": "2", "iii": "3", "iv": "4", "v": "5",
+    "vi": "6", "vii": "7", "viii": "8", "ix": "9", "x": "10",
+  };
+  const arabicToRoman: Record<string, string> = {
+    "1": "I", "2": "II", "3": "III", "4": "IV", "5": "V",
+    "6": "VI", "7": "VII", "8": "VIII", "9": "IX", "10": "X",
+  };
+
+  // Normalize a code by converting all Roman numeral parts to Arabic
+  const normalizeCode = (code: string): string => {
+    return code.replace(/\.+$/, "").split(".").map(part => {
+      const upper = part.toUpperCase();
+      return romanToArabic[upper] || part;
+    }).join(".");
+  };
+
   const worksMap = new Map<string, number>();
   for (const w of works) {
     const code = (w.code || "").trim().replace(/\.+$/, "");
-    if (code) worksMap.set(code, w.quantity || 0);
+    if (code) {
+      const normalized = normalizeCode(code);
+      worksMap.set(normalized, w.quantity || 0);
+      // Also store original in case of exact match
+      worksMap.set(code, w.quantity || 0);
+    }
   }
   if (workQtyCol >= 0) {
     for (let i = 0; i < workCodes.length; i++) {
-      const code = workCodes[i].replace(/\.+$/, "");
-      if (!code) continue;
-      const qty = worksMap.get(code);
+      const rawCode = workCodes[i].replace(/\.+$/, "");
+      if (!rawCode) continue;
+      const normalized = normalizeCode(rawCode);
+      const qty = worksMap.get(rawCode) ?? worksMap.get(normalized);
       if (qty !== undefined && qty > 0) {
         const row = dataStartRow + i + 1; // +1 for 1-indexed
         updates.push({ range: s(`${colLetter(workQtyCol)}${row}`), values: [[qty]] });
+        console.log(`Work code ${rawCode} (normalized: ${normalized}) → qty ${qty} at row ${row}`);
       }
     }
   }
