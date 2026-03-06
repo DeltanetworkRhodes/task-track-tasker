@@ -23,6 +23,7 @@ import TechnicianKPIs from "./pages/TechnicianKPIs";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
 import OrgSettings from "./pages/OrgSettings";
 import NotFound from "./pages/NotFound";
+import HelpChatBot from "./components/HelpChatBot";
 
 const queryClient = new QueryClient();
 
@@ -86,6 +87,7 @@ const App = () => (
         <TooltipProvider>
           <Toaster />
           <Sonner />
+          <HelpChatBot />
           <BrowserRouter>
             <Routes>
               <Route path="/install" element={<InstallApp />} />
