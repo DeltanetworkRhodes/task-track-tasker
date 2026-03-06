@@ -220,6 +220,7 @@ interface SetupWizardProps {
 }
 
 const DEMO_STEPS: SetupStep[] = [
+  { id: "service_account", title: "Service Account", description: "Δημιουργία Google Service Account για σύνδεση με Drive & Sheets", completed: false, route: "/settings", icon: "key-round" },
   { id: "drive", title: "Google Drive", description: "Σύνδεση με Shared Drive για αρχεία αυτοψιών & κατασκευών", completed: false, route: "/settings", icon: "hard-drive" },
   { id: "areas", title: "Περιοχές & Φάκελοι", description: "Ορισμός περιοχών (π.χ. ΡΟΔΟΣ, ΚΩΣ) και Folder IDs", completed: false, route: "/settings", icon: "folder" },
   { id: "emails", title: "Ρυθμίσεις Email", description: "Email αποστολέα, παραλήπτες ειδοποιήσεων", completed: false, route: "/settings", icon: "mail" },
