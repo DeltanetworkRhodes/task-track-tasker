@@ -11,74 +11,77 @@
 
 @layer base {
   :root {
-    --background: 210 18% 96%;
-    --foreground: 215 25% 14%;
+    /* Dark industrial base — matching login page */
+    --background: 215 22% 11%;
+    --foreground: 210 14% 93%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 215 25% 14%;
+    --card: 215 22% 15%;
+    --card-foreground: 210 14% 93%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 215 25% 14%;
+    --popover: 215 22% 15%;
+    --popover-foreground: 210 14% 93%;
 
-    /* DeltaNetwork Blue — from logo swirl */
-    --primary: 200 85% 45%;
+    /* DeltaNetwork Teal — from login gradient */
+    --primary: 185 70% 42%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 16% 93%;
-    --secondary-foreground: 215 20% 30%;
+    --secondary: 215 20% 19%;
+    --secondary-foreground: 210 14% 75%;
 
-    --muted: 210 16% 93%;
-    --muted-foreground: 215 12% 46%;
+    --muted: 215 20% 19%;
+    --muted-foreground: 210 14% 55%;
 
-    /* DeltaNetwork Green — from logo swirl */
-    --accent: 135 60% 40%;
+    /* DeltaNetwork Green — from login cosmote-gradient */
+    --accent: 160 55% 45%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 135 60% 40%;
+    --success: 140 50% 42%;
     --success-foreground: 0 0% 100%;
 
     --warning: 45 93% 47%;
     --warning-foreground: 45 93% 10%;
 
-    --border: 210 14% 87%;
-    --input: 210 14% 87%;
-    --ring: 200 85% 45%;
+    --border: 215 18% 20%;
+    --input: 215 18% 25%;
+    --ring: 185 70% 42%;
 
     --radius: 0.75rem;
 
-    --glow-primary: 0 4px 14px hsl(200 85% 45% / 0.18);
-    --glow-accent: 0 4px 14px hsl(135 60% 40% / 0.14);
+    --glow-primary: 0 4px 14px hsl(185 70% 42% / 0.18);
+    --glow-accent: 0 4px 14px hsl(160 55% 45% / 0.14);
 
     --font-mono: 'JetBrains Mono', monospace;
     --font-sans: 'Inter', system-ui, sans-serif;
 
-    /* Sidebar — dark charcoal matching logo background */
-    --sidebar-background: 215 22% 13%;
-    --sidebar-foreground: 210 14% 75%;
-    --sidebar-primary: 200 85% 50%;
+    /* Sidebar — darker shade */
+    --sidebar-background: 215 22% 9%;
+    --sidebar-foreground: 210 14% 65%;
+    --sidebar-primary: 185 70% 50%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 215 20% 19%;
-    --sidebar-accent-foreground: 0 0% 93%;
-    --sidebar-border: 215 18% 20%;
-    --sidebar-ring: 200 85% 45%;
-    --chart-1: 328 85% 70%;
-    --chart-2: 351 94% 71%;
-    --chart-3: 327 87% 81%;
-    --chart-4: 352 95% 81%;
-    --chart-5: 240 3% 46%;
-    --sidebar: 0 0% 98%;
+    --sidebar-accent: 215 20% 16%;
+    --sidebar-accent-foreground: 210 14% 90%;
+    --sidebar-border: 215 18% 16%;
+    --sidebar-ring: 185 70% 42%;
+
+    --chart-1: 185 70% 50%;
+    --chart-2: 160 55% 45%;
+    --chart-3: 140 50% 42%;
+    --chart-4: 45 93% 47%;
+    --chart-5: 0 72% 51%;
+
+    --sidebar: 215 22% 9%;
     --font-serif: 'Merriweather', ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif;
-    --shadow-2xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
-    --shadow-xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
-    --shadow-sm: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
-    --shadow: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
-    --shadow-md: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 2px 4px -1px hsl(0 0% 0% / 0.1);
-    --shadow-lg: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 4px 6px -1px hsl(0 0% 0% / 0.1);
-    --shadow-xl: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 8px 10px -1px hsl(0 0% 0% / 0.1);
-    --shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / 0.25);
+    --shadow-2xs: 0 1px 3px 0px hsl(0 0% 0% / 0.15);
+    --shadow-xs: 0 1px 3px 0px hsl(0 0% 0% / 0.15);
+    --shadow-sm: 0 1px 3px 0px hsl(0 0% 0% / 0.2), 0 1px 2px -1px hsl(0 0% 0% / 0.2);
+    --shadow: 0 1px 3px 0px hsl(0 0% 0% / 0.2), 0 1px 2px -1px hsl(0 0% 0% / 0.2);
+    --shadow-md: 0 1px 3px 0px hsl(0 0% 0% / 0.2), 0 2px 4px -1px hsl(0 0% 0% / 0.2);
+    --shadow-lg: 0 1px 3px 0px hsl(0 0% 0% / 0.2), 0 4px 6px -1px hsl(0 0% 0% / 0.2);
+    --shadow-xl: 0 1px 3px 0px hsl(0 0% 0% / 0.2), 0 8px 10px -1px hsl(0 0% 0% / 0.2);
+    --shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / 0.4);
     --tracking-normal: 0em;
     --spacing: 0.25rem;
   }
