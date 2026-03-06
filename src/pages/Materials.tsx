@@ -632,7 +632,7 @@ const Materials = () => {
             </TabsTrigger>
             <TabsTrigger value="delta" className="gap-2">
               <div className="h-2.5 w-2.5 rounded-full bg-accent" />
-              DELTANETWORK <span className="text-[11px] text-muted-foreground font-mono ml-1">({deltaItems.length})</span>
+              {orgName} <span className="text-[11px] text-muted-foreground font-mono ml-1">({deltaItems.length})</span>
             </TabsTrigger>
           </TabsList>
 
