@@ -313,9 +313,10 @@ async function generateMaterialsPdf(
   source: string,
   title: string
 ): Promise<Uint8Array> {
+  const fonts = await loadGreekFonts();
   const pdf = await PDFDocument.create();
-  const font = await pdf.embedFont(StandardFonts.Helvetica);
-  const boldFont = await pdf.embedFont(StandardFonts.HelveticaBold);
+  const font = await pdf.embedFont(fonts.regular);
+  const boldFont = await pdf.embedFont(fonts.bold);
   
   let page = pdf.addPage([595, 842]);
   let y = 800;
@@ -330,8 +331,8 @@ async function generateMaterialsPdf(
   // Header
   const headerLines = [
     `SR ID: ${assignment.sr_id}    CAB: ${construction.cab || "-"}`,
-    `Pelatis: ${assignment.customer_name || "-"}    Periohi: ${assignment.area}`,
-    `Hmeromhnia: ${new Date().toLocaleDateString("el-GR")}`,
+    `Πελάτης: ${assignment.customer_name || "-"}    Περιοχή: ${assignment.area}`,
+    `Ημερομηνία: ${new Date().toLocaleDateString("el-GR")}`,
   ];
   for (const line of headerLines) {
     page.drawText(line, { x: margin, y, font, size: 9, color: rgb(0.2, 0.2, 0.2) });
@@ -342,7 +343,7 @@ async function generateMaterialsPdf(
   // Table header
   page.drawRectangle({ x: margin, y: y - 2, width: 515, height: 16, color: rgb(0.9, 0.9, 0.95) });
   const cols = [margin, margin + 80, margin + 370, margin + 420, margin + 470];
-  const headers = ["Kodikos", "Perigrafi", "MM", "Posotita"];
+  const headers = ["Κωδικός", "Περιγραφή", "ΜΜ", "Ποσότητα"];
   headers.forEach((h, i) => {
     page.drawText(h, { x: cols[i], y, font: boldFont, size: 8 });
   });
@@ -365,7 +366,7 @@ async function generateMaterialsPdf(
   // Total count
   y -= 10;
   const totalItems = materials.reduce((s: number, m: any) => s + (m.quantity || 0), 0);
-  page.drawText(`Sinolo eidon: ${materials.length} | Sinolo posotitas: ${totalItems}`, {
+  page.drawText(`Σύνολο ειδών: ${materials.length} | Σύνολο ποσότητας: ${totalItems}`, {
     x: margin, y, font: boldFont, size: 9,
   });
 
