@@ -288,7 +288,7 @@ Deno.serve(async (req) => {
       for (const parentId of driveFolderIds) {
         const url = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(
           `'${parentId}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`
-        )}&fields=files(id,name,webViewLink)&pageSize=200`;
+        )}&fields=files(id,name,webViewLink)&pageSize=200&supportsAllDrives=true&includeItemsFromAllDrives=true&corpora=drive&driveId=0AN9VpmNEa7QBUk9PVA`;
         const res = await fetch(url, {
           headers: { Authorization: `Bearer ${accessToken}` },
         });
