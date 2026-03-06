@@ -527,7 +527,7 @@ const Surveys = () => {
                         className="border-t border-border/50 hover:bg-muted/30 cursor-pointer transition-colors"
                         onClick={() => setSelectedSurvey(s)}
                       >
-                        <td className="px-4 py-3 font-mono font-semibold text-primary">{s.sr_id}</td>
+                        <td className="px-4 py-3 font-bold text-primary">{s.sr_id}</td>
                         <td className="px-4 py-3">
                           <Badge variant="outline" className="text-xs">{s.area}</Badge>
                         </td>
