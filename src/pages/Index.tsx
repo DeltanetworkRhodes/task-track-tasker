@@ -4,7 +4,7 @@ import StatCard from "@/components/StatCard";
 import AssignmentTable from "@/components/AssignmentTable";
 import SyncButton from "@/components/SyncButton";
 import { useAssignments, useConstructions } from "@/hooks/useData";
-import { mockAssignments, mockConstructions, statusLabels } from "@/data/mockData";
+import { statusLabels } from "@/data/mockData";
 import { ClipboardCheck, Wrench, TrendingUp, Euro, FolderOpen, Activity, Wifi, PieChartIcon, CalendarDays, Timer, Zap } from "lucide-react";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { BarChart, Bar, XAxis, YAxis, Cell, PieChart, Pie, LineChart, Line, CartesianGrid, ResponsiveContainer } from "recharts";
@@ -43,38 +43,42 @@ const Index = () => {
   const { data: dbAssignments } = useAssignments();
   const { data: dbConstructions } = useConstructions();
 
-  const hasRealData = (dbAssignments?.length ?? 0) > 0;
-  const assignments = hasRealData ? dbAssignments!.map(a => ({
-    id: a.id,
-    srId: a.sr_id,
-    area: a.area,
-    status: a.status as any,
-    technician: '—',
-    customerName: (a as any).customer_name || '',
-    address: (a as any).address || '',
-    cab: (a as any).cab || '',
-    phone: (a as any).phone || '',
-    date: a.created_at.split('T')[0],
-    updatedAt: a.updated_at,
-    comments: a.comments || '',
-    photos: a.photos_count || 0,
-    driveUrl: a.drive_folder_url || '',
-  })) : mockAssignments.map(a => ({ ...a, updatedAt: a.date }));
+  const assignments = useMemo(() => {
+    if (!dbAssignments) return [];
+    return dbAssignments.map(a => ({
+      id: a.id,
+      srId: a.sr_id,
+      area: a.area,
+      status: a.status as any,
+      technician: '—',
+      customerName: (a as any).customer_name || '',
+      address: (a as any).address || '',
+      cab: (a as any).cab || '',
+      phone: (a as any).phone || '',
+      date: a.created_at.split('T')[0],
+      updatedAt: a.updated_at,
+      comments: a.comments || '',
+      photos: a.photos_count || 0,
+      driveUrl: a.drive_folder_url || '',
+    }));
+  }, [dbAssignments]);
 
-  const hasRealConstructions = (dbConstructions?.length ?? 0) > 0;
-  const constructions = hasRealConstructions ? dbConstructions!.map(c => ({
-    id: c.id,
-    srId: c.sr_id,
-    sesId: c.ses_id || '',
-    ak: c.ak || '',
-    cab: c.cab || '',
-    floors: c.floors || 0,
-    status: c.status as any,
-    revenue: Number(c.revenue),
-    materialCost: Number(c.material_cost),
-    profit: Number(c.profit || 0),
-    date: c.created_at.split('T')[0],
-  })) : mockConstructions;
+  const constructions = useMemo(() => {
+    if (!dbConstructions) return [];
+    return dbConstructions.map(c => ({
+      id: c.id,
+      srId: c.sr_id,
+      sesId: c.ses_id || '',
+      ak: c.ak || '',
+      cab: c.cab || '',
+      floors: c.floors || 0,
+      status: c.status as any,
+      revenue: Number(c.revenue),
+      materialCost: Number(c.material_cost),
+      profit: Number(c.profit || 0),
+      date: c.created_at.split('T')[0],
+    }));
+  }, [dbConstructions]);
 
   const activeAssignments = assignments.filter(a => a.status !== 'completed' && a.status !== 'cancelled').length;
   const completedAssignments = assignments.filter(a => a.status === 'completed').length;
@@ -171,7 +175,6 @@ const Index = () => {
                   </h1>
                   <p className="text-[10px] sm:text-xs text-white/45 mt-0.5">
                     Διαχείριση δικτύου οπτικών ινών — Ρόδος & Κως
-                    {!hasRealData && <span className="ml-2 text-[9px] rounded-full bg-white/10 text-white/40 px-2 py-0.5">demo</span>}
                   </p>
                 </div>
               </div>
