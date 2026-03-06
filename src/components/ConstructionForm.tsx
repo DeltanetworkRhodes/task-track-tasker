@@ -66,7 +66,6 @@ const MATERIAL_CATEGORIES: { label: string; match: (name: string, code: string) 
 const ConstructionForm = ({ assignment, onComplete }: Props) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   // Form state
   const [sesId, setSesId] = useState("");
