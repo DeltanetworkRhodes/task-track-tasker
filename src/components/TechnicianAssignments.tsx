@@ -108,8 +108,8 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
     const file = e.target.files?.[0];
     if (!file || !selectedAssignment) return;
 
-    if (!file.name.endsWith('.xlsx') && !file.name.endsWith('.xls')) {
-      toast.error("Παρακαλώ ανεβάστε αρχείο Excel (.xlsx)");
+    if (!file.name.toLowerCase().endsWith('.xlsx')) {
+      toast.error("Μόνο αρχεία .XLSX γίνονται δεκτά");
       return;
     }
 
