@@ -654,7 +654,7 @@ Deno.serve(async (req) => {
     console.log(`Generating docs for SR ${assignment.sr_id}: ${works.length} works, ${oteMaterials.length} OTE mats, ${deltaMaterials.length} DN mats`);
 
     // Generate files
-    const xlsxData = generateConstructionXlsx(assignment, construction, works, oteMaterials, deltaMaterials);
+    const xlsxData = await generateConstructionXlsx(assignment, construction, works, oteMaterials, deltaMaterials, supabaseUrl, serviceRoleKey);
     const worksPdf = await generateWorksPdf(assignment, construction, works);
     const otePdf = oteMaterials.length > 0
       ? await generateMaterialsPdf(assignment, construction, oteMaterials, "OTE", "ΔΕΛΤΙΟ ΑΠΟΣΤΟΛΗΣ ΥΛΙΚΩΝ ΟΤΕ")
