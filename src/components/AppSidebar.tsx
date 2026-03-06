@@ -26,11 +26,10 @@ const AppSidebar = ({ onClose }: AppSidebarProps) => {
   return (
     <aside className="flex h-full w-64 flex-col bg-sidebar border-r border-sidebar-border">
       {/* Logo */}
-      <div className="flex items-center gap-3 px-5 py-5 border-b border-sidebar-border">
-        <img src={deltaLogo} alt="DeltaNetwork" className="h-9 w-9 rounded-lg object-cover shadow-md" />
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-bold text-sidebar-accent-foreground tracking-tight">DeltaNetwork</p>
-          <p className="text-[10px] text-sidebar-foreground/60 uppercase tracking-widest">FTTx App</p>
+      <div className="flex items-center justify-between px-4 py-4 border-b border-sidebar-border">
+        <div className="flex-1 min-w-0">
+          <img src={deltaLogo} alt="DeltaNetwork" className="h-8 w-auto object-contain brightness-0 invert" />
+          <p className="text-[9px] text-sidebar-foreground/50 uppercase tracking-widest mt-1 pl-0.5">FTTx Operations</p>
         </div>
         {/* Close button on mobile */}
         <button

@@ -35,11 +35,8 @@ const AppLayout = ({ children }: { children: ReactNode }) => {
           >
             <Menu className="h-5 w-5 text-foreground" />
           </button>
-          <img src={deltaLogo} alt="DeltaNetwork" className="h-7 w-7 rounded-md object-cover" />
-          <div className="min-w-0">
-            <p className="text-sm font-bold text-foreground tracking-tight leading-none">DeltaNetwork</p>
-            <p className="text-[9px] text-muted-foreground uppercase tracking-widest">FTTx App</p>
-          </div>
+          <img src={deltaLogo} alt="DeltaNetwork" className="h-6 w-auto object-contain" />
+          <span className="text-[9px] text-muted-foreground uppercase tracking-widest">FTTx</span>
         </div>
         <div className="p-4 sm:p-6 bg-grid min-h-[calc(100vh-56px)] lg:min-h-screen">
           {children}
