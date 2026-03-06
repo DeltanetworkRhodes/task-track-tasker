@@ -528,11 +528,11 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
           floors: parseInt(floors) || 0,
           revenue: totalRevenue,
           material_cost: totalMaterialCost,
-          
           status: "completed",
           routing_type: routingType.trim() || null,
           pending_note: pendingNote.trim() || null,
           routes: routesData.length > 0 ? routesData : null,
+          organization_id: organizationId,
         } as any)
         .select("id")
         .single();
