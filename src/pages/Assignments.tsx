@@ -106,7 +106,7 @@ const Assignments = () => {
               >
                 <tab.icon className="h-3.5 w-3.5 shrink-0" />
                 {tab.label}
-                <span className={`ml-1 text-[10px] font-mono px-1.5 py-0.5 rounded-full ${
+                <span className={`ml-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
                   isActive ? "bg-primary-foreground/20 text-primary-foreground" : "bg-background text-muted-foreground"
                 }`}>
                   {count}
