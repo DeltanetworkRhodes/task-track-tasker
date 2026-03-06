@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import AppLayout from "@/components/AppLayout";
 import { useMaterials } from "@/hooks/useData";
-import { Package, AlertTriangle, Search, Plus, Box, ArrowUpDown, Check, X, Pencil, Upload, FileText, Trash2 } from "lucide-react";
+import { Package, AlertTriangle, Search, Plus, Box, ArrowUpDown, Check, X, Pencil, Upload, FileText, Trash2, Download } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -10,6 +10,22 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useQueryClient } from "@tanstack/react-query";
 
 type SortField = 'code' | 'name' | 'stock' | 'price';
+
+const exportToCsv = (items: MaterialItem[], source: string) => {
+  const BOM = '\uFEFF';
+  const header = 'Κωδικός;Περιγραφή;Απόθεμα;Μονάδα;Τιμή;Αξία;Όριο';
+  const rows = items.map(m =>
+    `${m.code};${m.name};${m.stock};${m.unit};${m.price.toFixed(2)};${(m.stock * m.price).toFixed(2)};${m.low_stock_threshold}`
+  );
+  const csv = BOM + [header, ...rows].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `Υλικά_${source}_${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+};
 type SortDir = 'asc' | 'desc';
 
 interface MaterialItem {
@@ -535,16 +551,21 @@ const Materials = () => {
           <TabsContent value="ote">
             <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
               <div className="flex items-center justify-between border-b border-border px-5 py-4 bg-primary/5">
-                <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2">
                   <div className="h-3 w-3 rounded-full bg-primary" />
                   <h2 className="font-bold text-sm">Υλικά OTE</h2>
                   <span className="text-[11px] text-muted-foreground font-mono ml-1">({oteItems.length} είδη)</span>
                 </div>
-                {oteValue > 0 && (
-                  <span className="text-[11px] text-muted-foreground font-mono">
-                    Αξία: <span className="font-semibold text-foreground">{oteValue.toLocaleString('el-GR', { minimumFractionDigits: 2 })}€</span>
-                  </span>
-                )}
+                <div className="flex items-center gap-3">
+                  {oteValue > 0 && (
+                    <span className="text-[11px] text-muted-foreground font-mono">
+                      Αξία: <span className="font-semibold text-foreground">{oteValue.toLocaleString('el-GR', { minimumFractionDigits: 2 })}€</span>
+                    </span>
+                  )}
+                  <button onClick={() => exportToCsv(oteItems, 'OTE')} className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 py-1.5 text-[11px] font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
+                    <Download className="h-3 w-3" /> Export
+                  </button>
+                </div>
               </div>
               <MaterialTable items={oteItems} {...sharedTableProps} />
             </div>
@@ -558,11 +579,16 @@ const Materials = () => {
                   <h2 className="font-bold text-sm">Υλικά DELTANETWORK</h2>
                   <span className="text-[11px] text-muted-foreground font-mono ml-1">({deltaItems.length} είδη)</span>
                 </div>
-                {deltaValue > 0 && (
-                  <span className="text-[11px] text-muted-foreground font-mono">
-                    Αξία: <span className="font-semibold text-foreground">{deltaValue.toLocaleString('el-GR', { minimumFractionDigits: 2 })}€</span>
-                  </span>
-                )}
+                <div className="flex items-center gap-3">
+                  {deltaValue > 0 && (
+                    <span className="text-[11px] text-muted-foreground font-mono">
+                      Αξία: <span className="font-semibold text-foreground">{deltaValue.toLocaleString('el-GR', { minimumFractionDigits: 2 })}€</span>
+                    </span>
+                  )}
+                  <button onClick={() => exportToCsv(deltaItems, 'DELTANETWORK')} className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 py-1.5 text-[11px] font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
+                    <Download className="h-3 w-3" /> Export
+                  </button>
+                </div>
               </div>
               <MaterialTable items={deltaItems} {...sharedTableProps} />
             </div>
