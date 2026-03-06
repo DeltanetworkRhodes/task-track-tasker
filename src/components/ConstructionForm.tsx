@@ -619,7 +619,7 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
       try {
         const { data, error: docsErr } = await supabase.functions.invoke(
           "generate-construction-docs",
-          { body: { construction_id: construction.id, photo_paths: photoPaths } }
+          { body: { construction_id: construction.id, photo_paths: photoPaths, otdr_paths: otdrPaths } }
         );
         docsResult = data;
         if (docsErr) {
