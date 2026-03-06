@@ -955,7 +955,7 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
               {oteMaterials.length > 0 && <span className="text-primary font-bold">{oteMaterials.length}</span>}
             </TabsTrigger>
             <TabsTrigger value="DELTANETWORK" className="text-xs gap-1">
-              <Badge variant="outline" className="text-[9px] px-1 border-orange-500/30 text-orange-600 h-4">ΔΝ</Badge>
+              <Badge variant="outline" className="text-[9px] px-1 border-orange-500/30 text-orange-600 h-4">{orgName}</Badge>
               {deltanetMaterials.length > 0 && <span className="text-primary font-bold">{deltanetMaterials.length}</span>}
             </TabsTrigger>
           </TabsList>
