@@ -1,7 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { PDFDocument, rgb } from "https://esm.sh/pdf-lib@1.17.1";
 import fontkit from "https://esm.sh/@pdf-lib/fontkit@1.1.1";
-import * as XLSX from "https://esm.sh/xlsx@0.18.5";
 
 function uint8ToBase64(bytes: Uint8Array): string {
   let binary = "";
@@ -41,7 +40,7 @@ async function getAccessToken(serviceAccountKey: any): Promise<string> {
   const payload = btoa(
     JSON.stringify({
       iss: serviceAccountKey.client_email,
-      scope: "https://www.googleapis.com/auth/drive",
+      scope: "https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/spreadsheets",
       aud: "https://oauth2.googleapis.com/token",
       exp: now + 3600,
       iat: now,
@@ -148,9 +147,12 @@ async function uploadFileToDrive(
   return await uploadRes.json();
 }
 
-// ─── XLSX Generation (Template-based) ────────────────────────────────
+// ─── Template-based Spreadsheet (Google Sheets API) ─────────────────
 
-async function generateConstructionXlsx(
+async function createAndFillTemplate(
+  accessToken: string,
+  parentFolderId: string,
+  fileName: string,
   assignment: any,
   construction: any,
   works: any[],
@@ -158,197 +160,268 @@ async function generateConstructionXlsx(
   deltaMaterials: any[],
   supabaseUrl: string,
   serviceRoleKey: string
-): Promise<Uint8Array> {
-  // Download template from Supabase Storage
+): Promise<{ id: string; name: string }> {
+  // 1. Download template from Supabase Storage
   const templateUrl = `${supabaseUrl}/storage/v1/object/authenticated/photos/templates/construction_template.xlsx`;
   const templateRes = await fetch(templateUrl, {
-    headers: { "apikey": serviceRoleKey, "Authorization": `Bearer ${serviceRoleKey}` }
+    headers: { apikey: serviceRoleKey, Authorization: `Bearer ${serviceRoleKey}` },
   });
-  if (!templateRes.ok) throw new Error(`Failed to download template: ${templateRes.status}`);
-  const templateBuffer = await templateRes.arrayBuffer();
+  if (!templateRes.ok) throw new Error(`Template download failed: ${templateRes.status}`);
+  const templateData = new Uint8Array(await templateRes.arrayBuffer());
+  console.log(`Template downloaded: ${templateData.length} bytes`);
 
-  const wb = XLSX.read(new Uint8Array(templateBuffer), { type: "array" });
-  const ws = wb.Sheets[wb.SheetNames[0]];
-  const range = XLSX.utils.decode_range(ws["!ref"] || "A1");
+  // 2. Upload to Drive as Google Sheet (with conversion) preserving all formatting
+  const boundary = "boundary_" + Date.now();
+  const metadata = JSON.stringify({
+    name: fileName,
+    parents: [parentFolderId],
+    mimeType: "application/vnd.google-apps.spreadsheet",
+  });
 
-  // Helper: set cell value
-  const setCell = (r: number, c: number, value: any) => {
-    const ref = XLSX.utils.encode_cell({ r, c });
-    if (!ws[ref]) ws[ref] = {};
-    ws[ref].v = value;
-    ws[ref].t = typeof value === "number" ? "n" : "s";
-  };
+  const encoder = new TextEncoder();
+  const preamble = encoder.encode(
+    `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${metadata}\r\n--${boundary}\r\nContent-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet\r\n\r\n`
+  );
+  const epilogue = encoder.encode(`\r\n--${boundary}--`);
 
-  // Helper: get cell string value
-  const getCell = (r: number, c: number): string => {
-    const ref = XLSX.utils.encode_cell({ r, c });
-    return ws[ref] ? String(ws[ref].v || "").trim() : "";
-  };
+  const body = new Uint8Array(preamble.length + templateData.length + epilogue.length);
+  body.set(preamble, 0);
+  body.set(templateData, preamble.length);
+  body.set(epilogue, preamble.length + templateData.length);
 
-  // Helper: find cell containing text, return {r,c}
-  const findCell = (text: string): { r: number; c: number } | null => {
-    for (let r = range.s.r; r <= range.e.r; r++) {
-      for (let c = range.s.c; c <= range.e.c; c++) {
-        if (getCell(r, c).includes(text)) return { r, c };
+  const uploadRes = await fetch(
+    `https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&supportsAllDrives=true&fields=id,name,webViewLink`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": `multipart/related; boundary=${boundary}`,
+      },
+      body,
+    }
+  );
+  if (!uploadRes.ok) throw new Error(`Template upload failed: ${await uploadRes.text()}`);
+  const uploadedFile = await uploadRes.json();
+  const spreadsheetId = uploadedFile.id;
+  console.log(`Template uploaded as Google Sheet: ${spreadsheetId}`);
+
+  // 3. Get sheet name
+  const metaUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}?fields=sheets.properties.title`;
+  const metaRes = await fetch(metaUrl, { headers: { Authorization: `Bearer ${accessToken}` } });
+  if (!metaRes.ok) throw new Error(`Sheet meta failed: ${await metaRes.text()}`);
+  const metaData = await metaRes.json();
+  const sheetName = metaData.sheets?.[0]?.properties?.title || "Sheet1";
+  const s = (cell: string) => `'${sheetName}'!${cell}`;
+
+  // 4. Read work codes (col A) and material codes (col I) to find row positions
+  // First, read a broad range to understand the structure
+  const debugUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values:batchGet?ranges=${encodeURIComponent(s("A1:A15"))}&ranges=${encodeURIComponent(s("I1:I15"))}&ranges=${encodeURIComponent(s("A1:N1"))}`;
+  const debugRes = await fetch(debugUrl, { headers: { Authorization: `Bearer ${accessToken}` } });
+  if (debugRes.ok) {
+    const debugData = await debugRes.json();
+    const colAFirst = (debugData.valueRanges?.[0]?.values || []).map((r: any[]) => r[0] || "");
+    const colIFirst = (debugData.valueRanges?.[1]?.values || []).map((r: any[]) => r[0] || "");
+    const row1 = (debugData.valueRanges?.[2]?.values?.[0] || []);
+    console.log("Col A first 15:", JSON.stringify(colAFirst));
+    console.log("Col I first 15:", JSON.stringify(colIFirst));
+    console.log("Row 1 cols:", JSON.stringify(row1));
+  }
+
+  // Now find where "Άρθρο" and "ΚΑΥ" headers are
+  const scanUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(s("A1:N200"))}`;
+  const scanRes = await fetch(scanUrl, { headers: { Authorization: `Bearer ${accessToken}` } });
+  if (!scanRes.ok) throw new Error(`Scan failed: ${await scanRes.text()}`);
+  const scanData = await scanRes.json();
+  const allRows: any[][] = scanData.values || [];
+
+  // Find header row containing "Άρθρο"
+  let workHeaderRow = -1;
+  let workCodeCol = 0; // Column A
+  let workQtyCol = -1;
+  let matCodeCol = -1;
+  let matQtyCol = -1;
+
+  for (let r = 0; r < Math.min(allRows.length, 20); r++) {
+    const row = allRows[r];
+    for (let c = 0; c < (row?.length || 0); c++) {
+      const val = (row[c] || "").toString().trim();
+      if (val === "Άρθρο") {
+        workHeaderRow = r;
+        workCodeCol = c;
+        console.log(`Found "Άρθρο" at row ${r + 1}, col ${c}`);
+      }
+      if (val === "ΠΟΣΟΤΗΤΑ" && workHeaderRow === r) {
+        workQtyCol = c;
+        console.log(`Found work "ΠΟΣΟΤΗΤΑ" at row ${r + 1}, col ${c}`);
+      }
+      if (val === "ΚΑΥ") {
+        matCodeCol = c;
+        console.log(`Found "ΚΑΥ" at row ${r + 1}, col ${c}`);
+      }
+    }
+  }
+
+  // Find material ΠΟΣΟΤΗΤΑ in the row after ΚΑΥ or same row
+  if (matCodeCol >= 0) {
+    for (let r = workHeaderRow; r < Math.min(allRows.length, workHeaderRow + 3); r++) {
+      const row = allRows[r];
+      for (let c = matCodeCol + 1; c < (row?.length || 0); c++) {
+        if ((row[c] || "").toString().trim() === "ΠΟΣΟΤΗΤΑ") {
+          matQtyCol = c;
+          console.log(`Found material "ΠΟΣΟΤΗΤΑ" at row ${r + 1}, col ${c}`);
+          break;
+        }
+      }
+      if (matQtyCol >= 0) break;
+    }
+  }
+
+  // Determine data start row (row after headers)
+  const dataStartRow = workHeaderRow + 2; // Skip header + sub-header rows
+  console.log(`Data starts at row ${dataStartRow + 1}`);
+
+  // Extract work codes and material codes from actual positions
+  const workCodes: string[] = [];
+  const matCodes: string[] = [];
+  for (let r = dataStartRow; r < allRows.length; r++) {
+    const row = allRows[r] || [];
+    workCodes.push((row[workCodeCol] || "").toString().trim());
+    matCodes.push(matCodeCol >= 0 ? (row[matCodeCol] || "").toString().trim() : "");
+  }
+  console.log(`Template has ${workCodes.filter(Boolean).length} work codes, ${matCodes.filter(Boolean).length} material codes`);
+
+  // Helper: column index to letter (0=A, 1=B, etc.)
+  const colLetter = (c: number): string => String.fromCharCode(65 + c);
+
+  // 5. Build batch update
+  const updates: { range: string; values: any[][] }[] = [];
+
+  // ── Header fields (find dynamically) ──
+  const findLabel = (label: string): { r: number; c: number } | null => {
+    for (let r = 0; r < Math.min(allRows.length, 15); r++) {
+      for (let c = 0; c < (allRows[r]?.length || 0); c++) {
+        const val = (allRows[r][c] || "").toString().trim();
+        if (val === label || val.includes(label)) return { r, c };
       }
     }
     return null;
   };
 
-  // Helper: fill value next to a label
-  const fillNextTo = (label: string, value: any, colOffset = 1) => {
-    const pos = findCell(label);
-    if (pos) setCell(pos.r, pos.c + colOffset, value);
+  const fillHeader = (label: string, value: any, offset = 1) => {
+    const pos = findLabel(label);
+    if (pos) {
+      const cellRef = `${colLetter(pos.c + offset)}${pos.r + 1}`;
+      updates.push({ range: s(cellRef), values: [[value]] });
+    }
   };
 
-  // ── Fill header fields ──
-  fillNextTo("ΠΕΡΙΟΧΗ", assignment.area);
-  fillNextTo("SR ID:", assignment.sr_id);
-  fillNextTo("SES ID:", construction.ses_id || "");
-  fillNextTo("Α/Κ:", construction.ak || "");
-  fillNextTo("CAB:", construction.cab || "");
-  fillNextTo("ΔΙΕΥΘΥΝΣΗ:", assignment.address || "");
-  fillNextTo("ΕΙΔΟΣ ΟΔΕΥΣΗΣ:", construction.routing_type || "");
-  fillNextTo("ΑΝΑΜΟΝΗ:", construction.pending_note || "");
-  fillNextTo("ΟΡΟΦΟΙ:", construction.floors || 0);
+  fillHeader("ΠΕΡΙΟΧΗ", assignment.area || "");
+  fillHeader("SR ID:", assignment.sr_id || "");
+  fillHeader("SES ID:", construction.ses_id || "");
+  fillHeader("ΗΜ/ΝΙΑ", new Date().toLocaleDateString("el-GR"));
+  fillHeader("Α/Κ:", construction.ak || "");
+  fillHeader("ΔΙΕΥΘΥΝΣΗ:", assignment.address || "");
+  fillHeader("CAB:", construction.cab || "");
+  fillHeader("ΕΙΔΟΣ ΟΔΕΥΣΗΣ:", construction.routing_type || "");
+  fillHeader("ΑΝΑΜΟΝΗ:", construction.pending_note || "");
+  fillHeader("ΟΡΟΦΟΙ:", construction.floors || 0);
 
-  // Date - find ΗΜ/ΝΙΑ label
-  const datePos = findCell("ΗΜ/ΝΙΑ");
-  if (datePos) setCell(datePos.r, datePos.c + 1, new Date().toLocaleDateString("el-GR"));
-
-  // ── Fill routes (KOI / ΦΥΡΑ) ──
+  // ── Routes (KOI / ΦΥΡΑ) ──
+  const koiPos = findLabel("KOI(m)");
+  const fyraPos = findLabel("ΦΥΡΑ");
   const routes: any[] = construction.routes || [];
-  const koiHeader = findCell("KOI(m)");
-  if (koiHeader && routes.length > 0) {
-    const koiCol = koiHeader.c;
-    // Find ΦΥΡΑ column
-    const fyraHeader = findCell("ΦΥΡΑ");
-    const fyraCol = fyraHeader ? fyraHeader.c : koiCol + 2;
-
-    // Route labels are in the rows below the header (rows koiHeader.r+1 to koiHeader.r+5)
-    // Template has 5 route type rows, then a "Συνολο" row
-    // Map our routes to template rows by matching labels
-    const routeLabelCol = koiHeader.c - 2; // Labels are ~2 cols left of KOI
-    
+  if (koiPos && fyraPos) {
+    // Route rows are below the KOI header
     for (const route of routes) {
-      // Search template route rows for matching label
-      for (let r = koiHeader.r + 1; r <= koiHeader.r + 6; r++) {
-        const templateLabel = getCell(r, routeLabelCol);
-        if (!templateLabel) continue;
-        
-        // Match route by type/label
-        const routeLabel = (route.label || "").toLowerCase();
-        const tLabel = templateLabel.toLowerCase();
-        
+      const label = (route.label || "").toLowerCase();
+      // Search route rows for matching label
+      for (let r = koiPos.r + 1; r < koiPos.r + 6 && r < allRows.length; r++) {
+        const rowText = (allRows[r] || []).join(" ").toLowerCase();
         if (
-          (routeLabel.includes("υπογ") && tLabel.includes("υπογ")) ||
-          (routeLabel.includes("εναεριο") && routeLabel.includes("δδ") && tLabel.includes("εναεριο") && tLabel.includes("δδ") && !tLabel.includes("συνδρομ")) ||
-          (routeLabel.includes("εναεριο") && routeLabel.includes("συνδρομ") && tLabel.includes("συνδρομ")) ||
-          (routeLabel.includes("inhouse") && tLabel.includes("inhouse")) ||
-          (routeLabel.includes("cabin") && tLabel.includes("cabin"))
+          (label.includes("υπογ") && rowText.includes("υπογ")) ||
+          (label.includes("εναεριο") && label.includes("δδ") && rowText.includes("εναεριο") && rowText.includes("δδ") && !rowText.includes("συνδρομ")) ||
+          (label.includes("συνδρομ") && rowText.includes("συνδρομ")) ||
+          (label.includes("inhouse") && rowText.includes("inhouse"))
         ) {
-          setCell(r, koiCol, route.koi || 0);
-          setCell(r, fyraCol, route.fyra_koi || 0);
+          updates.push({ range: s(`${colLetter(koiPos.c)}${r + 1}`), values: [[route.koi || 0]] });
+          updates.push({ range: s(`${colLetter(fyraPos.c)}${r + 1}`), values: [[route.fyra_koi || 0]] });
           break;
         }
       }
     }
-
-    // Fill totals in "Συνολο" row
-    const totalRow = findCell("Συνολο");
-    if (totalRow || findCell("συνολο")) {
-      const sumPos = totalRow || findCell("συνολο");
-      if (sumPos && sumPos.r > koiHeader.r) {
-        const totalKoi = routes.reduce((s: number, r: any) => s + (r.koi || 0), 0);
-        const totalFyra = routes.reduce((s: number, r: any) => s + (r.fyra_koi || 0), 0);
-        setCell(sumPos.r, koiCol, totalKoi);
-        setCell(sumPos.r, fyraCol, totalFyra);
-      }
-    }
-    
-    // Fill ΣΥΝΟΛΟ KOI(m) ΣΤΑ ΥΛΙΚΑ
-    const sumKoiMats = findCell("ΣΥΝΟΛΟ KOI");
-    if (sumKoiMats) {
-      const totalKoi = routes.reduce((s: number, r: any) => s + (r.koi || 0), 0);
-      setCell(sumKoiMats.r, sumKoiMats.c + 1, totalKoi);
+    // Totals row
+    const totalKoi = routes.reduce((sum: number, r: any) => sum + (r.koi || 0), 0);
+    const totalFyra = routes.reduce((sum: number, r: any) => sum + (r.fyra_koi || 0), 0);
+    const totalPos = findLabel("Συνολο");
+    if (totalPos) {
+      updates.push({ range: s(`${colLetter(koiPos.c)}${totalPos.r + 1}`), values: [[totalKoi]] });
+      updates.push({ range: s(`${colLetter(fyraPos.c)}${totalPos.r + 1}`), values: [[totalFyra]] });
     }
   }
 
-  // ── Fill work quantities ──
-  // Build map: work code → quantity
+  // ── Work quantities ──
   const worksMap = new Map<string, number>();
   for (const w of works) {
-    if (w.code) worksMap.set(w.code.trim(), w.quantity || 0);
+    const code = (w.code || "").trim().replace(/\.+$/, "");
+    if (code) worksMap.set(code, w.quantity || 0);
   }
-
-  // Find "Άρθρο" header to locate works section
-  const arthroPos = findCell("Άρθρο");
-  if (arthroPos) {
-    const workCodeCol = arthroPos.c;
-    // Find ΠΟΣΟΤΗΤΑ column header in the same row or nearby
-    let workQtyCol = -1;
-    for (let c = workCodeCol + 1; c <= workCodeCol + 8; c++) {
-      if (getCell(arthroPos.r, c) === "ΠΟΣΟΤΗΤΑ") {
-        workQtyCol = c;
-        break;
-      }
-    }
-    
-    if (workQtyCol >= 0) {
-      // Scan rows below for work codes
-      for (let r = arthroPos.r + 1; r <= range.e.r; r++) {
-        const cellCode = getCell(r, workCodeCol);
-        if (!cellCode) continue;
-        const cleanCode = cellCode.replace(/\.$/, "").trim();
-        // Check exact match or close match
-        for (const [wCode, wQty] of worksMap) {
-          const cleanW = wCode.replace(/\.$/, "").trim();
-          if (cleanCode === cleanW || cellCode.trim() === wCode.trim()) {
-            setCell(r, workQtyCol, wQty);
-            break;
-          }
-        }
+  if (workQtyCol >= 0) {
+    for (let i = 0; i < workCodes.length; i++) {
+      const code = workCodes[i].replace(/\.+$/, "");
+      if (!code) continue;
+      const qty = worksMap.get(code);
+      if (qty !== undefined && qty > 0) {
+        const row = dataStartRow + i + 1; // +1 for 1-indexed
+        updates.push({ range: s(`${colLetter(workQtyCol)}${row}`), values: [[qty]] });
       }
     }
   }
 
-  // ── Fill material quantities ──
+  // ── Material quantities ──
   const allMaterials = [...oteMaterials, ...deltaMaterials];
   const matsMap = new Map<string, number>();
   for (const m of allMaterials) {
     if (m.code) {
-      const existing = matsMap.get(m.code.trim()) || 0;
-      matsMap.set(m.code.trim(), existing + (m.quantity || 0));
+      const key = m.code.trim();
+      matsMap.set(key, (matsMap.get(key) || 0) + (m.quantity || 0));
     }
   }
-
-  // Find "ΚΑΥ" header
-  const kauPos = findCell("ΚΑΥ");
-  if (kauPos) {
-    const matCodeCol = kauPos.c;
-    // Find material ΠΟΣΟΤΗΤΑ column
-    let matQtyCol = -1;
-    for (let c = matCodeCol + 1; c <= matCodeCol + 5; c++) {
-      if (getCell(kauPos.r, c) === "ΠΟΣΟΤΗΤΑ") {
-        matQtyCol = c;
-        break;
-      }
-    }
-
-    if (matQtyCol >= 0) {
-      for (let r = kauPos.r + 1; r <= range.e.r; r++) {
-        const cellCode = getCell(r, matCodeCol);
-        if (!cellCode) continue;
-        const qty = matsMap.get(cellCode.trim());
-        if (qty !== undefined && qty > 0) {
-          setCell(r, matQtyCol, qty);
-        }
+  if (matQtyCol >= 0) {
+    for (let i = 0; i < matCodes.length; i++) {
+      const code = matCodes[i];
+      if (!code) continue;
+      const qty = matsMap.get(code);
+      if (qty !== undefined && qty > 0) {
+        const row = dataStartRow + i + 1;
+        updates.push({ range: s(`${colLetter(matQtyCol)}${row}`), values: [[qty]] });
       }
     }
   }
 
-  const xlsxData = XLSX.write(wb, { type: "array", bookType: "xlsx" });
-  return new Uint8Array(xlsxData);
+  // 6. Apply batch update
+  console.log(`Applying ${updates.length} cell updates to spreadsheet`);
+  if (updates.length > 0) {
+    const batchUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values:batchUpdate`;
+    const batchRes = await fetch(batchUrl, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        valueInputOption: "USER_ENTERED",
+        data: updates,
+      }),
+    });
+    if (!batchRes.ok) {
+      const errText = await batchRes.text();
+      console.error("Batch update error:", errText);
+      throw new Error(`Batch update failed: ${errText}`);
+    }
+    await batchRes.json();
+  }
+
+  return { id: spreadsheetId, name: fileName };
 }
 
 // ─── Font Loading ────────────────────────────────────────────────────
@@ -653,8 +726,7 @@ Deno.serve(async (req) => {
 
     console.log(`Generating docs for SR ${assignment.sr_id}: ${works.length} works, ${oteMaterials.length} OTE mats, ${deltaMaterials.length} DN mats`);
 
-    // Generate files
-    const xlsxData = await generateConstructionXlsx(assignment, construction, works, oteMaterials, deltaMaterials, supabaseUrl, serviceRoleKey);
+    // Generate PDFs
     const worksPdf = await generateWorksPdf(assignment, construction, works);
     const otePdf = oteMaterials.length > 0
       ? await generateMaterialsPdf(assignment, construction, oteMaterials, "OTE", "ΔΕΛΤΙΟ ΑΠΟΣΤΟΛΗΣ ΥΛΙΚΩΝ ΟΤΕ")
@@ -709,7 +781,6 @@ Deno.serve(async (req) => {
     // If no SR folder found, create one
     if (!srFolder) {
       const folderName = `${assignment.sr_id} - ${assignment.customer_name || "ΠΕΛΑΤΗΣ"} - ${assignment.address || ""}`.trim();
-      // Create under the month folder directly
       srFolder = await createDriveFolder(accessToken, folderName, monthFolder.id);
       console.log(`Created new SR folder: ${srFolder.name}`);
     }
@@ -722,13 +793,14 @@ Deno.serve(async (req) => {
     const srId = assignment.sr_id;
     const uploadResults: any[] = [];
 
-    // 1. XLSX
-    const xlsxResult = await uploadFileToDrive(
-      accessToken, `ΦΥΛΛΟ_ΑΠΟΛΟΓΙΣΜΟΥ_${srId}.xlsx`,
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      xlsxData, constructionFolder.id
+    // 1. ΦΥΛΛΟ ΑΠΟΛΟΓΙΣΜΟΥ — upload template as Google Sheet & fill via Sheets API
+    const templateResult = await createAndFillTemplate(
+      accessToken, constructionFolder.id,
+      `ΦΥΛΛΟ_ΑΠΟΛΟΓΙΣΜΟΥ_${srId}`,
+      assignment, construction, works, oteMaterials, deltaMaterials,
+      supabaseUrl, serviceRoleKey
     );
-    uploadResults.push({ type: "xlsx", name: xlsxResult.name, id: xlsxResult.id });
+    uploadResults.push({ type: "spreadsheet", name: templateResult.name, id: templateResult.id });
 
     // 2. Works PDF
     const worksPdfResult = await uploadFileToDrive(
