@@ -1,6 +1,6 @@
 import { useState } from "react";
 import AppLayout from "@/components/AppLayout";
-import deltaLogoLight from "@/assets/delta-logo-light.png";
+import deltaLogoIcon from "@/assets/delta-logo-icon.png";
 import StatCard from "@/components/StatCard";
 import AssignmentTable from "@/components/AssignmentTable";
 import SyncButton from "@/components/SyncButton";
@@ -163,7 +163,7 @@ const Index = () => {
             <div className="flex items-start justify-between gap-4">
               <div className="flex items-center gap-4 sm:gap-5">
                 <img
-                  src={deltaLogoLight}
+                  src={deltaLogoIcon}
                   alt="DeltaNetwork"
                   className="h-10 sm:h-12 w-auto object-contain drop-shadow-lg"
                 />
