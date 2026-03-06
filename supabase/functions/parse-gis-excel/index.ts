@@ -258,7 +258,11 @@ Deno.serve(async (req) => {
       .map((row) => {
         const obj: Record<string, string> = {};
         floorHeaders.forEach((h, i) => {
-          if (h) obj[h] = row[i] || "";
+          if (h) {
+            const val = row[i] || "";
+            // Ensure value is always a string
+            obj[h] = typeof val === 'object' ? JSON.stringify(val) : String(val);
+          }
         });
         return obj;
       });

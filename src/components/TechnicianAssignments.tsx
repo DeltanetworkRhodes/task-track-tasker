@@ -598,8 +598,18 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
                       </div>
                     )}
                     {(existingGisData.floor_details as any[])?.length > 0 && (() => {
-                      const details = existingGisData.floor_details as Record<string, string>[];
-                      const allKeys = Object.keys(details[0] || {});
+                      const details = existingGisData.floor_details as Record<string, any>[];
+                      // Collect all unique keys across all rows
+                      const allKeysSet = new Set<string>();
+                      details.forEach((d) => Object.keys(d).forEach((k) => allKeysSet.add(k)));
+                      const allKeys = Array.from(allKeysSet);
+                      
+                      const renderCellValue = (val: any): string => {
+                        if (val === null || val === undefined || val === "") return "—";
+                        if (typeof val === "object") return JSON.stringify(val);
+                        return String(val);
+                      };
+                      
                       return (
                         <div className="text-xs space-y-1">
                           <span className="text-muted-foreground font-semibold">Στοιχεία Ορόφων:</span>
@@ -609,7 +619,7 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
                                 <tr className="bg-muted/50">
                                   {allKeys.map((key) => (
                                     <th key={key} className="text-left px-2 py-1.5 font-bold text-foreground border-r border-border last:border-r-0">
-                                      {key}
+                                      {String(key)}
                                     </th>
                                   ))}
                                 </tr>
@@ -619,7 +629,7 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
                                   <tr key={idx} className="border-t border-border hover:bg-muted/30">
                                     {allKeys.map((key) => (
                                       <td key={key} className="px-2 py-1 font-medium border-r border-border last:border-r-0">
-                                        {typeof fd[key] === 'object' ? JSON.stringify(fd[key]) : (fd[key] || "—")}
+                                        {renderCellValue(fd[key])}
                                       </td>
                                     ))}
                                   </tr>
