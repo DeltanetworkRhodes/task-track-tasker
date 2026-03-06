@@ -232,6 +232,26 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
     if (status === "pre_committed") {
       return (
         <div className="space-y-2">
+          <div className="flex items-center gap-2 text-cyan-600 justify-center py-2">
+            <Clock className="h-5 w-5" />
+            <span className="text-sm font-medium">Αναμονή απάντησης ΟΤΕ</span>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            className="w-full gap-2 text-destructive border-destructive/30 hover:bg-destructive/10"
+            onClick={() => { setShowCancelDialog(true); }}
+          >
+            <XCircle className="h-4 w-4" />
+            Ακύρωση
+          </Button>
+        </div>
+      );
+    }
+
+    if (status === "waiting_ote" || status === "construction") {
+      return (
+        <div className="space-y-2">
           <Button size="sm" className="w-full gap-2" onClick={() => setShowConstructionForm(true)}>
             <HardHat className="h-4 w-4" />
             Φόρμα Κατασκευής
