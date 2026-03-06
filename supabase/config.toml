@@ -29,3 +29,6 @@ verify_jwt = false
 
 [functions.delete-drive-folder]
 verify_jwt = false
+
+[functions.create-user]
+verify_jwt = false
