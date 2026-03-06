@@ -28,6 +28,7 @@ const MAX_FILES = 10;
 
 const SurveyForm = ({ assignments, prefillSrId, prefillArea, onComplete }: Props) => {
   const { user } = useAuth();
+  const { organizationId } = useOrganization();
   const queryClient = useQueryClient();
   const [area, setArea] = useState(prefillArea || "");
   const [srId, setSrId] = useState(prefillSrId || "");
