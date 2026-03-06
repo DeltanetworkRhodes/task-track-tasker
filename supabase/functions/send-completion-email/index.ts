@@ -292,9 +292,9 @@ Deno.serve(async (req) => {
     }
 
     // 2c. Download OTDR PDFs from Supabase Storage
-    const otdrFolderDisplayNames: Record<string, string> = {
-      OTDR_BMO: "ΜΕΤΡΗΣΕΙΣ_BMO", OTDR_FB: "ΜΕΤΡΗΣΕΙΣ_FB", OTDR_KAMPINA: "ΜΕΤΡΗΣΕΙΣ_ΚΑΜΠΙΝΑ",
-      OTDR_BEP: "ΜΕΤΡΗΣΕΙΣ_BEP", OTDR_BCP: "ΜΕΤΡΗΣΕΙΣ_BCP", OTDR_LIVE: "ΜΕΤΡΗΣΕΙΣ_LIVE",
+    const otdrSubfolderNames: Record<string, string> = {
+      OTDR_BMO: "BMO", OTDR_FB: "FB", OTDR_KAMPINA: "ΚΑΜΠΙΝΑ",
+      OTDR_BEP: "BEP", OTDR_BCP: "BCP", OTDR_LIVE: "LIVE",
     };
     if (otdr_paths && otdr_paths.length > 0) {
       for (let i = 0; i < otdr_paths.length; i++) {
@@ -307,16 +307,16 @@ Deno.serve(async (req) => {
           const pdfBytes = new Uint8Array(await fileData.arrayBuffer());
           
           const pathParts = otdr_paths[i].split("/");
-          let folder = "";
+          let subfolder = "";
           let fileName = pathParts.pop() || `otdr_${i + 1}.pdf`;
           if (pathParts.length >= 4) {
             const asciiFolder = pathParts[pathParts.length - 1];
-            folder = (otdrFolderDisplayNames[asciiFolder] || asciiFolder) + "/";
+            subfolder = (otdrSubfolderNames[asciiFolder] || asciiFolder) + "/";
           }
           
-          zipFiles[`ΜΕΤΡΗΣΕΙΣ_OTDR/${folder}${fileName}`] = pdfBytes;
+          zipFiles[`ΜΕΤΡΗΣΕΙΣ/${subfolder}${fileName}`] = pdfBytes;
           totalSize += pdfBytes.length;
-          console.log(`Added OTDR ${folder}${fileName}: ${pdfBytes.length} bytes`);
+          console.log(`Added OTDR ${subfolder}${fileName}: ${pdfBytes.length} bytes`);
         } catch (err: any) {
           console.error(`OTDR download error: ${err.message}`);
         }
