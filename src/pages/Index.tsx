@@ -154,23 +154,24 @@ const Index = () => {
           <div className="relative z-10 px-5 py-6 sm:px-8 sm:py-8">
             {/* Top row: logo + sync */}
             <div className="flex items-start justify-between gap-4">
-              <div className="flex items-center gap-3 sm:gap-4">
+              <div className="flex items-center gap-4 sm:gap-5">
                 <img
                   src={deltaLogo}
                   alt="DeltaNetwork"
-                  className="h-12 w-12 sm:h-14 sm:w-14 rounded-xl object-cover shadow-lg ring-2 ring-white/10"
+                  className="h-10 sm:h-12 w-auto object-contain brightness-0 invert drop-shadow-lg"
                 />
+                <div className="h-8 sm:h-10 w-px bg-white/15" />
                 <div>
-                  <div className="flex items-center gap-2 mb-1">
+                  <div className="flex items-center gap-2 mb-0.5">
                     <div className="h-0.5 w-5 rounded-full cosmote-gradient" />
                     <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-[0.2em] text-white/50">Fiber to the X</span>
                   </div>
-                  <h1 className="text-xl sm:text-2xl lg:text-3xl font-extrabold tracking-tight text-white">
-                    DeltaNetwork <span className="text-primary">FTTx</span>
+                  <h1 className="text-lg sm:text-2xl lg:text-3xl font-extrabold tracking-tight text-white">
+                    Πίνακας Ελέγχου
                   </h1>
-                  <p className="text-[11px] sm:text-xs text-white/50 mt-0.5 max-w-xs sm:max-w-md">
+                  <p className="text-[10px] sm:text-xs text-white/45 mt-0.5">
                     Διαχείριση δικτύου οπτικών ινών — Ρόδος & Κως
-                    {!hasRealData && <span className="ml-2 text-[10px] rounded-full bg-white/10 text-white/40 px-2 py-0.5">demo</span>}
+                    {!hasRealData && <span className="ml-2 text-[9px] rounded-full bg-white/10 text-white/40 px-2 py-0.5">demo</span>}
                   </p>
                 </div>
               </div>
