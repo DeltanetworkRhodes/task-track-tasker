@@ -134,7 +134,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    const { sr_id, area, customer_name } = await req.json();
+    const { sr_id, area, customer_name, organization_id } = await req.json();
     if (!sr_id || !area) {
       return new Response(JSON.stringify({ error: "Missing sr_id or area" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -148,24 +148,28 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Fetch shared_drive_id from org_settings
+    let sharedDriveId: string | undefined;
+    if (organization_id) {
+      const { data: driveSettings } = await adminClient
+        .from("org_settings")
+        .select("setting_value")
+        .eq("organization_id", organization_id)
+        .eq("setting_key", "shared_drive_id")
+        .maybeSingle();
+      sharedDriveId = driveSettings?.setting_value || undefined;
+    }
+
     const serviceAccountKey = JSON.parse(serviceAccountKeyStr);
     const accessToken = await getAccessToken(serviceAccountKey);
 
-    // Search for the SR folder across all month subfolders
-    const folderName = customer_name ? `${sr_id} - ${customer_name}` : sr_id;
-    const rootId = areaRootFolders[area];
-    if (!rootId) {
-      return new Response(JSON.stringify({ error: "Unknown area", deleted: false }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
     let deleted = false;
 
-    // Search by name containing the sr_id anywhere under the area root
+    // Search by name containing the sr_id
     const results = await driveSearch(
       accessToken,
-      `name contains '${sr_id}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`
+      `name contains '${sr_id}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`,
+      sharedDriveId
     );
 
     console.log(`Found ${results.length} folders matching '${sr_id}'`);
