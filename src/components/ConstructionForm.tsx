@@ -476,18 +476,25 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
       }
 
       const photoPaths: string[] = [];
-      if (photos.length > 0) {
-        setSubmitProgress(`Ανέβασμα φωτογραφιών (0/${photos.length})...`);
-        for (let i = 0; i < photos.length; i++) {
-          const photo = photos[i];
-          const ext = photo.name.split(".").pop() || "jpg";
-          const storagePath = `constructions/${assignment.sr_id}/${construction.id}/${i + 1}.${ext}`;
-          const { error: uploadErr } = await supabase.storage
-            .from("photos")
-            .upload(storagePath, photo, { upsert: true });
-          if (uploadErr) console.error(`Photo upload error ${i}:`, uploadErr);
-          else photoPaths.push(storagePath);
-          setSubmitProgress(`Ανέβασμα φωτογραφιών (${i + 1}/${photos.length})...`);
+      const allCategoryPhotos = Object.entries(categorizedPhotos).filter(([_, files]) => files.length > 0);
+      const totalPhotoCount = allCategoryPhotos.reduce((sum, [_, files]) => sum + files.length, 0);
+      
+      if (totalPhotoCount > 0) {
+        let uploaded = 0;
+        setSubmitProgress(`Ανέβασμα φωτογραφιών (0/${totalPhotoCount})...`);
+        for (const [category, files] of allCategoryPhotos) {
+          for (let i = 0; i < files.length; i++) {
+            const photo = files[i];
+            const ext = photo.name.split(".").pop() || "jpg";
+            const storagePath = `constructions/${assignment.sr_id}/${construction.id}/${category}/${i + 1}.${ext}`;
+            const { error: uploadErr } = await supabase.storage
+              .from("photos")
+              .upload(storagePath, photo, { upsert: true });
+            if (uploadErr) console.error(`Photo upload error ${category}/${i}:`, uploadErr);
+            else photoPaths.push(storagePath);
+            uploaded++;
+            setSubmitProgress(`Ανέβασμα φωτογραφιών (${uploaded}/${totalPhotoCount})...`);
+          }
         }
       }
 
