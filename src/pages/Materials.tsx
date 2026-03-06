@@ -2,10 +2,11 @@ import { useState, useMemo } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import AppLayout from "@/components/AppLayout";
 import { useMaterials } from "@/hooks/useData";
-import { Package, AlertTriangle, Search, Plus, Box, ArrowUpDown, Check, X, Pencil, RefreshCw, Upload, FileText } from "lucide-react";
+import { Package, AlertTriangle, Search, Plus, Box, ArrowUpDown, Check, X, Pencil, Upload, FileText, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useQueryClient } from "@tanstack/react-query";
 
 type SortField = 'code' | 'name' | 'stock' | 'price';
@@ -22,7 +23,7 @@ interface MaterialItem {
   low_stock_threshold: number;
 }
 
-const MaterialTable = ({ items, hasRealData, editingId, editValues, onEdit, onSave, onCancel, onEditChange, sortField, sortDir, toggleSort }: {
+const MaterialTable = ({ items, hasRealData, editingId, editValues, onEdit, onSave, onCancel, onEditChange, onDelete, sortField, sortDir, toggleSort }: {
   items: MaterialItem[];
   hasRealData: boolean;
   editingId: string | null;
@@ -31,6 +32,7 @@ const MaterialTable = ({ items, hasRealData, editingId, editValues, onEdit, onSa
   onSave: () => void;
   onCancel: () => void;
   onEditChange: (field: 'stock' | 'price' | 'name' | 'unit' | 'low_stock_threshold', val: string) => void;
+  onDelete: (m: MaterialItem) => void;
   sortField: SortField;
   sortDir: SortDir;
   toggleSort: (f: SortField) => void;
@@ -139,7 +141,10 @@ const MaterialTable = ({ items, hasRealData, editingId, editValues, onEdit, onSa
                         <button onClick={onCancel} className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted transition-colors"><X className="h-3.5 w-3.5" /></button>
                       </div>
                     ) : (
-                      <button onClick={() => onEdit(m)} className="rounded-lg p-1.5 text-muted-foreground/50 hover:text-primary hover:bg-primary/10 transition-colors"><Pencil className="h-3.5 w-3.5" /></button>
+                      <div className="flex items-center gap-0.5 justify-end">
+                        <button onClick={() => onEdit(m)} className="rounded-lg p-1.5 text-muted-foreground/50 hover:text-primary hover:bg-primary/10 transition-colors"><Pencil className="h-3.5 w-3.5" /></button>
+                        <button onClick={() => onDelete(m)} className="rounded-lg p-1.5 text-muted-foreground/50 hover:text-destructive hover:bg-destructive/10 transition-colors"><Trash2 className="h-3.5 w-3.5" /></button>
+                      </div>
                     )}
                   </td>
                 )}
@@ -168,7 +173,7 @@ const Materials = () => {
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValues, setEditValues] = useState({ stock: '', price: '', name: '', unit: '', low_stock_threshold: '' });
-  const [syncing, setSyncing] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<MaterialItem | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadOpen, setUploadOpen] = useState(false);
   const [uploadResult, setUploadResult] = useState<any>(null);
@@ -241,22 +246,16 @@ const Materials = () => {
     }
   };
 
-  const syncFromSheet = async () => {
-    setSyncing(true);
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
     try {
-      const { data, error } = await supabase.functions.invoke("sync-materials", { body: {} });
+      const { error } = await supabase.from('materials').delete().eq('id', deleteTarget.id);
       if (error) throw error;
-      queryClient.invalidateQueries({ queryKey: ["materials"] });
-      queryClient.invalidateQueries({ queryKey: ["work_pricing"] });
+      toast.success('Υλικό διαγράφηκε');
+      setDeleteTarget(null);
       refetch();
-      toast.success(`Συγχρονίστηκαν ${data?.synced?.materials || 0} υλικά, ${data?.synced?.work_pricing || 0} εργασίες`);
-      if (data?.errors?.length > 0) {
-        toast.error(`${data.errors.length} σφάλματα`);
-      }
     } catch (err: any) {
       toast.error(err.message);
-    } finally {
-      setSyncing(false);
     }
   };
 
@@ -355,6 +354,7 @@ const Materials = () => {
     onSave: saveEdit,
     onCancel: cancelEdit,
     onEditChange: (field: 'stock' | 'price' | 'name' | 'unit' | 'low_stock_threshold', val: string) => setEditValues(v => ({ ...v, [field]: val })),
+    onDelete: (m: MaterialItem) => setDeleteTarget(m),
     sortField,
     sortDir,
     toggleSort,
@@ -378,14 +378,6 @@ const Materials = () => {
               {uploading ? 'Ανάγνωση PDF...' : 'Δελτία Αποστολής OTE'}
               <input type="file" accept=".pdf" multiple onChange={handlePdfUpload} className="hidden" disabled={uploading} />
             </label>
-            <button
-              onClick={syncFromSheet}
-              disabled={syncing}
-              className="flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-semibold text-foreground hover:bg-muted transition-all disabled:opacity-50"
-            >
-              <RefreshCw className={`h-4 w-4 ${syncing ? 'animate-spin text-primary' : ''}`} />
-              {syncing ? 'Sync...' : 'Sync από Sheet'}
-            </button>
             <Dialog open={addOpen} onOpenChange={setAddOpen}>
               <DialogTrigger asChild>
                 <button className="flex items-center gap-2 rounded-xl cosmote-gradient px-4 py-2.5 text-sm font-bold text-white shadow-lg shadow-primary/20 hover:opacity-90 transition-all">
@@ -576,6 +568,21 @@ const Materials = () => {
             </div>
           </TabsContent>
         </Tabs>
+
+        <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Διαγραφή Υλικού</AlertDialogTitle>
+              <AlertDialogDescription>
+                Θέλετε να διαγράψετε το υλικό <strong>{deleteTarget?.code}</strong> — {deleteTarget?.name};
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Ακύρωση</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Διαγραφή</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </AppLayout>
   );
