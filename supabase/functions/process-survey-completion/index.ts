@@ -453,7 +453,7 @@ Deno.serve(async (req) => {
     }
 
     // 7. Update status based on completeness
-    const newAssignmentStatus = isComplete ? "pre_committed" : "pending";
+    const newAssignmentStatus = isComplete ? "construction" : "pending";
     const newSurveyStatus = isComplete ? "ΠΡΟΔΕΣΜΕΥΣΗ ΥΛΙΚΩΝ" : "ΕΛΛΙΠΗΣ ΑΥΤΟΨΙΑ";
     
     await adminClient
