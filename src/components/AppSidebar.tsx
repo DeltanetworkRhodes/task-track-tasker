@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, ClipboardCheck, Wrench, Package, LogOut, Wifi, FileText, TrendingUp, Search, UserCog, X, BarChart3 } from "lucide-react";
+import { LayoutDashboard, ClipboardCheck, Wrench, Package, LogOut, Wifi, FileText, TrendingUp, Search, UserCog, X, BarChart3, Settings } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import NotificationBell from "@/components/NotificationBell";
 import deltaLogoLight from "@/assets/delta-logo-light.png";
@@ -14,6 +14,7 @@ const navItems = [
   { to: '/profit', label: 'Κέρδος/SR', icon: TrendingUp },
   { to: '/kpis', label: 'KPIs Τεχνικών', icon: BarChart3 },
   { to: '/users', label: 'Χρήστες', icon: UserCog },
+  { to: '/settings', label: 'Ρυθμίσεις', icon: Settings },
 ];
 
 interface AppSidebarProps {

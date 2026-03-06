@@ -21,6 +21,7 @@ import ResetPassword from "./pages/ResetPassword";
 import InstallApp from "./pages/InstallApp";
 import TechnicianKPIs from "./pages/TechnicianKPIs";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
+import OrgSettings from "./pages/OrgSettings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -85,6 +86,7 @@ const App = () => (
               <Route path="/work-pricing" element={<ProtectedRoute><RoleGate><AdminRoute><WorkPricing /></AdminRoute></RoleGate></ProtectedRoute>} />
               <Route path="/profit" element={<ProtectedRoute><RoleGate><AdminRoute><ProfitPerSR /></AdminRoute></RoleGate></ProtectedRoute>} />
               <Route path="/users" element={<ProtectedRoute><RoleGate><AdminRoute><UserManagement /></AdminRoute></RoleGate></ProtectedRoute>} />
+              <Route path="/settings" element={<ProtectedRoute><RoleGate><AdminRoute><OrgSettings /></AdminRoute></RoleGate></ProtectedRoute>} />
               <Route path="/kpis" element={<ProtectedRoute><RoleGate><AdminRoute><TechnicianKPIs /></AdminRoute></RoleGate></ProtectedRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
