@@ -450,6 +450,7 @@ const Materials = () => {
     onCancel: cancelEdit,
     onEditChange: (field: 'stock' | 'price' | 'name' | 'unit' | 'low_stock_threshold', val: string) => setEditValues(v => ({ ...v, [field]: val })),
     onDelete: (m: MaterialItem) => setDeleteTarget(m),
+    onHistory: (m: MaterialItem) => setHistoryMaterial(m),
     sortField,
     sortDir,
     toggleSort,
