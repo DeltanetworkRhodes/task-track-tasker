@@ -462,10 +462,10 @@ Deno.serve(async (req) => {
     const xlsxData = generateConstructionXlsx(assignment, construction, works, oteMaterials, deltaMaterials);
     const worksPdf = await generateWorksPdf(assignment, construction, works);
     const otePdf = oteMaterials.length > 0
-      ? await generateMaterialsPdf(assignment, construction, oteMaterials, "OTE", "DELTIO APOSTOLIS YLIKON OTE")
+      ? await generateMaterialsPdf(assignment, construction, oteMaterials, "OTE", "ΔΕΛΤΙΟ ΑΠΟΣΤΟΛΗΣ ΥΛΙΚΩΝ ΟΤΕ")
       : null;
     const deltaPdf = deltaMaterials.length > 0
-      ? await generateMaterialsPdf(assignment, construction, deltaMaterials, "DELTANETWORK", "DELTIO APOSTOLIS YLIKON DELTANETWORK")
+      ? await generateMaterialsPdf(assignment, construction, deltaMaterials, "DELTANETWORK", "ΔΕΛΤΙΟ ΑΠΟΣΤΟΛΗΣ ΥΛΙΚΩΝ DELTANETWORK")
       : null;
 
     // Google Drive upload
