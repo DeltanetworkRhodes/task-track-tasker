@@ -19,7 +19,9 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Shield, User, UserCog, Trash2, Mail, Phone, MapPin, Pencil, Check, X } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Shield, User, UserCog, Trash2, Mail, Phone, MapPin, Pencil, Check, X, UserPlus } from "lucide-react";
 
 const UserManagement = () => {
   const queryClient = useQueryClient();
@@ -27,6 +29,44 @@ const UserManagement = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValues, setEditValues] = useState<{ email: string; phone: string; area: string }>({ email: "", phone: "", area: "" });
   const [deleting, setDeleting] = useState<string | null>(null);
+
+  // Create user state
+  const [createOpen, setCreateOpen] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [newUser, setNewUser] = useState({ full_name: "", email: "", password: "", role: "technician" });
+
+  const handleCreateUser = async () => {
+    if (!newUser.email || !newUser.password || !newUser.full_name) {
+      toast.error("Συμπληρώστε όλα τα πεδία");
+      return;
+    }
+    if (newUser.password.length < 6) {
+      toast.error("Ο κωδικός πρέπει να έχει τουλάχιστον 6 χαρακτήρες");
+      return;
+    }
+    setCreating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("create-user", {
+        body: {
+          email: newUser.email,
+          password: newUser.password,
+          full_name: newUser.full_name,
+          role: newUser.role,
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast.success("Ο χρήστης δημιουργήθηκε!");
+      setNewUser({ full_name: "", email: "", password: "", role: "technician" });
+      setCreateOpen(false);
+      queryClient.invalidateQueries({ queryKey: ["all-profiles"] });
+      queryClient.invalidateQueries({ queryKey: ["all-roles"] });
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setCreating(false);
+    }
+  };
 
   const { data: profiles, isLoading } = useQuery({
     queryKey: ["all-profiles"],
@@ -139,14 +179,73 @@ const UserManagement = () => {
   return (
     <AppLayout>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-            <UserCog className="h-6 w-6" />
-            Διαχείριση Χρηστών
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Εκχώρηση ρόλων · Επεξεργασία στοιχείων · Διαγραφή
-          </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+              <UserCog className="h-6 w-6" />
+              Διαχείριση Χρηστών
+            </h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Εκχώρηση ρόλων · Επεξεργασία στοιχείων · Διαγραφή
+            </p>
+          </div>
+
+          <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+            <DialogTrigger asChild>
+              <Button className="gap-2">
+                <UserPlus className="h-4 w-4" />
+                Νέος Χρήστης
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Δημιουργία Νέου Χρήστη</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 pt-2">
+                <div className="space-y-2">
+                  <Label>Ονοματεπώνυμο *</Label>
+                  <Input
+                    value={newUser.full_name}
+                    onChange={(e) => setNewUser({ ...newUser, full_name: e.target.value })}
+                    placeholder="π.χ. Γιώργος Παπαδόπουλος"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Email *</Label>
+                  <Input
+                    type="email"
+                    value={newUser.email}
+                    onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+                    placeholder="user@example.com"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Κωδικός *</Label>
+                  <Input
+                    type="password"
+                    value={newUser.password}
+                    onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+                    placeholder="Ελάχιστο 6 χαρακτήρες"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Ρόλος</Label>
+                  <Select value={newUser.role} onValueChange={(val) => setNewUser({ ...newUser, role: val })}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="technician">Τεχνικός</SelectItem>
+                      <SelectItem value="admin">Admin</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button className="w-full" onClick={handleCreateUser} disabled={creating}>
+                  {creating ? "Δημιουργία..." : "Δημιουργία Χρήστη"}
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
 
         {isLoading ? (
