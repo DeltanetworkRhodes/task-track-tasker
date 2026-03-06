@@ -211,6 +211,11 @@ const Index = () => {
           </div>
         </div>
 
+        {/* Setup Wizard */}
+        {!wizardDismissed && (
+          <SetupWizard onDismiss={() => setWizardDismissed(true)} />
+        )}
+
         {/* Stat Cards - responsive grid */}
         <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-6">
           <StatCard title="Ενεργές Αναθέσεις" value={activeAssignments} subtitle={`${completedAssignments} ολοκληρωμένες`} icon={ClipboardCheck} trend="up" trendValue={`${assignments.length} σύνολο`} />
