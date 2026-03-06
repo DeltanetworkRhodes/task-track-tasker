@@ -315,7 +315,7 @@ Deno.serve(async (req) => {
       floor_details: floorDetails,
       optical_paths: opticalPaths,
       gis_works: gisWorks,
-      raw_data: sheets,
+      raw_data: { sheetsByName, sheetsByIndex },
       file_path: storagePath,
     };
 
