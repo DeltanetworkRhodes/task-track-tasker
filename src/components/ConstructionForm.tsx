@@ -957,6 +957,12 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
 
           {["OTE", "DELTANETWORK"].map((source) => (
             <TabsContent key={source} value={source} className="space-y-1 mt-2">
+              {Object.keys(materialsByCategory[source] || {}).length === 0 && (
+                <div className="text-center py-6 text-muted-foreground">
+                  <Package className="h-8 w-8 mx-auto mb-2 opacity-30" />
+                  <p className="text-xs">Δεν υπάρχουν υλικά {source === "OTE" ? "ΟΤΕ" : "DELTANETWORK"}</p>
+                </div>
+              )}
               {Object.entries(materialsByCategory[source] || {}).map(([catLabel, catMats]) => {
                 if (!catMats || catMats.length === 0) return null;
                 const catKey = `${source}-${catLabel}`;
