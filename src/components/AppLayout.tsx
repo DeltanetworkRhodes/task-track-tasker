@@ -39,7 +39,9 @@ const AppLayout = ({ children }: { children: ReactNode }) => {
           <span className="text-[9px] text-muted-foreground uppercase tracking-widest">FTTx</span>
         </div>
         <div className="p-4 sm:p-6 bg-grid min-h-[calc(100vh-56px)] lg:min-h-screen">
-          {children}
+          <div className="mx-auto max-w-7xl">
+            {children}
+          </div>
         </div>
       </main>
     </div>
