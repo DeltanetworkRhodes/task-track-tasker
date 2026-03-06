@@ -6,56 +6,59 @@
 
 @layer base {
   :root {
-    --background: 220 16% 96%;
-    --foreground: 220 20% 14%;
+    --background: 210 18% 96%;
+    --foreground: 215 25% 14%;
 
     --card: 0 0% 100%;
-    --card-foreground: 220 20% 14%;
+    --card-foreground: 215 25% 14%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 220 20% 14%;
+    --popover-foreground: 215 25% 14%;
 
-    --primary: 25 95% 53%;
+    /* DeltaNetwork Blue — from logo swirl */
+    --primary: 200 85% 45%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 220 14% 93%;
-    --secondary-foreground: 220 20% 30%;
+    --secondary: 210 16% 93%;
+    --secondary-foreground: 215 20% 30%;
 
-    --muted: 220 14% 93%;
-    --muted-foreground: 220 10% 46%;
+    --muted: 210 16% 93%;
+    --muted-foreground: 215 12% 46%;
 
-    --accent: 210 70% 50%;
+    /* DeltaNetwork Green — from logo swirl */
+    --accent: 135 60% 40%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 152 60% 42%;
+    --success: 135 60% 40%;
     --success-foreground: 0 0% 100%;
 
     --warning: 45 93% 47%;
     --warning-foreground: 45 93% 10%;
 
-    --border: 220 13% 88%;
-    --input: 220 13% 88%;
-    --ring: 25 95% 53%;
+    --border: 210 14% 87%;
+    --input: 210 14% 87%;
+    --ring: 200 85% 45%;
 
     --radius: 0.75rem;
 
-    --glow-primary: 0 4px 14px hsl(25 95% 53% / 0.18);
-    --glow-accent: 0 4px 14px hsl(210 70% 50% / 0.12);
+    --glow-primary: 0 4px 14px hsl(200 85% 45% / 0.18);
+    --glow-accent: 0 4px 14px hsl(135 60% 40% / 0.14);
 
     --font-mono: 'JetBrains Mono', monospace;
     --font-sans: 'Inter', system-ui, sans-serif;
 
-    --sidebar-background: 220 25% 11%;
-    --sidebar-foreground: 220 14% 75%;
-    --sidebar-primary: 25 95% 55%;
+    /* Sidebar — dark charcoal matching logo background */
+    --sidebar-background: 215 22% 13%;
+    --sidebar-foreground: 210 14% 75%;
+    --sidebar-primary: 200 85% 50%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 20% 17%;
+    --sidebar-accent: 215 20% 19%;
     --sidebar-accent-foreground: 0 0% 93%;
-    --sidebar-border: 220 20% 18%;
-    --sidebar-ring: 25 95% 53%;
+    --sidebar-border: 215 18% 20%;
+    --sidebar-ring: 200 85% 45%;
   }
 }
 
@@ -83,21 +86,21 @@
   }
   .text-gradient-primary {
     @apply bg-clip-text text-transparent;
-    background-image: linear-gradient(135deg, hsl(25 95% 53%), hsl(30 90% 48%));
+    background-image: linear-gradient(135deg, hsl(200 85% 45%), hsl(195 80% 50%));
   }
   .text-gradient-accent {
     @apply bg-clip-text text-transparent;
-    background-image: linear-gradient(135deg, hsl(210 70% 50%), hsl(200 65% 55%));
+    background-image: linear-gradient(135deg, hsl(135 60% 40%), hsl(145 55% 45%));
   }
   .border-glow {
-    border-color: hsl(25 95% 53% / 0.35);
+    border-color: hsl(200 85% 45% / 0.35);
   }
   .bg-grid {
     background-image: 
-      radial-gradient(circle at 1px 1px, hsl(220 13% 88% / 0.4) 1px, transparent 0);
+      radial-gradient(circle at 1px 1px, hsl(210 14% 87% / 0.4) 1px, transparent 0);
     background-size: 32px 32px;
   }
   .cosmote-gradient {
-    background: linear-gradient(135deg, hsl(25 95% 53%), hsl(30 85% 48%), hsl(20 90% 45%));
+    background: linear-gradient(135deg, hsl(200 85% 45%), hsl(190 75% 42%), hsl(160 65% 40%));
   }
 }
