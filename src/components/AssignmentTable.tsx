@@ -275,7 +275,7 @@ const AssignmentTable = ({ assignments }: AssignmentTableProps) => {
                 className="border-b border-border/30 hover:bg-secondary/50 transition-colors"
               >
                 <td
-                  className="py-3 px-4 font-mono font-semibold text-primary cursor-pointer"
+                  className="py-3 px-4 font-bold text-primary cursor-pointer"
                   onClick={() => setSelected(a)}
                 >
                   {a.srId}
