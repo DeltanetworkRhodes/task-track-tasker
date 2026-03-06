@@ -300,6 +300,38 @@ const AssignmentTable = ({ assignments }: AssignmentTableProps) => {
             </div>
           )}
 
+          {/* Timeline */}
+          {history && history.length > 0 && (
+            <div className="mt-4 pt-4 border-t border-border/30">
+              <div className="flex items-center gap-2 mb-3">
+                <Clock className="h-4 w-4 text-accent" />
+                <h3 className="text-sm font-semibold">Ιστορικό Αλλαγών</h3>
+              </div>
+              <div className="space-y-0 relative">
+                <div className="absolute left-[7px] top-2 bottom-2 w-px bg-border/50" />
+                {history.map((h: any, i: number) => (
+                  <div key={h.id || i} className="flex items-start gap-3 py-1.5 relative">
+                    <div className="h-[15px] w-[15px] rounded-full border-2 border-accent bg-background z-10 shrink-0 mt-0.5" />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5 text-xs">
+                        <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${statusColors[h.old_status] || 'bg-muted text-muted-foreground'}`}>
+                          {statusLabels[h.old_status as keyof typeof statusLabels] || h.old_status || '—'}
+                        </span>
+                        <ArrowRight className="h-3 w-3 text-muted-foreground/50" />
+                        <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${statusColors[h.new_status] || 'bg-muted text-muted-foreground'}`}>
+                          {statusLabels[h.new_status as keyof typeof statusLabels] || h.new_status}
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-muted-foreground/60 mt-0.5 font-mono">
+                        {new Date(h.created_at).toLocaleDateString('el-GR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Drive Folder Section */}
           <div className="mt-4 pt-4 border-t border-border/30">
             <div className="flex items-center gap-2 mb-3">
