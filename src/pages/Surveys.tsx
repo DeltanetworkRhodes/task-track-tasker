@@ -542,7 +542,7 @@ const Surveys = () => {
                             <span className="text-xs text-muted-foreground/40">—</span>
                           )}
                         </td>
-                        <td className="px-4 py-3 text-muted-foreground text-xs font-mono">
+                        <td className="px-4 py-3 text-muted-foreground text-xs font-bold">
                           {new Date(s.created_at).toLocaleDateString("el-GR")}
                         </td>
                         <td className="px-4 py-3 text-center">
