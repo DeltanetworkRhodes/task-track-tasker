@@ -232,8 +232,8 @@ async function loadGreekFonts(): Promise<{ regular: Uint8Array; bold: Uint8Array
   if (_fontCache) return _fontCache;
   
   const [regularRes, boldRes] = await Promise.all([
-    fetch("https://fonts.gstatic.com/s/roboto/v47/KFOMCnqEu92Fr1ME7kSn66aGLdTylUAMQXC89YmC2DPNWubEbGmT.ttf"),
-    fetch("https://fonts.gstatic.com/s/roboto/v47/KFOMCnqEu92Fr1ME7kSn66aGLdTylUAMQXC89YmC2DPNWubEbFqQ.ttf"),
+    fetch("https://raw.githubusercontent.com/googlefonts/roboto-classic/main/fonts/ttf/Roboto-Regular.ttf"),
+    fetch("https://raw.githubusercontent.com/googlefonts/roboto-classic/main/fonts/ttf/Roboto-Bold.ttf"),
   ]);
   
   if (!regularRes.ok || !boldRes.ok) {
