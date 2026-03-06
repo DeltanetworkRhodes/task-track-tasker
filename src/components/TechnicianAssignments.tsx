@@ -340,7 +340,7 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
                   <p className="font-medium text-blue-600">✓ GIS Αναλύθηκε</p>
                   <p>Όροφοι: {existingGisData.floors} · BEP: {existingGisData.bep_type || "—"}</p>
                   <p>BMO: {existingGisData.bmo_type || "—"} · Conduit: {existingGisData.conduit || "—"}</p>
-                  <p>Απόσταση: {existingGisData.distance_from_cabinet}μ</p>
+                  <p>Απόσταση από καμπίνα έως κτίριο: {existingGisData.distance_from_cabinet}μ</p>
                 </div>
               )}
             </>
