@@ -23,3 +23,6 @@ verify_jwt = false
 
 [functions.generate-construction-docs]
 verify_jwt = false
+
+[functions.parse-gis-excel]
+verify_jwt = false
