@@ -226,7 +226,7 @@ const IncompleteSurveys = ({ filterSrId }: { filterSrId?: string }) => {
       <div className="flex items-center gap-2">
         <AlertTriangle className="h-4 w-4 text-orange-500" />
         <h3 className="text-sm font-bold text-foreground">
-          Ελλιπείς Αυτοψίες ({surveys.length})
+          {filterSrId ? "Αρχεία Αυτοψίας" : `Ελλιπείς Αυτοψίες (${surveys.length})`}
         </h3>
       </div>
 
