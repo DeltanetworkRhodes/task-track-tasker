@@ -290,40 +290,74 @@ async function createAndFillTemplate(
   }
   console.log(`Template has ${workCodes.filter(Boolean).length} work codes, ${matCodes.filter(Boolean).length} material codes`);
 
+  // Helper: column index to letter (0=A, 1=B, etc.)
+  const colLetter = (c: number): string => String.fromCharCode(65 + c);
+
   // 5. Build batch update
   const updates: { range: string; values: any[][] }[] = [];
 
-  // ── Header fields ──
-  updates.push({ range: s("E2"), values: [[assignment.area || ""]] });
-  updates.push({ range: s("G2"), values: [[assignment.sr_id || ""]] });
-  updates.push({ range: s("G3"), values: [[construction.ses_id || ""]] });
-  updates.push({ range: s("G4"), values: [[new Date().toLocaleDateString("el-GR")]] });
-  updates.push({ range: s("B5"), values: [[construction.ak || ""]] });
-  updates.push({ range: s("G5"), values: [[assignment.address || ""]] });
-  updates.push({ range: s("B6"), values: [[construction.cab || ""]] });
-  updates.push({ range: s("G6"), values: [[construction.routing_type || ""]] });
-  updates.push({ range: s("B7"), values: [[construction.pending_note || ""]] });
-  updates.push({ range: s("G7"), values: [[construction.floors || 0]] });
+  // ── Header fields (find dynamically) ──
+  const findLabel = (label: string): { r: number; c: number } | null => {
+    for (let r = 0; r < Math.min(allRows.length, 15); r++) {
+      for (let c = 0; c < (allRows[r]?.length || 0); c++) {
+        const val = (allRows[r][c] || "").toString().trim();
+        if (val === label || val.includes(label)) return { r, c };
+      }
+    }
+    return null;
+  };
+
+  const fillHeader = (label: string, value: any, offset = 1) => {
+    const pos = findLabel(label);
+    if (pos) {
+      const cellRef = `${colLetter(pos.c + offset)}${pos.r + 1}`;
+      updates.push({ range: s(cellRef), values: [[value]] });
+    }
+  };
+
+  fillHeader("ΠΕΡΙΟΧΗ", assignment.area || "");
+  fillHeader("SR ID:", assignment.sr_id || "");
+  fillHeader("SES ID:", construction.ses_id || "");
+  fillHeader("ΗΜ/ΝΙΑ", new Date().toLocaleDateString("el-GR"));
+  fillHeader("Α/Κ:", construction.ak || "");
+  fillHeader("ΔΙΕΥΘΥΝΣΗ:", assignment.address || "");
+  fillHeader("CAB:", construction.cab || "");
+  fillHeader("ΕΙΔΟΣ ΟΔΕΥΣΗΣ:", construction.routing_type || "");
+  fillHeader("ΑΝΑΜΟΝΗ:", construction.pending_note || "");
+  fillHeader("ΟΡΟΦΟΙ:", construction.floors || 0);
 
   // ── Routes (KOI / ΦΥΡΑ) ──
+  const koiPos = findLabel("KOI(m)");
+  const fyraPos = findLabel("ΦΥΡΑ");
   const routes: any[] = construction.routes || [];
-  for (const route of routes) {
-    const label = (route.label || "").toLowerCase();
-    let targetRow = -1;
-    if (label.includes("υπογ") || label.includes("cabin to bep")) targetRow = 3;
-    else if ((label.includes("εναεριο") || label.includes("aerial")) && (label.includes("δδ") || label.includes("dd")) && !label.includes("συνδρομ") && !label.includes("subscriber")) targetRow = 4;
-    else if (label.includes("συνδρομ") || label.includes("subscriber") || label.includes("bep to floor")) targetRow = 5;
-    else if (label.includes("inhouse") || label.includes("κάθετη") || label.includes("κτηρίου") || label.includes("bep-fl")) targetRow = 6;
-
-    if (targetRow > 0) {
-      updates.push({ range: s(`K${targetRow}`), values: [[route.koi || 0]] });
-      updates.push({ range: s(`M${targetRow}`), values: [[route.fyra_koi || 0]] });
+  if (koiPos && fyraPos) {
+    // Route rows are below the KOI header
+    for (const route of routes) {
+      const label = (route.label || "").toLowerCase();
+      // Search route rows for matching label
+      for (let r = koiPos.r + 1; r < koiPos.r + 6 && r < allRows.length; r++) {
+        const rowText = (allRows[r] || []).join(" ").toLowerCase();
+        if (
+          (label.includes("υπογ") && rowText.includes("υπογ")) ||
+          (label.includes("εναεριο") && label.includes("δδ") && rowText.includes("εναεριο") && rowText.includes("δδ") && !rowText.includes("συνδρομ")) ||
+          (label.includes("συνδρομ") && rowText.includes("συνδρομ")) ||
+          (label.includes("inhouse") && rowText.includes("inhouse"))
+        ) {
+          updates.push({ range: s(`${colLetter(koiPos.c)}${r + 1}`), values: [[route.koi || 0]] });
+          updates.push({ range: s(`${colLetter(fyraPos.c)}${r + 1}`), values: [[route.fyra_koi || 0]] });
+          break;
+        }
+      }
+    }
+    // Totals row
+    const totalKoi = routes.reduce((sum: number, r: any) => sum + (r.koi || 0), 0);
+    const totalFyra = routes.reduce((sum: number, r: any) => sum + (r.fyra_koi || 0), 0);
+    const totalPos = findLabel("Συνολο");
+    if (totalPos) {
+      updates.push({ range: s(`${colLetter(koiPos.c)}${totalPos.r + 1}`), values: [[totalKoi]] });
+      updates.push({ range: s(`${colLetter(fyraPos.c)}${totalPos.r + 1}`), values: [[totalFyra]] });
     }
   }
-  const totalKoi = routes.reduce((sum: number, r: any) => sum + (r.koi || 0), 0);
-  const totalFyra = routes.reduce((sum: number, r: any) => sum + (r.fyra_koi || 0), 0);
-  updates.push({ range: s("K7"), values: [[totalKoi]] });
-  updates.push({ range: s("M7"), values: [[totalFyra]] });
 
   // ── Work quantities ──
   const worksMap = new Map<string, number>();
@@ -331,12 +365,15 @@ async function createAndFillTemplate(
     const code = (w.code || "").trim().replace(/\.+$/, "");
     if (code) worksMap.set(code, w.quantity || 0);
   }
-  for (let i = 0; i < workCodes.length; i++) {
-    const code = workCodes[i].replace(/\.+$/, "");
-    if (!code) continue;
-    const qty = worksMap.get(code);
-    if (qty !== undefined && qty > 0) {
-      updates.push({ range: s(`G${10 + i}`), values: [[qty]] });
+  if (workQtyCol >= 0) {
+    for (let i = 0; i < workCodes.length; i++) {
+      const code = workCodes[i].replace(/\.+$/, "");
+      if (!code) continue;
+      const qty = worksMap.get(code);
+      if (qty !== undefined && qty > 0) {
+        const row = dataStartRow + i + 1; // +1 for 1-indexed
+        updates.push({ range: s(`${colLetter(workQtyCol)}${row}`), values: [[qty]] });
+      }
     }
   }
 
@@ -349,12 +386,15 @@ async function createAndFillTemplate(
       matsMap.set(key, (matsMap.get(key) || 0) + (m.quantity || 0));
     }
   }
-  for (let i = 0; i < matCodes.length; i++) {
-    const code = matCodes[i];
-    if (!code) continue;
-    const qty = matsMap.get(code);
-    if (qty !== undefined && qty > 0) {
-      updates.push({ range: s(`L${10 + i}`), values: [[qty]] });
+  if (matQtyCol >= 0) {
+    for (let i = 0; i < matCodes.length; i++) {
+      const code = matCodes[i];
+      if (!code) continue;
+      const qty = matsMap.get(code);
+      if (qty !== undefined && qty > 0) {
+        const row = dataStartRow + i + 1;
+        updates.push({ range: s(`${colLetter(matQtyCol)}${row}`), values: [[qty]] });
+      }
     }
   }
 
