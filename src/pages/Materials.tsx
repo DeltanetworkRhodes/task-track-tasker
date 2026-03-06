@@ -194,7 +194,7 @@ const MaterialTable = ({ items, hasRealData, editingId, editValues, onEdit, onSa
                     m.price === 0 ? <span className="text-muted-foreground/40">—</span> : `${m.price.toFixed(2)}€`
                   )}
                 </td>
-                <td className="py-3 px-4 text-right font-mono font-semibold">
+                <td className="py-3 px-4 text-right font-bold">
                   {value === 0 ? <span className="text-muted-foreground/40">—</span> : `${value.toLocaleString('el-GR', { minimumFractionDigits: 2 })}€`}
                 </td>
                 <td className="py-3 px-4 text-right font-mono text-xs">
