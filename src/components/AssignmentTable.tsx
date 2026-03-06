@@ -148,6 +148,23 @@ const AssignmentTable = ({ assignments }: AssignmentTableProps) => {
     }
   };
 
+  const handleStatusChange = async (assignmentId: string, newStatus: string) => {
+    try {
+      const { error } = await supabase
+        .from("assignments")
+        .update({ status: newStatus })
+        .eq("id", assignmentId);
+      if (error) throw error;
+      toast.success(`Κατάσταση → ${statusLabels[newStatus] || newStatus}`);
+      if (selected?.id === assignmentId) {
+        setSelected({ ...selected, status: newStatus });
+      }
+      queryClient.invalidateQueries({ queryKey: ["assignments"] });
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
+
   useEffect(() => {
     if (!selected?.srId) {
       setDriveData(null);
@@ -326,6 +343,26 @@ const AssignmentTable = ({ assignments }: AssignmentTableProps) => {
                     <SelectItem key={t.user_id} value={t.user_id}>
                       {t.full_name}{t.area ? ` (${t.area})` : ""}
                     </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {/* Status Change */}
+          {selected && (
+            <div className="mt-3 pt-3 border-t border-border/30">
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground/70 mb-2">Αλλαγή Κατάστασης</p>
+              <Select
+                value={selected.status}
+                onValueChange={(val) => handleStatusChange(selected.id, val)}
+              >
+                <SelectTrigger className="w-full h-8 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(statusLabels).map(([key, label]) => (
+                    <SelectItem key={key} value={key}>{label}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
