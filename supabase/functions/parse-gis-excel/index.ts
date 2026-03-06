@@ -258,15 +258,9 @@ Deno.serve(async (req) => {
       .map((row) => {
         const obj: Record<string, string> = {};
         floorHeaders.forEach((h, i) => {
-          if (h && row[i]) obj[h] = row[i];
+          if (h) obj[h] = row[i] || "";
         });
-        // Normalize known fields for UI display
-        return {
-          floor: obj["ΟΡΟΦΟΣ"] || obj["FLOOR"] || obj["Όροφος"] || Object.values(obj)[0] || "",
-          fb_type: obj["ΤΥΠΟΣ FB"] || obj["FB TYPE"] || obj["ΤΥΠΟΣ"] || obj["FB"] || "",
-          fb_count: obj["ΤΕΜΑΧΙΑ"] || obj["ΤΕΜ"] || obj["QTY"] || obj["ΠΟΣΟΤΗΤΑ"] || "",
-          raw: obj,
-        };
+        return obj;
       });
     console.log("Floor details parsed:", JSON.stringify(floorDetails));
 
