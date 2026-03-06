@@ -203,7 +203,7 @@ const MaterialTable = ({ items, hasRealData, editingId, editValues, onEdit, onSa
                       type="number"
                       value={editValues.low_stock_threshold}
                       onChange={e => onEditChange('low_stock_threshold', e.target.value)}
-                      className="w-16 ml-auto rounded-lg border border-primary/30 bg-card px-2 py-1 text-right text-sm font-mono focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                      className="w-16 ml-auto rounded-lg border border-primary/30 bg-card px-2 py-1 text-right text-sm font-bold focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                     />
                   ) : (
                     <span className="text-muted-foreground">{m.low_stock_threshold}</span>
