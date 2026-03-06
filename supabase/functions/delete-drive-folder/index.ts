@@ -77,13 +77,21 @@ async function driveSearch(accessToken: string, query: string): Promise<any[]> {
   return (await res.json()).files || [];
 }
 
-async function deleteDriveFile(accessToken: string, fileId: string): Promise<void> {
+async function trashDriveFile(accessToken: string, fileId: string): Promise<void> {
+  // Use PATCH to trash instead of DELETE (requires lower permissions on shared drives)
   const res = await fetch(
     `https://www.googleapis.com/drive/v3/files/${fileId}?supportsAllDrives=true`,
-    { method: "DELETE", headers: { Authorization: `Bearer ${accessToken}` } }
+    {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ trashed: true }),
+    }
   );
   if (!res.ok && res.status !== 404) {
-    throw new Error(`Delete failed: ${await res.text()}`);
+    throw new Error(`Trash failed: ${await res.text()}`);
   }
 }
 
@@ -165,7 +173,7 @@ Deno.serve(async (req) => {
     for (const folder of results) {
       // Delete each matching folder (moves to trash)
       try {
-        await deleteDriveFile(accessToken, folder.id);
+        await trashDriveFile(accessToken, folder.id);
         console.log(`Deleted folder: ${folder.name} (${folder.id})`);
         deleted = true;
       } catch (delErr) {
