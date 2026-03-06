@@ -1,13 +1,13 @@
 import AppLayout from "@/components/AppLayout";
-import fiberHero from "@/assets/fiber-hero.jpg";
+import deltaLogo from "@/assets/delta-logo.jpg";
 import StatCard from "@/components/StatCard";
 import AssignmentTable from "@/components/AssignmentTable";
 import SyncButton from "@/components/SyncButton";
 import { useAssignments, useConstructions } from "@/hooks/useData";
 import { mockAssignments, mockConstructions, statusLabels } from "@/data/mockData";
-import { ClipboardCheck, Wrench, TrendingUp, Euro, FolderOpen, Activity, Wifi, PieChartIcon, CalendarDays, Timer } from "lucide-react";
+import { ClipboardCheck, Wrench, TrendingUp, Euro, FolderOpen, Activity, Wifi, PieChartIcon, CalendarDays, Timer, Zap } from "lucide-react";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { BarChart, Bar, XAxis, YAxis, Cell, PieChart, Pie, LineChart, Line, CartesianGrid } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, Cell, PieChart, Pie, LineChart, Line, CartesianGrid, ResponsiveContainer } from "recharts";
 import { useMemo } from "react";
 
 function getTimeAgo(dateStr: string): string {
@@ -102,22 +102,18 @@ const Index = () => {
     return acc;
   }, {} as Record<string, { label: string; color: string }>);
 
-  // Monthly completions trend (last 6 months)
+  // Monthly completions trend
   const monthlyTrend = useMemo(() => {
     const now = new Date();
     const months: { month: string; label: string; completed: number; revenue: number; profit: number }[] = [];
-    
     for (let i = 5; i >= 0; i--) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
       const label = GREEK_MONTHS[d.getMonth()];
-      
       const monthAssignments = assignments.filter(a => a.date.startsWith(key) && a.status === 'completed');
       const monthConstructions = constructions.filter(c => c.date.startsWith(key));
-      
       months.push({
-        month: key,
-        label,
+        month: key, label,
         completed: monthAssignments.length,
         revenue: monthConstructions.reduce((s, c) => s + c.revenue, 0),
         profit: monthConstructions.reduce((s, c) => s + c.profit, 0),
@@ -132,7 +128,7 @@ const Index = () => {
     profit: { label: "Κέρδος", color: "hsl(152 60% 42%)" },
   };
 
-  // Recent activity - sorted by last update
+  // Recent activity
   const recentActivity = [...assignments]
     .sort((a, b) => (b.updatedAt || b.date).localeCompare(a.updatedAt || a.date))
     .slice(0, 8)
@@ -147,69 +143,91 @@ const Index = () => {
 
   return (
     <AppLayout>
-      <div className="space-y-6 max-w-[1400px]">
+      <div className="space-y-5 sm:space-y-6 max-w-[1400px] mx-auto">
         {/* Hero Banner */}
-        <div className="relative rounded-2xl overflow-hidden shadow-xl">
-          <img src={fiberHero} alt="Fiber Optic Network" className="absolute inset-0 w-full h-full object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/50 to-transparent" />
-          <div className="relative z-10 px-8 py-8 flex items-center justify-between">
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <div className="h-1 w-8 rounded-full cosmote-gradient" />
-                <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-white/60">FTTH Operations</span>
+        <div className="relative rounded-2xl overflow-hidden shadow-xl bg-sidebar">
+          {/* Gradient background instead of image for better mobile performance */}
+          <div className="absolute inset-0 bg-gradient-to-br from-sidebar via-sidebar-accent to-sidebar opacity-90" />
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,hsl(330_100%_44%/0.15),transparent_60%)]" />
+          <div className="absolute bottom-0 right-0 w-64 h-64 bg-[radial-gradient(circle,hsl(152_60%_42%/0.08),transparent_70%)]" />
+
+          <div className="relative z-10 px-5 py-6 sm:px-8 sm:py-8">
+            {/* Top row: logo + sync */}
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex items-center gap-3 sm:gap-4">
+                <img
+                  src={deltaLogo}
+                  alt="DeltaNetwork"
+                  className="h-12 w-12 sm:h-14 sm:w-14 rounded-xl object-cover shadow-lg ring-2 ring-white/10"
+                />
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <div className="h-0.5 w-5 rounded-full cosmote-gradient" />
+                    <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-[0.2em] text-white/50">Fiber to the X</span>
+                  </div>
+                  <h1 className="text-xl sm:text-2xl lg:text-3xl font-extrabold tracking-tight text-white">
+                    DeltaNetwork <span className="text-primary">FTTx</span>
+                  </h1>
+                  <p className="text-[11px] sm:text-xs text-white/50 mt-0.5 max-w-xs sm:max-w-md">
+                    Διαχείριση δικτύου οπτικών ινών — Ρόδος & Κως
+                    {!hasRealData && <span className="ml-2 text-[10px] rounded-full bg-white/10 text-white/40 px-2 py-0.5">demo</span>}
+                  </p>
+                </div>
               </div>
-              <h1 className="text-3xl font-extrabold tracking-tight text-white">Πίνακας Ελέγχου</h1>
-              <p className="text-sm text-white/60 max-w-md">
-                Διαχείριση αυτοψιών, κατασκευών & υλικών — Δίκτυο Οπτικών Ινών Ρόδος & Κως
-                {!hasRealData && <span className="ml-2 text-[11px] rounded-full bg-white/10 text-white/50 px-2 py-0.5 font-medium">demo</span>}
-              </p>
-            </div>
-            <div className="hidden md:flex items-center gap-6">
-              <div className="text-center">
-                <p className="text-3xl font-extrabold text-white font-mono">{assignments.length}</p>
-                <p className="text-[10px] uppercase tracking-wider text-white/50 mt-0.5">Αναθέσεις</p>
-              </div>
-              <div className="h-10 w-px bg-white/15" />
-              <div className="text-center">
-                <p className="text-3xl font-extrabold text-white font-mono">{constructions.length}</p>
-                <p className="text-[10px] uppercase tracking-wider text-white/50 mt-0.5">Κατασκευές</p>
-              </div>
-              <div className="h-10 w-px bg-white/15" />
-              <div className="text-center">
-                <p className="text-3xl font-extrabold text-white font-mono">{totalProfit.toLocaleString('el-GR')}€</p>
-                <p className="text-[10px] uppercase tracking-wider text-white/50 mt-0.5">Κέρδος</p>
-              </div>
-              <div className="ml-4">
+              <div className="hidden sm:block shrink-0">
                 <SyncButton />
               </div>
+            </div>
+
+            {/* Quick stats row */}
+            <div className="mt-5 grid grid-cols-3 gap-3 sm:flex sm:items-center sm:gap-6 lg:gap-8">
+              <div className="text-center sm:text-left">
+                <p className="text-2xl sm:text-3xl font-extrabold text-white font-mono">{assignments.length}</p>
+                <p className="text-[9px] sm:text-[10px] uppercase tracking-wider text-white/40 mt-0.5">Αναθέσεις</p>
+              </div>
+              <div className="hidden sm:block h-8 w-px bg-white/10" />
+              <div className="text-center sm:text-left">
+                <p className="text-2xl sm:text-3xl font-extrabold text-white font-mono">{constructions.length}</p>
+                <p className="text-[9px] sm:text-[10px] uppercase tracking-wider text-white/40 mt-0.5">Κατασκευές</p>
+              </div>
+              <div className="hidden sm:block h-8 w-px bg-white/10" />
+              <div className="text-center sm:text-left">
+                <p className="text-2xl sm:text-3xl font-extrabold text-white font-mono">{totalProfit.toLocaleString('el-GR')}€</p>
+                <p className="text-[9px] sm:text-[10px] uppercase tracking-wider text-white/40 mt-0.5">Κέρδος</p>
+              </div>
+            </div>
+
+            {/* Mobile sync button */}
+            <div className="mt-4 sm:hidden">
+              <SyncButton />
             </div>
           </div>
         </div>
 
-        {/* Stat Cards */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-6">
+        {/* Stat Cards - responsive grid */}
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-6">
           <StatCard title="Ενεργές Αναθέσεις" value={activeAssignments} subtitle={`${completedAssignments} ολοκληρωμένες`} icon={ClipboardCheck} trend="up" trendValue={`${assignments.length} σύνολο`} />
-          <StatCard title="Αναμονή ΟΤΕ" value={waitingOte} subtitle="σε αναμονή απάντησης" icon={Timer} />
+          <StatCard title="Αναμονή ΟΤΕ" value={waitingOte} subtitle="σε αναμονή" icon={Timer} />
           <StatCard title="Κατασκευές" value={activeConstructions} subtitle="σε εξέλιξη" icon={Wrench} accent />
-          <StatCard title="Έσοδα" value={`${totalRevenue.toLocaleString('el-GR')}€`} subtitle="Σύνολο κατασκευών" icon={Euro} trend="up" trendValue={`${totalProfit.toLocaleString('el-GR')}€ κέρδος`} />
-          <StatCard title="Καθαρό Κέρδος" value={`${totalProfit.toLocaleString('el-GR')}€`} subtitle={`${totalRevenue > 0 ? Math.round((totalProfit / totalRevenue) * 100) : 0}% margin`} icon={TrendingUp} trend={totalProfit > 0 ? 'up' : 'down'} trendValue={`${constructions.length} κατασκευές`} accent />
-          <StatCard title="Drive Folders" value={withDrive} subtitle={`από ${assignments.length} αναθέσεις`} icon={FolderOpen} />
+          <StatCard title="Έσοδα" value={`${totalRevenue.toLocaleString('el-GR')}€`} subtitle="κατασκευών" icon={Euro} trend="up" trendValue={`${totalProfit.toLocaleString('el-GR')}€ κέρδος`} />
+          <StatCard title="Καθαρό Κέρδος" value={`${totalProfit.toLocaleString('el-GR')}€`} subtitle={`${totalRevenue > 0 ? Math.round((totalProfit / totalRevenue) * 100) : 0}% margin`} icon={TrendingUp} trend={totalProfit > 0 ? 'up' : 'down'} trendValue={`${constructions.length} κατ.`} accent />
+          <StatCard title="Drive Folders" value={withDrive} subtitle={`από ${assignments.length}`} icon={FolderOpen} />
         </div>
 
-        {/* Charts Row */}
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        {/* Charts Row - stack on mobile */}
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
           {/* Status Bar Chart */}
-          <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+          <div className="rounded-xl border border-border bg-card p-4 sm:p-5 shadow-sm">
             <h2 className="font-bold text-sm mb-4 flex items-center gap-2 text-foreground">
-              <ClipboardCheck className="h-4 w-4 text-primary" />
+              <ClipboardCheck className="h-4 w-4 text-primary shrink-0" />
               Κατάσταση Αναθέσεων
             </h2>
-            <ChartContainer config={chartConfig} className="h-[220px] w-full">
-              <BarChart data={statusCounts} margin={{ top: 5, right: 10, bottom: 5, left: 10 }}>
-                <XAxis dataKey="label" tick={{ fill: "hsl(220 10% 46%)", fontSize: 10 }} axisLine={false} tickLine={false} />
+            <ChartContainer config={chartConfig} className="h-[200px] sm:h-[220px] w-full">
+              <BarChart data={statusCounts} margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
+                <XAxis dataKey="label" tick={{ fill: "hsl(220 10% 46%)", fontSize: 9 }} axisLine={false} tickLine={false} interval={0} angle={-20} textAnchor="end" height={45} />
                 <YAxis allowDecimals={false} tick={{ fill: "hsl(220 10% 46%)", fontSize: 11 }} axisLine={false} tickLine={false} width={25} />
                 <ChartTooltip content={<ChartTooltipContent />} />
-                <Bar dataKey="count" radius={[8, 8, 0, 0]} barSize={36}>
+                <Bar dataKey="count" radius={[8, 8, 0, 0]} barSize={28}>
                   {statusCounts.map((entry, i) => (
                     <Cell key={i} fill={entry.fill} />
                   ))}
@@ -219,13 +237,13 @@ const Index = () => {
           </div>
 
           {/* Monthly Trend */}
-          <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+          <div className="rounded-xl border border-border bg-card p-4 sm:p-5 shadow-sm">
             <h2 className="font-bold text-sm mb-4 flex items-center gap-2 text-foreground">
-              <CalendarDays className="h-4 w-4 text-accent" />
-              Μηνιαία Ολοκλήρωση & Έσοδα
+              <CalendarDays className="h-4 w-4 text-accent shrink-0" />
+              Μηνιαία Ολοκλήρωση
             </h2>
-            <ChartContainer config={trendConfig} className="h-[220px] w-full">
-              <BarChart data={monthlyTrend} margin={{ top: 5, right: 10, bottom: 5, left: 10 }}>
+            <ChartContainer config={trendConfig} className="h-[200px] sm:h-[220px] w-full">
+              <BarChart data={monthlyTrend} margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(220 10% 90%)" />
                 <XAxis dataKey="label" tick={{ fill: "hsl(220 10% 46%)", fontSize: 11 }} axisLine={false} tickLine={false} />
                 <YAxis allowDecimals={false} tick={{ fill: "hsl(220 10% 46%)", fontSize: 11 }} axisLine={false} tickLine={false} width={30} />
@@ -235,10 +253,10 @@ const Index = () => {
             </ChartContainer>
           </div>
 
-          {/* Revenue vs Cost Pie Chart */}
-          <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+          {/* Revenue Pie */}
+          <div className="rounded-xl border border-border bg-card p-4 sm:p-5 shadow-sm md:col-span-2 xl:col-span-1">
             <h2 className="font-bold text-sm mb-4 flex items-center gap-2 text-foreground">
-              <PieChartIcon className="h-4 w-4 text-accent" />
+              <PieChartIcon className="h-4 w-4 text-accent shrink-0" />
               Έσοδα vs Κόστος Υλικών
             </h2>
             {(() => {
@@ -253,30 +271,20 @@ const Index = () => {
               };
               return (
                 <>
-                  <ChartContainer config={pieConfig} className="h-[180px] w-full">
+                  <ChartContainer config={pieConfig} className="h-[160px] sm:h-[180px] w-full">
                     <PieChart>
                       <ChartTooltip content={<ChartTooltipContent />} />
-                      <Pie
-                        data={pieData}
-                        dataKey="value"
-                        nameKey="name"
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={45}
-                        outerRadius={75}
-                        strokeWidth={2}
-                        stroke="hsl(0 0% 100%)"
-                      >
+                      <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={40} outerRadius={70} strokeWidth={2} stroke="hsl(0 0% 100%)">
                         {pieData.map((entry, i) => (
                           <Cell key={i} fill={entry.fill} />
                         ))}
                       </Pie>
                     </PieChart>
                   </ChartContainer>
-                  <div className="flex justify-center gap-5 mt-2">
+                  <div className="flex flex-wrap justify-center gap-4 mt-2">
                     {pieData.map((item, i) => (
                       <div key={i} className="flex items-center gap-2 text-[11px]">
-                        <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: item.fill }} />
+                        <div className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: item.fill }} />
                         <span className="text-muted-foreground">{item.name}</span>
                         <span className="font-mono font-semibold text-foreground">{item.value.toLocaleString('el-GR')}€</span>
                       </div>
@@ -288,51 +296,50 @@ const Index = () => {
           </div>
         </div>
 
-        {/* Recent Activity + Quick Stats */}
+        {/* Activity + Revenue Trend */}
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           {/* Recent Activity */}
-          <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+          <div className="rounded-xl border border-border bg-card p-4 sm:p-5 shadow-sm">
             <h2 className="font-bold text-sm mb-4 flex items-center gap-2 text-foreground">
-              <Activity className="h-4 w-4 text-accent" />
+              <Activity className="h-4 w-4 text-accent shrink-0" />
               Πρόσφατη Δραστηριότητα
             </h2>
-            <div className="space-y-3">
+            <div className="space-y-2">
               {recentActivity.map((item, i) => (
-                <div key={i} className="flex items-center gap-3 text-xs rounded-lg px-3 py-2.5 bg-muted/50 hover:bg-muted transition-colors">
+                <div key={i} className="flex items-center gap-2 sm:gap-3 text-xs rounded-lg px-2.5 sm:px-3 py-2 sm:py-2.5 bg-muted/50 hover:bg-muted transition-colors">
                   <div
-                    className="h-2.5 w-2.5 rounded-full shrink-0 ring-2 ring-background"
+                    className="h-2 w-2 sm:h-2.5 sm:w-2.5 rounded-full shrink-0 ring-2 ring-background"
                     style={{ backgroundColor: STATUS_COLORS[item.status] || "hsl(220 10% 46%)" }}
                   />
                   <div className="flex-1 min-w-0">
-                    <span className="font-mono font-semibold text-foreground">{item.srId}</span>
-                    <span className="text-muted-foreground ml-2">{item.area}</span>
+                    <span className="font-mono font-semibold text-foreground text-[11px] sm:text-xs">{item.srId}</span>
+                    <span className="text-muted-foreground ml-1.5 sm:ml-2 text-[10px] sm:text-xs hidden sm:inline">{item.area}</span>
                   </div>
-                  <span className="text-muted-foreground shrink-0 text-[10px] px-2 py-0.5 rounded bg-muted">
+                  <span className="text-muted-foreground shrink-0 text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 rounded bg-muted truncate max-w-[80px] sm:max-w-none">
                     {item.label}
                   </span>
                   {item.timeAgo && (
-                    <span className="text-muted-foreground/60 shrink-0 font-mono text-[10px]">{item.timeAgo}</span>
+                    <span className="text-muted-foreground/60 shrink-0 font-mono text-[9px] sm:text-[10px]">{item.timeAgo}</span>
                   )}
-                  <span className="text-muted-foreground shrink-0 font-mono text-[10px]">{item.date}</span>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Monthly Revenue Trend Line */}
-          <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+          {/* Revenue Line Chart */}
+          <div className="rounded-xl border border-border bg-card p-4 sm:p-5 shadow-sm">
             <h2 className="font-bold text-sm mb-4 flex items-center gap-2 text-foreground">
-              <TrendingUp className="h-4 w-4 text-primary" />
+              <TrendingUp className="h-4 w-4 text-primary shrink-0" />
               Τάση Εσόδων / Κέρδους
             </h2>
-            <ChartContainer config={trendConfig} className="h-[220px] w-full">
-              <LineChart data={monthlyTrend} margin={{ top: 5, right: 10, bottom: 5, left: 10 }}>
+            <ChartContainer config={trendConfig} className="h-[200px] sm:h-[220px] w-full">
+              <LineChart data={monthlyTrend} margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(220 10% 90%)" />
                 <XAxis dataKey="label" tick={{ fill: "hsl(220 10% 46%)", fontSize: 11 }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fill: "hsl(220 10% 46%)", fontSize: 11 }} axisLine={false} tickLine={false} width={50} />
+                <YAxis tick={{ fill: "hsl(220 10% 46%)", fontSize: 11 }} axisLine={false} tickLine={false} width={45} />
                 <ChartTooltip content={<ChartTooltipContent />} />
-                <Line type="monotone" dataKey="revenue" name="Έσοδα" stroke="hsl(220 70% 55%)" strokeWidth={2} dot={{ r: 4 }} />
-                <Line type="monotone" dataKey="profit" name="Κέρδος" stroke="hsl(152 60% 42%)" strokeWidth={2} dot={{ r: 4 }} />
+                <Line type="monotone" dataKey="revenue" name="Έσοδα" stroke="hsl(220 70% 55%)" strokeWidth={2} dot={{ r: 3 }} />
+                <Line type="monotone" dataKey="profit" name="Κέρδος" stroke="hsl(152 60% 42%)" strokeWidth={2} dot={{ r: 3 }} />
               </LineChart>
             </ChartContainer>
           </div>
@@ -340,14 +347,16 @@ const Index = () => {
 
         {/* Recent Assignments Table */}
         <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
-          <div className="flex items-center justify-between border-b border-border px-5 py-4">
+          <div className="flex items-center justify-between border-b border-border px-4 sm:px-5 py-3 sm:py-4">
             <div className="flex items-center gap-2">
-              <ClipboardCheck className="h-4 w-4 text-primary" />
+              <ClipboardCheck className="h-4 w-4 text-primary shrink-0" />
               <h2 className="font-bold text-sm">Πρόσφατες Αναθέσεις</h2>
             </div>
-            <span className="text-[11px] text-muted-foreground font-mono bg-muted px-2.5 py-1 rounded-full">{assignments.length} εγγραφές</span>
+            <span className="text-[10px] sm:text-[11px] text-muted-foreground font-mono bg-muted px-2 sm:px-2.5 py-1 rounded-full">{assignments.length} εγγραφές</span>
           </div>
-          <AssignmentTable assignments={[...assignments].sort((a, b) => (b.updatedAt || b.date).localeCompare(a.updatedAt || a.date)).slice(0, 5)} />
+          <div className="overflow-x-auto">
+            <AssignmentTable assignments={[...assignments].sort((a, b) => (b.updatedAt || b.date).localeCompare(a.updatedAt || a.date)).slice(0, 5)} />
+          </div>
         </div>
       </div>
     </AppLayout>
