@@ -163,7 +163,7 @@ const AssignmentTable = ({ assignments }: AssignmentTableProps) => {
 
       // If cancelled, move the SR folder in Drive to ΑΚΥΡΩΜΕΝΕΣ ΚΑΤΑΣΚΕΥΕΣ
       if (newStatus === "cancelled") {
-        const assignment = assignments.find((a: any) => a.id === assignmentId);
+        const assignment = assignments.find((a: any) => a.id === assignmentId) as any;
         if (assignment) {
           try {
             await supabase.functions.invoke("move-cancelled-folder", {
