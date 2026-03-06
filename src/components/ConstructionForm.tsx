@@ -582,7 +582,32 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
         }
       }
 
-      const { error: assignError } = await supabase
+      // Upload OTDR PDF files
+      const otdrPaths: string[] = [];
+      const allOtdrFiles = Object.entries(otdrFiles).filter(([_, files]) => files.length > 0);
+      const totalOtdrCount = allOtdrFiles.reduce((sum, [_, files]) => sum + files.length, 0);
+      
+      if (totalOtdrCount > 0) {
+        let otdrUploaded = 0;
+        setSubmitProgress(`Ανέβασμα OTDR μετρήσεων (0/${totalOtdrCount})...`);
+        for (const [category, files] of allOtdrFiles) {
+          const catDef = OTDR_CATEGORIES.find((c) => c.key === category);
+          const folderName = catDef?.storageName || `OTDR_${category.replace(/[^a-zA-Z0-9_-]/g, "_")}`;
+          
+          for (let i = 0; i < files.length; i++) {
+            const pdf = files[i];
+            const storagePath = `constructions/${safeSrId}/${construction.id}/${folderName}/${pdf.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+            const { error: uploadErr } = await supabase.storage
+              .from("photos")
+              .upload(storagePath, pdf, { upsert: true, contentType: "application/pdf" });
+            if (uploadErr) console.error(`OTDR upload error ${folderName}/${i}:`, uploadErr);
+            else otdrPaths.push(storagePath);
+            otdrUploaded++;
+            setSubmitProgress(`Ανέβασμα OTDR μετρήσεων (${otdrUploaded}/${totalOtdrCount})...`);
+          }
+        }
+      }
+
         .from("assignments")
         .update({ status: "completed", cab: cab.trim() })
         .eq("id", assignment.id);
