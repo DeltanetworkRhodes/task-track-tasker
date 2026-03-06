@@ -349,21 +349,21 @@ const ConstructionPage = () => {
                         className="border-b border-border/30 hover:bg-muted/50 transition-colors cursor-pointer"
                         onClick={() => setSelectedConstruction(c)}
                       >
-                        <td className="py-3 px-4 font-mono font-semibold text-primary">{c.srId}</td>
-                        <td className="py-3 px-4 font-mono text-xs">{c.sesId || '—'}</td>
-                        <td className="py-3 px-4 font-mono text-xs">{c.cab || '—'}</td>
+                        <td className="py-3 px-4 font-bold text-primary">{c.srId}</td>
+                        <td className="py-3 px-4 text-xs font-bold">{c.sesId || '—'}</td>
+                        <td className="py-3 px-4 text-xs font-bold">{c.cab || '—'}</td>
                         <td className="py-3 px-4 text-xs">{assignment?.customer_name || '—'}</td>
                         <td className="py-3 px-4">
                           <Badge variant="outline" className={statusColors[c.status] || ""}>
                             {(constructionStatusLabels as any)[c.status] || c.status}
                           </Badge>
                         </td>
-                        <td className="py-3 px-4 text-right font-mono">{c.revenue > 0 ? `${c.revenue.toLocaleString('el-GR')}€` : '—'}</td>
-                        <td className="py-3 px-4 text-right font-mono text-destructive">{c.materialCost > 0 ? `${c.materialCost.toLocaleString('el-GR')}€` : '—'}</td>
-                        <td className={`py-3 px-4 text-right font-mono font-semibold ${c.profit >= 0 ? 'text-green-600' : 'text-destructive'}`}>
+                        <td className="py-3 px-4 text-right font-bold">{c.revenue > 0 ? `${c.revenue.toLocaleString('el-GR')}€` : '—'}</td>
+                        <td className="py-3 px-4 text-right font-bold text-destructive">{c.materialCost > 0 ? `${c.materialCost.toLocaleString('el-GR')}€` : '—'}</td>
+                        <td className={`py-3 px-4 text-right font-bold ${c.profit >= 0 ? 'text-green-600' : 'text-destructive'}`}>
                           {c.profit !== 0 ? `${c.profit >= 0 ? '+' : ''}${c.profit.toLocaleString('el-GR')}€` : '—'}
                         </td>
-                        <td className="py-3 px-4 text-right text-xs text-muted-foreground font-mono">{c.date}</td>
+                        <td className="py-3 px-4 text-right text-xs text-muted-foreground font-bold">{c.date}</td>
                         <td className="py-3 px-4 text-center">
                           <button
                             onClick={(e) => { e.stopPropagation(); setDeleteTarget(c); }}
