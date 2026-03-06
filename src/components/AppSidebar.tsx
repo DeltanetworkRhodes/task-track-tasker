@@ -2,7 +2,7 @@ import { Link, useLocation } from "react-router-dom";
 import { LayoutDashboard, ClipboardCheck, Wrench, Package, LogOut, Wifi, FileText, TrendingUp, Search, UserCog, X } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import NotificationBell from "@/components/NotificationBell";
-import deltaLogo from "@/assets/delta-logo.jpg";
+import deltaLogoLight from "@/assets/delta-logo-light.png";
 
 const navItems = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard },
