@@ -309,7 +309,6 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
             <FileEdit className="h-4 w-4" />
             {existingSurvey ? "Συνέχεια Αυτοψίας" : "Έναρξη Αυτοψίας"}
           </Button>
-          {/* GIS Upload Button - visible after survey exists */}
           {existingSurvey && existingSurvey.status !== "ΕΛΛΙΠΗΣ ΑΥΤΟΨΙΑ" && (
             <>
               <input
@@ -335,26 +334,6 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
                 )}
                 {uploadingGis ? "Ανάλυση GIS..." : existingGisData ? "Αντικατάσταση GIS" : "Upload Προδέσμευσης GIS"}
               </Button>
-              {existingGisData && (
-                 <div className="text-xs text-muted-foreground bg-blue-500/5 border border-blue-500/20 rounded-md p-2 space-y-1">
-                   <p className="font-medium text-blue-600">✓ GIS Αναλύθηκε</p>
-                   <p>Όροφοι: {existingGisData.floors} · BEP: {existingGisData.bep_type || "—"}</p>
-                   <p>BMO: {existingGisData.bmo_type || "—"} · Conduit: {existingGisData.conduit || "—"}</p>
-                   <p>Απόσταση καμπίνα-κτίριο: {existingGisData.distance_from_cabinet}μ</p>
-                   {existingGisData.building_id && <p>Building ID: {existingGisData.building_id}</p>}
-                   {existingGisData.area_type && <p>Τύπος περιοχής: {existingGisData.area_type}</p>}
-                   {existingGisData.associated_bcp && <p>BCP: {existingGisData.associated_bcp}</p>}
-                   {existingGisData.new_bcp && <p>Νέο BCP: {existingGisData.new_bcp}</p>}
-                   {existingGisData.nearby_bcp && <p>Κοντινό BCP: {existingGisData.nearby_bcp}</p>}
-                   {existingGisData.bep_floor && <p>Όροφος BEP: {existingGisData.bep_floor}</p>}
-                   {existingGisData.bep_template && <p>Template BEP: {existingGisData.bep_template}</p>}
-                   {existingGisData.customer_floor && <p>Όροφος πελάτη: {existingGisData.customer_floor}</p>}
-                   {(existingGisData.optical_paths as any[])?.length > 0 && (
-                     <p>Οπτικές διαδρομές: {(existingGisData.optical_paths as any[]).length}</p>
-                   )}
-                   {existingGisData.notes && <p>Σημειώσεις: {existingGisData.notes}</p>}
-                 </div>
-              )}
             </>
           )}
           <Button
@@ -373,35 +352,6 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
     if (status === "pre_committed") {
       return (
         <div className="space-y-2">
-          {existingGisData && (
-             <div className="text-xs text-muted-foreground bg-blue-500/5 border border-blue-500/20 rounded-md p-2 space-y-1">
-               <p className="font-medium text-blue-600">✓ GIS Προδέσμευσης</p>
-               <p>Όροφοι: {existingGisData.floors} · BEP: {existingGisData.bep_type || "—"}</p>
-               <p>BMO: {existingGisData.bmo_type || "—"} · Απόσταση καμπίνα-κτίριο: {existingGisData.distance_from_cabinet}μ</p>
-               {existingGisData.building_id && <p>Building ID: {existingGisData.building_id}</p>}
-               {existingGisData.area_type && <p>Τύπος περιοχής: {existingGisData.area_type}</p>}
-               {existingGisData.associated_bcp && <p>BCP: {existingGisData.associated_bcp}</p>}
-               {existingGisData.new_bcp && <p>Νέο BCP: {existingGisData.new_bcp}</p>}
-               {existingGisData.bep_floor && <p>Όροφος BEP: {existingGisData.bep_floor}</p>}
-               {existingGisData.customer_floor && <p>Όροφος πελάτη: {existingGisData.customer_floor}</p>}
-               {(existingGisData.optical_paths as any[])?.length > 0 && (
-                 <p>Οπτικές διαδρομές: {(existingGisData.optical_paths as any[]).length}</p>
-               )}
-             </div>
-          )}
-          {/* Show incomplete survey files section */}
-          {existingSurvey?.status === "ΕΛΛΙΠΗΣ ΑΥΤΟΨΙΑ" && (
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 text-amber-600 justify-center py-1">
-                <Clock className="h-4 w-4" />
-                <span className="text-sm font-medium">Ελλιπή αρχεία αυτοψίας</span>
-              </div>
-              <p className="text-xs text-muted-foreground text-center">
-                Συμπληρώστε τα αρχεία που λείπουν για να προχωρήσετε στην κατασκευή
-              </p>
-            </div>
-          )}
-          {/* GIS re-upload */}
           <input
             ref={gisFileInputRef}
             type="file"
@@ -648,8 +598,28 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
                       </div>
                     )}
                     {(existingGisData.floor_details as any[])?.length > 0 && (
-                      <div className="text-xs">
-                        <span className="text-muted-foreground">Λεπτομέρειες ορόφων:</span> <span className="font-medium">{(existingGisData.floor_details as any[]).length} εγγραφές</span>
+                      <div className="text-xs space-y-1">
+                        <span className="text-muted-foreground font-semibold">Floor Box ανά όροφο:</span>
+                        <div className="border border-border rounded-md overflow-hidden">
+                          <table className="w-full text-xs">
+                            <thead>
+                              <tr className="bg-muted/50">
+                                <th className="text-left px-2 py-1 font-medium text-muted-foreground">Όροφος</th>
+                                <th className="text-left px-2 py-1 font-medium text-muted-foreground">Τύπος FB</th>
+                                <th className="text-right px-2 py-1 font-medium text-muted-foreground">Τεμ.</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {(existingGisData.floor_details as any[]).map((fd: any, idx: number) => (
+                                <tr key={idx} className="border-t border-border">
+                                  <td className="px-2 py-1">{fd.floor || fd.name || `Όροφος ${idx + 1}`}</td>
+                                  <td className="px-2 py-1">{fd.fb_type || fd.type || "—"}</td>
+                                  <td className="px-2 py-1 text-right">{fd.fb_count || fd.quantity || fd.count || "—"}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
                       </div>
                     )}
                     {existingGisData.warning && (
