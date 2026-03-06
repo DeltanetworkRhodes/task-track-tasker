@@ -468,11 +468,18 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
               </div>
             )}
 
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-              <Calendar className="h-3 w-3" />
-              {new Date(a.created_at).toLocaleDateString("el-GR")}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Calendar className="h-3 w-3" />
+                {new Date(a.created_at).toLocaleDateString("el-GR")}
+              </div>
+              {gisAssignmentIds?.includes(a.id) && (
+                <div className="flex items-center gap-1 text-xs text-blue-600">
+                  <FileSpreadsheet className="h-3.5 w-3.5" />
+                  <span className="font-medium">GIS</span>
+                </div>
+              )}
             </div>
-          </Card>
         ))}
       </div>
 
