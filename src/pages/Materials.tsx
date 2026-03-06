@@ -378,14 +378,6 @@ const Materials = () => {
               {uploading ? 'Ανάγνωση PDF...' : 'Δελτία Αποστολής OTE'}
               <input type="file" accept=".pdf" multiple onChange={handlePdfUpload} className="hidden" disabled={uploading} />
             </label>
-            <button
-              onClick={syncFromSheet}
-              disabled={syncing}
-              className="flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-semibold text-foreground hover:bg-muted transition-all disabled:opacity-50"
-            >
-              <RefreshCw className={`h-4 w-4 ${syncing ? 'animate-spin text-primary' : ''}`} />
-              {syncing ? 'Sync...' : 'Sync από Sheet'}
-            </button>
             <Dialog open={addOpen} onOpenChange={setAddOpen}>
               <DialogTrigger asChild>
                 <button className="flex items-center gap-2 rounded-xl cosmote-gradient px-4 py-2.5 text-sm font-bold text-white shadow-lg shadow-primary/20 hover:opacity-90 transition-all">
