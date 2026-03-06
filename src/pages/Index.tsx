@@ -43,38 +43,42 @@ const Index = () => {
   const { data: dbAssignments } = useAssignments();
   const { data: dbConstructions } = useConstructions();
 
-  const hasRealData = (dbAssignments?.length ?? 0) > 0;
-  const assignments = hasRealData ? dbAssignments!.map(a => ({
-    id: a.id,
-    srId: a.sr_id,
-    area: a.area,
-    status: a.status as any,
-    technician: '—',
-    customerName: (a as any).customer_name || '',
-    address: (a as any).address || '',
-    cab: (a as any).cab || '',
-    phone: (a as any).phone || '',
-    date: a.created_at.split('T')[0],
-    updatedAt: a.updated_at,
-    comments: a.comments || '',
-    photos: a.photos_count || 0,
-    driveUrl: a.drive_folder_url || '',
-  })) : mockAssignments.map(a => ({ ...a, updatedAt: a.date }));
+  const assignments = useMemo(() => {
+    if (!dbAssignments) return [];
+    return dbAssignments.map(a => ({
+      id: a.id,
+      srId: a.sr_id,
+      area: a.area,
+      status: a.status as any,
+      technician: '—',
+      customerName: (a as any).customer_name || '',
+      address: (a as any).address || '',
+      cab: (a as any).cab || '',
+      phone: (a as any).phone || '',
+      date: a.created_at.split('T')[0],
+      updatedAt: a.updated_at,
+      comments: a.comments || '',
+      photos: a.photos_count || 0,
+      driveUrl: a.drive_folder_url || '',
+    }));
+  }, [dbAssignments]);
 
-  const hasRealConstructions = (dbConstructions?.length ?? 0) > 0;
-  const constructions = hasRealConstructions ? dbConstructions!.map(c => ({
-    id: c.id,
-    srId: c.sr_id,
-    sesId: c.ses_id || '',
-    ak: c.ak || '',
-    cab: c.cab || '',
-    floors: c.floors || 0,
-    status: c.status as any,
-    revenue: Number(c.revenue),
-    materialCost: Number(c.material_cost),
-    profit: Number(c.profit || 0),
-    date: c.created_at.split('T')[0],
-  })) : mockConstructions;
+  const constructions = useMemo(() => {
+    if (!dbConstructions) return [];
+    return dbConstructions.map(c => ({
+      id: c.id,
+      srId: c.sr_id,
+      sesId: c.ses_id || '',
+      ak: c.ak || '',
+      cab: c.cab || '',
+      floors: c.floors || 0,
+      status: c.status as any,
+      revenue: Number(c.revenue),
+      materialCost: Number(c.material_cost),
+      profit: Number(c.profit || 0),
+      date: c.created_at.split('T')[0],
+    }));
+  }, [dbConstructions]);
 
   const activeAssignments = assignments.filter(a => a.status !== 'completed' && a.status !== 'cancelled').length;
   const completedAssignments = assignments.filter(a => a.status === 'completed').length;
