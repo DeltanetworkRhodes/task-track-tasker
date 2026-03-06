@@ -6,7 +6,7 @@
 
 @layer base {
   :root {
-    --background: 0 0% 97%;
+    --background: 220 16% 96%;
     --foreground: 220 20% 14%;
 
     --card: 0 0% 100%;
@@ -15,16 +15,16 @@
     --popover: 0 0% 100%;
     --popover-foreground: 220 20% 14%;
 
-    --primary: 330 100% 44%;
+    --primary: 25 95% 53%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 220 14% 94%;
+    --secondary: 220 14% 93%;
     --secondary-foreground: 220 20% 30%;
 
-    --muted: 220 14% 94%;
+    --muted: 220 14% 93%;
     --muted-foreground: 220 10% 46%;
 
-    --accent: 152 60% 42%;
+    --accent: 210 70% 50%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 72% 51%;
@@ -33,29 +33,29 @@
     --success: 152 60% 42%;
     --success-foreground: 0 0% 100%;
 
-    --warning: 38 92% 50%;
-    --warning-foreground: 38 92% 10%;
+    --warning: 45 93% 47%;
+    --warning-foreground: 45 93% 10%;
 
-    --border: 220 13% 89%;
-    --input: 220 13% 89%;
-    --ring: 330 100% 44%;
+    --border: 220 13% 88%;
+    --input: 220 13% 88%;
+    --ring: 25 95% 53%;
 
     --radius: 0.75rem;
 
-    --glow-primary: 0 4px 14px hsl(330 100% 44% / 0.15);
-    --glow-accent: 0 4px 14px hsl(152 60% 42% / 0.12);
+    --glow-primary: 0 4px 14px hsl(25 95% 53% / 0.18);
+    --glow-accent: 0 4px 14px hsl(210 70% 50% / 0.12);
 
     --font-mono: 'JetBrains Mono', monospace;
     --font-sans: 'Inter', system-ui, sans-serif;
 
-    --sidebar-background: 220 20% 14%;
-    --sidebar-foreground: 220 14% 80%;
-    --sidebar-primary: 330 100% 50%;
+    --sidebar-background: 220 25% 11%;
+    --sidebar-foreground: 220 14% 75%;
+    --sidebar-primary: 25 95% 55%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 18% 20%;
-    --sidebar-accent-foreground: 0 0% 95%;
-    --sidebar-border: 220 18% 22%;
-    --sidebar-ring: 330 100% 44%;
+    --sidebar-accent: 220 20% 17%;
+    --sidebar-accent-foreground: 0 0% 93%;
+    --sidebar-border: 220 20% 18%;
+    --sidebar-ring: 25 95% 53%;
   }
 }
 
@@ -83,21 +83,21 @@
   }
   .text-gradient-primary {
     @apply bg-clip-text text-transparent;
-    background-image: linear-gradient(135deg, hsl(330 100% 44%), hsl(340 90% 55%));
+    background-image: linear-gradient(135deg, hsl(25 95% 53%), hsl(30 90% 48%));
   }
   .text-gradient-accent {
     @apply bg-clip-text text-transparent;
-    background-image: linear-gradient(135deg, hsl(152 60% 42%), hsl(165 55% 48%));
+    background-image: linear-gradient(135deg, hsl(210 70% 50%), hsl(200 65% 55%));
   }
   .border-glow {
-    border-color: hsl(330 100% 44% / 0.35);
+    border-color: hsl(25 95% 53% / 0.35);
   }
   .bg-grid {
     background-image: 
-      radial-gradient(circle at 1px 1px, hsl(220 13% 89% / 0.4) 1px, transparent 0);
+      radial-gradient(circle at 1px 1px, hsl(220 13% 88% / 0.4) 1px, transparent 0);
     background-size: 32px 32px;
   }
   .cosmote-gradient {
-    background: linear-gradient(135deg, hsl(330 100% 44%), hsl(340 85% 52%), hsl(295 60% 48%));
+    background: linear-gradient(135deg, hsl(25 95% 53%), hsl(30 85% 48%), hsl(20 90% 45%));
   }
 }
