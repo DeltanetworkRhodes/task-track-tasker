@@ -120,9 +120,21 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
     cat.workPrefixes.length === 0 || cat.workPrefixes.some((p) => selectedWorkPrefixes.has(p))
   );
 
+  // OTDR PDF measurement categories
+  const OTDR_CATEGORIES = [
+    { key: "BMO", storageName: "OTDR_BMO", label: "BMO" },
+    { key: "FB", storageName: "OTDR_FB", label: "Floor Box" },
+    { key: "ΚΑΜΠΙΝΑ", storageName: "OTDR_KAMPINA", label: "Καμπίνα" },
+    { key: "BEP", storageName: "OTDR_BEP", label: "BEP" },
+    { key: "BCP", storageName: "OTDR_BCP", label: "BCP" },
+    { key: "LIVE", storageName: "OTDR_LIVE", label: "Live" },
+  ];
+
   const [categorizedPhotos, setCategorizedPhotos] = useState<Record<string, File[]>>({});
   const [categorizedPreviews, setCategorizedPreviews] = useState<Record<string, string[]>>({});
+  const [otdrFiles, setOtdrFiles] = useState<Record<string, File[]>>({});
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+  const otdrInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
