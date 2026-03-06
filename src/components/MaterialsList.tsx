@@ -24,7 +24,7 @@ const MaterialsList = ({ materials }: MaterialsListProps) => {
         <tbody>
           {materials.map((m) => (
             <tr key={m.id} className="border-b border-border/30 hover:bg-secondary/50 transition-colors">
-              <td className="py-3 px-4 font-mono text-xs text-primary">{m.code}</td>
+              <td className="py-3 px-4 font-bold text-xs text-primary">{m.code}</td>
               <td className="py-3 px-4">{m.name}</td>
               <td className="py-3 px-4">
                 <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
