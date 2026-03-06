@@ -1,6 +1,6 @@
 import { useState } from "react";
 import AppLayout from "@/components/AppLayout";
-import deltaLogoLight from "@/assets/delta-logo-light.png";
+import deltaLogoIcon from "@/assets/delta-logo-icon.png";
 import StatCard from "@/components/StatCard";
 import AssignmentTable from "@/components/AssignmentTable";
 import SyncButton from "@/components/SyncButton";
