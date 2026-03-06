@@ -389,7 +389,7 @@ const IncompleteSurveys = ({ filterSrId }: { filterSrId?: string }) => {
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2">
-        <AlertTriangle className="h-4 w-4 text-orange-500" />
+        <FileWarning className="h-4 w-4 text-warning" />
         <h3 className="text-sm font-bold text-foreground">
           Ελλιπείς Αυτοψίες ({surveys.length})
         </h3>
