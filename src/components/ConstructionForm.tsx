@@ -451,6 +451,69 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
             <Input value={floors} onChange={(e) => setFloors(e.target.value)} type="number" min="0" className="text-sm mt-1" />
           </div>
         </div>
+          <div>
+            <Label className="text-xs">Είδος Όδευσης</Label>
+            <select
+              value={routingType}
+              onChange={(e) => setRoutingType(e.target.value)}
+              className="w-full mt-1 text-sm border border-border rounded-md px-3 py-2 bg-background text-foreground"
+            >
+              <option value="">— Επιλέξτε —</option>
+              <option value="ΥΠΟΓΕΙΑ">ΥΠΟΓΕΙΑ</option>
+              <option value="ΕΝΑΕΡΙΑ">ΕΝΑΕΡΙΑ</option>
+              <option value="ΜΙΚΤΗ">ΜΙΚΤΗ</option>
+            </select>
+          </div>
+          <div>
+            <Label className="text-xs">Αναμονή</Label>
+            <Input value={pendingNote} onChange={(e) => setPendingNote(e.target.value)} placeholder="π.χ. Αναμονή CAD" className="text-sm mt-1" />
+          </div>
+        </div>
+      </Card>
+
+      {/* ΔΙΑΔΡΟΜΕΣ */}
+      <Card className="p-4 space-y-3">
+        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+          <Route className="h-3.5 w-3.5" />
+          Διαδρομές
+        </Label>
+        <div className="space-y-2">
+          {routes.map((route, idx) => (
+            <div key={idx} className="border border-border rounded-lg p-3 space-y-2">
+              <p className="text-xs font-medium text-foreground">{route.label}</p>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <Label className="text-[10px] text-muted-foreground">KOI (m)</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    step="0.1"
+                    value={route.koi}
+                    onChange={(e) => updateRoute(idx, "koi", e.target.value)}
+                    placeholder="0"
+                    className="text-sm mt-0.5 h-8"
+                  />
+                </div>
+                <div>
+                  <Label className="text-[10px] text-muted-foreground">ΦΥΡΑ KOI (m)</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    step="0.1"
+                    value={route.fyraKoi}
+                    onChange={(e) => updateRoute(idx, "fyraKoi", e.target.value)}
+                    placeholder="0"
+                    className="text-sm mt-0.5 h-8"
+                  />
+                </div>
+              </div>
+            </div>
+          ))}
+          <div className="flex justify-between text-xs font-semibold text-foreground bg-muted/50 rounded-lg p-2">
+            <span>Σύνολο</span>
+            <span>KOI: {totalKoi.toFixed(1)}m · ΦΥΡΑ: {totalFyraKoi.toFixed(1)}m</span>
+          </div>
+        </div>
       </Card>
 
       {/* Work Items - Category based */}
