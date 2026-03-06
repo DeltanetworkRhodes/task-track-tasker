@@ -192,14 +192,21 @@ Deno.serve(async (req) => {
     // Parse the XLSX
     const sheets = await parseXlsx(fileData);
     console.log("Parsed sheets:", Object.keys(sheets));
-
-    // ---- PARSE SHEET 1: Main building data ----
+    
+    // Debug: log sheet1 contents
     const sheet1 = sheets["sheet1"] || [];
+    console.log("Sheet1 rows:", sheet1.length);
+    console.log("Sheet1 headers:", JSON.stringify(sheet1[0]));
+    console.log("Sheet1 data:", JSON.stringify(sheet1[1]));
+
     const headers1 = sheet1[0] || [];
     const data1 = sheet1[1] || [];
 
     const getVal = (header: string): string => {
       const idx = headers1.findIndex((h) => h?.toUpperCase().includes(header.toUpperCase()));
+      if (idx >= 0) {
+        console.log(`getVal("${header}") -> idx=${idx}, value="${data1[idx]}"`);
+      }
       return idx >= 0 ? (data1[idx] || "") : "";
     };
 
