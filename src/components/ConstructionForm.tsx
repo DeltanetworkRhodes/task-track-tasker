@@ -400,9 +400,6 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
               spreadsheet_id: spreadsheetFile?.id || null,
               photo_paths: photoPaths,
               drive_folder_url: docsResult?.sr_folder?.url || assignment.drive_folder_url,
-              revenue: totalRevenue,
-              material_cost: totalMaterialCost,
-              profit: totalRevenue - totalMaterialCost,
             },
           }
         );

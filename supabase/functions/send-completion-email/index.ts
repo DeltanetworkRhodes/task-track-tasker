@@ -271,25 +271,6 @@ Deno.serve(async (req) => {
             </tr>
           </table>
 
-          ${revenue !== undefined ? `
-          <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 12px 16px; margin: 16px 0;">
-            <p style="font-weight: bold; color: #166534; font-size: 14px; margin: 0 0 8px;">💰 Οικονομική Σύνοψη</p>
-            <table style="width: 100%; font-size: 13px;">
-              <tr>
-                <td style="color: #166534; padding: 2px 0;">Τιμολόγηση:</td>
-                <td style="text-align: right; font-weight: bold;">${Number(revenue || 0).toFixed(2)}€</td>
-              </tr>
-              <tr>
-                <td style="color: #166534; padding: 2px 0;">Κόστος Υλικών:</td>
-                <td style="text-align: right; font-weight: bold;">${Number(material_cost || 0).toFixed(2)}€</td>
-              </tr>
-              <tr style="border-top: 1px solid #bbf7d0;">
-                <td style="color: #166534; padding: 4px 0 2px; font-weight: bold;">Κέρδος:</td>
-                <td style="text-align: right; font-weight: bold; font-size: 15px;">${Number(profit || 0).toFixed(2)}€</td>
-              </tr>
-            </table>
-          </div>
-          ` : ""}
 
           ${drive_folder_url ? `
           <div style="text-align: center; margin: 20px 0;">
