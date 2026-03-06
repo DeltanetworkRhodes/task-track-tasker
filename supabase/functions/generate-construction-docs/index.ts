@@ -909,6 +909,45 @@ Deno.serve(async (req) => {
       }
     }
 
+    // 6. Upload OTDR PDF files from Supabase storage
+    const otdrFolderDisplayNames: Record<string, string> = {
+      OTDR_BMO: "ΜΕΤΡΗΣΕΙΣ_BMO", OTDR_FB: "ΜΕΤΡΗΣΕΙΣ_FB", OTDR_KAMPINA: "ΜΕΤΡΗΣΕΙΣ_ΚΑΜΠΙΝΑ",
+      OTDR_BEP: "ΜΕΤΡΗΣΕΙΣ_BEP", OTDR_BCP: "ΜΕΤΡΗΣΕΙΣ_BCP", OTDR_LIVE: "ΜΕΤΡΗΣΕΙΣ_LIVE",
+    };
+    if (otdr_paths && otdr_paths.length > 0) {
+      const otdrFolderCache: Record<string, any> = {};
+      for (const otdrPath of otdr_paths) {
+        try {
+          const { data: fileData, error: dlErr } = await adminClient.storage
+            .from("photos")
+            .download(otdrPath);
+          if (dlErr || !fileData) { console.error(`OTDR dl error ${otdrPath}:`, dlErr); continue; }
+          
+          const pathParts = otdrPath.split("/");
+          let targetFolderId = constructionFolder.id;
+          let fileName = pathParts.pop() || `otdr_${Date.now()}.pdf`;
+          
+          if (pathParts.length >= 4) {
+            const asciiFolder = pathParts[pathParts.length - 1];
+            const displayName = otdrFolderDisplayNames[asciiFolder] || asciiFolder;
+            if (!otdrFolderCache[displayName]) {
+              otdrFolderCache[displayName] = await findOrCreateFolder(accessToken, displayName, constructionFolder.id);
+            }
+            targetFolderId = otdrFolderCache[displayName].id;
+          }
+          
+          const arrayBuf = await fileData.arrayBuffer();
+          const otdrResult = await uploadFileToDrive(
+            accessToken, fileName, "application/pdf",
+            new Uint8Array(arrayBuf), targetFolderId
+          );
+          uploadResults.push({ type: "otdr", name: otdrResult.name, id: otdrResult.id });
+        } catch (otdrErr: any) {
+          console.error(`OTDR upload error: ${otdrErr.message}`);
+        }
+      }
+    }
+
     // Update construction drive folder URL
     await adminClient
       .from("constructions")

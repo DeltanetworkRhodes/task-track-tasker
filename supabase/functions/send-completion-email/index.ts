@@ -291,6 +291,38 @@ Deno.serve(async (req) => {
       }
     }
 
+    // 2c. Download OTDR PDFs from Supabase Storage
+    const otdrFolderDisplayNames: Record<string, string> = {
+      OTDR_BMO: "ΜΕΤΡΗΣΕΙΣ_BMO", OTDR_FB: "ΜΕΤΡΗΣΕΙΣ_FB", OTDR_KAMPINA: "ΜΕΤΡΗΣΕΙΣ_ΚΑΜΠΙΝΑ",
+      OTDR_BEP: "ΜΕΤΡΗΣΕΙΣ_BEP", OTDR_BCP: "ΜΕΤΡΗΣΕΙΣ_BCP", OTDR_LIVE: "ΜΕΤΡΗΣΕΙΣ_LIVE",
+    };
+    if (otdr_paths && otdr_paths.length > 0) {
+      for (let i = 0; i < otdr_paths.length; i++) {
+        if (totalSize > MAX_ZIP_SIZE) { console.log(`ZIP size limit reached`); break; }
+        try {
+          const { data: fileData, error: dlErr } = await adminClient.storage
+            .from("photos")
+            .download(otdr_paths[i]);
+          if (dlErr || !fileData) { console.error(`OTDR dl error:`, dlErr); continue; }
+          const pdfBytes = new Uint8Array(await fileData.arrayBuffer());
+          
+          const pathParts = otdr_paths[i].split("/");
+          let folder = "";
+          let fileName = pathParts.pop() || `otdr_${i + 1}.pdf`;
+          if (pathParts.length >= 4) {
+            const asciiFolder = pathParts[pathParts.length - 1];
+            folder = (otdrFolderDisplayNames[asciiFolder] || asciiFolder) + "/";
+          }
+          
+          zipFiles[`ΜΕΤΡΗΣΕΙΣ_OTDR/${folder}${fileName}`] = pdfBytes;
+          totalSize += pdfBytes.length;
+          console.log(`Added OTDR ${folder}${fileName}: ${pdfBytes.length} bytes`);
+        } catch (err: any) {
+          console.error(`OTDR download error: ${err.message}`);
+        }
+      }
+    }
+
     // 3. Create ZIP and upload to Storage (avoids memory issues with base64)
     let zipDownloadUrl = "";
     const safeSrId = sr_id.replace(/[^a-zA-Z0-9_-]/g, "_");
