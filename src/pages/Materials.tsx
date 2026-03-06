@@ -81,7 +81,7 @@ const exportToExcel = (items: MaterialItem[], source: string) => {
   ws['!rows'] = [{ hpx: 28 }]; // header taller
 
   const wb = XLSX.utils.book_new();
-  const title = source === 'OTE' ? 'ΑΠΟΘΗΚΗ_ΥΛΙΚΑ_ΟΤΕ_FTTH' : 'ΑΠΟΘΗΚΗ_ΥΛΙΚΑ_DELTANETWORK';
+  const title = source === 'OTE' ? 'ΑΠΟΘΗΚΗ_ΥΛΙΚΑ_ΟΤΕ_FTTH' : `ΑΠΟΘΗΚΗ_ΥΛΙΚΑ_${source}`;
   XLSX.utils.book_append_sheet(wb, ws, 'Υλικά');
   XLSX.writeFile(wb, `${title}_${new Date().toISOString().slice(0, 10)}.xlsx`);
 };
