@@ -592,11 +592,6 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
                       {existingGisData.deh_nanotronix && <div><span className="text-muted-foreground">ΔΕΗ Nanotronix:</span> <span className="font-medium">Ναι</span></div>}
                       {existingGisData.smart_readiness && <div><span className="text-muted-foreground">Smart Readiness:</span> <span className="font-medium">Ναι</span></div>}
                     </div>
-                    {(existingGisData.optical_paths as any[])?.length > 0 && (
-                      <div className="text-xs">
-                        <span className="text-muted-foreground">Οπτικές διαδρομές:</span> <span className="font-medium">{(existingGisData.optical_paths as any[]).length}</span>
-                      </div>
-                    )}
                     {(existingGisData.floor_details as any[])?.length > 0 && (() => {
                       // Normalize: if items have a "raw" key, use that instead
                       const rawDetails = (existingGisData.floor_details as any[]).map((fd: any) => {
