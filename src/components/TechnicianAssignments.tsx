@@ -20,6 +20,7 @@ const statusFlow: { value: string; label: string }[] = [
   { value: "pending", label: "Αναμονή" },
   { value: "inspection", label: "Αυτοψία" },
   { value: "pre_committed", label: "Προδέσμευση" },
+  { value: "waiting_ote", label: "Αναμονή ΟΤΕ" },
   { value: "construction", label: "Κατασκευή" },
   { value: "completed", label: "Ολοκληρώθηκε" },
   { value: "cancelled", label: "Ακυρωμένο" },
@@ -33,6 +34,7 @@ const statusColors: Record<string, string> = {
   pending: "bg-yellow-500/10 text-yellow-600 border-yellow-500/20",
   inspection: "bg-orange-500/10 text-orange-600 border-orange-500/20",
   pre_committed: "bg-blue-500/10 text-blue-600 border-blue-500/20",
+  waiting_ote: "bg-cyan-500/10 text-cyan-600 border-cyan-500/20",
   construction: "bg-purple-500/10 text-purple-600 border-purple-500/20",
   completed: "bg-green-500/10 text-green-600 border-green-500/20",
   cancelled: "bg-red-500/10 text-red-600 border-red-500/20",
@@ -228,6 +230,26 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
     }
 
     if (status === "pre_committed") {
+      return (
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 text-cyan-600 justify-center py-2">
+            <Clock className="h-5 w-5" />
+            <span className="text-sm font-medium">Αναμονή απάντησης ΟΤΕ</span>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            className="w-full gap-2 text-destructive border-destructive/30 hover:bg-destructive/10"
+            onClick={() => { setShowCancelDialog(true); }}
+          >
+            <XCircle className="h-4 w-4" />
+            Ακύρωση
+          </Button>
+        </div>
+      );
+    }
+
+    if (status === "waiting_ote" || status === "construction") {
       return (
         <div className="space-y-2">
           <Button size="sm" className="w-full gap-2" onClick={() => setShowConstructionForm(true)}>

@@ -4,7 +4,7 @@ export interface Assignment {
   id: string;
   srId: string;
   area: string;
-  status: 'pending' | 'inspection' | 'pre_committed' | 'construction' | 'completed';
+  status: 'pending' | 'inspection' | 'pre_committed' | 'waiting_ote' | 'construction' | 'completed';
   technician: string;
   date: string;
   comments: string;
@@ -38,7 +38,7 @@ export interface Construction {
 export const mockAssignments: Assignment[] = [
   { id: '1', srId: 'SR-2024-0891', area: 'Ρόδος Κέντρο', status: 'completed', technician: 'Γ. Παπαδόπουλος', date: '2024-12-15', comments: 'Ολοκληρώθηκε κανονικά', photos: 8 },
   { id: '2', srId: 'SR-2024-0892', area: 'Ιαλυσός', status: 'construction', technician: 'Ν. Κωνσταντίνου', date: '2024-12-18', comments: 'Αναμονή για CAD', photos: 5 },
-  { id: '3', srId: 'SR-2024-0893', area: 'Φαληράκι', status: 'pre_committed', technician: 'Α. Δημητρίου', date: '2024-12-20', comments: 'Λείπει ο ιδιοκτήτης', photos: 3 },
+  { id: '3', srId: 'SR-2024-0893', area: 'Φαληράκι', status: 'waiting_ote', technician: 'Α. Δημητρίου', date: '2024-12-20', comments: 'Αναμονή απάντησης ΟΤΕ', photos: 3 },
   { id: '4', srId: 'SR-2024-0894', area: 'Κως Πόλη', status: 'inspection', technician: 'Γ. Παπαδόπουλος', date: '2024-12-22', comments: '', photos: 0 },
   { id: '5', srId: 'SR-2024-0895', area: 'Λίνδος', status: 'pending', technician: 'Ν. Κωνσταντίνου', date: '2024-12-23', comments: 'Νέα ανάθεση', photos: 0 },
   { id: '6', srId: 'SR-2024-0896', area: 'Κρεμαστή', status: 'completed', technician: 'Α. Δημητρίου', date: '2024-12-10', comments: 'PDF εστάλη', photos: 12 },
@@ -63,15 +63,17 @@ export const mockConstructions: Construction[] = [
   { id: '4', srId: 'SR-2024-0897', sesId: 'SES-4423', ak: 'AK-KRD-01', cab: 'CAB-156', floors: 2, status: 'in_progress', revenue: 0, materialCost: 95, profit: -95, date: '2024-12-19' },
 ];
 
-export const statusLabels: Record<Assignment['status'], string> = {
+export const statusLabels: Record<string, string> = {
   pending: 'Αναμονή',
   inspection: 'Αυτοψία',
   pre_committed: 'Προδέσμευση',
+  waiting_ote: 'Αναμονή ΟΤΕ',
   construction: 'Κατασκευή',
   completed: 'Ολοκληρώθηκε',
+  cancelled: 'Ακυρωμένο',
 };
 
-export const constructionStatusLabels: Record<Construction['status'], string> = {
+export const constructionStatusLabels: Record<string, string> = {
   in_progress: 'Σε Εξέλιξη',
   completed: 'Ολοκληρώθηκε',
   invoiced: 'Τιμολογήθηκε',

@@ -5,16 +5,24 @@ import AssignmentTable from "@/components/AssignmentTable";
 import SyncButton from "@/components/SyncButton";
 import { useAssignments, useConstructions } from "@/hooks/useData";
 import { mockAssignments, mockConstructions, statusLabels } from "@/data/mockData";
-import { ClipboardCheck, Wrench, TrendingUp, Euro, FolderOpen, Activity, Wifi, PieChartIcon } from "lucide-react";
+import { ClipboardCheck, Wrench, TrendingUp, Euro, FolderOpen, Activity, Wifi, PieChartIcon, CalendarDays, Timer } from "lucide-react";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { BarChart, Bar, XAxis, YAxis, Cell, PieChart, Pie } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, Cell, PieChart, Pie, LineChart, Line, CartesianGrid } from "recharts";
+import { useMemo } from "react";
 
 const STATUS_COLORS: Record<string, string> = {
   pending: "hsl(38 92% 50%)",
   inspection: "hsl(330 100% 44%)",
   pre_committed: "hsl(220 70% 55%)",
+  waiting_ote: "hsl(190 75% 45%)",
   construction: "hsl(280 55% 52%)",
   completed: "hsl(152 60% 42%)",
+  cancelled: "hsl(0 60% 50%)",
+};
+
+const GREEK_MONTHS: Record<number, string> = {
+  0: "Ιαν", 1: "Φεβ", 2: "Μαρ", 3: "Απρ", 4: "Μαϊ", 5: "Ιουν",
+  6: "Ιουλ", 7: "Αυγ", 8: "Σεπ", 9: "Οκτ", 10: "Νοε", 11: "Δεκ",
 };
 
 const Index = () => {
@@ -53,8 +61,9 @@ const Index = () => {
     date: c.created_at.split('T')[0],
   })) : mockConstructions;
 
-  const activeAssignments = assignments.filter(a => a.status !== 'completed').length;
+  const activeAssignments = assignments.filter(a => a.status !== 'completed' && a.status !== 'cancelled').length;
   const completedAssignments = assignments.filter(a => a.status === 'completed').length;
+  const waitingOte = assignments.filter(a => a.status === 'waiting_ote').length;
   const totalRevenue = constructions.reduce((sum, c) => sum + c.revenue, 0);
   const totalProfit = constructions.reduce((sum, c) => sum + c.profit, 0);
   const activeConstructions = constructions.filter(c => c.status === 'in_progress').length;
@@ -77,6 +86,36 @@ const Index = () => {
     acc[s.status] = { label: s.label, color: s.fill };
     return acc;
   }, {} as Record<string, { label: string; color: string }>);
+
+  // Monthly completions trend (last 6 months)
+  const monthlyTrend = useMemo(() => {
+    const now = new Date();
+    const months: { month: string; label: string; completed: number; revenue: number; profit: number }[] = [];
+    
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      const label = GREEK_MONTHS[d.getMonth()];
+      
+      const monthAssignments = assignments.filter(a => a.date.startsWith(key) && a.status === 'completed');
+      const monthConstructions = constructions.filter(c => c.date.startsWith(key));
+      
+      months.push({
+        month: key,
+        label,
+        completed: monthAssignments.length,
+        revenue: monthConstructions.reduce((s, c) => s + c.revenue, 0),
+        profit: monthConstructions.reduce((s, c) => s + c.profit, 0),
+      });
+    }
+    return months;
+  }, [assignments, constructions]);
+
+  const trendConfig = {
+    completed: { label: "Ολοκληρωμένα", color: "hsl(152 60% 42%)" },
+    revenue: { label: "Έσοδα", color: "hsl(220 70% 55%)" },
+    profit: { label: "Κέρδος", color: "hsl(152 60% 42%)" },
+  };
 
   // Recent activity
   const recentActivity = [...assignments]
@@ -132,8 +171,9 @@ const Index = () => {
         </div>
 
         {/* Stat Cards */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-6">
           <StatCard title="Ενεργές Αναθέσεις" value={activeAssignments} subtitle={`${completedAssignments} ολοκληρωμένες`} icon={ClipboardCheck} trend="up" trendValue={`${assignments.length} σύνολο`} />
+          <StatCard title="Αναμονή ΟΤΕ" value={waitingOte} subtitle="σε αναμονή απάντησης" icon={Timer} />
           <StatCard title="Κατασκευές" value={activeConstructions} subtitle="σε εξέλιξη" icon={Wrench} accent />
           <StatCard title="Έσοδα" value={`${totalRevenue.toLocaleString('el-GR')}€`} subtitle="Σύνολο κατασκευών" icon={Euro} trend="up" trendValue={`${totalProfit.toLocaleString('el-GR')}€ κέρδος`} />
           <StatCard title="Καθαρό Κέρδος" value={`${totalProfit.toLocaleString('el-GR')}€`} subtitle={`${totalRevenue > 0 ? Math.round((totalProfit / totalRevenue) * 100) : 0}% margin`} icon={TrendingUp} trend={totalProfit > 0 ? 'up' : 'down'} trendValue={`${constructions.length} κατασκευές`} accent />
@@ -158,6 +198,23 @@ const Index = () => {
                     <Cell key={i} fill={entry.fill} />
                   ))}
                 </Bar>
+              </BarChart>
+            </ChartContainer>
+          </div>
+
+          {/* Monthly Trend */}
+          <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+            <h2 className="font-bold text-sm mb-4 flex items-center gap-2 text-foreground">
+              <CalendarDays className="h-4 w-4 text-accent" />
+              Μηνιαία Ολοκλήρωση & Έσοδα
+            </h2>
+            <ChartContainer config={trendConfig} className="h-[220px] w-full">
+              <BarChart data={monthlyTrend} margin={{ top: 5, right: 10, bottom: 5, left: 10 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(220 10% 90%)" />
+                <XAxis dataKey="label" tick={{ fill: "hsl(220 10% 46%)", fontSize: 11 }} axisLine={false} tickLine={false} />
+                <YAxis allowDecimals={false} tick={{ fill: "hsl(220 10% 46%)", fontSize: 11 }} axisLine={false} tickLine={false} width={30} />
+                <ChartTooltip content={<ChartTooltipContent />} />
+                <Bar dataKey="completed" name="Ολοκληρωμένα" fill="hsl(152 60% 42%)" radius={[6, 6, 0, 0]} barSize={24} />
               </BarChart>
             </ChartContainer>
           </div>
@@ -213,7 +270,10 @@ const Index = () => {
               );
             })()}
           </div>
+        </div>
 
+        {/* Recent Activity + Quick Stats */}
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           {/* Recent Activity */}
           <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
             <h2 className="font-bold text-sm mb-4 flex items-center gap-2 text-foreground">
@@ -231,10 +291,31 @@ const Index = () => {
                     <span className="font-mono font-semibold text-foreground">{item.srId}</span>
                     <span className="text-muted-foreground ml-2">{item.area}</span>
                   </div>
+                  <span className="text-muted-foreground shrink-0 text-[10px] px-2 py-0.5 rounded bg-muted">
+                    {item.label}
+                  </span>
                   <span className="text-muted-foreground shrink-0 font-mono text-[10px]">{item.date.slice(5)}</span>
                 </div>
               ))}
             </div>
+          </div>
+
+          {/* Monthly Revenue Trend Line */}
+          <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+            <h2 className="font-bold text-sm mb-4 flex items-center gap-2 text-foreground">
+              <TrendingUp className="h-4 w-4 text-primary" />
+              Τάση Εσόδων / Κέρδους
+            </h2>
+            <ChartContainer config={trendConfig} className="h-[220px] w-full">
+              <LineChart data={monthlyTrend} margin={{ top: 5, right: 10, bottom: 5, left: 10 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(220 10% 90%)" />
+                <XAxis dataKey="label" tick={{ fill: "hsl(220 10% 46%)", fontSize: 11 }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fill: "hsl(220 10% 46%)", fontSize: 11 }} axisLine={false} tickLine={false} width={50} />
+                <ChartTooltip content={<ChartTooltipContent />} />
+                <Line type="monotone" dataKey="revenue" name="Έσοδα" stroke="hsl(220 70% 55%)" strokeWidth={2} dot={{ r: 4 }} />
+                <Line type="monotone" dataKey="profit" name="Κέρδος" stroke="hsl(152 60% 42%)" strokeWidth={2} dot={{ r: 4 }} />
+              </LineChart>
+            </ChartContainer>
           </div>
         </div>
 
