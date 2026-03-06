@@ -911,9 +911,16 @@ Deno.serve(async (req) => {
 
     // 6. Upload OTDR PDF files from Supabase storage into ΜΕΤΡΗΣΕΙΣ parent folder
     const otdrSubfolderNames: Record<string, string> = {
-      OTDR_BMO: "BMO", OTDR_FB: "FB", OTDR_KAMPINA: "ΚΑΜΠΙΝΑ",
+      OTDR_BMO: "BMO", OTDR_KAMPINA: "ΚΑΜΠΙΝΑ",
       OTDR_BEP: "BEP", OTDR_BCP: "BCP", OTDR_LIVE: "LIVE",
     };
+    // Dynamic FB floor folders: OTDR_FB_00 → FB/00, OTDR_FB_01 → FB/01, etc.
+    function resolveOtdrFolder(asciiFolder: string): string[] {
+      if (otdrSubfolderNames[asciiFolder]) return [otdrSubfolderNames[asciiFolder]];
+      const fbMatch = asciiFolder.match(/^OTDR_FB_(\d+)$/);
+      if (fbMatch) return ["FB", fbMatch[1]];
+      return [asciiFolder];
+    }
     if (otdr_paths && otdr_paths.length > 0) {
       // Create parent ΜΕΤΡΗΣΕΙΣ folder once
       const metriseisFolder = await findOrCreateFolder(accessToken, "ΜΕΤΡΗΣΕΙΣ", constructionFolder.id);
@@ -931,11 +938,17 @@ Deno.serve(async (req) => {
           
           if (pathParts.length >= 4) {
             const asciiFolder = pathParts[pathParts.length - 1];
-            const subName = otdrSubfolderNames[asciiFolder] || asciiFolder;
-            if (!otdrFolderCache[subName]) {
-              otdrFolderCache[subName] = await findOrCreateFolder(accessToken, subName, metriseisFolder.id);
+            const folderPath = resolveOtdrFolder(asciiFolder);
+            // Navigate/create nested folders: e.g. ["FB", "00"] → ΜΕΤΡΗΣΕΙΣ/FB/00
+            let parentId = metriseisFolder.id;
+            for (const seg of folderPath) {
+              const cacheKey = parentId + "/" + seg;
+              if (!otdrFolderCache[cacheKey]) {
+                otdrFolderCache[cacheKey] = await findOrCreateFolder(accessToken, seg, parentId);
+              }
+              parentId = otdrFolderCache[cacheKey].id;
             }
-            targetFolderId = otdrFolderCache[subName].id;
+            targetFolderId = parentId;
           }
           
           const arrayBuf = await fileData.arrayBuffer();
