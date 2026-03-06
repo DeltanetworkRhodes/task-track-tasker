@@ -99,6 +99,7 @@ const AssignmentTable = ({ assignments }: AssignmentTableProps) => {
   const [driveLoading, setDriveLoading] = useState(false);
   const [assigning, setAssigning] = useState<string | null>(null);
   const { data: technicians } = useTechnicians();
+  const { data: history } = useAssignmentHistory(selected?.id || null);
   const queryClient = useQueryClient();
 
   // Build a map of technician_id -> name
