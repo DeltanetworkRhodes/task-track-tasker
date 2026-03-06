@@ -264,6 +264,15 @@ const AssignmentTable = ({ assignments }: AssignmentTableProps) => {
                     <FolderOpen className="h-3.5 w-3.5 text-muted-foreground/30 mx-auto" />
                   )}
                 </td>
+                <td className="py-3 px-4 text-center">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setDeleteTarget(a); }}
+                    className="text-muted-foreground/40 hover:text-destructive transition-colors p-1 rounded"
+                    title="Διαγραφή"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>
