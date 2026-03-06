@@ -236,8 +236,8 @@ const Index = () => {
             </h2>
             <ChartContainer config={chartConfig} className="h-[200px] sm:h-[220px] w-full">
               <BarChart data={statusCounts} margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
-                <XAxis dataKey="label" tick={{ fill: "hsl(220 10% 46%)", fontSize: 9 }} axisLine={false} tickLine={false} interval={0} angle={-20} textAnchor="end" height={45} />
-                <YAxis allowDecimals={false} tick={{ fill: "hsl(220 10% 46%)", fontSize: 11 }} axisLine={false} tickLine={false} width={25} />
+                <XAxis dataKey="label" tick={{ fill: "hsl(210 14% 55%)", fontSize: 9 }} axisLine={false} tickLine={false} interval={0} angle={-20} textAnchor="end" height={45} />
+                <YAxis allowDecimals={false} tick={{ fill: "hsl(210 14% 55%)", fontSize: 11 }} axisLine={false} tickLine={false} width={25} />
                 <ChartTooltip content={<ChartTooltipContent />} />
                 <Bar dataKey="count" radius={[8, 8, 0, 0]} barSize={28}>
                   {statusCounts.map((entry, i) => (
