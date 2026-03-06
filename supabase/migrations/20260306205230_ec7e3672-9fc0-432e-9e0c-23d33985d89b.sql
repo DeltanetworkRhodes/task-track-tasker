@@ -1,0 +1,2 @@
+ALTER TABLE public.assignments DROP CONSTRAINT assignments_status_check;
+ALTER TABLE public.assignments ADD CONSTRAINT assignments_status_check CHECK (status = ANY (ARRAY['pending'::text, 'inspection'::text, 'pre_committed'::text, 'construction'::text, 'completed'::text, 'cancelled'::text]));
