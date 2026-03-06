@@ -164,7 +164,7 @@ const MaterialTable = ({ items, hasRealData, editingId, editValues, onEdit, onSa
                         type="number"
                         value={editValues.stock}
                         onChange={e => onEditChange('stock', e.target.value)}
-                        className="w-20 rounded-lg border border-primary/30 bg-card px-2 py-1 text-right text-sm font-mono focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                        className="w-20 rounded-lg border border-primary/30 bg-card px-2 py-1 text-right text-sm font-bold focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                         autoFocus
                       />
                       <input
