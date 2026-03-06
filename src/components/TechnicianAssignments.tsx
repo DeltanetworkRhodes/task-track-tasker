@@ -20,6 +20,7 @@ const statusFlow: { value: string; label: string }[] = [
   { value: "pending", label: "Αναμονή" },
   { value: "inspection", label: "Αυτοψία" },
   { value: "pre_committed", label: "Προδέσμευση" },
+  { value: "waiting_ote", label: "Αναμονή ΟΤΕ" },
   { value: "construction", label: "Κατασκευή" },
   { value: "completed", label: "Ολοκληρώθηκε" },
   { value: "cancelled", label: "Ακυρωμένο" },
