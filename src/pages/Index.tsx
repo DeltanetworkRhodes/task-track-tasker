@@ -10,6 +10,20 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/
 import { BarChart, Bar, XAxis, YAxis, Cell, PieChart, Pie, LineChart, Line, CartesianGrid } from "recharts";
 import { useMemo } from "react";
 
+function getTimeAgo(dateStr: string): string {
+  const now = new Date();
+  const date = new Date(dateStr);
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  if (diffMins < 1) return "τώρα";
+  if (diffMins < 60) return `${diffMins}λ`;
+  const diffHours = Math.floor(diffMins / 60);
+  if (diffHours < 24) return `${diffHours}ω`;
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays < 7) return `${diffDays}μ`;
+  return `${Math.floor(diffDays / 7)}εβδ`;
+}
+
 const STATUS_COLORS: Record<string, string> = {
   pending: "hsl(38 92% 50%)",
   inspection: "hsl(330 100% 44%)",
@@ -41,10 +55,11 @@ const Index = () => {
     cab: (a as any).cab || '',
     phone: (a as any).phone || '',
     date: a.created_at.split('T')[0],
+    updatedAt: a.updated_at,
     comments: a.comments || '',
     photos: a.photos_count || 0,
     driveUrl: a.drive_folder_url || '',
-  })) : mockAssignments;
+  })) : mockAssignments.map(a => ({ ...a, updatedAt: a.date }));
 
   const hasRealConstructions = (dbConstructions?.length ?? 0) > 0;
   const constructions = hasRealConstructions ? dbConstructions!.map(c => ({
@@ -117,16 +132,17 @@ const Index = () => {
     profit: { label: "Κέρδος", color: "hsl(152 60% 42%)" },
   };
 
-  // Recent activity
+  // Recent activity - sorted by last update
   const recentActivity = [...assignments]
-    .sort((a, b) => b.date.localeCompare(a.date))
-    .slice(0, 6)
+    .sort((a, b) => (b.updatedAt || b.date).localeCompare(a.updatedAt || a.date))
+    .slice(0, 8)
     .map(a => ({
       srId: a.srId,
       area: a.area,
       status: a.status,
       label: (statusLabels as any)[a.status] || a.status,
-      date: a.date,
+      date: a.updatedAt ? new Date(a.updatedAt).toLocaleDateString('el-GR', { day: '2-digit', month: '2-digit' }) : a.date.slice(5),
+      timeAgo: a.updatedAt ? getTimeAgo(a.updatedAt) : '',
     }));
 
   return (
@@ -294,7 +310,10 @@ const Index = () => {
                   <span className="text-muted-foreground shrink-0 text-[10px] px-2 py-0.5 rounded bg-muted">
                     {item.label}
                   </span>
-                  <span className="text-muted-foreground shrink-0 font-mono text-[10px]">{item.date.slice(5)}</span>
+                  {item.timeAgo && (
+                    <span className="text-muted-foreground/60 shrink-0 font-mono text-[10px]">{item.timeAgo}</span>
+                  )}
+                  <span className="text-muted-foreground shrink-0 font-mono text-[10px]">{item.date}</span>
                 </div>
               ))}
             </div>
@@ -328,7 +347,7 @@ const Index = () => {
             </div>
             <span className="text-[11px] text-muted-foreground font-mono bg-muted px-2.5 py-1 rounded-full">{assignments.length} εγγραφές</span>
           </div>
-          <AssignmentTable assignments={assignments.slice(0, 5)} />
+          <AssignmentTable assignments={[...assignments].sort((a, b) => (b.updatedAt || b.date).localeCompare(a.updatedAt || a.date)).slice(0, 5)} />
         </div>
       </div>
     </AppLayout>
