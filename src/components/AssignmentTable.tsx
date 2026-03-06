@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
 import { Assignment, statusLabels } from "@/data/mockData";
-import { Camera, MessageSquare, ExternalLink, User, MapPin, Phone, Hash, FolderOpen, FileText, Image, Loader2 } from "lucide-react";
+import { Camera, MessageSquare, ExternalLink, User, MapPin, Phone, Hash, FolderOpen, FileText, Image, Loader2, Clock, ArrowRight } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useAssignmentHistory } from "@/hooks/useData";
 import { toast } from "sonner";
 
 const statusColors: Record<string, string> = {
