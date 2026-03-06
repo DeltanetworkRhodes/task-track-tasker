@@ -70,14 +70,28 @@ const STEP_GUIDES: Record<string, string[]> = {
 
 interface SetupWizardProps {
   onDismiss?: () => void;
+  demoMode?: boolean;
 }
 
-const SetupWizard = ({ onDismiss }: SetupWizardProps) => {
-  const { data: steps, isLoading } = useSetupChecklist();
+const DEMO_STEPS: SetupStep[] = [
+  { id: "drive", title: "Google Drive", description: "Σύνδεση με Shared Drive για αρχεία αυτοψιών & κατασκευών", completed: false, route: "/settings", icon: "hard-drive" },
+  { id: "areas", title: "Περιοχές & Φάκελοι", description: "Ορισμός περιοχών (π.χ. ΡΟΔΟΣ, ΚΩΣ) και Folder IDs", completed: false, route: "/settings", icon: "folder" },
+  { id: "emails", title: "Ρυθμίσεις Email", description: "Email αποστολέα, παραλήπτες ειδοποιήσεων", completed: false, route: "/settings", icon: "mail" },
+  { id: "users", title: "Τεχνικοί", description: "Προσθήκη τεχνικών για αναθέσεις αυτοψιών", completed: false, route: "/users", icon: "users" },
+  { id: "materials", title: "Αποθήκη Υλικών", description: "Εισαγωγή υλικών (μέσω sync ή χειροκίνητα)", completed: false, route: "/materials", icon: "package" },
+  { id: "pricing", title: "Τιμοκατάλογος Εργασιών", description: "Τιμές εργασιών κατασκευής (μέσω sync ή χειροκίνητα)", completed: false, route: "/work-pricing", icon: "euro" },
+];
+
+const SetupWizard = ({ onDismiss, demoMode = false }: SetupWizardProps) => {
+  const { data: realSteps, isLoading } = useSetupChecklist();
+  const [demoSteps, setDemoSteps] = useState<SetupStep[]>(DEMO_STEPS);
   const [expandedStep, setExpandedStep] = useState<string | null>(null);
   const navigate = useNavigate();
 
-  if (isLoading || !steps) return null;
+  const steps = demoMode ? demoSteps : realSteps;
+
+  if (!demoMode && (isLoading || !steps)) return null;
+  if (!steps) return null;
 
   const completedCount = steps.filter((s) => s.completed).length;
   const totalSteps = steps.length;
