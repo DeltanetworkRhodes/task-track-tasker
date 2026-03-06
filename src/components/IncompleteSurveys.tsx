@@ -102,14 +102,13 @@ const IncompleteSurveys = ({ filterSrId }: { filterSrId?: string }) => {
   };
 
   const handleSubmit = async (survey: any) => {
-    const missingTypes = getMissingTypes(survey);
     const filesToUpload: { fileType: string; files: FileUpload[] }[] = [];
 
-    for (const mt of missingTypes) {
-      const key = `${survey.id}_${mt.key}`;
+    for (const t of REQUIRED_TYPES) {
+      const key = `${survey.id}_${t.key}`;
       const f = uploads[key] || [];
       if (f.length > 0) {
-        filesToUpload.push({ fileType: mt.key, files: f });
+        filesToUpload.push({ fileType: t.key, files: f });
       }
     }
 
