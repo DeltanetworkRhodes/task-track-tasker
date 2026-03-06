@@ -72,6 +72,23 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
   const [ak, setAk] = useState("");
   const [cab, setCab] = useState(assignment.cab || "");
   const [floors, setFloors] = useState("0");
+  const [routingType, setRoutingType] = useState("");
+  const [pendingNote, setPendingNote] = useState("");
+
+  // Routes (ΔΙΑΔΡΟΜΕΣ)
+  const [routes, setRoutes] = useState([
+    { label: "FTTH ΥΠΟΓ ΔΔ (Cabin to BEP)", koi: "", fyraKoi: "" },
+    { label: "ΕΝΑΕΡΙΟ FTTH ΔΔ (Cabinet BCP to BEP)", koi: "", fyraKoi: "" },
+    { label: "ΕΝΑΕΡΙΟ FTTH ΣΥΝΔΡΟΜ (BEP to Floor Box)", koi: "", fyraKoi: "" },
+    { label: "FTTH INHOUSE (Κάθετη όδευση BEP-FI)", koi: "", fyraKoi: "" },
+  ]);
+
+  const updateRoute = (index: number, field: "koi" | "fyraKoi", value: string) => {
+    setRoutes((prev) => prev.map((r, i) => (i === index ? { ...r, [field]: value } : r)));
+  };
+
+  const totalKoi = routes.reduce((sum, r) => sum + (parseFloat(r.koi) || 0), 0);
+  const totalFyraKoi = routes.reduce((sum, r) => sum + (parseFloat(r.fyraKoi) || 0), 0);
 
   // Work items
   const [workItems, setWorkItems] = useState<WorkItem[]>([]);
