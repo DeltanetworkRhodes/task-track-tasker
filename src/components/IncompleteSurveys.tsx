@@ -71,6 +71,8 @@ const IncompleteSurveys = ({ filterSrId }: { filterSrId?: string }) => {
     return REQUIRED_TYPES.filter((t) => !existingTypes.has(t.key));
   };
 
+  const isIncomplete = (survey: any) => survey.status === "ΕΛΛΙΠΗΣ ΑΥΤΟΨΙΑ";
+
   const handleFiles = (
     surveyId: string,
     fileType: string,
