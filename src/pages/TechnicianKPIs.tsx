@@ -163,7 +163,7 @@ const TechnicianKPIs = () => {
                   <div className="flex items-center justify-center gap-1 mb-1">
                     <CheckCircle2 className="h-3 w-3 text-success" />
                   </div>
-                  <p className="text-lg font-bold font-mono">{tech.completed}</p>
+                  <p className="text-lg font-bold">{tech.completed}</p>
                   <p className="text-[9px] text-muted-foreground uppercase">Ολοκλ.</p>
                 </div>
                 <div className="rounded-lg bg-muted/50 p-2.5">
