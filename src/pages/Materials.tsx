@@ -173,7 +173,7 @@ const Materials = () => {
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValues, setEditValues] = useState({ stock: '', price: '', name: '', unit: '', low_stock_threshold: '' });
-  const [syncing, setSyncing] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<MaterialItem | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadOpen, setUploadOpen] = useState(false);
   const [uploadResult, setUploadResult] = useState<any>(null);
