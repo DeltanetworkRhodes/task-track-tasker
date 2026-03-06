@@ -410,7 +410,7 @@ const Surveys = () => {
                     <div key={i} className="flex items-center gap-2 text-[11px]">
                       <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: item.fill }} />
                       <span className="text-muted-foreground">{item.area}</span>
-                      <span className="font-mono font-semibold text-foreground">{item.count}</span>
+                      <span className="font-bold text-foreground">{item.count}</span>
                     </div>
                   ))}
                 </div>
