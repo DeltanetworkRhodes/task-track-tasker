@@ -243,8 +243,9 @@ Deno.serve(async (req) => {
 
     // 3. Create ZIP and upload to Storage (avoids memory issues with base64)
     let zipDownloadUrl = "";
-    const zipFileName = `SR_${sr_id}_COMPLETION.zip`;
-    const zipStoragePath = `completions/${sr_id}/completion.zip`;
+    const safeSrId = sr_id.replace(/[^a-zA-Z0-9_-]/g, "_");
+    const zipFileName = `SR_${safeSrId}.zip`;
+    const zipStoragePath = `completions/${safeSrId}/${zipFileName}`;
 
     if (Object.keys(zipFiles).length > 0) {
       console.log(`Creating ZIP with ${Object.keys(zipFiles).length} files, total ~${Math.round(totalSize / 1024)}KB`);
