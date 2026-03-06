@@ -8,24 +8,31 @@ import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useQueryClient } from "@tanstack/react-query";
+import * as XLSX from "xlsx";
 
 type SortField = 'code' | 'name' | 'stock' | 'price';
 
-const exportToCsv = (items: MaterialItem[], source: string) => {
-  const BOM = '\uFEFF';
-  const header = 'ΚΑΥ;ΠΕΡΙΓΡΑΦΗ;ΜΜ;ΠΟΣΟΤΗΤΑ;ΠΕΡΙΛΗΨΗ';
-  const rows = items.map(m =>
-    `${m.code};${m.name};${m.unit};${m.stock};`
-  );
-  const csv = BOM + [header, ...rows].join('\n');
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
+const exportToExcel = (items: MaterialItem[], source: string) => {
+  const data = items.map(m => ({
+    'ΚΑΥ': m.code,
+    'ΠΕΡΙΓΡΑΦΗ': m.name,
+    'ΜΜ': m.unit,
+    'ΠΟΣΟΤΗΤΑ': m.stock,
+    'ΠΕΡΙΛΗΨΗ': '',
+  }));
+  const ws = XLSX.utils.json_to_sheet(data);
+  // Column widths matching template
+  ws['!cols'] = [
+    { wch: 12 },  // ΚΑΥ
+    { wch: 45 },  // ΠΕΡΙΓΡΑΦΗ
+    { wch: 6 },   // ΜΜ
+    { wch: 12 },  // ΠΟΣΟΤΗΤΑ
+    { wch: 55 },  // ΠΕΡΙΛΗΨΗ
+  ];
+  const wb = XLSX.utils.book_new();
   const title = source === 'OTE' ? 'ΑΠΟΘΗΚΗ_ΥΛΙΚΑ_ΟΤΕ_FTTH' : 'ΑΠΟΘΗΚΗ_ΥΛΙΚΑ_DELTANETWORK';
-  a.download = `${title}_${new Date().toISOString().slice(0, 10)}.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
+  XLSX.utils.book_append_sheet(wb, ws, 'Υλικά');
+  XLSX.writeFile(wb, `${title}_${new Date().toISOString().slice(0, 10)}.xlsx`);
 };
 type SortDir = 'asc' | 'desc';
 
