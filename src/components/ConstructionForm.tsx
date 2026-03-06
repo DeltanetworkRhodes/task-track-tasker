@@ -454,6 +454,20 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
   };
 
   const totalPhotos = Object.values(categorizedPhotos).reduce((sum, arr) => sum + arr.length, 0);
+  const totalOtdrFiles = Object.values(otdrFiles).reduce((sum, arr) => sum + arr.length, 0);
+
+  // OTDR PDF handlers
+  const handleOtdrSelect = (category: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []).filter((f) => f.type === "application/pdf");
+    if (files.length === 0) { toast.error("Μόνο PDF αρχεία επιτρέπονται"); return; }
+    setOtdrFiles((prev) => ({ ...prev, [category]: [...(prev[category] || []), ...files] }));
+    const ref = otdrInputRefs.current[category];
+    if (ref) ref.value = "";
+  };
+
+  const removeOtdrFile = (category: string, index: number) => {
+    setOtdrFiles((prev) => ({ ...prev, [category]: (prev[category] || []).filter((_, i) => i !== index) }));
+  };
 
   // Totals
   const totalRevenue = workItems.reduce((sum, w) => sum + w.unit_price * w.quantity, 0);
