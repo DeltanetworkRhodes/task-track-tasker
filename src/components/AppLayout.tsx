@@ -1,7 +1,7 @@
 import { ReactNode, useState } from "react";
 import AppSidebar from "./AppSidebar";
 import { Menu, X } from "lucide-react";
-import deltaLogo from "@/assets/delta-logo.jpg";
+import deltaLogoIcon from "@/assets/delta-logo-icon.png";
 
 const AppLayout = ({ children }: { children: ReactNode }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
