@@ -219,7 +219,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    // 2. Download photos from Supabase Storage (already compressed during upload)
+    // 2. Download photos from Supabase Storage (organized by category folders)
     if (photo_paths && photo_paths.length > 0) {
       for (let i = 0; i < photo_paths.length; i++) {
         if (totalSize > MAX_ZIP_SIZE) {
@@ -232,10 +232,19 @@ Deno.serve(async (req) => {
             .download(photo_paths[i]);
           if (dlErr || !fileData) { console.error(`Photo dl error:`, dlErr); continue; }
           const photoBytes = new Uint8Array(await fileData.arrayBuffer());
-          const fileName = photo_paths[i].split("/").pop() || `photo_${i + 1}.jpg`;
-          zipFiles[`ΦΩΤΟΓΡΑΦΙΕΣ/${fileName}`] = photoBytes;
+          
+          // Extract category from path: constructions/{sr_id}/{construction_id}/{CATEGORY}/{filename}
+          const pathParts = photo_paths[i].split("/");
+          let categoryFolder = "";
+          let fileName = pathParts.pop() || `photo_${i + 1}.jpg`;
+          // If path has 5 parts: constructions/sr/cid/CATEGORY/file
+          if (pathParts.length >= 4) {
+            categoryFolder = pathParts[pathParts.length - 1] + "/";
+          }
+          
+          zipFiles[`ΦΩΤΟΓΡΑΦΙΕΣ/${categoryFolder}${fileName}`] = photoBytes;
           totalSize += photoBytes.length;
-          console.log(`Added photo ${fileName}: ${photoBytes.length} bytes`);
+          console.log(`Added photo ${categoryFolder}${fileName}: ${photoBytes.length} bytes`);
         } catch (photoErr: any) {
           console.error(`Photo download error: ${photoErr.message}`);
         }
