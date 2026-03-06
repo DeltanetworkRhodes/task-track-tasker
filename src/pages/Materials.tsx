@@ -569,7 +569,7 @@ const Materials = () => {
                 <AlertTriangle className={`h-4 w-4 ${lowStock > 0 ? 'text-warning' : 'text-success'}`} />
               </div>
               <div>
-                <p className="text-2xl font-extrabold font-mono">{lowStock}</p>
+                <p className="text-2xl font-extrabold">{lowStock}</p>
                 <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Χαμηλό Απόθεμα</p>
               </div>
             </div>
