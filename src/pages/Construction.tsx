@@ -420,15 +420,15 @@ const ConstructionPage = () => {
                     <div className="grid grid-cols-2 gap-2">
                       <div className="flex items-center gap-2">
                         <span className="text-muted-foreground text-xs font-medium">SES ID:</span>
-                        <span className="font-mono">{c.sesId || '—'}</span>
+                        <span className="font-bold">{c.sesId || '—'}</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="text-muted-foreground text-xs font-medium">Α/Κ:</span>
-                        <span className="font-mono">{c.ak || '—'}</span>
+                        <span className="font-bold">{c.ak || '—'}</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="text-muted-foreground text-xs font-medium">CAB:</span>
-                        <span className="font-mono">{c.cab || '—'}</span>
+                        <span className="font-bold">{c.cab || '—'}</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <Layers className="h-3.5 w-3.5 text-muted-foreground" />
