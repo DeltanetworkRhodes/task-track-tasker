@@ -432,11 +432,11 @@ const Surveys = () => {
               {upcomingAppointments.slice(0, 5).map((a) => (
                 <div key={a.id} className="flex items-center gap-3 text-sm rounded-lg px-3 py-2.5 bg-muted/50 hover:bg-muted transition-colors">
                   <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
-                  <span className="font-medium text-foreground font-mono text-xs">
+                  <span className="font-bold text-foreground text-xs">
                     {new Date(a.appointment_at).toLocaleDateString("el-GR")}{" "}
                     {new Date(a.appointment_at).toLocaleTimeString("el-GR", { hour: "2-digit", minute: "2-digit" })}
                   </span>
-                  <span className="font-mono text-xs text-foreground">SR {a.sr_id}</span>
+                  <span className="font-bold text-xs text-foreground">SR {a.sr_id}</span>
                   <Badge variant="outline" className="text-xs">{a.area}</Badge>
                   {a.description && (
                     <span className="text-xs text-muted-foreground truncate flex-1">{a.description}</span>
