@@ -366,11 +366,13 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
       if (assignError) console.error("Assignment update error:", assignError);
 
       setSubmitProgress("Δημιουργία εγγράφων & upload στο Drive...");
+      let docsResult: any = null;
       try {
-        const { data: docsResult, error: docsErr } = await supabase.functions.invoke(
+        const { data, error: docsErr } = await supabase.functions.invoke(
           "generate-construction-docs",
           { body: { construction_id: construction.id, photo_paths: photoPaths } }
         );
+        docsResult = data;
         if (docsErr) {
           console.error("Docs generation error:", docsErr);
           toast.error("Τα έγγραφα δεν δημιουργήθηκαν, αλλά η κατασκευή καταχωρήθηκε");
@@ -379,6 +381,38 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
         }
       } catch (docsErr: any) {
         console.error("Docs error:", docsErr);
+      }
+
+      // Send completion email with ZIP (spreadsheet + photos)
+      setSubmitProgress("Αποστολή email ολοκλήρωσης...");
+      try {
+        const spreadsheetFile = docsResult?.files?.find((f: any) => f.type === "spreadsheet");
+        const { error: emailErr } = await supabase.functions.invoke(
+          "send-completion-email",
+          {
+            body: {
+              construction_id: construction.id,
+              sr_id: assignment.sr_id,
+              area: assignment.area,
+              customer_name: assignment.customer_name,
+              address: assignment.address,
+              cab: cab.trim(),
+              spreadsheet_id: spreadsheetFile?.id || null,
+              photo_paths: photoPaths,
+              drive_folder_url: docsResult?.sr_folder?.url || assignment.drive_folder_url,
+              revenue: totalRevenue,
+              material_cost: totalMaterialCost,
+              profit: totalRevenue - totalMaterialCost,
+            },
+          }
+        );
+        if (emailErr) {
+          console.error("Completion email error:", emailErr);
+        } else {
+          toast.success("Email ολοκλήρωσης εστάλη");
+        }
+      } catch (emailErr: any) {
+        console.error("Completion email error:", emailErr);
       }
 
       toast.success("Η κατασκευή καταχωρήθηκε επιτυχώς!");
