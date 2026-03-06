@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { LogIn, UserPlus, ArrowLeft, Globe, Mail, Phone, MapPin } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Navigate } from "react-router-dom";
-import deltaLogo from "@/assets/delta-logo-light.png";
+import deltaLogo from "@/assets/delta-logo-full-transparent.png";
 
 const LoginPage = () => {
   const { user, loading: authLoading } = useAuth();
@@ -68,7 +68,7 @@ const LoginPage = () => {
               <img
                 src={deltaLogo}
                 alt="DeltaNetwork"
-                className="relative h-24 w-auto object-contain drop-shadow-2xl"
+                className="relative h-32 sm:h-40 w-auto object-contain drop-shadow-2xl"
               />
             </div>
             <div className="text-center space-y-2">
