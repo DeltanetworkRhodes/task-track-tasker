@@ -892,7 +892,7 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
                           
                           <div className="flex-1 min-w-0" onClick={() => toggleWork(w)}>
                             <div className="flex items-center gap-1.5">
-                              <span className="text-xs font-mono text-primary font-semibold">{w.code}</span>
+                              <span className="text-xs text-primary font-bold">{w.code}</span>
                               <span className="text-xs font-semibold text-foreground">{w.unit_price}€</span>
                             </div>
                             <p className="text-[11px] text-muted-foreground leading-tight">{w.description}</p>
