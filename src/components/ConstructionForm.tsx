@@ -943,7 +943,7 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
           </Label>
           {materialItems.length > 0 && (
             <Badge variant="secondary" className="text-xs">
-              {oteMaterials.length} ΟΤΕ · {deltanetMaterials.length} ΔΝ
+              {oteMaterials.length} ΟΤΕ · {deltanetMaterials.length} {orgName}
             </Badge>
           )}
         </div>
