@@ -120,9 +120,21 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
     cat.workPrefixes.length === 0 || cat.workPrefixes.some((p) => selectedWorkPrefixes.has(p))
   );
 
+  // OTDR PDF measurement categories
+  const OTDR_CATEGORIES = [
+    { key: "BMO", storageName: "OTDR_BMO", label: "BMO" },
+    { key: "FB", storageName: "OTDR_FB", label: "Floor Box" },
+    { key: "ΚΑΜΠΙΝΑ", storageName: "OTDR_KAMPINA", label: "Καμπίνα" },
+    { key: "BEP", storageName: "OTDR_BEP", label: "BEP" },
+    { key: "BCP", storageName: "OTDR_BCP", label: "BCP" },
+    { key: "LIVE", storageName: "OTDR_LIVE", label: "Live" },
+  ];
+
   const [categorizedPhotos, setCategorizedPhotos] = useState<Record<string, File[]>>({});
   const [categorizedPreviews, setCategorizedPreviews] = useState<Record<string, string[]>>({});
+  const [otdrFiles, setOtdrFiles] = useState<Record<string, File[]>>({});
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+  const otdrInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -442,6 +454,20 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
   };
 
   const totalPhotos = Object.values(categorizedPhotos).reduce((sum, arr) => sum + arr.length, 0);
+  const totalOtdrFiles = Object.values(otdrFiles).reduce((sum, arr) => sum + arr.length, 0);
+
+  // OTDR PDF handlers
+  const handleOtdrSelect = (category: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []).filter((f) => f.type === "application/pdf");
+    if (files.length === 0) { toast.error("Μόνο PDF αρχεία επιτρέπονται"); return; }
+    setOtdrFiles((prev) => ({ ...prev, [category]: [...(prev[category] || []), ...files] }));
+    const ref = otdrInputRefs.current[category];
+    if (ref) ref.value = "";
+  };
+
+  const removeOtdrFile = (category: string, index: number) => {
+    setOtdrFiles((prev) => ({ ...prev, [category]: (prev[category] || []).filter((_, i) => i !== index) }));
+  };
 
   // Totals
   const totalRevenue = workItems.reduce((sum, w) => sum + w.unit_price * w.quantity, 0);
@@ -556,6 +582,32 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
         }
       }
 
+      // Upload OTDR PDF files
+      const otdrPaths: string[] = [];
+      const allOtdrFiles = Object.entries(otdrFiles).filter(([_, files]) => files.length > 0);
+      const totalOtdrCount = allOtdrFiles.reduce((sum, [_, files]) => sum + files.length, 0);
+      
+      if (totalOtdrCount > 0) {
+        let otdrUploaded = 0;
+        setSubmitProgress(`Ανέβασμα OTDR μετρήσεων (0/${totalOtdrCount})...`);
+        for (const [category, files] of allOtdrFiles) {
+          const catDef = OTDR_CATEGORIES.find((c) => c.key === category);
+          const folderName = catDef?.storageName || `OTDR_${category.replace(/[^a-zA-Z0-9_-]/g, "_")}`;
+          
+          for (let i = 0; i < files.length; i++) {
+            const pdf = files[i];
+            const storagePath = `constructions/${safeSrId}/${construction.id}/${folderName}/${pdf.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+            const { error: uploadErr } = await supabase.storage
+              .from("photos")
+              .upload(storagePath, pdf, { upsert: true, contentType: "application/pdf" });
+            if (uploadErr) console.error(`OTDR upload error ${folderName}/${i}:`, uploadErr);
+            else otdrPaths.push(storagePath);
+            otdrUploaded++;
+            setSubmitProgress(`Ανέβασμα OTDR μετρήσεων (${otdrUploaded}/${totalOtdrCount})...`);
+          }
+        }
+      }
+
       const { error: assignError } = await supabase
         .from("assignments")
         .update({ status: "completed", cab: cab.trim() })
@@ -567,7 +619,7 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
       try {
         const { data, error: docsErr } = await supabase.functions.invoke(
           "generate-construction-docs",
-          { body: { construction_id: construction.id, photo_paths: photoPaths } }
+          { body: { construction_id: construction.id, photo_paths: photoPaths, otdr_paths: otdrPaths } }
         );
         docsResult = data;
         if (docsErr) {
@@ -596,6 +648,7 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
               cab: cab.trim(),
               spreadsheet_id: spreadsheetFile?.id || null,
               photo_paths: photoPaths,
+              otdr_paths: otdrPaths,
               drive_folder_url: docsResult?.sr_folder?.url || assignment.drive_folder_url,
             },
           }
@@ -1060,7 +1113,72 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
         </div>
       </Card>
 
-      {/* Summary */}
+      {/* OTDR Measurements - PDF uploads */}
+      <Card className="p-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+            📊 Μετρήσεις OTDR (PDF)
+          </Label>
+          {totalOtdrFiles > 0 && (
+            <Badge variant="secondary" className="text-xs">{totalOtdrFiles} PDF</Badge>
+          )}
+        </div>
+
+        <div className="space-y-2">
+          {OTDR_CATEGORIES.map((cat) => {
+            const catFiles = otdrFiles[cat.key] || [];
+            return (
+              <div key={cat.key} className="border border-border rounded-lg p-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-medium">📊 {cat.label}</span>
+                  <div className="flex items-center gap-2">
+                    {catFiles.length > 0 && (
+                      <Badge variant="outline" className="text-[10px] h-5">{catFiles.length}</Badge>
+                    )}
+                    <input
+                      ref={(el) => { otdrInputRefs.current[cat.key] = el; }}
+                      type="file"
+                      accept=".pdf,application/pdf"
+                      multiple
+                      onChange={(e) => handleOtdrSelect(cat.key, e)}
+                      className="hidden"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => otdrInputRefs.current[cat.key]?.click()}
+                      className="h-7 text-[11px] gap-1 px-2"
+                    >
+                      PDF
+                    </Button>
+                  </div>
+                </div>
+                
+                {catFiles.length > 0 && (
+                  <div className="space-y-1">
+                    {catFiles.map((file, i) => (
+                      <div key={i} className="flex items-center gap-2 text-xs bg-muted/50 rounded px-2 py-1.5">
+                        <span className="text-muted-foreground">📄</span>
+                        <span className="flex-1 truncate">{file.name}</span>
+                        <span className="text-muted-foreground">{(file.size / 1024).toFixed(0)}KB</span>
+                        <button
+                          type="button"
+                          onClick={() => removeOtdrFile(cat.key, i)}
+                          className="text-destructive hover:text-destructive/80"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </Card>
+
       {(workItems.length > 0 || materialItems.length > 0) && (
         <Card className="p-4 space-y-2 border-primary/20">
           <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Σύνοψη</Label>
