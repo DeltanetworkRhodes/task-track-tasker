@@ -579,11 +579,16 @@ const Materials = () => {
                   <h2 className="font-bold text-sm">Υλικά DELTANETWORK</h2>
                   <span className="text-[11px] text-muted-foreground font-mono ml-1">({deltaItems.length} είδη)</span>
                 </div>
-                {deltaValue > 0 && (
-                  <span className="text-[11px] text-muted-foreground font-mono">
-                    Αξία: <span className="font-semibold text-foreground">{deltaValue.toLocaleString('el-GR', { minimumFractionDigits: 2 })}€</span>
-                  </span>
-                )}
+                <div className="flex items-center gap-3">
+                  {deltaValue > 0 && (
+                    <span className="text-[11px] text-muted-foreground font-mono">
+                      Αξία: <span className="font-semibold text-foreground">{deltaValue.toLocaleString('el-GR', { minimumFractionDigits: 2 })}€</span>
+                    </span>
+                  )}
+                  <button onClick={() => exportToCsv(deltaItems, 'DELTANETWORK')} className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 py-1.5 text-[11px] font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
+                    <Download className="h-3 w-3" /> Export
+                  </button>
+                </div>
               </div>
               <MaterialTable items={deltaItems} {...sharedTableProps} />
             </div>
