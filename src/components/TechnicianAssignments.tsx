@@ -162,6 +162,20 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
         console.error("Cancellation email error:", emailErr);
       }
 
+      // 3. Move SR folder to ΑΚΥΡΩΜΕΝΕΣ ΚΑΤΑΣΚΕΥΕΣ in Drive
+      try {
+        await supabase.functions.invoke("move-cancelled-folder", {
+          body: {
+            sr_id: selectedAssignment.sr_id,
+            area: selectedAssignment.area,
+            assignment_id: selectedAssignment.id,
+          },
+        });
+        toast.success("Ο φάκελος μεταφέρθηκε στις ΑΚΥΡΩΜΕΝΕΣ ΚΑΤΑΣΚΕΥΕΣ");
+      } catch (moveErr) {
+        console.error("Move folder error:", moveErr);
+      }
+
       toast.success("Η ανάθεση ακυρώθηκε");
       queryClient.invalidateQueries({ queryKey: ["technician-assignments"] });
       setShowCancelDialog(false);
