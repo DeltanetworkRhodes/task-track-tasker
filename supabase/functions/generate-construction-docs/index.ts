@@ -214,13 +214,80 @@ async function createAndFillTemplate(
   const s = (cell: string) => `'${sheetName}'!${cell}`;
 
   // 4. Read work codes (col A) and material codes (col I) to find row positions
-  const readUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values:batchGet?ranges=${encodeURIComponent(s("A10:A200"))}&ranges=${encodeURIComponent(s("I10:I200"))}`;
-  const readRes = await fetch(readUrl, { headers: { Authorization: `Bearer ${accessToken}` } });
-  if (!readRes.ok) throw new Error(`Read codes failed: ${await readRes.text()}`);
-  const readData = await readRes.json();
+  // First, read a broad range to understand the structure
+  const debugUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values:batchGet?ranges=${encodeURIComponent(s("A1:A15"))}&ranges=${encodeURIComponent(s("I1:I15"))}&ranges=${encodeURIComponent(s("A1:N1"))}`;
+  const debugRes = await fetch(debugUrl, { headers: { Authorization: `Bearer ${accessToken}` } });
+  if (debugRes.ok) {
+    const debugData = await debugRes.json();
+    const colAFirst = (debugData.valueRanges?.[0]?.values || []).map((r: any[]) => r[0] || "");
+    const colIFirst = (debugData.valueRanges?.[1]?.values || []).map((r: any[]) => r[0] || "");
+    const row1 = (debugData.valueRanges?.[2]?.values?.[0] || []);
+    console.log("Col A first 15:", JSON.stringify(colAFirst));
+    console.log("Col I first 15:", JSON.stringify(colIFirst));
+    console.log("Row 1 cols:", JSON.stringify(row1));
+  }
 
-  const workCodes: string[] = (readData.valueRanges?.[0]?.values || []).map((r: any[]) => (r[0] || "").toString().trim());
-  const matCodes: string[] = (readData.valueRanges?.[1]?.values || []).map((r: any[]) => (r[0] || "").toString().trim());
+  // Now find where "Άρθρο" and "ΚΑΥ" headers are
+  const scanUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(s("A1:N200"))}`;
+  const scanRes = await fetch(scanUrl, { headers: { Authorization: `Bearer ${accessToken}` } });
+  if (!scanRes.ok) throw new Error(`Scan failed: ${await scanRes.text()}`);
+  const scanData = await scanRes.json();
+  const allRows: any[][] = scanData.values || [];
+
+  // Find header row containing "Άρθρο"
+  let workHeaderRow = -1;
+  let workCodeCol = 0; // Column A
+  let workQtyCol = -1;
+  let matCodeCol = -1;
+  let matQtyCol = -1;
+
+  for (let r = 0; r < Math.min(allRows.length, 20); r++) {
+    const row = allRows[r];
+    for (let c = 0; c < (row?.length || 0); c++) {
+      const val = (row[c] || "").toString().trim();
+      if (val === "Άρθρο") {
+        workHeaderRow = r;
+        workCodeCol = c;
+        console.log(`Found "Άρθρο" at row ${r + 1}, col ${c}`);
+      }
+      if (val === "ΠΟΣΟΤΗΤΑ" && workHeaderRow === r) {
+        workQtyCol = c;
+        console.log(`Found work "ΠΟΣΟΤΗΤΑ" at row ${r + 1}, col ${c}`);
+      }
+      if (val === "ΚΑΥ") {
+        matCodeCol = c;
+        console.log(`Found "ΚΑΥ" at row ${r + 1}, col ${c}`);
+      }
+    }
+  }
+
+  // Find material ΠΟΣΟΤΗΤΑ in the row after ΚΑΥ or same row
+  if (matCodeCol >= 0) {
+    for (let r = workHeaderRow; r < Math.min(allRows.length, workHeaderRow + 3); r++) {
+      const row = allRows[r];
+      for (let c = matCodeCol + 1; c < (row?.length || 0); c++) {
+        if ((row[c] || "").toString().trim() === "ΠΟΣΟΤΗΤΑ") {
+          matQtyCol = c;
+          console.log(`Found material "ΠΟΣΟΤΗΤΑ" at row ${r + 1}, col ${c}`);
+          break;
+        }
+      }
+      if (matQtyCol >= 0) break;
+    }
+  }
+
+  // Determine data start row (row after headers)
+  const dataStartRow = workHeaderRow + 2; // Skip header + sub-header rows
+  console.log(`Data starts at row ${dataStartRow + 1}`);
+
+  // Extract work codes and material codes from actual positions
+  const workCodes: string[] = [];
+  const matCodes: string[] = [];
+  for (let r = dataStartRow; r < allRows.length; r++) {
+    const row = allRows[r] || [];
+    workCodes.push((row[workCodeCol] || "").toString().trim());
+    matCodes.push(matCodeCol >= 0 ? (row[matCodeCol] || "").toString().trim() : "");
+  }
   console.log(`Template has ${workCodes.filter(Boolean).length} work codes, ${matCodes.filter(Boolean).length} material codes`);
 
   // 5. Build batch update
