@@ -453,8 +453,20 @@ Deno.serve(async (req) => {
     }
 
     // 7. Update status based on completeness
-    const newAssignmentStatus = isComplete ? "construction" : "pending";
+    let newAssignmentStatus = isComplete ? "construction" : "pending";
     const newSurveyStatus = isComplete ? "ΠΡΟΔΕΣΜΕΥΣΗ ΥΛΙΚΩΝ" : "ΕΛΛΙΠΗΣ ΑΥΤΟΨΙΑ";
+
+    // If survey still incomplete, check if GIS was already uploaded → keep pre_committed
+    if (!isComplete) {
+      const { data: gisExists } = await adminClient
+        .from("gis_data")
+        .select("id")
+        .eq("sr_id", sr_id)
+        .maybeSingle();
+      if (gisExists) {
+        newAssignmentStatus = "pre_committed";
+      }
+    }
     
     await adminClient
       .from("assignments")
