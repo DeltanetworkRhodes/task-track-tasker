@@ -100,16 +100,24 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
   const [materialTab, setMaterialTab] = useState("OTE");
 
   // Photo categories
-  const PHOTO_CATEGORIES = [
-    { key: "ΣΚΑΜΑ", label: "Σκάμα", icon: "⛏️", optional: true },
-    { key: "ΟΔΕΥΣΗ", label: "Όδευση", icon: "🛤️", optional: false },
-    { key: "BCP", label: "BCP", icon: "📦", optional: true },
-    { key: "BEP", label: "BEP", icon: "🔌", optional: false },
-    { key: "BMO", label: "BMO", icon: "📡", optional: false },
-    { key: "FB", label: "Floor Box", icon: "📋", optional: true },
-    { key: "ΚΑΜΠΙΝΑ", label: "Καμπίνα", icon: "🏗️", optional: false },
-    { key: "Γ_ΦΑΣΗ", label: "Γ' Φάση", icon: "👤", optional: true },
-  ] as const;
+  // Photo categories mapped to work code prefixes
+  const ALL_PHOTO_CATEGORIES = [
+    { key: "ΣΚΑΜΑ", label: "Σκάμα", icon: "⛏️", workPrefixes: ["1965"] },
+    { key: "ΟΔΕΥΣΗ", label: "Όδευση", icon: "🛤️", workPrefixes: [] }, // always shown
+    { key: "BCP", label: "BCP", icon: "📦", workPrefixes: ["1991", "1993"] },
+    { key: "BEP", label: "BEP", icon: "🔌", workPrefixes: [] }, // always shown
+    { key: "BMO", label: "BMO", icon: "📡", workPrefixes: [] }, // always shown
+    { key: "FB", label: "Floor Box", icon: "📋", workPrefixes: ["1984", "1985", "1986"] },
+    { key: "ΚΑΜΠΙΝΑ", label: "Καμπίνα", icon: "🏗️", workPrefixes: ["1980"] },
+    { key: "Γ_ΦΑΣΗ", label: "Γ' Φάση", icon: "👤", workPrefixes: ["1955"] },
+  ];
+
+  // Filter photo categories based on selected works
+  const selectedWorkPrefixes = new Set(workItems.map((w) => WORK_CATEGORIES.find((c) => w.code.startsWith(c.prefix))?.prefix).filter(Boolean));
+  
+  const visiblePhotoCategories = ALL_PHOTO_CATEGORIES.filter((cat) => 
+    cat.workPrefixes.length === 0 || cat.workPrefixes.some((p) => selectedWorkPrefixes.has(p))
+  );
 
   const [categorizedPhotos, setCategorizedPhotos] = useState<Record<string, File[]>>({});
   const [categorizedPreviews, setCategorizedPreviews] = useState<Record<string, string[]>>({});
@@ -983,7 +991,7 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
         </div>
 
         <div className="space-y-2">
-          {PHOTO_CATEGORIES.map((cat) => {
+          {visiblePhotoCategories.map((cat) => {
             const catPhotos = categorizedPhotos[cat.key] || [];
             const catPreviews = categorizedPreviews[cat.key] || [];
             return (
@@ -992,7 +1000,7 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
                   <div className="flex items-center gap-1.5">
                     <span className="text-sm">{cat.icon}</span>
                     <span className="text-xs font-medium">{cat.label}</span>
-                    {cat.optional && <span className="text-[10px] text-muted-foreground">(προαιρ.)</span>}
+                    {cat.workPrefixes.length > 0 && <span className="text-[10px] text-muted-foreground">(προαιρ.)</span>}
                   </div>
                   <div className="flex items-center gap-2">
                     {catPhotos.length > 0 && (
