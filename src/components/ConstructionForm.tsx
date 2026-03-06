@@ -3,7 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Trash2, Loader2, CheckCircle, HardHat, Package, Wrench, Camera, Upload, X, ChevronDown, ChevronRight, Plus, Minus, MapPin, Route } from "lucide-react";
+import { Trash2, Loader2, CheckCircle, HardHat, Package, Wrench, Camera, X, ChevronDown, ChevronRight, Plus, Minus, MapPin, Route } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -66,7 +66,6 @@ const MATERIAL_CATEGORIES: { label: string; match: (name: string, code: string) 
 const ConstructionForm = ({ assignment, onComplete }: Props) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Form state
   const [sesId, setSesId] = useState("");
@@ -100,9 +99,21 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
   const [openMaterialCategories, setOpenMaterialCategories] = useState<string[]>([]);
   const [materialTab, setMaterialTab] = useState("OTE");
 
-  // Photos
-  const [photos, setPhotos] = useState<File[]>([]);
-  const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
+  // Photo categories
+  const PHOTO_CATEGORIES = [
+    { key: "ΣΚΑΜΑ", label: "Σκάμα", icon: "⛏️", optional: true },
+    { key: "ΟΔΕΥΣΗ", label: "Όδευση", icon: "🛤️", optional: false },
+    { key: "BCP", label: "BCP", icon: "📦", optional: true },
+    { key: "BEP", label: "BEP", icon: "🔌", optional: false },
+    { key: "BMO", label: "BMO", icon: "📡", optional: false },
+    { key: "FB", label: "Floor Box", icon: "📋", optional: true },
+    { key: "ΚΑΜΠΙΝΑ", label: "Καμπίνα", icon: "🏗️", optional: false },
+    { key: "Γ_ΦΑΣΗ", label: "Γ' Φάση", icon: "👤", optional: true },
+  ] as const;
+
+  const [categorizedPhotos, setCategorizedPhotos] = useState<Record<string, File[]>>({});
+  const [categorizedPreviews, setCategorizedPreviews] = useState<Record<string, string[]>>({});
+  const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -346,25 +357,37 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
     setMaterialItems((prev) => prev.map((m) => (m.material_id === id ? { ...m, quantity: qty } : m)));
   };
 
-  // Photo handling
-  const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Photo handling per category
+  const handleCategoryPhotoSelect = (category: string, e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
-    setPhotos((prev) => [...prev, ...files]);
+    setCategorizedPhotos((prev) => ({ ...prev, [category]: [...(prev[category] || []), ...files] }));
     files.forEach((file) => {
       const reader = new FileReader();
       reader.onload = (ev) => {
-        setPhotoPreviews((prev) => [...prev, ev.target?.result as string]);
+        setCategorizedPreviews((prev) => ({
+          ...prev,
+          [category]: [...(prev[category] || []), ev.target?.result as string],
+        }));
       };
       reader.readAsDataURL(file);
     });
-    if (fileInputRef.current) fileInputRef.current.value = "";
+    const ref = fileInputRefs.current[category];
+    if (ref) ref.value = "";
   };
 
-  const removePhoto = (index: number) => {
-    setPhotos((prev) => prev.filter((_, i) => i !== index));
-    setPhotoPreviews((prev) => prev.filter((_, i) => i !== index));
+  const removeCategoryPhoto = (category: string, index: number) => {
+    setCategorizedPhotos((prev) => ({
+      ...prev,
+      [category]: (prev[category] || []).filter((_, i) => i !== index),
+    }));
+    setCategorizedPreviews((prev) => ({
+      ...prev,
+      [category]: (prev[category] || []).filter((_, i) => i !== index),
+    }));
   };
+
+  const totalPhotos = Object.values(categorizedPhotos).reduce((sum, arr) => sum + arr.length, 0);
 
   // Totals
   const totalRevenue = workItems.reduce((sum, w) => sum + w.unit_price * w.quantity, 0);
@@ -452,18 +475,25 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
       }
 
       const photoPaths: string[] = [];
-      if (photos.length > 0) {
-        setSubmitProgress(`Ανέβασμα φωτογραφιών (0/${photos.length})...`);
-        for (let i = 0; i < photos.length; i++) {
-          const photo = photos[i];
-          const ext = photo.name.split(".").pop() || "jpg";
-          const storagePath = `constructions/${assignment.sr_id}/${construction.id}/${i + 1}.${ext}`;
-          const { error: uploadErr } = await supabase.storage
-            .from("photos")
-            .upload(storagePath, photo, { upsert: true });
-          if (uploadErr) console.error(`Photo upload error ${i}:`, uploadErr);
-          else photoPaths.push(storagePath);
-          setSubmitProgress(`Ανέβασμα φωτογραφιών (${i + 1}/${photos.length})...`);
+      const allCategoryPhotos = Object.entries(categorizedPhotos).filter(([_, files]) => files.length > 0);
+      const totalPhotoCount = allCategoryPhotos.reduce((sum, [_, files]) => sum + files.length, 0);
+      
+      if (totalPhotoCount > 0) {
+        let uploaded = 0;
+        setSubmitProgress(`Ανέβασμα φωτογραφιών (0/${totalPhotoCount})...`);
+        for (const [category, files] of allCategoryPhotos) {
+          for (let i = 0; i < files.length; i++) {
+            const photo = files[i];
+            const ext = photo.name.split(".").pop() || "jpg";
+            const storagePath = `constructions/${assignment.sr_id}/${construction.id}/${category}/${i + 1}.${ext}`;
+            const { error: uploadErr } = await supabase.storage
+              .from("photos")
+              .upload(storagePath, photo, { upsert: true });
+            if (uploadErr) console.error(`Photo upload error ${category}/${i}:`, uploadErr);
+            else photoPaths.push(storagePath);
+            uploaded++;
+            setSubmitProgress(`Ανέβασμα φωτογραφιών (${uploaded}/${totalPhotoCount})...`);
+          }
         }
       }
 
@@ -895,54 +925,80 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
         )}
       </Card>
 
-      {/* Construction Photos */}
+      {/* Construction Photos - Categorized */}
       <Card className="p-4 space-y-3">
-        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-          <Camera className="h-3.5 w-3.5" />
-          Φωτογραφίες Κατασκευής
-        </Label>
+        <div className="flex items-center justify-between">
+          <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+            <Camera className="h-3.5 w-3.5" />
+            Φωτογραφίες Κατασκευής
+          </Label>
+          {totalPhotos > 0 && (
+            <Badge variant="secondary" className="text-xs">{totalPhotos} φωτο</Badge>
+          )}
+        </div>
 
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          multiple
-          capture="environment"
-          onChange={handlePhotoSelect}
-          className="hidden"
-        />
-
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={() => fileInputRef.current?.click()}
-          className="w-full gap-2 border-dashed"
-        >
-          <Upload className="h-4 w-4" />
-          Προσθήκη Φωτογραφιών
-        </Button>
-
-        {photoPreviews.length > 0 && (
-          <div className="grid grid-cols-3 gap-2">
-            {photoPreviews.map((preview, i) => (
-              <div key={i} className="relative group">
-                <img
-                  src={preview}
-                  alt={`Φωτογραφία ${i + 1}`}
-                  className="w-full h-24 object-cover rounded-lg border border-border"
-                />
-                <button
-                  type="button"
-                  onClick={() => removePhoto(i)}
-                  className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
-                >
-                  <X className="h-3 w-3" />
-                </button>
+        <div className="space-y-2">
+          {PHOTO_CATEGORIES.map((cat) => {
+            const catPhotos = categorizedPhotos[cat.key] || [];
+            const catPreviews = categorizedPreviews[cat.key] || [];
+            return (
+              <div key={cat.key} className="border border-border rounded-lg p-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-sm">{cat.icon}</span>
+                    <span className="text-xs font-medium">{cat.label}</span>
+                    {cat.optional && <span className="text-[10px] text-muted-foreground">(προαιρ.)</span>}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {catPhotos.length > 0 && (
+                      <Badge variant="outline" className="text-[10px] h-5">{catPhotos.length}</Badge>
+                    )}
+                    <input
+                      ref={(el) => { fileInputRefs.current[cat.key] = el; }}
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      capture="environment"
+                      onChange={(e) => handleCategoryPhotoSelect(cat.key, e)}
+                      className="hidden"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => fileInputRefs.current[cat.key]?.click()}
+                      className="h-7 text-[11px] gap-1 px-2"
+                    >
+                      <Camera className="h-3 w-3" />
+                      Φωτο
+                    </Button>
+                  </div>
+                </div>
+                
+                {catPreviews.length > 0 && (
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {catPreviews.map((preview, i) => (
+                      <div key={i} className="relative group">
+                        <img
+                          src={preview}
+                          alt={`${cat.label} ${i + 1}`}
+                          className="w-full h-16 object-cover rounded border border-border"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeCategoryPhoto(cat.key, i)}
+                          className="absolute top-0.5 right-0.5 bg-destructive text-destructive-foreground rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <X className="h-2.5 w-2.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-            ))}
-          </div>
-        )}
+            );
+          })}
+        </div>
       </Card>
 
       {/* Summary */}
