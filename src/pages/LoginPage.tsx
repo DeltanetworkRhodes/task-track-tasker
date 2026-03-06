@@ -68,7 +68,8 @@ const LoginPage = () => {
               <img
 
                 alt="DeltaNetwork"
-                className="relative h-32 sm:h-40 w-auto object-contain drop-shadow-2xl" src="/lovable-uploads/7c06da0f-1e38-4719-a4cf-0af541e70aa3.jpg" />
+                className="relative h-32 sm:h-40 w-auto object-contain drop-shadow-2xl mix-blend-screen"
+                src={deltaLogo} />
               
             </div>
             <div className="text-center space-y-2">
