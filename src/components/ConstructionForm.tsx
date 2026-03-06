@@ -277,6 +277,10 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
     try {
       setSubmitProgress("Καταχώρηση κατασκευής...");
 
+      const routesData = routes
+        .filter((r) => r.koi || r.fyraKoi)
+        .map((r) => ({ label: r.label, koi: parseFloat(r.koi) || 0, fyra_koi: parseFloat(r.fyraKoi) || 0 }));
+
       const { data: construction, error: constError } = await supabase
         .from("constructions")
         .insert({
@@ -290,7 +294,10 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
           material_cost: totalMaterialCost,
           profit: totalRevenue - totalMaterialCost,
           status: "completed",
-        })
+          routing_type: routingType.trim() || null,
+          pending_note: pendingNote.trim() || null,
+          routes: routesData.length > 0 ? routesData : null,
+        } as any)
         .select("id")
         .single();
       if (constError) throw constError;
