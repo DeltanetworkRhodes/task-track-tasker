@@ -6,12 +6,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-const SHARED_DRIVE_ID = "0AN9VpmNEa7QBUk9PVA";
-
-const areaRootFolders: Record<string, string> = {
-  "ΡΟΔΟΣ": "1JvcSG3tiOplSujXhb3yj_ELQLjfrgOzO",
-  "ΚΩΣ": "1X1mtK4tV_sgGM9IdizNSK7AS19qX1nYl",
-};
+// No more hardcoded IDs - fetched from org_settings
 
 const greekMonths: Record<number, string> = {
   0: "ΙΑΝΟΥΑΡΙΟΣ", 1: "ΦΕΒΡΟΥΑΡΙΟΣ", 2: "ΜΑΡΤΙΟΣ",
