@@ -632,6 +632,41 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
                         </div>
                       );
                     })()}
+                    {(existingGisData.optical_paths as any[])?.length > 0 && (() => {
+                      const paths = existingGisData.optical_paths as Record<string, any>[];
+                      const opKeysSet = new Set<string>();
+                      paths.forEach((p: any) => Object.keys(p).forEach((k) => opKeysSet.add(k)));
+                      const opKeys = Array.from(opKeysSet);
+                      return (
+                        <div className="text-xs space-y-1">
+                          <span className="font-semibold text-foreground">🔗 Οπτικές Διαδρομές ({paths.length}):</span>
+                          <div className="border border-green-300 rounded-md overflow-x-auto shadow-sm">
+                            <table className="w-full text-xs whitespace-nowrap">
+                              <thead>
+                                <tr className="bg-gradient-to-r from-green-500 to-green-600">
+                                  {opKeys.map((key) => (
+                                    <th key={key} className="text-left px-2 py-1.5 font-bold text-white border-r border-green-400 last:border-r-0">
+                                      {String(key)}
+                                    </th>
+                                  ))}
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {paths.map((p: any, idx: number) => (
+                                  <tr key={idx} className={`border-t border-green-100 hover:bg-green-100/60 ${idx % 2 === 0 ? 'bg-background' : 'bg-green-50/50'}`}>
+                                    {opKeys.map((key) => (
+                                      <td key={key} className="px-2 py-1 font-medium border-r border-border last:border-r-0">
+                                        {p[key] != null && p[key] !== "" ? String(p[key]) : "—"}
+                                      </td>
+                                    ))}
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      );
+                    })()}
                     {existingGisData.warning && (
                       <p className="text-xs text-amber-600">⚠ {existingGisData.warning}</p>
                     )}
