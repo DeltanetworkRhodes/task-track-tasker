@@ -170,7 +170,13 @@ const SetupWizard = ({ onDismiss, demoMode = false }: SetupWizardProps) => {
             >
               <button
                 className="w-full flex items-center gap-3 px-3 py-2.5 text-left"
-                onClick={() => setExpandedStep(isExpanded ? null : step.id)}
+                onClick={() => {
+                  if (demoMode && !step.completed) {
+                    setDemoSteps(prev => prev.map(s => s.id === step.id ? { ...s, completed: true } : s));
+                    return;
+                  }
+                  setExpandedStep(isExpanded ? null : step.id);
+                }}
               >
                 <div
                   className={`h-7 w-7 rounded-full flex items-center justify-center shrink-0 ${
