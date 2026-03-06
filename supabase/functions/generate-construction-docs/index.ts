@@ -231,9 +231,43 @@ let _fontCache: { regular: Uint8Array; bold: Uint8Array } | null = null;
 async function loadGreekFonts(): Promise<{ regular: Uint8Array; bold: Uint8Array }> {
   if (_fontCache) return _fontCache;
   
+  // Use fonts.googleapis.com CSS to discover TTF URLs
+  const cssRes = await fetch("https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap", {
+    headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" },
+  });
+  if (!cssRes.ok) {
+    console.error("CSS fetch failed:", cssRes.status, await cssRes.text());
+    throw new Error("Failed to fetch font CSS");
+  }
+  const css = await cssRes.text();
+  
+  // Extract TTF URLs from CSS
+  const urls = [...css.matchAll(/url\((https:\/\/fonts\.gstatic\.com\/[^)]+\.ttf)\)/g)].map(m => m[1]);
+  console.log("Found font URLs:", urls.length);
+  
+  if (urls.length < 2) {
+    // Fallback: use known static URLs
+    const [regularRes, boldRes] = await Promise.all([
+      fetch("https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu4mxP.ttf"),
+      fetch("https://fonts.gstatic.com/s/roboto/v30/KFOlCnqEu92Fr1MmWUlfBBc9.ttf"),
+    ]);
+    if (!regularRes.ok || !boldRes.ok) {
+      throw new Error("Failed to fetch Greek fonts (fallback)");
+    }
+    _fontCache = {
+      regular: new Uint8Array(await regularRes.arrayBuffer()),
+      bold: new Uint8Array(await boldRes.arrayBuffer()),
+    };
+    return _fontCache;
+  }
+  
+  // Last 2 URLs are typically the latin/greek ones for 400 and 700
+  const regularUrl = urls.find(u => css.indexOf(u) > css.indexOf("font-weight: 400")) || urls[0];
+  const boldUrl = urls.find(u => css.indexOf(u) > css.lastIndexOf("font-weight: 700")) || urls[urls.length - 1];
+  
   const [regularRes, boldRes] = await Promise.all([
-    fetch("https://raw.githubusercontent.com/googlefonts/roboto-classic/main/fonts/ttf/Roboto-Regular.ttf"),
-    fetch("https://raw.githubusercontent.com/googlefonts/roboto-classic/main/fonts/ttf/Roboto-Bold.ttf"),
+    fetch(regularUrl),
+    fetch(boldUrl),
   ]);
   
   if (!regularRes.ok || !boldRes.ok) {
