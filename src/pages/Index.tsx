@@ -171,7 +171,7 @@ const Index = () => {
                   </h1>
                   <p className="text-[10px] sm:text-xs text-white/45 mt-0.5">
                     Διαχείριση δικτύου οπτικών ινών — Ρόδος & Κως
-                    {!hasRealData && <span className="ml-2 text-[9px] rounded-full bg-white/10 text-white/40 px-2 py-0.5">demo</span>}
+                    </p>
                   </p>
                 </div>
               </div>
