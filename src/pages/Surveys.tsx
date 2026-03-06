@@ -562,6 +562,15 @@ const Surveys = () => {
                             <Eye className="h-4 w-4 text-primary" />
                           </Button>
                         </td>
+                        <td className="px-4 py-3 text-center" onClick={(e) => e.stopPropagation()}>
+                          <button
+                            onClick={() => setDeleteTarget(s)}
+                            className="text-muted-foreground/40 hover:text-destructive transition-colors p-1 rounded"
+                            title="Διαγραφή"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </td>
                       </tr>
                     );
                   })}
