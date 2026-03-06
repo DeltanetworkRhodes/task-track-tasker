@@ -107,6 +107,7 @@ const SurveyForm = ({ assignments, prefillSrId, prefillArea, onComplete }: Props
           technician_id: user!.id,
           comments: comments.trim(),
           status: autoStatus,
+          organization_id: organizationId,
         })
         .select("id")
         .single();
