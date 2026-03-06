@@ -41,10 +41,11 @@ const Index = () => {
     cab: (a as any).cab || '',
     phone: (a as any).phone || '',
     date: a.created_at.split('T')[0],
+    updatedAt: a.updated_at,
     comments: a.comments || '',
     photos: a.photos_count || 0,
     driveUrl: a.drive_folder_url || '',
-  })) : mockAssignments;
+  })) : mockAssignments.map(a => ({ ...a, updatedAt: a.date }));
 
   const hasRealConstructions = (dbConstructions?.length ?? 0) > 0;
   const constructions = hasRealConstructions ? dbConstructions!.map(c => ({
