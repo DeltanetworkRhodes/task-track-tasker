@@ -4,7 +4,7 @@ import AssignmentTable from "@/components/AssignmentTable";
 import CreateAssignmentDialog from "@/components/CreateAssignmentDialog";
 import SyncButton from "@/components/SyncButton";
 import { useAssignments } from "@/hooks/useData";
-import { mockAssignments, statusLabels } from "@/data/mockData";
+import { statusLabels } from "@/data/mockData";
 import { ClipboardCheck, Filter, Search, Plus, UserX, CheckCircle2, XCircle, ListChecks, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -24,10 +24,8 @@ const Assignments = () => {
   const [search, setSearch] = useState("");
   const [showCreate, setShowCreate] = useState(false);
 
-  const hasRealData = (dbAssignments?.length ?? 0) > 0;
-
-  const assignments = hasRealData
-    ? dbAssignments!.map((a) => ({
+  const assignments = dbAssignments
+    ? dbAssignments.map((a) => ({
         id: a.id,
         srId: a.sr_id,
         area: a.area,
@@ -44,7 +42,7 @@ const Assignments = () => {
         photos: a.photos_count || 0,
         driveUrl: a.drive_folder_url || "",
       }))
-    : mockAssignments;
+    : [];
 
   const areas = [...new Set(assignments.map((a) => a.area))].sort();
   const sources = [...new Set(assignments.map((a: any) => a.sourceTab).filter(Boolean))].sort();
@@ -79,7 +77,7 @@ const Assignments = () => {
             <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight">Πυλώνας 1 — Αυτοψίες & Προδεσμεύσεις</h1>
             <p className="text-xs sm:text-sm text-muted-foreground mt-1">
               Διαχείριση αρχικών επισκέψεων και εγγράφων αυτοψίας
-              {!hasRealData && <span className="ml-2 text-[10px] opacity-60">(demo data)</span>}
+              
             </p>
           </div>
           <div className="flex items-center gap-2 shrink-0">

@@ -3,14 +3,18 @@ import AppLayout from "@/components/AppLayout";
 import StatCard from "@/components/StatCard";
 import { useConstructions, useAssignments } from "@/hooks/useData";
 import { constructionStatusLabels } from "@/data/mockData";
-import { Wrench, TrendingUp, Receipt, DollarSign, Search, Filter, ExternalLink, ChevronDown, ChevronUp, Calendar, MapPin, Layers, Route } from "lucide-react";
+import { Wrench, TrendingUp, Receipt, DollarSign, Search, Filter, ExternalLink, ChevronDown, ChevronUp, Calendar, MapPin, Layers, Route, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Card } from "@/components/ui/card";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { BarChart, Bar, XAxis, YAxis, Cell, LineChart, Line, CartesianGrid, Legend } from "recharts";
+import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 
 const statusColors: Record<string, string> = {
   in_progress: "bg-amber-500/10 text-amber-600 border-amber-500/20",
@@ -27,11 +31,34 @@ const statusChartColors: Record<string, string> = {
 const ConstructionPage = () => {
   const { data: dbConstructions, isLoading } = useConstructions();
   const { data: dbAssignments } = useAssignments();
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedConstruction, setSelectedConstruction] = useState<any>(null);
   const [sortField, setSortField] = useState<string>("date");
   const [sortAsc, setSortAsc] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<any>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      const { error } = await supabase
+        .from("constructions")
+        .delete()
+        .eq("id", deleteTarget.id);
+      if (error) throw error;
+      toast.success(`Η κατασκευή ${deleteTarget.srId} διαγράφηκε`);
+      queryClient.invalidateQueries({ queryKey: ["constructions"] });
+      setDeleteTarget(null);
+      setSelectedConstruction(null);
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   const constructions = useMemo(() => {
     if (!dbConstructions) return [];
@@ -277,6 +304,7 @@ const ConstructionPage = () => {
                   <th className="py-3 px-4 text-right font-medium text-muted-foreground text-xs uppercase tracking-wider cursor-pointer hover:text-foreground" onClick={() => toggleSort("date")}>
                     <span className="flex items-center justify-end gap-1">Ημ/νία <SortIcon field="date" /></span>
                   </th>
+                  <th className="py-3 px-4 text-center font-medium text-muted-foreground text-xs uppercase tracking-wider"></th>
                 </tr>
               </thead>
               <tbody>
@@ -319,6 +347,15 @@ const ConstructionPage = () => {
                           {c.profit !== 0 ? `${c.profit >= 0 ? '+' : ''}${c.profit.toLocaleString('el-GR')}€` : '—'}
                         </td>
                         <td className="py-3 px-4 text-right text-xs text-muted-foreground font-mono">{c.date}</td>
+                        <td className="py-3 px-4 text-center">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setDeleteTarget(c); }}
+                            className="text-muted-foreground/40 hover:text-destructive transition-colors p-1 rounded"
+                            title="Διαγραφή"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </td>
                       </tr>
                     );
                   })
@@ -446,6 +483,28 @@ const ConstructionPage = () => {
             })()}
           </DialogContent>
         </Dialog>
+
+        {/* Delete Confirmation */}
+        <AlertDialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Διαγραφή Κατασκευής</AlertDialogTitle>
+              <AlertDialogDescription>
+                Είστε σίγουροι ότι θέλετε να διαγράψετε την κατασκευή <strong className="text-foreground">{deleteTarget?.srId}</strong>; Αυτή η ενέργεια δεν μπορεί να αναιρεθεί.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={deleting}>Ακύρωση</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleDelete}
+                disabled={deleting}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {deleting ? "Διαγραφή..." : "Διαγραφή"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </AppLayout>
   );

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Assignment, statusLabels } from "@/data/mockData";
-import { Camera, MessageSquare, ExternalLink, User, MapPin, Phone, Hash, FolderOpen, FileText, Image, Loader2, Clock, ArrowRight } from "lucide-react";
+import { Camera, MessageSquare, ExternalLink, User, MapPin, Phone, Hash, FolderOpen, FileText, Image, Loader2, Clock, ArrowRight, Trash2 } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
@@ -98,6 +99,8 @@ const AssignmentTable = ({ assignments }: AssignmentTableProps) => {
   const [driveData, setDriveData] = useState<DriveData | null>(null);
   const [driveLoading, setDriveLoading] = useState(false);
   const [assigning, setAssigning] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<any>(null);
+  const [deleting, setDeleting] = useState(false);
   const { data: technicians } = useTechnicians();
   const { data: history } = useAssignmentHistory(selected?.id || null);
   const queryClient = useQueryClient();
@@ -123,6 +126,25 @@ const AssignmentTable = ({ assignments }: AssignmentTableProps) => {
       toast.error(err.message);
     } finally {
       setAssigning(null);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      const { error } = await supabase
+        .from("assignments")
+        .delete()
+        .eq("id", deleteTarget.id);
+      if (error) throw error;
+      toast.success(`Το SR ${deleteTarget.srId} διαγράφηκε`);
+      queryClient.invalidateQueries({ queryKey: ["assignments"] });
+      setDeleteTarget(null);
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -166,6 +188,7 @@ const AssignmentTable = ({ assignments }: AssignmentTableProps) => {
               <th className="py-3 px-4 text-center font-medium text-muted-foreground text-xs uppercase tracking-wider">Φωτο</th>
               <th className="py-3 px-4 text-left font-medium text-muted-foreground text-xs uppercase tracking-wider">Σχόλια</th>
               <th className="py-3 px-4 text-center font-medium text-muted-foreground text-xs uppercase tracking-wider">Drive</th>
+              <th className="py-3 px-4 text-center font-medium text-muted-foreground text-xs uppercase tracking-wider"></th>
             </tr>
           </thead>
           <tbody>
@@ -240,6 +263,15 @@ const AssignmentTable = ({ assignments }: AssignmentTableProps) => {
                   ) : (
                     <FolderOpen className="h-3.5 w-3.5 text-muted-foreground/30 mx-auto" />
                   )}
+                </td>
+                <td className="py-3 px-4 text-center">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setDeleteTarget(a); }}
+                    className="text-muted-foreground/40 hover:text-destructive transition-colors p-1 rounded"
+                    title="Διαγραφή"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
                 </td>
               </tr>
             ))}
@@ -427,6 +459,28 @@ const AssignmentTable = ({ assignments }: AssignmentTableProps) => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Διαγραφή Ανάθεσης</AlertDialogTitle>
+            <AlertDialogDescription>
+              Είστε σίγουροι ότι θέλετε να διαγράψετε το SR <strong className="text-foreground">{deleteTarget?.srId}</strong>; Αυτή η ενέργεια δεν μπορεί να αναιρεθεί.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Ακύρωση</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? "Διαγραφή..." : "Διαγραφή"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 };
