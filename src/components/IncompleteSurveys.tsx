@@ -3,7 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Camera, Upload, X, AlertTriangle, ChevronDown, ChevronUp, Loader2 } from "lucide-react";
+import { Camera, Upload, X, ChevronDown, ChevronUp, Loader2, FileCheck, FileWarning, ImagePlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
