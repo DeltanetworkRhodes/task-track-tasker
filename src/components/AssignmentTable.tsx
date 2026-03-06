@@ -309,7 +309,7 @@ const AssignmentTable = ({ assignments }: AssignmentTableProps) => {
                     {statusLabels[a.status] || a.status}
                   </span>
                 </td>
-                <td className="py-3 px-4 font-mono text-xs text-muted-foreground">{a.date}</td>
+                <td className="py-3 px-4 font-bold text-xs text-muted-foreground">{a.date}</td>
                 <td className="py-3 px-4 text-center">
                   {a.photos > 0 && (
                     <span className="inline-flex items-center gap-1 text-muted-foreground">
