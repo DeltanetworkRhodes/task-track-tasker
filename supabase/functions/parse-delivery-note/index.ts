@@ -56,6 +56,13 @@ Deno.serve(async (req) => {
     const file = formData.get("file") as File;
     if (!file) throw new Error("No file uploaded");
 
+    // Get source from form data — REQUIRED to avoid mixing OTE/DELTANETWORK
+    const source = (formData.get("source") as string) || "OTE";
+    if (source !== "OTE" && source !== "DELTANETWORK") {
+      throw new Error("Invalid source. Must be OTE or DELTANETWORK");
+    }
+    console.log(`Processing delivery note for source: ${source}`);
+
     // Convert PDF to base64
     const arrayBuffer = await file.arrayBuffer();
     const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
@@ -73,7 +80,6 @@ Deno.serve(async (req) => {
           {
             role: "system",
             content: `You are extracting material delivery data from delivery note PDFs (Δελτίο Αποστολής).
-These can be from OTE or DELTANETWORK suppliers.
 Extract each material line item with its code, name, quantity, and unit.
 The codes are typically alphanumeric (e.g. "ΚΩΔ.123", "ABC-456", "01-10250160", etc).
 Return ONLY a JSON array with objects having "code" (string), "name" (string - material description), "quantity" (number), and "unit" (string - e.g. "τεμ.", "μ.", "kg", "Μέτρα").
@@ -149,23 +155,24 @@ IMPORTANT: Return ONLY the JSON array, no markdown, no explanation.`
     const aiData = await aiResponse.json();
     
     // Extract from tool call response
-    let extractedMaterials: { code: string; quantity: number }[] = [];
+    let extractedMaterials: { code: string; name: string; quantity: number; unit: string }[] = [];
     const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
     if (toolCall?.function?.arguments) {
       const parsed = JSON.parse(toolCall.function.arguments);
       extractedMaterials = parsed.materials || [];
     }
 
-    // Update stock for each extracted material (ADD to existing stock)
+    // Update stock — ONLY match materials within the SAME source
     let updated = 0;
     let created = 0;
     const notFound: string[] = [];
 
     for (const item of extractedMaterials) {
-      // Search in ALL sources (OTE + DELTANETWORK)
+      // Search ONLY within the specified source — prevents mixing OTE/DELTANETWORK
       const { data: existing } = await supabase
         .from("materials")
         .select("id, code, stock, source")
+        .eq("source", source)
         .ilike("code", `%${item.code}%`)
         .limit(1);
 
@@ -178,14 +185,12 @@ IMPORTANT: Return ONLY the JSON array, no markdown, no explanation.`
         
         if (!error) updated++;
       } else {
-        // Auto-create missing material - detect source from code pattern
-        // DELTANETWORK codes start with "01-", OTE codes start with "14"
-        const source = item.code.startsWith("01-") ? "DELTANETWORK" : "OTE";
+        // Auto-create with the CORRECT source from the request
         const { error } = await supabase.from("materials").insert({
           code: item.code,
           name: item.name || item.code,
           stock: item.quantity,
-          source,
+          source: source,
           price: 0,
           unit: item.unit || "τεμ.",
         });
@@ -205,7 +210,6 @@ IMPORTANT: Return ONLY the JSON array, no markdown, no explanation.`
       const serviceAccountKey = JSON.parse(Deno.env.get("GOOGLE_SERVICE_ACCOUNT_KEY") || "{}");
       const accessToken = await getAccessToken(serviceAccountKey);
 
-      // Read current ΑΠΟΘΗΚΗ sheet to find matching rows
       const sheetRes = await fetch(
         `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent("ΑΠΟΘΗΚΗ")}!A1:H500`,
         { headers: { Authorization: `Bearer ${accessToken}` } }
@@ -214,15 +218,12 @@ IMPORTANT: Return ONLY the JSON array, no markdown, no explanation.`
       const rows = sheetData.values || [];
       console.log(`Sheet ΑΠΟΘΗΚΗ: ${rows.length} rows found`);
 
-      // Get all materials from DB with latest stock (both OTE and DELTA)
       const { data: allMaterials } = await supabase
         .from("materials")
         .select("code, stock");
 
       const stockMap = new Map((allMaterials || []).map(m => [m.code.trim(), Number(m.stock)]));
-      console.log(`DB materials: ${stockMap.size} items`);
 
-      // Update stock column (G = index 6) for matching rows
       const updates: { range: string; values: any[][] }[] = [];
       for (let i = 1; i < rows.length; i++) {
         const rowCode = (rows[i]?.[1] || "").toString().trim();
@@ -235,7 +236,6 @@ IMPORTANT: Return ONLY the JSON array, no markdown, no explanation.`
       }
 
       sheetUpdatesRequested = updates.length;
-      console.log(`Sheet updates to write: ${sheetUpdatesRequested}`);
 
       if (updates.length > 0) {
         const batchRes = await fetch(
@@ -266,9 +266,6 @@ IMPORTANT: Return ONLY the JSON array, no markdown, no explanation.`
         }
 
         sheetUpdated = Number(batchResult.totalUpdatedCells || 0);
-        console.log(`Sheet updated cells: ${sheetUpdated}`);
-      } else {
-        console.log("No matching rows found in Sheet for DB material codes");
       }
     } catch (sheetErr: any) {
       sheetError = sheetErr?.message || String(sheetErr);
@@ -277,6 +274,7 @@ IMPORTANT: Return ONLY the JSON array, no markdown, no explanation.`
 
     return new Response(JSON.stringify({
       success: true,
+      source,
       extracted: extractedMaterials,
       updated,
       created,
