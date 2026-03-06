@@ -559,6 +559,7 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
             material_id: m.material_id,
             quantity: m.quantity,
             source: m.source,
+            organization_id: organizationId,
           }))
         );
         if (matsError) console.error("Materials insert error:", matsError);
