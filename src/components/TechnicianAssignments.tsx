@@ -294,6 +294,42 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
             <FileEdit className="h-4 w-4" />
             {existingSurvey ? "Συνέχεια Αυτοψίας" : "Έναρξη Αυτοψίας"}
           </Button>
+          {/* GIS Upload Button - visible after survey exists */}
+          {existingSurvey && existingSurvey.status !== "ΕΛΛΙΠΗΣ ΑΥΤΟΨΙΑ" && (
+            <>
+              <input
+                ref={gisFileInputRef}
+                type="file"
+                accept=".xlsx,.xls"
+                className="hidden"
+                onChange={handleGisUpload}
+              />
+              <Button
+                size="sm"
+                variant="outline"
+                className="w-full gap-2 border-blue-500/30 text-blue-600 hover:bg-blue-500/10"
+                onClick={() => gisFileInputRef.current?.click()}
+                disabled={uploadingGis}
+              >
+                {uploadingGis ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : existingGisData ? (
+                  <FileSpreadsheet className="h-4 w-4" />
+                ) : (
+                  <Upload className="h-4 w-4" />
+                )}
+                {uploadingGis ? "Ανάλυση GIS..." : existingGisData ? "Αντικατάσταση GIS" : "Upload Προδέσμευσης GIS"}
+              </Button>
+              {existingGisData && (
+                <div className="text-xs text-muted-foreground bg-blue-500/5 border border-blue-500/20 rounded-md p-2 space-y-1">
+                  <p className="font-medium text-blue-600">✓ GIS Αναλύθηκε</p>
+                  <p>Όροφοι: {existingGisData.floors} · BEP: {existingGisData.bep_type || "—"}</p>
+                  <p>BMO: {existingGisData.bmo_type || "—"} · Conduit: {existingGisData.conduit || "—"}</p>
+                  <p>Απόσταση: {existingGisData.distance_from_cabinet}μ</p>
+                </div>
+              )}
+            </>
+          )}
           <Button
             size="sm"
             variant="outline"
@@ -310,6 +346,13 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
     if (status === "pre_committed") {
       return (
         <div className="space-y-2">
+          {existingGisData && (
+            <div className="text-xs text-muted-foreground bg-blue-500/5 border border-blue-500/20 rounded-md p-2 space-y-1">
+              <p className="font-medium text-blue-600">✓ GIS Προδέσμευσης</p>
+              <p>Όροφοι: {existingGisData.floors} · BEP: {existingGisData.bep_type || "—"}</p>
+              <p>BMO: {existingGisData.bmo_type || "—"} · Απόσταση: {existingGisData.distance_from_cabinet}μ</p>
+            </div>
+          )}
           <div className="flex items-center gap-2 text-cyan-600 justify-center py-2">
             <Clock className="h-5 w-5" />
             <span className="text-sm font-medium">Αναμονή απάντησης ΟΤΕ</span>
