@@ -21,6 +21,7 @@ import ResetPassword from "./pages/ResetPassword";
 import InstallApp from "./pages/InstallApp";
 import TechnicianKPIs from "./pages/TechnicianKPIs";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
+import OrgSettings from "./pages/OrgSettings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
