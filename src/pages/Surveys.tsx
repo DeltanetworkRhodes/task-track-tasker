@@ -230,6 +230,25 @@ const Surveys = () => {
     }
   };
 
+  const handleDeleteSurvey = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      // Delete survey files first
+      await supabase.from("survey_files").delete().eq("survey_id", deleteTarget.id);
+      const { error } = await supabase.from("surveys").delete().eq("id", deleteTarget.id);
+      if (error) throw error;
+      toast.success(`Η αυτοψία ${deleteTarget.sr_id} διαγράφηκε`);
+      queryClient.invalidateQueries({ queryKey: ["admin-surveys"] });
+      setDeleteTarget(null);
+      if (selectedSurvey?.id === deleteTarget.id) setSelectedSurvey(null);
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   // Filtering
   const filtered = useMemo(() => {
     return (surveys || []).filter((s) => {
