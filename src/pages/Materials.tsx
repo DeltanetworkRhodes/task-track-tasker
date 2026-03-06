@@ -142,7 +142,10 @@ const MaterialTable = ({ items, hasRealData, editingId, editValues, onEdit, onSa
                         <button onClick={onCancel} className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted transition-colors"><X className="h-3.5 w-3.5" /></button>
                       </div>
                     ) : (
-                      <button onClick={() => onEdit(m)} className="rounded-lg p-1.5 text-muted-foreground/50 hover:text-primary hover:bg-primary/10 transition-colors"><Pencil className="h-3.5 w-3.5" /></button>
+                      <div className="flex items-center gap-0.5 justify-end">
+                        <button onClick={() => onEdit(m)} className="rounded-lg p-1.5 text-muted-foreground/50 hover:text-primary hover:bg-primary/10 transition-colors"><Pencil className="h-3.5 w-3.5" /></button>
+                        <button onClick={() => onDelete(m)} className="rounded-lg p-1.5 text-muted-foreground/50 hover:text-destructive hover:bg-destructive/10 transition-colors"><Trash2 className="h-3.5 w-3.5" /></button>
+                      </div>
                     )}
                   </td>
                 )}
