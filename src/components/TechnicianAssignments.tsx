@@ -413,7 +413,11 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
                 {existingSurvey && (
                   <Card className="p-3 space-y-1">
                     <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                      {existingSurvey.status === "ΕΛΛΙΠΗΣ ΑΥΤΟΨΙΑ" ? "Αυτοψία" : "Εντολή Κατασκευής"}
+                      {existingSurvey.status === "ΕΛΛΙΠΗΣ ΑΥΤΟΨΙΑ"
+                        ? "Αυτοψία"
+                        : selectedAssignment.status === "completed"
+                          ? "Ολοκλήρωση Κατασκευής"
+                          : "Εντολή Κατασκευής"}
                     </p>
                     <Badge variant="outline" className={
                       existingSurvey.status === "ΕΛΛΙΠΗΣ ΑΥΤΟΨΙΑ"
@@ -422,7 +426,9 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
                     }>
                       {existingSurvey.status === "ΕΛΛΙΠΗΣ ΑΥΤΟΨΙΑ"
                         ? existingSurvey.status
-                        : "Προδέσμευση Υλικών"}
+                        : selectedAssignment.status === "completed"
+                          ? "Ολοκληρωμένη Κατασκευή"
+                          : "Προδέσμευση Υλικών"}
                     </Badge>
                     {existingSurvey.comments && (
                       <p className="text-xs text-muted-foreground mt-1">{existingSurvey.comments}</p>
