@@ -598,8 +598,28 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
                       </div>
                     )}
                     {(existingGisData.floor_details as any[])?.length > 0 && (
-                      <div className="text-xs">
-                        <span className="text-muted-foreground">Λεπτομέρειες ορόφων:</span> <span className="font-medium">{(existingGisData.floor_details as any[]).length} εγγραφές</span>
+                      <div className="text-xs space-y-1">
+                        <span className="text-muted-foreground font-semibold">Floor Box ανά όροφο:</span>
+                        <div className="border border-border rounded-md overflow-hidden">
+                          <table className="w-full text-xs">
+                            <thead>
+                              <tr className="bg-muted/50">
+                                <th className="text-left px-2 py-1 font-medium text-muted-foreground">Όροφος</th>
+                                <th className="text-left px-2 py-1 font-medium text-muted-foreground">Τύπος FB</th>
+                                <th className="text-right px-2 py-1 font-medium text-muted-foreground">Τεμ.</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {(existingGisData.floor_details as any[]).map((fd: any, idx: number) => (
+                                <tr key={idx} className="border-t border-border">
+                                  <td className="px-2 py-1">{fd.floor || fd.name || `Όροφος ${idx + 1}`}</td>
+                                  <td className="px-2 py-1">{fd.fb_type || fd.type || "—"}</td>
+                                  <td className="px-2 py-1 text-right">{fd.fb_count || fd.quantity || fd.count || "—"}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
                       </div>
                     )}
                     {existingGisData.warning && (
