@@ -43,6 +43,42 @@ interface StepDetail {
 }
 
 const STEP_DETAILS: Record<string, StepDetail> = {
+  service_account: {
+    why: "Η εφαρμογή χρησιμοποιεί ένα Google Service Account για να επικοινωνεί με το Google Drive και τα Google Sheets χωρίς να χρειάζεται ο χρήστης να κάνει login στο Google κάθε φορά. Είναι σαν ένας «ρομποτικός λογαριασμός» που δουλεύει στο παρασκήνιο.",
+    instructions: [
+      {
+        text: "Ανοίξτε το Google Cloud Console: console.cloud.google.com",
+        tip: "Αν δεν έχετε λογαριασμό, δημιουργήστε έναν δωρεάν — δεν χρειάζεται πιστωτική κάρτα για αυτό που θα κάνουμε",
+      },
+      {
+        text: "Δημιουργήστε ένα νέο Project (π.χ. «FTTH Operations») ή επιλέξτε υπάρχον",
+        tip: "Πατήστε το dropdown δίπλα στο «Google Cloud» πάνω αριστερά → New Project",
+      },
+      {
+        text: "Ενεργοποιήστε τα APIs: Πηγαίνετε στο μενού ☰ → APIs & Services → Library. Αναζητήστε και ενεργοποιήστε: «Google Drive API» και «Google Sheets API»",
+        tip: "Πατήστε Enable σε κάθε ένα — χωρίς αυτά η εφαρμογή δεν μπορεί να διαβάσει/γράψει αρχεία",
+      },
+      {
+        text: "Δημιουργήστε Service Account: Μενού ☰ → IAM & Admin → Service Accounts → Create Service Account",
+        tip: "Δώστε του ένα όνομα (π.χ. «ftth-app») — τα υπόλοιπα πεδία μπορείτε να τα αφήσετε κενά",
+      },
+      {
+        text: "Δημιουργήστε κλειδί JSON: Κάντε κλικ στο Service Account → Keys → Add Key → Create New Key → JSON → Create",
+        tip: "Θα κατεβάσει αυτόματα ένα αρχείο .json — ΦΥΛΑΞΤΕ ΤΟ ΑΣΦΑΛΕΣ, είναι σαν κωδικός!",
+      },
+      {
+        text: "Αντιγράψτε το email του Service Account (μοιάζει με: ftth-app@project-id.iam.gserviceaccount.com)",
+        tip: "Θα το χρειαστείτε στο επόμενο βήμα για να δώσετε πρόσβαση στο Google Drive",
+      },
+      {
+        text: "Στείλτε το JSON κλειδί στον διαχειριστή συστήματος για να το ρυθμίσει στην εφαρμογή",
+        tip: "Το κλειδί αποθηκεύεται κρυπτογραφημένα και δεν είναι προσβάσιμο από κανέναν χρήστη",
+      },
+    ],
+    important: "Το JSON κλειδί πρέπει να μείνει απόρρητο — μην το μοιράζεστε μέσω email ή chat. Χρησιμοποιήστε ασφαλή κανάλι (π.χ. password manager). Αν διαρρεύσει, μπορεί κάποιος να αποκτήσει πρόσβαση στα αρχεία σας.",
+    route: "/settings",
+    routeLabel: "Ρυθμίσεις",
+  },
   drive: {
     why: "Το Google Drive χρησιμοποιείται για αποθήκευση φωτογραφιών αυτοψιών, PDF κατασκευών και αρχείων GIS. Χωρίς αυτό, δεν μπορείτε να ανεβάσετε ή να διαχειριστείτε αρχεία.",
     instructions: [
