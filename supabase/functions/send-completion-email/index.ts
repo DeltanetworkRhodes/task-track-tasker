@@ -293,9 +293,15 @@ Deno.serve(async (req) => {
 
     // 2c. Download OTDR PDFs from Supabase Storage
     const otdrSubfolderNames: Record<string, string> = {
-      OTDR_BMO: "BMO", OTDR_FB: "FB", OTDR_KAMPINA: "ΚΑΜΠΙΝΑ",
+      OTDR_BMO: "BMO", OTDR_KAMPINA: "ΚΑΜΠΙΝΑ",
       OTDR_BEP: "BEP", OTDR_BCP: "BCP", OTDR_LIVE: "LIVE",
     };
+    function resolveOtdrZipPath(asciiFolder: string): string {
+      if (otdrSubfolderNames[asciiFolder]) return otdrSubfolderNames[asciiFolder] + "/";
+      const fbMatch = asciiFolder.match(/^OTDR_FB_(\d+)$/);
+      if (fbMatch) return `FB/${fbMatch[1]}/`;
+      return asciiFolder + "/";
+    }
     if (otdr_paths && otdr_paths.length > 0) {
       for (let i = 0; i < otdr_paths.length; i++) {
         if (totalSize > MAX_ZIP_SIZE) { console.log(`ZIP size limit reached`); break; }
