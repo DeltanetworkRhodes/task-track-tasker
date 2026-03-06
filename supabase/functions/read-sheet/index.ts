@@ -33,86 +33,37 @@ Deno.serve(async (req) => {
     const serviceAccountKey = JSON.parse(Deno.env.get("GOOGLE_SERVICE_ACCOUNT_KEY")!);
     const accessToken = await getAccessToken(serviceAccountKey);
     const spreadsheetId = "1Rc0rrrNbixf9G64G71aWDrQ_cFezADTt4JYbTeCSzic";
+    const sheetName = "ΦΥΛΛΟ ΑΠΟΛΟΓΙΣΜΟΥ FTTH";
     
-    // First get all sheet names
-    const metaUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}?fields=sheets.properties`;
-    const metaRes = await fetch(metaUrl, { headers: { Authorization: `Bearer ${accessToken}` } });
-    const meta = await metaRes.json();
-    const sheets = meta.sheets?.map((s: any) => ({ title: s.properties.title, gid: s.properties.sheetId })) || [];
-    
-    // Find the ΦΥΛΛΟ sheet
-    const target = sheets.find((s: any) => s.title.includes("ΦΥΛΛΟ") || s.title.includes("ΑΠΟΛΟΓΙΣΜΟΥ"));
-    if (!target) {
-      return new Response(JSON.stringify({ error: "Sheet not found", sheets }), {
-        status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-    
-    // Read using ranges API with sheet title
-    const rangeParam = `${target.title}!A1:Z200`;
+    const rangeParam = `${sheetName}!A1:Z200`;
     const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(rangeParam)}`;
     const res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
     if (!res.ok) throw new Error(await res.text());
     const data = await res.json();
     const rows = data.values || [];
     
-    let workCodeCol = -1, workQtyCol = -1, matCodeCol = -1, matQtyCol = -1, headerRow = -1;
-    const headerFields: Record<string, string> = {};
+    // Extract ALL work codes from column B (index 1) starting from row 10
+    const allWorkCodes: { row: number; code: string; qty: string }[] = [];
+    const allMatCodes: { row: number; code: string; qty: string }[] = [];
     
-    for (let r = 0; r < Math.min(rows.length, 20); r++) {
-      for (let c = 0; c < (rows[r]?.length || 0); c++) {
-        const val = (rows[r][c] || "").trim();
-        if (val === "Άρθρο") { headerRow = r; workCodeCol = c; }
-        if (val === "ΠΟΣΟΤΗΤΑ" && headerRow === r) workQtyCol = c;
-        if (val === "ΚΑΥ") matCodeCol = c;
-        for (const label of ["SR ID:", "ΠΕΡΙΟΧΗ", "SES ID:", "CAB:", "ΔΙΕΥΘΥΝΣΗ:", "ΕΙΔΟΣ ΟΔΕΥΣΗΣ:", "ΑΝΑΜΟΝΗ:", "ΟΡΟΦΟΙ:", "ΗΜ/ΝΙΑ", "Α/Κ:"]) {
-          if (val === label || val.includes(label)) {
-            headerFields[label] = (rows[r]?.[c + 1] || "").toString();
-          }
-        }
-      }
-    }
-    
-    if (matCodeCol >= 0 && headerRow >= 0) {
-      for (let r = headerRow; r < headerRow + 3; r++) {
-        for (let c = matCodeCol + 1; c < (rows[r]?.length || 0); c++) {
-          if ((rows[r]?.[c] || "").trim() === "ΠΟΣΟΤΗΤΑ") { matQtyCol = c; break; }
-        }
-        if (matQtyCol >= 0) break;
-      }
-    }
-    
-    const dataStart = headerRow >= 0 ? headerRow + 2 : 0;
-    const filledWorks: Record<string, any> = {};
-    const filledMaterials: Record<string, any> = {};
-    
-    for (let r = dataStart; r < rows.length; r++) {
+    for (let r = 10; r < rows.length; r++) {
       const row = rows[r] || [];
-      if (workCodeCol >= 0 && workQtyCol >= 0) {
-        const code = (row[workCodeCol] || "").trim().replace(/\.+$/, "");
-        const qty = (row[workQtyCol] || "").toString().trim();
-        if (code && qty && qty !== "0" && qty !== "") {
-          filledWorks[code] = { row: r + 1, col: String.fromCharCode(65 + workQtyCol), quantity: qty };
-        }
+      const workCode = (row[1] || "").toString().trim();
+      const workQty = (row[7] || "").toString().trim();
+      if (workCode) {
+        allWorkCodes.push({ row: r + 1, code: workCode, qty: workQty || "0" });
       }
-      if (matCodeCol >= 0 && matQtyCol >= 0) {
-        const matCode = (row[matCodeCol] || "").trim();
-        const matQty = (row[matQtyCol] || "").toString().trim();
-        if (matCode && matQty && matQty !== "0" && matQty !== "") {
-          filledMaterials[matCode] = { row: r + 1, col: String.fromCharCode(65 + matQtyCol), quantity: matQty };
-        }
+      const matCode = (row[9] || "").toString().trim();
+      const matQty = (row[12] || "").toString().trim();
+      if (matCode) {
+        allMatCodes.push({ row: r + 1, code: matCode, qty: matQty || "0" });
       }
     }
     
     return new Response(JSON.stringify({
-      sheetTitle: target.title,
-      allSheets: sheets,
       totalRows: rows.length,
-      positions: { workCodeCol, workQtyCol, matCodeCol, matQtyCol, headerRow, dataStart },
-      headerFields,
-      filledWorks,
-      filledMaterials,
-      sampleHeaderRows: rows.slice(0, 15),
+      allWorkCodes,
+      allMatCodes,
     }, null, 2), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (error) {
     return new Response(JSON.stringify({ error: error.message }), {
