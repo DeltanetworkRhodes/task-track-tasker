@@ -65,8 +65,13 @@ async function getAccessToken(serviceAccountKey: any): Promise<string> {
   return (await tokenRes.json()).access_token;
 }
 
-async function driveSearch(accessToken: string, query: string): Promise<any[]> {
-  const url = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&fields=files(id,name)&pageSize=50&supportsAllDrives=true&includeItemsFromAllDrives=true&corpora=drive&driveId=${SHARED_DRIVE_ID}`;
+async function driveSearch(accessToken: string, query: string, sharedDriveId?: string): Promise<any[]> {
+  let url = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&fields=files(id,name)&pageSize=50&supportsAllDrives=true&includeItemsFromAllDrives=true`;
+  if (sharedDriveId) {
+    url += `&corpora=drive&driveId=${sharedDriveId}`;
+  } else {
+    url += `&corpora=allDrives`;
+  }
   const res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
   if (!res.ok) throw new Error(await res.text());
   return (await res.json()).files || [];
