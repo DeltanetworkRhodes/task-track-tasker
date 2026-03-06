@@ -31,11 +31,34 @@ const statusChartColors: Record<string, string> = {
 const ConstructionPage = () => {
   const { data: dbConstructions, isLoading } = useConstructions();
   const { data: dbAssignments } = useAssignments();
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedConstruction, setSelectedConstruction] = useState<any>(null);
   const [sortField, setSortField] = useState<string>("date");
   const [sortAsc, setSortAsc] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<any>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      const { error } = await supabase
+        .from("constructions")
+        .delete()
+        .eq("id", deleteTarget.id);
+      if (error) throw error;
+      toast.success(`Η κατασκευή ${deleteTarget.srId} διαγράφηκε`);
+      queryClient.invalidateQueries({ queryKey: ["constructions"] });
+      setDeleteTarget(null);
+      setSelectedConstruction(null);
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   const constructions = useMemo(() => {
     if (!dbConstructions) return [];
