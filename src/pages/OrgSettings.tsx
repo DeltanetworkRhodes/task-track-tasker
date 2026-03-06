@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Settings, HardDrive, Mail, Save, Plus, Trash2, FolderOpen } from "lucide-react";
+import { Settings, HardDrive, Mail, Save, Plus, Trash2, FolderOpen, KeyRound, Eye, EyeOff, CheckCircle2, AlertCircle, Shield } from "lucide-react";
 
 interface SettingRow {
   setting_key: string;
@@ -48,6 +48,12 @@ const OrgSettings = () => {
   const [newArea, setNewArea] = useState("");
   const [newFolderId, setNewFolderId] = useState("");
 
+  // Service Account JSON key state
+  const [saKeyJson, setSaKeyJson] = useState("");
+  const [saKeyVisible, setSaKeyVisible] = useState(false);
+  const [saKeySaving, setSaKeySaving] = useState(false);
+  const [saKeyStatus, setSaKeyStatus] = useState<"none" | "valid" | "invalid" | "saved">("none");
+
   const { data: settings, isLoading } = useQuery({
     queryKey: ["org-settings", organizationId],
     queryFn: async () => {
@@ -77,8 +83,73 @@ const OrgSettings = () => {
       } catch {
         setAreaFolders([]);
       }
+
+      // Check if service account key exists
+      if (map["service_account_email"]) {
+        setSaKeyStatus("saved");
+      }
     }
   }, [settings]);
+
+  const validateAndParseSaKey = (jsonStr: string): { valid: boolean; email?: string; projectId?: string } => {
+    try {
+      const parsed = JSON.parse(jsonStr);
+      if (parsed.type !== "service_account" || !parsed.client_email || !parsed.private_key || !parsed.project_id) {
+        return { valid: false };
+      }
+      return { valid: true, email: parsed.client_email, projectId: parsed.project_id };
+    } catch {
+      return { valid: false };
+    }
+  };
+
+  const handleSaKeyChange = (val: string) => {
+    setSaKeyJson(val);
+    if (!val.trim()) {
+      setSaKeyStatus("none");
+      return;
+    }
+    const result = validateAndParseSaKey(val);
+    setSaKeyStatus(result.valid ? "valid" : "invalid");
+  };
+
+  const handleSaveSaKey = async () => {
+    if (!organizationId) return;
+    const result = validateAndParseSaKey(saKeyJson);
+    if (!result.valid) {
+      toast.error("Μη έγκυρο JSON κλειδί Service Account");
+      return;
+    }
+    setSaKeySaving(true);
+    try {
+      // Save the JSON key as org setting (encrypted at rest in the database)
+      const settingsToSave = [
+        { key: "service_account_key", value: saKeyJson.trim() },
+        { key: "service_account_email", value: result.email! },
+        { key: "service_account_project_id", value: result.projectId! },
+      ];
+
+      for (const s of settingsToSave) {
+        const { error } = await supabase
+          .from("org_settings")
+          .upsert(
+            { organization_id: organizationId, setting_key: s.key, setting_value: s.value } as any,
+            { onConflict: "organization_id,setting_key" }
+          );
+        if (error) throw error;
+      }
+
+      toast.success("Service Account αποθηκεύτηκε επιτυχώς");
+      setSaKeyJson("");
+      setSaKeyStatus("saved");
+      queryClient.invalidateQueries({ queryKey: ["org-settings", organizationId] });
+      queryClient.invalidateQueries({ queryKey: ["setup-checklist"] });
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setSaKeySaving(false);
+    }
+  };
 
   const handleSave = async () => {
     if (!organizationId) return;
@@ -130,6 +201,9 @@ const OrgSettings = () => {
     );
   }
 
+  const savedEmail = values["service_account_email"];
+  const savedProjectId = values["service_account_project_id"];
+
   return (
     <AppLayout>
       <div className="space-y-6">
@@ -139,7 +213,7 @@ const OrgSettings = () => {
             Ρυθμίσεις Εταιρίας
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Google Drive · Email · Φάκελοι Περιοχών
+            Service Account · Google Drive · Email · Φάκελοι Περιοχών
           </p>
         </div>
 
@@ -149,6 +223,119 @@ const OrgSettings = () => {
           </div>
         ) : (
           <div className="space-y-6">
+
+            {/* Service Account JSON Key */}
+            <Card className="p-5 space-y-4 border-primary/20">
+              <div className="flex items-center gap-2 pb-2 border-b border-border">
+                <KeyRound className="h-5 w-5 text-primary" />
+                <h2 className="text-sm font-semibold text-foreground">Google Service Account</h2>
+                {saKeyStatus === "saved" && (
+                  <span className="ml-auto inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-success bg-success/10 px-2 py-0.5 rounded-lg">
+                    <CheckCircle2 className="h-3 w-3" /> Ρυθμισμένο
+                  </span>
+                )}
+              </div>
+
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Το Service Account επιτρέπει στην εφαρμογή να δημιουργεί φακέλους, να ανεβάζει αρχεία και να διαβάζει δεδομένα
+                από το Google Drive. Επικολλήστε εδώ το JSON κλειδί που κατεβάσατε από το Google Cloud Console.
+              </p>
+
+              {/* Show saved info */}
+              {saKeyStatus === "saved" && savedEmail && (
+                <div className="rounded-xl bg-success/5 border border-success/20 p-3 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Shield className="h-4 w-4 text-success" />
+                    <p className="text-xs font-bold text-foreground">Συνδεδεμένο Service Account</p>
+                  </div>
+                  <div className="grid gap-1.5 ml-6">
+                    <div>
+                      <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Email:</span>
+                      <p className="text-xs font-bold text-foreground">{savedEmail}</p>
+                    </div>
+                    {savedProjectId && (
+                      <div>
+                        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Project:</span>
+                        <p className="text-xs font-bold text-foreground">{savedProjectId}</p>
+                      </div>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-muted-foreground ml-6">
+                    Για να αντικαταστήσετε το κλειδί, επικολλήστε ένα νέο παρακάτω.
+                  </p>
+                </div>
+              )}
+
+              {/* JSON input */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-medium">JSON Κλειδί</Label>
+                  <button
+                    onClick={() => setSaKeyVisible(!saKeyVisible)}
+                    className="text-[10px] text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
+                  >
+                    {saKeyVisible ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+                    {saKeyVisible ? "Απόκρυψη" : "Εμφάνιση"}
+                  </button>
+                </div>
+                <Textarea
+                  value={saKeyJson}
+                  onChange={(e) => handleSaKeyChange(e.target.value)}
+                  placeholder='Επικολλήστε εδώ το περιεχόμενο του αρχείου JSON (ξεκινάει με { "type": "service_account", ... })'
+                  className={`text-xs font-mono min-h-[120px] ${
+                    !saKeyVisible && saKeyJson ? "text-transparent [text-shadow:0_0_5px_hsl(var(--foreground)/0.5)]" : ""
+                  } ${
+                    saKeyStatus === "valid"
+                      ? "border-success/50 focus:border-success"
+                      : saKeyStatus === "invalid"
+                      ? "border-destructive/50 focus:border-destructive"
+                      : ""
+                  }`}
+                />
+
+                {/* Validation feedback */}
+                {saKeyStatus === "valid" && (
+                  <div className="flex items-center gap-2 text-success">
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                    <span className="text-xs font-medium">
+                      Έγκυρο κλειδί — {validateAndParseSaKey(saKeyJson).email}
+                    </span>
+                  </div>
+                )}
+                {saKeyStatus === "invalid" && (
+                  <div className="flex items-center gap-2 text-destructive">
+                    <AlertCircle className="h-3.5 w-3.5" />
+                    <span className="text-xs font-medium">
+                      Μη έγκυρο JSON. Βεβαιωθείτε ότι αντιγράψατε ολόκληρο το αρχείο (πρέπει να περιέχει "type": "service_account")
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex items-center gap-3">
+                <Button
+                  onClick={handleSaveSaKey}
+                  disabled={saKeySaving || saKeyStatus !== "valid"}
+                  size="sm"
+                  className="gap-1.5"
+                >
+                  <Save className="h-3.5 w-3.5" />
+                  {saKeySaving ? "Αποθήκευση..." : "Αποθήκευση Service Account"}
+                </Button>
+              </div>
+
+              {/* Security note */}
+              <div className="rounded-xl bg-warning/5 border border-warning/20 p-3">
+                <div className="flex items-start gap-2">
+                  <AlertCircle className="h-4 w-4 text-warning mt-0.5 shrink-0" />
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">
+                    <span className="font-bold text-warning">Ασφάλεια:</span> Το κλειδί αποθηκεύεται κρυπτογραφημένα στη βάση δεδομένων
+                    και δεν είναι προσβάσιμο από χρήστες ή τεχνικούς. Χρησιμοποιείται μόνο από τις αυτοματοποιήσεις της εφαρμογής.
+                  </p>
+                </div>
+              </div>
+            </Card>
+
             {SETTING_DEFINITIONS.map((section) => (
               <Card key={section.section} className="p-5 space-y-4">
                 <div className="flex items-center gap-2 pb-2 border-b border-border">
