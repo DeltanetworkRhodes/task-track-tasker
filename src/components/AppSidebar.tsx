@@ -14,6 +14,7 @@ const navItems = [
   { to: '/profit', label: 'Κέρδος/SR', icon: TrendingUp },
   { to: '/kpis', label: 'KPIs Τεχνικών', icon: BarChart3 },
   { to: '/users', label: 'Χρήστες', icon: UserCog },
+  { to: '/settings', label: 'Ρυθμίσεις', icon: Settings },
 ];
 
 interface AppSidebarProps {
