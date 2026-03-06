@@ -125,7 +125,7 @@ const SurveyForm = ({ assignments, prefillSrId, prefillArea, onComplete }: Props
       if (allFiles.length > 0) {
         const { error: filesError } = await supabase
           .from("survey_files")
-          .insert(allFiles.map((f) => ({ ...f, survey_id: survey.id })));
+          .insert(allFiles.map((f) => ({ ...f, survey_id: survey.id, organization_id: organizationId })));
         if (filesError) console.error("Files record error:", filesError);
       }
 
