@@ -141,7 +141,7 @@ const TechnicianKPIs = () => {
                   {tech.area && <p className="text-[10px] text-muted-foreground">{tech.area}</p>}
                 </div>
                 <div className="text-right shrink-0">
-                  <p className="text-2xl font-extrabold font-mono text-primary">{tech.completionRate}%</p>
+                  <p className="text-2xl font-extrabold text-primary">{tech.completionRate}%</p>
                   <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Completion</p>
                 </div>
               </div>
@@ -163,21 +163,21 @@ const TechnicianKPIs = () => {
                   <div className="flex items-center justify-center gap-1 mb-1">
                     <CheckCircle2 className="h-3 w-3 text-success" />
                   </div>
-                  <p className="text-lg font-bold font-mono">{tech.completed}</p>
+                  <p className="text-lg font-bold">{tech.completed}</p>
                   <p className="text-[9px] text-muted-foreground uppercase">Ολοκλ.</p>
                 </div>
                 <div className="rounded-lg bg-muted/50 p-2.5">
                   <div className="flex items-center justify-center gap-1 mb-1">
                     <Clock className="h-3 w-3 text-warning" />
                   </div>
-                  <p className="text-lg font-bold font-mono">{tech.active}</p>
+                  <p className="text-lg font-bold">{tech.active}</p>
                   <p className="text-[9px] text-muted-foreground uppercase">Ενεργές</p>
                 </div>
                 <div className="rounded-lg bg-muted/50 p-2.5">
                   <div className="flex items-center justify-center gap-1 mb-1">
                     <Clock className="h-3 w-3 text-muted-foreground" />
                   </div>
-                  <p className="text-lg font-bold font-mono">{tech.avgDays}<span className="text-[10px]">μ</span></p>
+                  <p className="text-lg font-bold">{tech.avgDays}<span className="text-[10px]">μ</span></p>
                   <p className="text-[9px] text-muted-foreground uppercase">Μ.Ο. Ημέρες</p>
                 </div>
               </div>
@@ -187,14 +187,14 @@ const TechnicianKPIs = () => {
                 <div className="flex items-center gap-2">
                   <Euro className="h-3.5 w-3.5 text-primary shrink-0" />
                   <div>
-                    <p className="text-xs font-mono font-semibold">{tech.revenue.toLocaleString('el-GR')}€</p>
+                    <p className="text-xs font-bold">{tech.revenue.toLocaleString('el-GR')}€</p>
                     <p className="text-[9px] text-muted-foreground">Έσοδα</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <TrendingUp className="h-3.5 w-3.5 text-accent shrink-0" />
                   <div>
-                    <p className="text-xs font-mono font-semibold">{tech.profit.toLocaleString('el-GR')}€</p>
+                    <p className="text-xs font-bold">{tech.profit.toLocaleString('el-GR')}€</p>
                     <p className="text-[9px] text-muted-foreground">Κέρδος</p>
                   </div>
                 </div>

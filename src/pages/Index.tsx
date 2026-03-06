@@ -189,17 +189,17 @@ const Index = () => {
             {/* Quick stats row */}
             <div className="mt-5 grid grid-cols-3 gap-3 sm:flex sm:items-center sm:gap-6 lg:gap-8">
               <div className="text-center sm:text-left">
-                <p className="text-2xl sm:text-3xl font-extrabold text-white font-mono">{assignments.length}</p>
+                <p className="text-2xl sm:text-3xl font-extrabold text-white">{assignments.length}</p>
                 <p className="text-[9px] sm:text-[10px] uppercase tracking-wider text-white/40 mt-0.5">Αναθέσεις</p>
               </div>
               <div className="hidden sm:block h-8 w-px bg-white/10" />
               <div className="text-center sm:text-left">
-                <p className="text-2xl sm:text-3xl font-extrabold text-white font-mono">{constructions.length}</p>
+                <p className="text-2xl sm:text-3xl font-extrabold text-white">{constructions.length}</p>
                 <p className="text-[9px] sm:text-[10px] uppercase tracking-wider text-white/40 mt-0.5">Κατασκευές</p>
               </div>
               <div className="hidden sm:block h-8 w-px bg-white/10" />
               <div className="text-center sm:text-left">
-                <p className="text-2xl sm:text-3xl font-extrabold text-white font-mono">{totalProfit.toLocaleString('el-GR')}€</p>
+                <p className="text-2xl sm:text-3xl font-extrabold text-white">{totalProfit.toLocaleString('el-GR')}€</p>
                 <p className="text-[9px] sm:text-[10px] uppercase tracking-wider text-white/40 mt-0.5">Κέρδος</p>
               </div>
             </div>
@@ -298,7 +298,7 @@ const Index = () => {
                       <div key={i} className="flex items-center gap-2 text-[11px]">
                         <div className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: item.fill }} />
                         <span className="text-muted-foreground">{item.name}</span>
-                        <span className="font-mono font-semibold text-foreground">{item.value.toLocaleString('el-GR')}€</span>
+                        <span className="font-bold text-foreground">{item.value.toLocaleString('el-GR')}€</span>
                       </div>
                     ))}
                   </div>
@@ -324,14 +324,14 @@ const Index = () => {
                     style={{ backgroundColor: STATUS_COLORS[item.status] || "hsl(220 10% 46%)" }}
                   />
                   <div className="flex-1 min-w-0">
-                    <span className="font-mono font-semibold text-foreground text-[11px] sm:text-xs">{item.srId}</span>
+                    <span className="font-bold text-foreground text-[11px] sm:text-xs">{item.srId}</span>
                     <span className="text-muted-foreground ml-1.5 sm:ml-2 text-[10px] sm:text-xs hidden sm:inline">{item.area}</span>
                   </div>
                   <span className="text-muted-foreground shrink-0 text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 rounded bg-muted truncate max-w-[80px] sm:max-w-none">
                     {item.label}
                   </span>
                   {item.timeAgo && (
-                    <span className="text-muted-foreground/60 shrink-0 font-mono text-[9px] sm:text-[10px]">{item.timeAgo}</span>
+                    <span className="text-muted-foreground/60 shrink-0 font-bold text-[9px] sm:text-[10px]">{item.timeAgo}</span>
                   )}
                 </div>
               ))}
@@ -364,7 +364,7 @@ const Index = () => {
               <ClipboardCheck className="h-4 w-4 text-primary shrink-0" />
               <h2 className="font-bold text-sm">Πρόσφατες Αναθέσεις</h2>
             </div>
-            <span className="text-[10px] sm:text-[11px] text-muted-foreground font-mono bg-muted px-2 sm:px-2.5 py-1 rounded-full">{assignments.length} εγγραφές</span>
+            <span className="text-[10px] sm:text-[11px] text-muted-foreground font-bold bg-muted px-2 sm:px-2.5 py-1 rounded-full">{assignments.length} εγγραφές</span>
           </div>
           <div className="overflow-x-auto">
             <AssignmentTable assignments={[...assignments].sort((a, b) => (b.updatedAt || b.date).localeCompare(a.updatedAt || a.date)).slice(0, 5)} />

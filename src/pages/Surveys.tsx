@@ -410,7 +410,7 @@ const Surveys = () => {
                     <div key={i} className="flex items-center gap-2 text-[11px]">
                       <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: item.fill }} />
                       <span className="text-muted-foreground">{item.area}</span>
-                      <span className="font-mono font-semibold text-foreground">{item.count}</span>
+                      <span className="font-bold text-foreground">{item.count}</span>
                     </div>
                   ))}
                 </div>
@@ -432,11 +432,11 @@ const Surveys = () => {
               {upcomingAppointments.slice(0, 5).map((a) => (
                 <div key={a.id} className="flex items-center gap-3 text-sm rounded-lg px-3 py-2.5 bg-muted/50 hover:bg-muted transition-colors">
                   <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
-                  <span className="font-medium text-foreground font-mono text-xs">
+                  <span className="font-bold text-foreground text-xs">
                     {new Date(a.appointment_at).toLocaleDateString("el-GR")}{" "}
                     {new Date(a.appointment_at).toLocaleTimeString("el-GR", { hour: "2-digit", minute: "2-digit" })}
                   </span>
-                  <span className="font-mono text-xs text-foreground">SR {a.sr_id}</span>
+                  <span className="font-bold text-xs text-foreground">SR {a.sr_id}</span>
                   <Badge variant="outline" className="text-xs">{a.area}</Badge>
                   {a.description && (
                     <span className="text-xs text-muted-foreground truncate flex-1">{a.description}</span>
@@ -483,7 +483,7 @@ const Surveys = () => {
               <SelectItem value="submitted">Υποβλήθηκε</SelectItem>
             </SelectContent>
           </Select>
-          <span className="text-xs text-muted-foreground font-mono self-center bg-muted px-2.5 py-1.5 rounded-full">
+          <span className="text-xs text-muted-foreground font-bold self-center bg-muted px-2.5 py-1.5 rounded-full">
             {filtered.length} / {totalSurveys}
           </span>
         </div>
@@ -527,7 +527,7 @@ const Surveys = () => {
                         className="border-t border-border/50 hover:bg-muted/30 cursor-pointer transition-colors"
                         onClick={() => setSelectedSurvey(s)}
                       >
-                        <td className="px-4 py-3 font-mono font-semibold text-primary">{s.sr_id}</td>
+                        <td className="px-4 py-3 font-bold text-primary">{s.sr_id}</td>
                         <td className="px-4 py-3">
                           <Badge variant="outline" className="text-xs">{s.area}</Badge>
                         </td>
@@ -542,7 +542,7 @@ const Surveys = () => {
                             <span className="text-xs text-muted-foreground/40">—</span>
                           )}
                         </td>
-                        <td className="px-4 py-3 text-muted-foreground text-xs font-mono">
+                        <td className="px-4 py-3 text-muted-foreground text-xs font-bold">
                           {new Date(s.created_at).toLocaleDateString("el-GR")}
                         </td>
                         <td className="px-4 py-3 text-center">

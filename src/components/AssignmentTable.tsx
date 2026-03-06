@@ -275,14 +275,14 @@ const AssignmentTable = ({ assignments }: AssignmentTableProps) => {
                 className="border-b border-border/30 hover:bg-secondary/50 transition-colors"
               >
                 <td
-                  className="py-3 px-4 font-mono font-semibold text-primary cursor-pointer"
+                  className="py-3 px-4 font-bold text-primary cursor-pointer"
                   onClick={() => setSelected(a)}
                 >
                   {a.srId}
                 </td>
                 <td className="py-3 px-4">{a.area}</td>
                 <td className="py-3 px-4 text-muted-foreground max-w-[180px] truncate">{(a as any).customerName || '—'}</td>
-                <td className="py-3 px-4 font-mono text-xs">{(a as any).cab || '—'}</td>
+                <td className="py-3 px-4 font-bold text-xs">{(a as any).cab || '—'}</td>
                 <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
                   <Select
                     value={(a as any).technicianId || "__none__"}
@@ -309,7 +309,7 @@ const AssignmentTable = ({ assignments }: AssignmentTableProps) => {
                     {statusLabels[a.status] || a.status}
                   </span>
                 </td>
-                <td className="py-3 px-4 font-mono text-xs text-muted-foreground">{a.date}</td>
+                <td className="py-3 px-4 font-bold text-xs text-muted-foreground">{a.date}</td>
                 <td className="py-3 px-4 text-center">
                   {a.photos > 0 && (
                     <span className="inline-flex items-center gap-1 text-muted-foreground">
@@ -362,7 +362,7 @@ const AssignmentTable = ({ assignments }: AssignmentTableProps) => {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Hash className="h-4 w-4 text-primary" />
-              <span className="font-mono">{selected?.srId}</span>
+              <span className="font-bold">{selected?.srId}</span>
               <span className={`ml-auto inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${statusColors[selected?.status] || statusColors.pending}`}>
                 {statusLabels[selected?.status as keyof typeof statusLabels] || selected?.status}
               </span>
@@ -451,7 +451,7 @@ const AssignmentTable = ({ assignments }: AssignmentTableProps) => {
                           {statusLabels[h.new_status as keyof typeof statusLabels] || h.new_status}
                         </span>
                       </div>
-                      <p className="text-[10px] text-muted-foreground/60 mt-0.5 font-mono">
+                      <p className="text-[10px] text-muted-foreground/60 mt-0.5 font-bold">
                         {new Date(h.created_at).toLocaleDateString('el-GR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })}
                       </p>
                     </div>

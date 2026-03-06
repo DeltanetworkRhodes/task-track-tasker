@@ -63,7 +63,7 @@ const ProfitPerSR = () => {
             <div className="flex items-center gap-3">
               <div className="rounded-lg bg-accent/10 p-2"><TrendingUp className="h-4 w-4 text-accent" /></div>
               <div>
-                <p className="text-xl font-extrabold font-mono text-accent">{fmt(stats.totalRevenue)}</p>
+                <p className="text-xl font-extrabold text-accent">{fmt(stats.totalRevenue)}</p>
                 <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Συνολικά Έσοδα</p>
               </div>
             </div>
@@ -72,7 +72,7 @@ const ProfitPerSR = () => {
             <div className="flex items-center gap-3">
               <div className="rounded-lg bg-destructive/10 p-2"><TrendingDown className="h-4 w-4 text-destructive" /></div>
               <div>
-                <p className="text-xl font-extrabold font-mono text-destructive">{fmt(stats.totalExpenses)}</p>
+                <p className="text-xl font-extrabold text-destructive">{fmt(stats.totalExpenses)}</p>
                 <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Συνολικά Έξοδα</p>
               </div>
             </div>
@@ -81,7 +81,7 @@ const ProfitPerSR = () => {
             <div className="flex items-center gap-3">
               <div className="rounded-lg bg-primary/10 p-2"><DollarSign className="h-4 w-4 text-primary" /></div>
               <div>
-                <p className={`text-xl font-extrabold font-mono ${stats.totalProfit >= 0 ? 'text-accent' : 'text-destructive'}`}>{fmt(stats.totalProfit)}</p>
+                <p className={`text-xl font-extrabold ${stats.totalProfit >= 0 ? 'text-accent' : 'text-destructive'}`}>{fmt(stats.totalProfit)}</p>
                 <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Καθαρό Κέρδος</p>
               </div>
             </div>
@@ -90,7 +90,7 @@ const ProfitPerSR = () => {
             <div className="flex items-center gap-3">
               <div className="rounded-lg bg-primary/10 p-2"><DollarSign className="h-4 w-4 text-primary" /></div>
               <div>
-                <p className="text-xl font-extrabold font-mono">{fmt(stats.avgProfit)}</p>
+                <p className="text-xl font-extrabold">{fmt(stats.avgProfit)}</p>
                 <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Μέσο Κέρδος/SR</p>
               </div>
             </div>
@@ -180,11 +180,11 @@ const ProfitPerSR = () => {
                   const margin = revenue > 0 ? (profit / revenue * 100) : 0;
                   return (
                     <tr key={r.id} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
-                      <td className="py-3 px-4 font-mono text-xs font-semibold text-primary">{r.sr_id}</td>
-                      <td className="py-3 px-4 text-right font-mono text-accent">{fmt(revenue)}</td>
-                      <td className="py-3 px-4 text-right font-mono text-destructive">{fmt(expenses)}</td>
-                      <td className={`py-3 px-4 text-right font-mono font-bold ${profit >= 0 ? 'text-accent' : 'text-destructive'}`}>{fmt(profit)}</td>
-                      <td className={`py-3 px-4 text-right font-mono text-xs ${margin >= 0 ? 'text-accent' : 'text-destructive'}`}>{margin.toFixed(1)}%</td>
+                      <td className="py-3 px-4 text-xs font-bold text-primary">{r.sr_id}</td>
+                      <td className="py-3 px-4 text-right font-bold text-accent">{fmt(revenue)}</td>
+                      <td className="py-3 px-4 text-right font-bold text-destructive">{fmt(expenses)}</td>
+                      <td className={`py-3 px-4 text-right font-bold ${profit >= 0 ? 'text-accent' : 'text-destructive'}`}>{fmt(profit)}</td>
+                      <td className={`py-3 px-4 text-right font-bold text-xs ${margin >= 0 ? 'text-accent' : 'text-destructive'}`}>{margin.toFixed(1)}%</td>
                     </tr>
                   );
                 })}

@@ -106,7 +106,7 @@ const Assignments = () => {
               >
                 <tab.icon className="h-3.5 w-3.5 shrink-0" />
                 {tab.label}
-                <span className={`ml-1 text-[10px] font-mono px-1.5 py-0.5 rounded-full ${
+                <span className={`ml-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
                   isActive ? "bg-primary-foreground/20 text-primary-foreground" : "bg-background text-muted-foreground"
                 }`}>
                   {count}
@@ -159,7 +159,7 @@ const Assignments = () => {
             <h2 className="font-bold text-sm">
               {tabs.find(t => t.key === activeTab)?.label || "Αναθέσεις"}
             </h2>
-            <span className="ml-auto text-[10px] sm:text-xs text-muted-foreground font-mono bg-muted px-2 py-0.5 rounded-full">
+            <span className="ml-auto text-[10px] sm:text-xs text-muted-foreground font-bold bg-muted px-2 py-0.5 rounded-full">
               {filtered.length} / {assignments.length}
             </span>
           </div>

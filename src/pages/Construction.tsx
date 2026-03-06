@@ -293,7 +293,7 @@ const ConstructionPage = () => {
               <SelectItem value="invoiced">Τιμολογημένες</SelectItem>
             </SelectContent>
           </Select>
-          <span className="text-xs text-muted-foreground font-mono self-center bg-muted px-2.5 py-1.5 rounded-full">
+          <span className="text-xs text-muted-foreground font-bold self-center bg-muted px-2.5 py-1.5 rounded-full">
             {filtered.length} / {constructions.length}
           </span>
         </div>
@@ -349,21 +349,21 @@ const ConstructionPage = () => {
                         className="border-b border-border/30 hover:bg-muted/50 transition-colors cursor-pointer"
                         onClick={() => setSelectedConstruction(c)}
                       >
-                        <td className="py-3 px-4 font-mono font-semibold text-primary">{c.srId}</td>
-                        <td className="py-3 px-4 font-mono text-xs">{c.sesId || '—'}</td>
-                        <td className="py-3 px-4 font-mono text-xs">{c.cab || '—'}</td>
+                        <td className="py-3 px-4 font-bold text-primary">{c.srId}</td>
+                        <td className="py-3 px-4 text-xs font-bold">{c.sesId || '—'}</td>
+                        <td className="py-3 px-4 text-xs font-bold">{c.cab || '—'}</td>
                         <td className="py-3 px-4 text-xs">{assignment?.customer_name || '—'}</td>
                         <td className="py-3 px-4">
                           <Badge variant="outline" className={statusColors[c.status] || ""}>
                             {(constructionStatusLabels as any)[c.status] || c.status}
                           </Badge>
                         </td>
-                        <td className="py-3 px-4 text-right font-mono">{c.revenue > 0 ? `${c.revenue.toLocaleString('el-GR')}€` : '—'}</td>
-                        <td className="py-3 px-4 text-right font-mono text-destructive">{c.materialCost > 0 ? `${c.materialCost.toLocaleString('el-GR')}€` : '—'}</td>
-                        <td className={`py-3 px-4 text-right font-mono font-semibold ${c.profit >= 0 ? 'text-green-600' : 'text-destructive'}`}>
+                        <td className="py-3 px-4 text-right font-bold">{c.revenue > 0 ? `${c.revenue.toLocaleString('el-GR')}€` : '—'}</td>
+                        <td className="py-3 px-4 text-right font-bold text-destructive">{c.materialCost > 0 ? `${c.materialCost.toLocaleString('el-GR')}€` : '—'}</td>
+                        <td className={`py-3 px-4 text-right font-bold ${c.profit >= 0 ? 'text-green-600' : 'text-destructive'}`}>
                           {c.profit !== 0 ? `${c.profit >= 0 ? '+' : ''}${c.profit.toLocaleString('el-GR')}€` : '—'}
                         </td>
-                        <td className="py-3 px-4 text-right text-xs text-muted-foreground font-mono">{c.date}</td>
+                        <td className="py-3 px-4 text-right text-xs text-muted-foreground font-bold">{c.date}</td>
                         <td className="py-3 px-4 text-center">
                           <button
                             onClick={(e) => { e.stopPropagation(); setDeleteTarget(c); }}
@@ -420,15 +420,15 @@ const ConstructionPage = () => {
                     <div className="grid grid-cols-2 gap-2">
                       <div className="flex items-center gap-2">
                         <span className="text-muted-foreground text-xs font-medium">SES ID:</span>
-                        <span className="font-mono">{c.sesId || '—'}</span>
+                        <span className="font-bold">{c.sesId || '—'}</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="text-muted-foreground text-xs font-medium">Α/Κ:</span>
-                        <span className="font-mono">{c.ak || '—'}</span>
+                        <span className="font-bold">{c.ak || '—'}</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="text-muted-foreground text-xs font-medium">CAB:</span>
-                        <span className="font-mono">{c.cab || '—'}</span>
+                        <span className="font-bold">{c.cab || '—'}</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <Layers className="h-3.5 w-3.5 text-muted-foreground" />
@@ -472,15 +472,15 @@ const ConstructionPage = () => {
                     <div className="grid grid-cols-3 gap-3 text-center">
                       <div>
                         <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Έσοδα</p>
-                        <p className="text-lg font-bold font-mono text-primary">{c.revenue.toLocaleString('el-GR')}€</p>
+                        <p className="text-lg font-bold text-primary">{c.revenue.toLocaleString('el-GR')}€</p>
                       </div>
                       <div>
                         <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Κόστος</p>
-                        <p className="text-lg font-bold font-mono text-destructive">{c.materialCost.toLocaleString('el-GR')}€</p>
+                        <p className="text-lg font-bold text-destructive">{c.materialCost.toLocaleString('el-GR')}€</p>
                       </div>
                       <div>
                         <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Κέρδος</p>
-                        <p className={`text-lg font-bold font-mono ${c.profit >= 0 ? 'text-green-600' : 'text-destructive'}`}>
+                        <p className={`text-lg font-bold ${c.profit >= 0 ? 'text-green-600' : 'text-destructive'}`}>
                           {c.profit >= 0 ? '+' : ''}{c.profit.toLocaleString('el-GR')}€
                         </p>
                       </div>

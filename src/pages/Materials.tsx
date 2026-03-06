@@ -146,7 +146,7 @@ const MaterialTable = ({ items, hasRealData, editingId, editValues, onEdit, onSa
             const isLow = m.stock < m.low_stock_threshold;
             return (
               <tr key={m.id} className={`border-b border-border/50 transition-colors ${isEditing ? 'bg-primary/5' : 'hover:bg-muted/30'}`}>
-                <td className="py-3 px-4 font-mono text-xs font-semibold text-primary">{m.code}</td>
+                <td className="py-3 px-4 text-xs font-bold text-primary">{m.code}</td>
                 <td className="py-3 px-4 font-medium">
                   {isEditing ? (
                     <input
@@ -157,14 +157,14 @@ const MaterialTable = ({ items, hasRealData, editingId, editValues, onEdit, onSa
                     />
                   ) : m.name}
                 </td>
-                <td className="py-3 px-4 text-right font-mono">
+                <td className="py-3 px-4 text-right font-bold">
                   {isEditing ? (
                     <div className="flex items-center gap-1 justify-end">
                       <input
                         type="number"
                         value={editValues.stock}
                         onChange={e => onEditChange('stock', e.target.value)}
-                        className="w-20 rounded-lg border border-primary/30 bg-card px-2 py-1 text-right text-sm font-mono focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                        className="w-20 rounded-lg border border-primary/30 bg-card px-2 py-1 text-right text-sm font-bold focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                         autoFocus
                       />
                       <input
@@ -181,29 +181,29 @@ const MaterialTable = ({ items, hasRealData, editingId, editValues, onEdit, onSa
                     </span>
                   )}
                 </td>
-                <td className="py-3 px-4 text-right font-mono text-muted-foreground">
+                <td className="py-3 px-4 text-right font-bold text-muted-foreground">
                   {isEditing ? (
                     <input
                       type="number"
                       step="0.01"
                       value={editValues.price}
                       onChange={e => onEditChange('price', e.target.value)}
-                      className="w-20 ml-auto rounded-lg border border-primary/30 bg-card px-2 py-1 text-right text-sm font-mono focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                      className="w-20 ml-auto rounded-lg border border-primary/30 bg-card px-2 py-1 text-right text-sm font-bold focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                     />
                   ) : (
                     m.price === 0 ? <span className="text-muted-foreground/40">—</span> : `${m.price.toFixed(2)}€`
                   )}
                 </td>
-                <td className="py-3 px-4 text-right font-mono font-semibold">
+                <td className="py-3 px-4 text-right font-bold">
                   {value === 0 ? <span className="text-muted-foreground/40">—</span> : `${value.toLocaleString('el-GR', { minimumFractionDigits: 2 })}€`}
                 </td>
-                <td className="py-3 px-4 text-right font-mono text-xs">
+                <td className="py-3 px-4 text-right font-bold text-xs">
                   {isEditing ? (
                     <input
                       type="number"
                       value={editValues.low_stock_threshold}
                       onChange={e => onEditChange('low_stock_threshold', e.target.value)}
-                      className="w-16 ml-auto rounded-lg border border-primary/30 bg-card px-2 py-1 text-right text-sm font-mono focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                      className="w-16 ml-auto rounded-lg border border-primary/30 bg-card px-2 py-1 text-right text-sm font-bold focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                     />
                   ) : (
                     <span className="text-muted-foreground">{m.low_stock_threshold}</span>
@@ -540,7 +540,7 @@ const Materials = () => {
             <div className="flex items-center gap-3">
               <div className="rounded-lg bg-primary/10 p-2"><Package className="h-4 w-4 text-primary" /></div>
               <div>
-                <p className="text-2xl font-extrabold font-mono text-gradient-primary">{materials.length}</p>
+                <p className="text-2xl font-extrabold text-gradient-primary">{materials.length}</p>
                 <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Συνολικά Είδη</p>
               </div>
             </div>
@@ -549,7 +549,7 @@ const Materials = () => {
             <div className="flex items-center gap-3">
               <div className="rounded-lg bg-primary/10 p-2"><Box className="h-4 w-4 text-primary" /></div>
               <div>
-                <p className="text-2xl font-extrabold font-mono">{materials.filter(m => m.source === 'OTE').length}</p>
+                <p className="text-2xl font-extrabold">{materials.filter(m => m.source === 'OTE').length}</p>
                 <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Υλικά OTE</p>
               </div>
             </div>
@@ -558,7 +558,7 @@ const Materials = () => {
             <div className="flex items-center gap-3">
               <div className="rounded-lg bg-accent/10 p-2"><Box className="h-4 w-4 text-accent" /></div>
               <div>
-                <p className="text-2xl font-extrabold font-mono text-gradient-accent">{materials.filter(m => m.source === 'DELTANETWORK').length}</p>
+                <p className="text-2xl font-extrabold text-gradient-accent">{materials.filter(m => m.source === 'DELTANETWORK').length}</p>
                 <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Υλικά {orgName}</p>
               </div>
             </div>
@@ -569,7 +569,7 @@ const Materials = () => {
                 <AlertTriangle className={`h-4 w-4 ${lowStock > 0 ? 'text-warning' : 'text-success'}`} />
               </div>
               <div>
-                <p className="text-2xl font-extrabold font-mono">{lowStock}</p>
+                <p className="text-2xl font-extrabold">{lowStock}</p>
                 <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Χαμηλό Απόθεμα</p>
               </div>
             </div>
@@ -603,21 +603,21 @@ const Materials = () => {
             </div>
             <div className="grid grid-cols-3 gap-3 text-sm">
               <div className="rounded-lg bg-card p-3 text-center">
-                <p className="text-lg font-bold font-mono text-primary">{uploadResult.extracted.length}</p>
+                <p className="text-lg font-bold text-primary">{uploadResult.extracted.length}</p>
                 <p className="text-[10px] text-muted-foreground uppercase">Υλικά στο PDF</p>
               </div>
               <div className="rounded-lg bg-card p-3 text-center">
-                <p className="text-lg font-bold font-mono text-accent">{uploadResult.updated}</p>
+                <p className="text-lg font-bold text-accent">{uploadResult.updated}</p>
                 <p className="text-[10px] text-muted-foreground uppercase">Ενημερώθηκαν</p>
               </div>
               <div className="rounded-lg bg-card p-3 text-center">
-                <p className="text-lg font-bold font-mono text-destructive">{uploadResult.not_found?.length || 0}</p>
+                <p className="text-lg font-bold text-destructive">{uploadResult.not_found?.length || 0}</p>
                 <p className="text-[10px] text-muted-foreground uppercase">Δεν βρέθηκαν</p>
               </div>
             </div>
             {uploadResult.not_found?.length > 0 && (
               <p className="text-xs text-muted-foreground">
-                Μη αναγνωρισμένοι κωδικοί: <span className="font-mono">{uploadResult.not_found.join(', ')}</span>
+                Μη αναγνωρισμένοι κωδικοί: <span className="font-bold">{uploadResult.not_found.join(', ')}</span>
               </p>
             )}
           </div>
