@@ -92,6 +92,7 @@ const CreateAssignmentDialog = ({ open, onOpenChange }: Props) => {
         technician_id: form.technician_id === "__none__" ? null : form.technician_id,
         source_tab: form.area,
         status: "pending",
+        organization_id: organizationId,
       });
       if (error) throw error;
 
