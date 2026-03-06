@@ -125,9 +125,6 @@ Deno.serve(async (req) => {
       spreadsheet_id,
       photo_paths,
       drive_folder_url,
-      revenue,
-      material_cost,
-      profit,
     } = await req.json();
 
     if (!construction_id || !sr_id) {
