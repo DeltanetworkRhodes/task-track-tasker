@@ -213,7 +213,7 @@ const Index = () => {
 
         {/* Setup Wizard */}
         {!wizardDismissed && (
-          <SetupWizard onDismiss={() => setWizardDismissed(true)} />
+          <SetupWizard onDismiss={() => setWizardDismissed(true)} demoMode />
         )}
 
         {/* Stat Cards - responsive grid */}
