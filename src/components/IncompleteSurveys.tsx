@@ -244,26 +244,34 @@ const IncompleteSurveys = ({ filterSrId }: { filterSrId?: string }) => {
           )}
         </div>
 
-        {/* All file types - show status + upload for each */}
-        {REQUIRED_TYPES.map((t) => {
-          const key = `${survey.id}_${t.key}`;
+        {/* Existing files checklist */}
+        <div className="space-y-1">
+          {REQUIRED_TYPES.map((t) => (
+            <div key={t.key} className="flex items-center gap-2 text-xs">
+              {existingTypes.has(t.key) ? (
+                <span className="text-green-600">✓</span>
+              ) : (
+                <span className="text-destructive">✗</span>
+              )}
+              <span className={existingTypes.has(t.key) ? "text-muted-foreground" : "text-foreground font-medium"}>
+                {t.label}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        {/* Upload sections for missing types */}
+        {missingTypes.length > 0 && missingTypes.map((mt) => {
+          const key = `${survey.id}_${mt.key}`;
           const files = uploads[key] || [];
           const inputKey = `input_${key}`;
-          const acceptsCapture = t.key !== "screenshot";
-          const hasExisting = existingTypes.has(t.key);
+          const acceptsCapture = mt.key !== "screenshot";
 
           return (
-            <div key={t.key} className="space-y-2">
-              <div className="flex items-center gap-2">
-                {hasExisting ? (
-                  <span className="text-green-600 text-xs">✓</span>
-                ) : (
-                  <span className="text-destructive text-xs">✗</span>
-                )}
-                <Label className={`text-xs font-semibold uppercase tracking-wider ${hasExisting ? "text-muted-foreground" : "text-destructive"}`}>
-                  {t.label}
-                </Label>
-              </div>
+            <div key={mt.key} className="space-y-2">
+              <Label className="text-xs font-semibold uppercase tracking-wider text-destructive">
+                ↑ {mt.label}
+              </Label>
 
               {files.length > 0 && (
                 <div className="grid grid-cols-4 gap-2">
@@ -276,7 +284,7 @@ const IncompleteSurveys = ({ filterSrId }: { filterSrId?: string }) => {
                       />
                       <button
                         type="button"
-                        onClick={() => removeFile(survey.id, t.key, i)}
+                        onClick={() => removeFile(survey.id, mt.key, i)}
                         className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
                       >
                         <X className="h-3 w-3" />
@@ -295,7 +303,7 @@ const IncompleteSurveys = ({ filterSrId }: { filterSrId?: string }) => {
                   onClick={() => inputRefs.current[inputKey]?.click()}
                 >
                   <Upload className="h-3.5 w-3.5" />
-                  {hasExisting ? "Προσθήκη" : "Αρχείο"}
+                  Αρχείο
                 </Button>
                 {acceptsCapture && (
                   <Button
@@ -309,7 +317,7 @@ const IncompleteSurveys = ({ filterSrId }: { filterSrId?: string }) => {
                       inp.accept = "image/*";
                       inp.capture = "environment";
                       inp.onchange = () =>
-                        handleFiles(survey.id, t.key, inp.files);
+                        handleFiles(survey.id, mt.key, inp.files);
                       inp.click();
                     }}
                   >
@@ -328,7 +336,7 @@ const IncompleteSurveys = ({ filterSrId }: { filterSrId?: string }) => {
                 multiple
                 className="hidden"
                 onChange={(e) => {
-                  handleFiles(survey.id, t.key, e.target.files);
+                  handleFiles(survey.id, mt.key, e.target.files);
                   e.target.value = "";
                 }}
               />
@@ -336,13 +344,13 @@ const IncompleteSurveys = ({ filterSrId }: { filterSrId?: string }) => {
           );
         })}
 
-        {Object.keys(uploads).some((k) => k.startsWith(survey.id) && (uploads[k] || []).length > 0) && (
+        {missingTypes.length > 0 && (
           <Button
             onClick={() => handleSubmit(survey)}
             disabled={submitting}
             className="w-full text-xs font-bold py-5"
           >
-            {submitting ? "Ανέβασμα..." : "Αποθήκευση Αρχείων"}
+            {submitting ? "Ανέβασμα..." : "Συμπλήρωση Αρχείων"}
           </Button>
         )}
       </div>
