@@ -136,7 +136,28 @@ const AssignmentTable = ({ assignments }: AssignmentTableProps) => {
       // Find assignment details for Drive cleanup
       const target = assignments.find((a: any) => a.id === deleteTarget.id) as any;
       
-      // Delete from database first
+      // Delete dependent records first (cascade manually)
+      // 1. Find constructions linked to this assignment
+      const { data: constructions } = await supabase
+        .from("constructions")
+        .select("id")
+        .eq("assignment_id", deleteTarget.id);
+      
+      const constructionIds = (constructions || []).map((c: any) => c.id);
+      
+      if (constructionIds.length > 0) {
+        // Delete construction_works and construction_materials first
+        await supabase.from("construction_works").delete().in("construction_id", constructionIds);
+        await supabase.from("construction_materials").delete().in("construction_id", constructionIds);
+        // Then delete constructions
+        await supabase.from("constructions").delete().eq("assignment_id", deleteTarget.id);
+      }
+      
+      // 2. Delete gis_data and assignment_history
+      await supabase.from("gis_data").delete().eq("assignment_id", deleteTarget.id);
+      await supabase.from("assignment_history").delete().eq("assignment_id", deleteTarget.id);
+      
+      // 3. Now delete the assignment itself
       const { error } = await supabase
         .from("assignments")
         .delete()
