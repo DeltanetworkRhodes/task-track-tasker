@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import AppLayout from "@/components/AppLayout";
 import StatCard from "@/components/StatCard";
 import { useConstructions, useAssignments } from "@/hooks/useData";
-import { mockConstructions, constructionStatusLabels } from "@/data/mockData";
+import { constructionStatusLabels } from "@/data/mockData";
 import { Wrench, TrendingUp, Receipt, DollarSign, Search, Filter, ExternalLink, ChevronDown, ChevronUp, Calendar, MapPin, Layers, Route } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -33,29 +33,26 @@ const ConstructionPage = () => {
   const [sortField, setSortField] = useState<string>("date");
   const [sortAsc, setSortAsc] = useState(false);
 
-  const hasRealData = (dbConstructions?.length ?? 0) > 0;
   const constructions = useMemo(() => {
-    if (hasRealData) {
-      return dbConstructions!.map(c => ({
-        id: c.id,
-        srId: c.sr_id,
-        sesId: c.ses_id || '',
-        ak: c.ak || '',
-        cab: c.cab || '',
-        floors: c.floors || 0,
-        status: c.status,
-        revenue: Number(c.revenue),
-        materialCost: Number(c.material_cost),
-        profit: Number(c.profit || 0),
-        date: c.created_at.split('T')[0],
-        routingType: (c as any).routing_type || '',
-        pendingNote: (c as any).pending_note || '',
-        assignmentId: (c as any).assignment_id || '',
-        routes: (c as any).routes || [],
-      }));
-    }
-    return mockConstructions;
-  }, [dbConstructions, hasRealData]);
+    if (!dbConstructions) return [];
+    return dbConstructions.map(c => ({
+      id: c.id,
+      srId: c.sr_id,
+      sesId: c.ses_id || '',
+      ak: c.ak || '',
+      cab: c.cab || '',
+      floors: c.floors || 0,
+      status: c.status,
+      revenue: Number(c.revenue),
+      materialCost: Number(c.material_cost),
+      profit: Number(c.profit || 0),
+      date: c.created_at.split('T')[0],
+      routingType: (c as any).routing_type || '',
+      pendingNote: (c as any).pending_note || '',
+      assignmentId: (c as any).assignment_id || '',
+      routes: (c as any).routes || [],
+    }));
+  }, [dbConstructions]);
 
   // Match assignment data for extra info
   const assignmentMap = useMemo(() => {
@@ -168,7 +165,7 @@ const ConstructionPage = () => {
           <h1 className="text-2xl font-bold">Πυλώνας 2 — Κατασκευές</h1>
           <p className="text-sm text-muted-foreground mt-1">
             Διαχείριση κατασκευών, υλικών και φύλλων απολογισμού
-            {!hasRealData && <span className="ml-2 text-[11px] rounded-full bg-muted text-muted-foreground px-2 py-0.5 font-medium">demo</span>}
+            
           </p>
         </div>
 
