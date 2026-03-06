@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import AppLayout from "@/components/AppLayout";
 import { useMaterials, useProfiles } from "@/hooks/useData";
+import { useOrganization } from "@/contexts/OrganizationContext";
 import { Package, AlertTriangle, Search, Plus, Box, ArrowUpDown, Check, X, Pencil, Upload, FileText, Trash2, Download, History } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -80,7 +81,7 @@ const exportToExcel = (items: MaterialItem[], source: string) => {
   ws['!rows'] = [{ hpx: 28 }]; // header taller
 
   const wb = XLSX.utils.book_new();
-  const title = source === 'OTE' ? 'ΑΠΟΘΗΚΗ_ΥΛΙΚΑ_ΟΤΕ_FTTH' : 'ΑΠΟΘΗΚΗ_ΥΛΙΚΑ_DELTANETWORK';
+  const title = source === 'OTE' ? 'ΑΠΟΘΗΚΗ_ΥΛΙΚΑ_ΟΤΕ_FTTH' : `ΑΠΟΘΗΚΗ_ΥΛΙΚΑ_${source}`;
   XLSX.utils.book_append_sheet(wb, ws, 'Υλικά');
   XLSX.writeFile(wb, `${title}_${new Date().toISOString().slice(0, 10)}.xlsx`);
 };
@@ -242,6 +243,8 @@ const MaterialTable = ({ items, hasRealData, editingId, editValues, onEdit, onSa
 
 const Materials = () => {
   const { data: dbMaterials, refetch } = useMaterials();
+  const { organization } = useOrganization();
+  const orgName = organization?.name || 'DELTANETWORK';
   const [search, setSearch] = useState("");
   const [sortField, setSortField] = useState<SortField>('code');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
@@ -464,7 +467,7 @@ const Materials = () => {
           <div>
             <h1 className="text-2xl font-extrabold tracking-tight">Αποθήκη Υλικών</h1>
             <p className="text-sm text-muted-foreground mt-1">
-              Διαχείριση αποθεμάτων OTE & DELTANETWORK
+              Διαχείριση αποθεμάτων OTE & {orgName}
               
             </p>
           </div>
@@ -476,7 +479,7 @@ const Materials = () => {
             </label>
             <label className={`flex items-center gap-2 rounded-xl border border-accent/30 bg-accent/5 px-4 py-2.5 text-sm font-semibold text-accent-foreground hover:bg-accent/10 transition-all cursor-pointer ${uploading ? 'opacity-50 pointer-events-none' : ''}`}>
               <Upload className={`h-4 w-4 ${uploading ? 'animate-pulse' : ''}`} />
-              {uploading ? 'Ανάγνωση PDF...' : 'Δελτίο DELTA'}
+              {uploading ? 'Ανάγνωση PDF...' : `Δελτίο ${orgName}`}
               <input type="file" accept=".pdf" multiple onChange={(e) => handlePdfUpload(e, 'DELTANETWORK')} className="hidden" disabled={uploading} />
             </label>
             <Dialog open={addOpen} onOpenChange={setAddOpen}>
@@ -500,7 +503,7 @@ const Materials = () => {
                     <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Πηγή</label>
                     <select value={form.source} onChange={e => setForm(f => ({ ...f, source: e.target.value }))} className="mt-1 w-full rounded-lg border border-border bg-muted/50 px-3 py-2 text-sm focus:border-primary focus:outline-none">
                       <option value="OTE">OTE</option>
-                      <option value="DELTANETWORK">DELTANETWORK</option>
+                      <option value="DELTANETWORK">{orgName}</option>
                     </select>
                   </div>
                 </div>
@@ -556,7 +559,7 @@ const Materials = () => {
               <div className="rounded-lg bg-accent/10 p-2"><Box className="h-4 w-4 text-accent" /></div>
               <div>
                 <p className="text-2xl font-extrabold font-mono text-gradient-accent">{materials.filter(m => m.source === 'DELTANETWORK').length}</p>
-                <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Υλικά Delta</p>
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Υλικά {orgName}</p>
               </div>
             </div>
           </div>
@@ -629,7 +632,7 @@ const Materials = () => {
             </TabsTrigger>
             <TabsTrigger value="delta" className="gap-2">
               <div className="h-2.5 w-2.5 rounded-full bg-accent" />
-              DELTANETWORK <span className="text-[11px] text-muted-foreground font-mono ml-1">({deltaItems.length})</span>
+              {orgName} <span className="text-[11px] text-muted-foreground font-mono ml-1">({deltaItems.length})</span>
             </TabsTrigger>
           </TabsList>
 
@@ -661,7 +664,7 @@ const Materials = () => {
               <div className="flex items-center justify-between border-b border-border px-5 py-4 bg-accent/5">
                 <div className="flex items-center gap-2">
                   <div className="h-3 w-3 rounded-full bg-accent" />
-                  <h2 className="font-bold text-sm">Υλικά DELTANETWORK</h2>
+                  <h2 className="font-bold text-sm">Υλικά {orgName}</h2>
                   <span className="text-[11px] text-muted-foreground font-mono ml-1">({deltaItems.length} είδη)</span>
                 </div>
                 <div className="flex items-center gap-3">

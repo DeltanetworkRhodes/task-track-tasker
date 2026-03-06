@@ -1,11 +1,14 @@
 import { Material } from "@/data/mockData";
 import { AlertTriangle } from "lucide-react";
+import { useOrganization } from "@/contexts/OrganizationContext";
 
 interface MaterialsListProps {
   materials: Material[];
 }
 
 const MaterialsList = ({ materials }: MaterialsListProps) => {
+  const { organization } = useOrganization();
+  const orgName = organization?.name || 'DELTANETWORK';
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
@@ -27,7 +30,7 @@ const MaterialsList = ({ materials }: MaterialsListProps) => {
                 <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
                   m.source === 'OTE' ? 'bg-primary/15 text-primary' : 'bg-accent/15 text-accent'
                 }`}>
-                  {m.source}
+                  {m.source === 'OTE' ? 'OTE' : orgName}
                 </span>
               </td>
               <td className="py-3 px-4 text-right font-mono">
