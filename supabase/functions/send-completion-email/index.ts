@@ -327,7 +327,7 @@ Deno.serve(async (req) => {
 
 
           <p style="color: #6b7280; font-size: 12px; margin-top: 16px;">
-            📎 Συνημμένο: Φύλλο Απολογισμού & Φωτογραφίες (${photo_paths?.length || 0} φωτογραφίες)
+            📎 Συνημμένο: Φύλλο Απολογισμού & Φωτογραφίες (${allPhotoCount} φωτογραφίες)
           </p>
 
           <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;" />
