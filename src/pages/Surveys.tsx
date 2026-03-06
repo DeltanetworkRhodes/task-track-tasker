@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -16,7 +17,7 @@ import { BarChart, Bar, XAxis, YAxis, Cell, PieChart, Pie } from "recharts";
 import {
   Eye, Calendar, MapPin, User, MessageSquare, FileImage, Image, FileText,
   Download, CheckCircle, AlertTriangle, Clock, Mail, Send, Settings, XCircle,
-  CalendarPlus, Bell, Search, Filter, ClipboardCheck, FileCheck, FileWarning, ShieldAlert
+  CalendarPlus, Bell, Search, Filter, ClipboardCheck, FileCheck, FileWarning, ShieldAlert, Trash2
 } from "lucide-react";
 
 const fileTypeLabels: Record<string, string> = {
@@ -51,6 +52,8 @@ const Surveys = () => {
   const [showSettings, setShowSettings] = useState(false);
   const [toEmails, setToEmails] = useState("");
   const [ccEmails, setCcEmails] = useState("");
+  const [deleteTarget, setDeleteTarget] = useState<any>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const { data: surveys, isLoading } = useQuery({
     queryKey: ["admin-surveys"],
@@ -224,6 +227,25 @@ const Surveys = () => {
       toast.error("Σφάλμα: " + (err.message || "Δοκιμάστε ξανά"));
     } finally {
       setSendingReminder(false);
+    }
+  };
+
+  const handleDeleteSurvey = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      // Delete survey files first
+      await supabase.from("survey_files").delete().eq("survey_id", deleteTarget.id);
+      const { error } = await supabase.from("surveys").delete().eq("id", deleteTarget.id);
+      if (error) throw error;
+      toast.success(`Η αυτοψία ${deleteTarget.sr_id} διαγράφηκε`);
+      queryClient.invalidateQueries({ queryKey: ["admin-surveys"] });
+      setDeleteTarget(null);
+      if (selectedSurvey?.id === deleteTarget.id) setSelectedSurvey(null);
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -492,6 +514,7 @@ const Surveys = () => {
                     <th className="text-left px-4 py-3 font-medium">Ημερομηνία</th>
                     <th className="text-center px-4 py-3 font-medium">Email</th>
                     <th className="text-center px-4 py-3 font-medium">Ενέργεια</th>
+                    <th className="text-center px-4 py-3 font-medium"></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -538,6 +561,15 @@ const Surveys = () => {
                           >
                             <Eye className="h-4 w-4 text-primary" />
                           </Button>
+                        </td>
+                        <td className="px-4 py-3 text-center" onClick={(e) => e.stopPropagation()}>
+                          <button
+                            onClick={() => setDeleteTarget(s)}
+                            className="text-muted-foreground/40 hover:text-destructive transition-colors p-1 rounded"
+                            title="Διαγραφή"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
                         </td>
                       </tr>
                     );
@@ -727,6 +759,28 @@ const Surveys = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Διαγραφή Αυτοψίας</AlertDialogTitle>
+            <AlertDialogDescription>
+              Είστε σίγουροι ότι θέλετε να διαγράψετε την αυτοψία <strong className="text-foreground">{deleteTarget?.sr_id}</strong>; Θα διαγραφούν και τα αρχεία της.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Ακύρωση</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteSurvey}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? "Διαγραφή..." : "Διαγραφή"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppLayout>
   );
 };

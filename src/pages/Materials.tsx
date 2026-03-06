@@ -2,7 +2,6 @@ import { useState, useMemo } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import AppLayout from "@/components/AppLayout";
 import { useMaterials } from "@/hooks/useData";
-import { mockMaterials } from "@/data/mockData";
 import { Package, AlertTriangle, Search, Plus, Box, ArrowUpDown, Check, X, Pencil, RefreshCw, Upload, FileText } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -261,9 +260,8 @@ const Materials = () => {
     }
   };
 
-  const hasRealData = (dbMaterials?.length ?? 0) > 0;
-  const materials: MaterialItem[] = hasRealData
-    ? dbMaterials!.map(m => ({
+  const materials: MaterialItem[] = dbMaterials
+    ? dbMaterials.map(m => ({
         id: m.id,
         code: m.code,
         name: m.name,
@@ -273,7 +271,7 @@ const Materials = () => {
         price: Number(m.price),
         low_stock_threshold: Number((m as any).low_stock_threshold ?? 100),
       }))
-    : mockMaterials.map(m => ({ ...m, low_stock_threshold: 100 }));
+    : [];
 
   const filterAndSort = (items: MaterialItem[]) => {
     let result = items.filter(m =>
@@ -350,7 +348,7 @@ const Materials = () => {
   };
 
   const sharedTableProps = {
-    hasRealData,
+    hasRealData: (dbMaterials?.length ?? 0) > 0,
     editingId,
     editValues,
     onEdit: startEdit,
@@ -371,7 +369,7 @@ const Materials = () => {
             <h1 className="text-2xl font-extrabold tracking-tight">Αποθήκη Υλικών</h1>
             <p className="text-sm text-muted-foreground mt-1">
               Διαχείριση αποθεμάτων OTE & DELTANETWORK
-              {!hasRealData && <span className="ml-2 text-[11px] rounded-full bg-warning/10 text-warning px-2 py-0.5 font-medium">demo</span>}
+              
             </p>
           </div>
           <div className="flex items-center gap-2">
