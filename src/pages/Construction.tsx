@@ -472,15 +472,15 @@ const ConstructionPage = () => {
                     <div className="grid grid-cols-3 gap-3 text-center">
                       <div>
                         <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Έσοδα</p>
-                        <p className="text-lg font-bold font-mono text-primary">{c.revenue.toLocaleString('el-GR')}€</p>
+                        <p className="text-lg font-bold text-primary">{c.revenue.toLocaleString('el-GR')}€</p>
                       </div>
                       <div>
                         <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Κόστος</p>
-                        <p className="text-lg font-bold font-mono text-destructive">{c.materialCost.toLocaleString('el-GR')}€</p>
+                        <p className="text-lg font-bold text-destructive">{c.materialCost.toLocaleString('el-GR')}€</p>
                       </div>
                       <div>
                         <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Κέρδος</p>
-                        <p className={`text-lg font-bold font-mono ${c.profit >= 0 ? 'text-green-600' : 'text-destructive'}`}>
+                        <p className={`text-lg font-bold ${c.profit >= 0 ? 'text-green-600' : 'text-destructive'}`}>
                           {c.profit >= 0 ? '+' : ''}{c.profit.toLocaleString('el-GR')}€
                         </p>
                       </div>
