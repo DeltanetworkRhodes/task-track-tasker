@@ -472,12 +472,12 @@ const Materials = () => {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <label className={`flex items-center gap-2 rounded-xl border border-primary/30 bg-primary/5 px-4 py-2.5 text-sm font-semibold text-primary hover:bg-primary/10 transition-all cursor-pointer ${uploading ? 'opacity-50 pointer-events-none' : ''}`}>
+            <label className={`flex items-center gap-2 rounded-xl border-2 border-primary/40 bg-primary/8 px-4 py-2.5 text-sm font-bold text-primary hover:bg-primary/15 hover:border-primary/60 transition-all cursor-pointer ${uploading ? 'opacity-50 pointer-events-none' : ''}`}>
               <Upload className={`h-4 w-4 ${uploading ? 'animate-pulse' : ''}`} />
               {uploading ? 'Ανάγνωση PDF...' : 'Δελτίο OTE'}
               <input type="file" accept=".pdf" multiple onChange={(e) => handlePdfUpload(e, 'OTE')} className="hidden" disabled={uploading} />
             </label>
-            <label className={`flex items-center gap-2 rounded-xl border border-accent/30 bg-accent/5 px-4 py-2.5 text-sm font-semibold text-accent-foreground hover:bg-accent/10 transition-all cursor-pointer ${uploading ? 'opacity-50 pointer-events-none' : ''}`}>
+            <label className={`flex items-center gap-2 rounded-xl border-2 border-accent/40 bg-accent/8 px-4 py-2.5 text-sm font-bold text-accent hover:bg-accent/15 hover:border-accent/60 transition-all cursor-pointer ${uploading ? 'opacity-50 pointer-events-none' : ''}`}>
               <Upload className={`h-4 w-4 ${uploading ? 'animate-pulse' : ''}`} />
               {uploading ? 'Ανάγνωση PDF...' : `Δελτίο ${orgName}`}
               <input type="file" accept=".pdf" multiple onChange={(e) => handlePdfUpload(e, 'DELTANETWORK')} className="hidden" disabled={uploading} />
