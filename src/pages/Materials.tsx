@@ -146,7 +146,7 @@ const MaterialTable = ({ items, hasRealData, editingId, editValues, onEdit, onSa
             const isLow = m.stock < m.low_stock_threshold;
             return (
               <tr key={m.id} className={`border-b border-border/50 transition-colors ${isEditing ? 'bg-primary/5' : 'hover:bg-muted/30'}`}>
-                <td className="py-3 px-4 font-mono text-xs font-semibold text-primary">{m.code}</td>
+                <td className="py-3 px-4 text-xs font-bold text-primary">{m.code}</td>
                 <td className="py-3 px-4 font-medium">
                   {isEditing ? (
                     <input
