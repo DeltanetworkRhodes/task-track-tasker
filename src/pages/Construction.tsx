@@ -347,6 +347,15 @@ const ConstructionPage = () => {
                           {c.profit !== 0 ? `${c.profit >= 0 ? '+' : ''}${c.profit.toLocaleString('el-GR')}€` : '—'}
                         </td>
                         <td className="py-3 px-4 text-right text-xs text-muted-foreground font-mono">{c.date}</td>
+                        <td className="py-3 px-4 text-center">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setDeleteTarget(c); }}
+                            className="text-muted-foreground/40 hover:text-destructive transition-colors p-1 rounded"
+                            title="Διαγραφή"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </td>
                       </tr>
                     );
                   })
