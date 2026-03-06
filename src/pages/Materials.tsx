@@ -549,7 +549,7 @@ const Materials = () => {
             <div className="flex items-center gap-3">
               <div className="rounded-lg bg-primary/10 p-2"><Box className="h-4 w-4 text-primary" /></div>
               <div>
-                <p className="text-2xl font-extrabold font-mono">{materials.filter(m => m.source === 'OTE').length}</p>
+                <p className="text-2xl font-extrabold">{materials.filter(m => m.source === 'OTE').length}</p>
                 <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Υλικά OTE</p>
               </div>
             </div>
