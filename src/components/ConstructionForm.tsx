@@ -1,9 +1,9 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Search, Plus, Trash2, Loader2, CheckCircle, HardHat, Package, Wrench } from "lucide-react";
+import { Search, Plus, Trash2, Loader2, CheckCircle, HardHat, Package, Wrench, Camera, Upload, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -38,6 +38,7 @@ interface Props {
 const ConstructionForm = ({ assignment, onComplete }: Props) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Form state
   const [sesId, setSesId] = useState("");
@@ -55,8 +56,13 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
   const [materialSearch, setMaterialSearch] = useState("");
   const [showMaterialDropdown, setShowMaterialDropdown] = useState(false);
 
+  // Photos
+  const [photos, setPhotos] = useState<File[]>([]);
+  const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
+
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [submitProgress, setSubmitProgress] = useState("");
 
   // Fetch work pricing
   const { data: workPricing } = useQuery({
@@ -157,6 +163,31 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
   const removeWork = (index: number) => setWorkItems((prev) => prev.filter((_, i) => i !== index));
   const removeMaterial = (index: number) => setMaterialItems((prev) => prev.filter((_, i) => i !== index));
 
+  // Photo handling
+  const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+    
+    setPhotos((prev) => [...prev, ...files]);
+    
+    // Create previews
+    files.forEach((file) => {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        setPhotoPreviews((prev) => [...prev, ev.target?.result as string]);
+      };
+      reader.readAsDataURL(file);
+    });
+    
+    // Reset input
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const removePhoto = (index: number) => {
+    setPhotos((prev) => prev.filter((_, i) => i !== index));
+    setPhotoPreviews((prev) => prev.filter((_, i) => i !== index));
+  };
+
   // Totals
   const totalRevenue = workItems.reduce((sum, w) => sum + w.unit_price * w.quantity, 0);
   const deltanetMaterials = materialItems.filter((m) => m.source === "DELTANETWORK");
@@ -175,6 +206,8 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
 
     setSubmitting(true);
     try {
+      setSubmitProgress("Καταχώρηση κατασκευής...");
+
       // 1. Create construction record
       const { data: construction, error: constError } = await supabase
         .from("constructions")
@@ -221,8 +254,9 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
         if (matsError) console.error("Materials insert error:", matsError);
       }
 
-      // 4. Deduct DELTANETWORK materials from stock via edge function
+      // 4. Deduct DELTANETWORK materials from stock
       if (deltanetMaterials.length > 0) {
+        setSubmitProgress("Ενημέρωση αποθέματος...");
         const { error: deductErr } = await supabase.functions.invoke("deduct-stock", {
           body: {
             construction_id: construction.id,
@@ -236,12 +270,56 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
         if (deductErr) console.error("Stock deduction error:", deductErr);
       }
 
-      // 5. Update assignment status to completed and cab
+      // 5. Upload photos to storage
+      const photoPaths: string[] = [];
+      if (photos.length > 0) {
+        setSubmitProgress(`Ανέβασμα φωτογραφιών (0/${photos.length})...`);
+        for (let i = 0; i < photos.length; i++) {
+          const photo = photos[i];
+          const ext = photo.name.split(".").pop() || "jpg";
+          const storagePath = `constructions/${assignment.sr_id}/${construction.id}/${i + 1}.${ext}`;
+          
+          const { error: uploadErr } = await supabase.storage
+            .from("photos")
+            .upload(storagePath, photo, { upsert: true });
+          
+          if (uploadErr) {
+            console.error(`Photo upload error ${i}:`, uploadErr);
+          } else {
+            photoPaths.push(storagePath);
+          }
+          setSubmitProgress(`Ανέβασμα φωτογραφιών (${i + 1}/${photos.length})...`);
+        }
+      }
+
+      // 6. Update assignment status
       const { error: assignError } = await supabase
         .from("assignments")
         .update({ status: "completed", cab: cab.trim() })
         .eq("id", assignment.id);
       if (assignError) console.error("Assignment update error:", assignError);
+
+      // 7. Generate documents and upload to Drive (async, don't block)
+      setSubmitProgress("Δημιουργία εγγράφων & upload στο Drive...");
+      try {
+        const { data: docsResult, error: docsErr } = await supabase.functions.invoke(
+          "generate-construction-docs",
+          {
+            body: {
+              construction_id: construction.id,
+              photo_paths: photoPaths,
+            },
+          }
+        );
+        if (docsErr) {
+          console.error("Docs generation error:", docsErr);
+          toast.error("Τα έγγραφα δεν δημιουργήθηκαν, αλλά η κατασκευή καταχωρήθηκε");
+        } else if (docsResult?.drive_uploaded) {
+          toast.success(`Τα αρχεία ανέβηκαν στο Drive (${docsResult.files?.length || 0} αρχεία)`);
+        }
+      } catch (docsErr: any) {
+        console.error("Docs error:", docsErr);
+      }
 
       toast.success("Η κατασκευή καταχωρήθηκε επιτυχώς!");
       setSubmitted(true);
@@ -254,6 +332,7 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
       toast.error("Σφάλμα: " + (err.message || "Δοκιμάστε ξανά"));
     } finally {
       setSubmitting(false);
+      setSubmitProgress("");
     }
   };
 
@@ -264,6 +343,9 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
         <h2 className="text-lg font-bold text-foreground">Η κατασκευή καταχωρήθηκε!</h2>
         <p className="text-sm text-muted-foreground mt-1">
           Έσοδα: {totalRevenue.toFixed(2)}€ · Κόστος υλικών: {totalMaterialCost.toFixed(2)}€
+        </p>
+        <p className="text-xs text-muted-foreground mt-1">
+          Τα έγγραφα δημιουργούνται και ανεβαίνουν στο Drive...
         </p>
       </div>
     );
@@ -308,7 +390,6 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
           Εργασίες <span className="text-destructive">*</span>
         </Label>
 
-        {/* Search */}
         <div className="relative">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
           <Input
@@ -339,7 +420,6 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
           )}
         </div>
 
-        {/* Selected work items */}
         {workItems.length > 0 && (
           <div className="space-y-2">
             {workItems.map((w, i) => (
@@ -380,7 +460,6 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
           Υλικά
         </Label>
 
-        {/* Search */}
         <div className="relative">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
           <Input
@@ -418,7 +497,6 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
           )}
         </div>
 
-        {/* Selected materials grouped by source */}
         {materialItems.length > 0 && (
           <Tabs defaultValue="all" className="w-full">
             <TabsList className="grid w-full grid-cols-3 h-8">
@@ -479,6 +557,62 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
         )}
       </Card>
 
+      {/* Construction Photos */}
+      <Card className="p-4 space-y-3">
+        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+          <Camera className="h-3.5 w-3.5" />
+          Φωτογραφίες Κατασκευής
+        </Label>
+
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          multiple
+          capture="environment"
+          onChange={handlePhotoSelect}
+          className="hidden"
+        />
+
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => fileInputRef.current?.click()}
+          className="w-full gap-2 border-dashed"
+        >
+          <Upload className="h-4 w-4" />
+          Προσθήκη Φωτογραφιών
+        </Button>
+
+        {photoPreviews.length > 0 && (
+          <div className="grid grid-cols-3 gap-2">
+            {photoPreviews.map((preview, i) => (
+              <div key={i} className="relative group">
+                <img
+                  src={preview}
+                  alt={`Φωτογραφία ${i + 1}`}
+                  className="w-full h-24 object-cover rounded-lg border border-border"
+                />
+                <button
+                  type="button"
+                  onClick={() => removePhoto(i)}
+                  className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {photos.length > 0 && (
+          <p className="text-xs text-muted-foreground text-center">
+            {photos.length} φωτογραφί{photos.length === 1 ? "α" : "ες"} επιλεγμέν{photos.length === 1 ? "η" : "ες"}
+          </p>
+        )}
+      </Card>
+
       {/* Summary */}
       {(workItems.length > 0 || materialItems.length > 0) && (
         <Card className="p-4 space-y-2 border-primary/20">
@@ -505,7 +639,7 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
         {submitting ? (
           <>
             <Loader2 className="h-4 w-4 animate-spin" />
-            Υποβολή...
+            {submitProgress || "Υποβολή..."}
           </>
         ) : (
           <>
