@@ -397,9 +397,22 @@ const ConstructionPage = () => {
               return (
                 <div className="space-y-4">
                   {/* Status */}
-                  <Badge variant="outline" className={`text-sm ${statusColors[c.status] || ""}`}>
-                    {(constructionStatusLabels as any)[c.status] || c.status}
-                  </Badge>
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground/70 mb-1.5">Κατάσταση</p>
+                    <Select
+                      value={c.status}
+                      onValueChange={(val) => handleConstructionStatusChange(c.id, val)}
+                    >
+                      <SelectTrigger className="w-full h-9 text-sm">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.entries(constructionStatusLabels).map(([key, label]) => (
+                          <SelectItem key={key} value={key}>{label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
 
                   {/* Technical Details */}
                   <Card className="p-4 space-y-2 text-sm">
