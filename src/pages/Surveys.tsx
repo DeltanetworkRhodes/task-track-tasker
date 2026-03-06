@@ -514,6 +514,7 @@ const Surveys = () => {
                     <th className="text-left px-4 py-3 font-medium">Ημερομηνία</th>
                     <th className="text-center px-4 py-3 font-medium">Email</th>
                     <th className="text-center px-4 py-3 font-medium">Ενέργεια</th>
+                    <th className="text-center px-4 py-3 font-medium"></th>
                   </tr>
                 </thead>
                 <tbody>
