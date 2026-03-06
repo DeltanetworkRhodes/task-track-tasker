@@ -324,7 +324,7 @@ const Index = () => {
                     style={{ backgroundColor: STATUS_COLORS[item.status] || "hsl(220 10% 46%)" }}
                   />
                   <div className="flex-1 min-w-0">
-                    <span className="font-mono font-semibold text-foreground text-[11px] sm:text-xs">{item.srId}</span>
+                    <span className="font-bold text-foreground text-[11px] sm:text-xs">{item.srId}</span>
                     <span className="text-muted-foreground ml-1.5 sm:ml-2 text-[10px] sm:text-xs hidden sm:inline">{item.area}</span>
                   </div>
                   <span className="text-muted-foreground shrink-0 text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 rounded bg-muted truncate max-w-[80px] sm:max-w-none">
