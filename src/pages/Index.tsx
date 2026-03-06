@@ -364,7 +364,7 @@ const Index = () => {
               <ClipboardCheck className="h-4 w-4 text-primary shrink-0" />
               <h2 className="font-bold text-sm">Πρόσφατες Αναθέσεις</h2>
             </div>
-            <span className="text-[10px] sm:text-[11px] text-muted-foreground font-mono bg-muted px-2 sm:px-2.5 py-1 rounded-full">{assignments.length} εγγραφές</span>
+            <span className="text-[10px] sm:text-[11px] text-muted-foreground font-bold bg-muted px-2 sm:px-2.5 py-1 rounded-full">{assignments.length} εγγραφές</span>
           </div>
           <div className="overflow-x-auto">
             <AssignmentTable assignments={[...assignments].sort((a, b) => (b.updatedAt || b.date).localeCompare(a.updatedAt || a.date)).slice(0, 5)} />

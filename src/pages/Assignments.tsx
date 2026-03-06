@@ -159,7 +159,7 @@ const Assignments = () => {
             <h2 className="font-bold text-sm">
               {tabs.find(t => t.key === activeTab)?.label || "Αναθέσεις"}
             </h2>
-            <span className="ml-auto text-[10px] sm:text-xs text-muted-foreground font-mono bg-muted px-2 py-0.5 rounded-full">
+            <span className="ml-auto text-[10px] sm:text-xs text-muted-foreground font-bold bg-muted px-2 py-0.5 rounded-full">
               {filtered.length} / {assignments.length}
             </span>
           </div>

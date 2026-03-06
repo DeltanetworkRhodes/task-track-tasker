@@ -16,7 +16,7 @@ const StatCard = ({ title, value, subtitle, icon: Icon, trend, trendValue, accen
       <div className="flex items-start justify-between">
         <div className="space-y-1">
           <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{title}</p>
-          <p className={`text-2xl font-extrabold font-mono ${accent ? 'text-gradient-accent' : 'text-gradient-primary'}`}>{value}</p>
+          <p className={`text-2xl font-extrabold ${accent ? 'text-gradient-accent' : 'text-gradient-primary'}`}>{value}</p>
           {subtitle && <p className="text-[11px] text-muted-foreground">{subtitle}</p>}
         </div>
         <div className={`rounded-xl p-2.5 transition-colors ${accent ? 'bg-accent/10 group-hover:bg-accent/15' : 'bg-primary/8 group-hover:bg-primary/12'}`}>
