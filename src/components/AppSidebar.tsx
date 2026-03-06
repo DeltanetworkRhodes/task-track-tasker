@@ -12,6 +12,7 @@ const navItems = [
   { to: '/materials', label: 'Αποθήκη', icon: Package },
   { to: '/work-pricing', label: 'Τιμοκατάλογος', icon: FileText },
   { to: '/profit', label: 'Κέρδος/SR', icon: TrendingUp },
+  { to: '/kpis', label: 'KPIs Τεχνικών', icon: BarChart3 },
   { to: '/users', label: 'Χρήστες', icon: UserCog },
 ];
 
