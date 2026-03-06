@@ -25,8 +25,6 @@ const greekMonths: Record<number, string> = {
   9: "ΟΚΤΩΒΡΙΟΣ", 10: "ΝΟΕΜΒΡΙΟΣ", 11: "ΔΕΚΕΜΒΡΙΟΣ",
 };
 
-const SHARED_DRIVE_ID = "1hCNzulds5JG0cZODbMvg65Dq89MeYLgw";
-
 const areaRootFolders: Record<string, string> = {
   "ΡΟΔΟΣ": "1JvcSG3tiOplSujXhb3yj_ELQLjfrgOzO",
   "ΚΩΣ": "1X1mtK4tV_sgGM9IdizNSK7AS19qX1nYl",
