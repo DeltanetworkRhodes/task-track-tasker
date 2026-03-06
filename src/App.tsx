@@ -4,7 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
-import { OrganizationProvider } from "@/contexts/OrganizationContext";
+import { OrganizationProvider, useOrganization } from "@/contexts/OrganizationContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import Index from "./pages/Index";
 import Assignments from "./pages/Assignments";
@@ -35,9 +35,24 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
 const RoleGate = ({ children }: { children: React.ReactNode }) => {
   const { data: role, isLoading } = useUserRole();
-  if (isLoading) return <div className="flex min-h-screen items-center justify-center bg-background"><div className="text-muted-foreground">Φόρτωση...</div></div>;
+  const { organization, isLoading: orgLoading } = useOrganization();
+  if (isLoading || orgLoading) return <div className="flex min-h-screen items-center justify-center bg-background"><div className="text-muted-foreground">Φόρτωση...</div></div>;
   if (!role) return <PendingApproval />;
   if (role === "super_admin") return <Navigate to="/super-admin" replace />;
+  // Block suspended organizations
+  if (organization && organization.status === "suspended") {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="text-center space-y-3 p-8">
+          <div className="text-4xl">🔒</div>
+          <h1 className="text-lg font-bold text-foreground">Λογαριασμός Ανενεργός</h1>
+          <p className="text-sm text-muted-foreground max-w-sm">
+            Ο λογαριασμός της εταιρίας σας έχει απενεργοποιηθεί. Επικοινωνήστε με τον διαχειριστή.
+          </p>
+        </div>
+      </div>
+    );
+  }
   return <>{children}</>;
 };
 

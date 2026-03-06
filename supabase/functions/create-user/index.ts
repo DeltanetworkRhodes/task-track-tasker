@@ -1,14 +1,13 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
@@ -17,8 +16,9 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Verify caller is super_admin
-    const authHeader = req.headers.get("authorization")!;
+    // Verify caller
+    const authHeader = req.headers.get("authorization");
+    if (!authHeader) throw new Error("Unauthorized");
     const token = authHeader.replace("Bearer ", "");
     const { data: { user: caller } } = await supabaseAdmin.auth.getUser(token);
     if (!caller) throw new Error("Unauthorized");
@@ -29,13 +29,29 @@ serve(async (req) => {
       .eq("user_id", caller.id)
       .single();
 
-    if (callerRole?.role !== "super_admin") {
-      throw new Error("Only super admins can create users");
+    const isSuperAdmin = callerRole?.role === "super_admin";
+    const isAdmin = callerRole?.role === "admin";
+
+    if (!isSuperAdmin && !isAdmin) {
+      throw new Error("Only admins can create users");
     }
 
     const { email, password, full_name, role, organization_id } = await req.json();
     if (!email || !password) throw new Error("email and password are required");
     if (role === "super_admin") throw new Error("Cannot create super_admin users");
+
+    // Admins can only create users in their own org
+    let targetOrgId = organization_id;
+    if (isAdmin && !isSuperAdmin) {
+      const { data: callerProfile } = await supabaseAdmin
+        .from("profiles")
+        .select("organization_id")
+        .eq("user_id", caller.id)
+        .single();
+      
+      if (!callerProfile?.organization_id) throw new Error("Admin has no organization");
+      targetOrgId = callerProfile.organization_id;
+    }
 
     // Create auth user
     const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
@@ -49,10 +65,10 @@ serve(async (req) => {
     const userId = newUser.user.id;
 
     // Update profile with organization_id
-    if (organization_id) {
+    if (targetOrgId) {
       await supabaseAdmin
         .from("profiles")
-        .update({ organization_id })
+        .update({ organization_id: targetOrgId })
         .eq("user_id", userId);
     }
 
@@ -66,7 +82,7 @@ serve(async (req) => {
     return new Response(JSON.stringify({ success: true, user_id: userId }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
-  } catch (err) {
+  } catch (err: any) {
     return new Response(JSON.stringify({ error: err.message }), {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
