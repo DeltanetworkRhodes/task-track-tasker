@@ -163,6 +163,26 @@ const IncompleteSurveys = ({ filterSrId }: { filterSrId?: string }) => {
         } else if (result) {
           if (result.is_complete) {
             toast.success(`Ολοκληρωμένη αυτοψία → ${result.drive_target || "Drive"} + email`);
+            // Auto-advance assignment to construction
+            try {
+              const { data: assignmentData } = await supabase
+                .from("assignments")
+                .select("id, status")
+                .eq("sr_id", survey.sr_id)
+                .eq("technician_id", user!.id)
+                .maybeSingle();
+
+              if (assignmentData && assignmentData.status !== "completed" && assignmentData.status !== "cancelled") {
+                await supabase
+                  .from("assignments")
+                  .update({ status: "construction" })
+                  .eq("id", assignmentData.id);
+                toast.success("Πλήρης αυτοψία → Εντολή Κατασκευής");
+                queryClient.invalidateQueries({ queryKey: ["technician-assignments"] });
+              }
+            } catch (statusErr) {
+              console.error("Auto status update error:", statusErr);
+            }
           } else {
             toast.info(
               `Ακόμα ελλιπής. Λείπουν: ${(result.missing_types || []).length} τύποι αρχείων`
