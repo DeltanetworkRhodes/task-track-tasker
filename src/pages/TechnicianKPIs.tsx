@@ -170,7 +170,7 @@ const TechnicianKPIs = () => {
                   <div className="flex items-center justify-center gap-1 mb-1">
                     <Clock className="h-3 w-3 text-warning" />
                   </div>
-                  <p className="text-lg font-bold font-mono">{tech.active}</p>
+                  <p className="text-lg font-bold">{tech.active}</p>
                   <p className="text-[9px] text-muted-foreground uppercase">Ενεργές</p>
                 </div>
                 <div className="rounded-lg bg-muted/50 p-2.5">
