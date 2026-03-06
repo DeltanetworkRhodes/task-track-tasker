@@ -610,12 +610,12 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
                       return (
                         <div className="text-xs space-y-1">
                           <span className="font-semibold text-foreground">📋 Στοιχεία Ορόφων:</span>
-                          <div className="border border-amber-300 rounded-md overflow-x-auto shadow-sm">
+                          <div className="border border-green-300 rounded-md overflow-x-auto shadow-sm">
                             <table className="w-full text-xs whitespace-nowrap">
                               <thead>
-                                <tr className="bg-gradient-to-r from-amber-500 to-orange-500">
+                                <tr className="bg-gradient-to-r from-green-500 to-green-600">
                                   {allKeys.map((key) => (
-                                    <th key={key} className="text-left px-2 py-1.5 font-bold text-white border-r border-amber-400 last:border-r-0">
+                                    <th key={key} className="text-left px-2 py-1.5 font-bold text-white border-r border-green-400 last:border-r-0">
                                       {String(key)}
                                     </th>
                                   ))}
@@ -623,7 +623,7 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
                               </thead>
                               <tbody>
                                 {rawDetails.map((fd: any, idx: number) => (
-                                  <tr key={idx} className={`border-t border-amber-100 hover:bg-amber-100/60 ${idx % 2 === 0 ? 'bg-background' : 'bg-amber-50/50'}`}>
+                                  <tr key={idx} className={`border-t border-green-100 hover:bg-green-100/60 ${idx % 2 === 0 ? 'bg-background' : 'bg-green-50/50'}`}>
                                     {allKeys.map((key) => (
                                       <td key={key} className="px-2 py-1 font-medium border-r border-border last:border-r-0">
                                         {fd[key] != null && fd[key] !== "" ? String(fd[key]) : "—"}
