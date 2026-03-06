@@ -2,7 +2,6 @@ import { useState, useMemo } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import AppLayout from "@/components/AppLayout";
 import { useMaterials } from "@/hooks/useData";
-import { mockMaterials } from "@/data/mockData";
 import { Package, AlertTriangle, Search, Plus, Box, ArrowUpDown, Check, X, Pencil, RefreshCw, Upload, FileText } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
