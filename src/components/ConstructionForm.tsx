@@ -66,7 +66,8 @@ const MATERIAL_CATEGORIES: { label: string; match: (name: string, code: string) 
 
 const ConstructionForm = ({ assignment, onComplete }: Props) => {
   const { user } = useAuth();
-  const { organizationId } = useOrganization();
+  const { organizationId, organization } = useOrganization();
+  const orgName = organization?.name || "DELTANETWORK";
   const queryClient = useQueryClient();
 
   // Form state
