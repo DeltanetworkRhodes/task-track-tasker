@@ -13,16 +13,17 @@ type SortField = 'code' | 'name' | 'stock' | 'price';
 
 const exportToCsv = (items: MaterialItem[], source: string) => {
   const BOM = '\uFEFF';
-  const header = 'Κωδικός;Περιγραφή;Απόθεμα;Μονάδα;Τιμή;Αξία;Όριο';
+  const header = 'ΚΑΥ;ΠΕΡΙΓΡΑΦΗ;ΜΜ;ΠΟΣΟΤΗΤΑ;ΠΕΡΙΛΗΨΗ';
   const rows = items.map(m =>
-    `${m.code};${m.name};${m.stock};${m.unit};${m.price.toFixed(2)};${(m.stock * m.price).toFixed(2)};${m.low_stock_threshold}`
+    `${m.code};${m.name};${m.unit};${m.stock};`
   );
   const csv = BOM + [header, ...rows].join('\n');
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `Υλικά_${source}_${new Date().toISOString().slice(0, 10)}.csv`;
+  const title = source === 'OTE' ? 'ΑΠΟΘΗΚΗ_ΥΛΙΚΑ_ΟΤΕ_FTTH' : 'ΑΠΟΘΗΚΗ_ΥΛΙΚΑ_DELTANETWORK';
+  a.download = `${title}_${new Date().toISOString().slice(0, 10)}.csv`;
   a.click();
   URL.revokeObjectURL(url);
 };
