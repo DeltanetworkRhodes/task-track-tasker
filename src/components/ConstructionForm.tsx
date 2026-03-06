@@ -1,5 +1,6 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useOrganization } from "@/contexts/OrganizationContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -65,6 +66,7 @@ const MATERIAL_CATEGORIES: { label: string; match: (name: string, code: string) 
 
 const ConstructionForm = ({ assignment, onComplete }: Props) => {
   const { user } = useAuth();
+  const { organizationId } = useOrganization();
   const queryClient = useQueryClient();
 
   // Form state
@@ -526,11 +528,11 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
           floors: parseInt(floors) || 0,
           revenue: totalRevenue,
           material_cost: totalMaterialCost,
-          
           status: "completed",
           routing_type: routingType.trim() || null,
           pending_note: pendingNote.trim() || null,
           routes: routesData.length > 0 ? routesData : null,
+          organization_id: organizationId,
         } as any)
         .select("id")
         .single();
@@ -544,6 +546,7 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
             quantity: w.quantity,
             unit_price: w.unit_price,
             subtotal: w.unit_price * w.quantity,
+            organization_id: organizationId,
           }))
         );
         if (worksError) console.error("Works insert error:", worksError);
@@ -556,6 +559,7 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
             material_id: m.material_id,
             quantity: m.quantity,
             source: m.source,
+            organization_id: organizationId,
           }))
         );
         if (matsError) console.error("Materials insert error:", matsError);

@@ -139,25 +139,39 @@ Deno.serve(async (req) => {
     const allPhotoCount = (photo_paths?.length || 0) + (drive_photo_ids?.length || 0);
     console.log(`Preparing completion email for SR ${sr_id}: spreadsheet=${spreadsheet_id}, photos=${allPhotoCount}`);
 
-    // Get technician info
+    // Get technician info and org
     let techName = "Τεχνικός";
+    let orgId: string | null = null;
     if (userId) {
       const { data: profile } = await adminClient
         .from("profiles")
-        .select("full_name")
+        .select("full_name, organization_id")
         .eq("user_id", userId)
         .single();
       if (profile?.full_name) techName = profile.full_name;
+      orgId = profile?.organization_id || null;
     }
 
-    // Get email settings
-    const { data: settings } = await adminClient.from("email_settings").select("*");
+    // Get org-specific email settings
+    let settingsQuery = adminClient.from("email_settings").select("*");
+    if (orgId) settingsQuery = settingsQuery.eq("organization_id", orgId);
+    const { data: settings } = await settingsQuery;
     const settingsMap: Record<string, string> = {};
     (settings || []).forEach((s: any) => {
       settingsMap[s.setting_key] = s.setting_value;
     });
 
-    const toEmails = settingsMap["completion_to_emails"] || settingsMap["report_to_emails"] || "info@deltanetwork.gr";
+    // Get org settings for from/reply-to
+    let orgSettingsQuery = adminClient.from("org_settings").select("setting_key, setting_value");
+    if (orgId) orgSettingsQuery = orgSettingsQuery.eq("organization_id", orgId);
+    const { data: orgSettings } = await orgSettingsQuery;
+    const orgSettingsMap: Record<string, string> = {};
+    (orgSettings || []).forEach((s: any) => { orgSettingsMap[s.setting_key] = s.setting_value; });
+
+    const emailFrom = orgSettingsMap["email_from"] || "noreply@deltanetwork.gr";
+    const emailReplyTo = orgSettingsMap["email_reply_to"] || "info@deltanetwork.gr";
+
+    const toEmails = settingsMap["completion_to_emails"] || settingsMap["report_to_emails"] || emailReplyTo;
     const ccEmails = settingsMap["completion_cc_emails"] || settingsMap["report_cc_emails"] || "";
 
     // ─── Build ZIP incrementally ────────────────────────────────────
@@ -432,9 +446,9 @@ Deno.serve(async (req) => {
 
     // ─── Send via Resend ────────────────────────────────────────────
     const emailPayload: any = {
-      from: "DeltaNet FTTH <noreply@deltanetwork.gr>",
+      from: `DeltaNet FTTH <${emailFrom}>`,
       to: toEmails.split(",").map((e: string) => e.trim()),
-      reply_to: "info@deltanetwork.gr",
+      reply_to: emailReplyTo,
       subject,
       html: emailHtml,
     };

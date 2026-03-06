@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Plus, Loader2 } from "lucide-react";
+import { useOrganization } from "@/contexts/OrganizationContext";
 
 const useTechnicians = () => {
   return useQuery({
@@ -39,6 +40,7 @@ interface Props {
 const CreateAssignmentDialog = ({ open, onOpenChange }: Props) => {
   const queryClient = useQueryClient();
   const { data: technicians } = useTechnicians();
+  const { organizationId } = useOrganization();
   const [submitting, setSubmitting] = useState(false);
 
   const [form, setForm] = useState({
@@ -90,6 +92,7 @@ const CreateAssignmentDialog = ({ open, onOpenChange }: Props) => {
         technician_id: form.technician_id === "__none__" ? null : form.technician_id,
         source_tab: form.area,
         status: "pending",
+        organization_id: organizationId,
       });
       if (error) throw error;
 

@@ -40,13 +40,20 @@ Deno.serve(async (req) => {
 
     console.log(`Found ${staleSurveys.length} stale incomplete surveys`);
 
-    // Get all admin user IDs
+    // Get all admin user IDs with their org
     const { data: adminRoles } = await adminClient
       .from("user_roles")
       .select("user_id")
       .eq("role", "admin");
 
     const adminIds = (adminRoles || []).map((r: any) => r.user_id);
+
+    // Get admin profiles with org
+    const { data: adminProfiles } = await adminClient
+      .from("profiles")
+      .select("user_id, organization_id")
+      .in("user_id", adminIds);
+    const adminOrgMap = new Map((adminProfiles || []).map((p: any) => [p.user_id, p.organization_id]));
 
     if (adminIds.length === 0) {
       console.log("No admins found");
@@ -95,6 +102,10 @@ Deno.serve(async (req) => {
       );
 
       for (const adminId of adminIds) {
+        // Only notify admin if survey belongs to their org
+        const adminOrgId = adminOrgMap.get(adminId);
+        if (adminOrgId && survey.organization_id && adminOrgId !== survey.organization_id) continue;
+        
         notifications.push({
           user_id: adminId,
           title: "Εκκρεμής Ελλιπής Αυτοψία",
@@ -106,6 +117,7 @@ Deno.serve(async (req) => {
             technician_id: survey.technician_id,
             hours_pending: hoursAgo,
           },
+          organization_id: survey.organization_id || null,
         });
       }
     }

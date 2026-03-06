@@ -1,5 +1,6 @@
 import { useState, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useOrganization } from "@/contexts/OrganizationContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -27,6 +28,7 @@ const MAX_FILES = 10;
 
 const SurveyForm = ({ assignments, prefillSrId, prefillArea, onComplete }: Props) => {
   const { user } = useAuth();
+  const { organizationId } = useOrganization();
   const queryClient = useQueryClient();
   const [area, setArea] = useState(prefillArea || "");
   const [srId, setSrId] = useState(prefillSrId || "");
@@ -105,6 +107,7 @@ const SurveyForm = ({ assignments, prefillSrId, prefillArea, onComplete }: Props
           technician_id: user!.id,
           comments: comments.trim(),
           status: autoStatus,
+          organization_id: organizationId,
         })
         .select("id")
         .single();
@@ -122,7 +125,7 @@ const SurveyForm = ({ assignments, prefillSrId, prefillArea, onComplete }: Props
       if (allFiles.length > 0) {
         const { error: filesError } = await supabase
           .from("survey_files")
-          .insert(allFiles.map((f) => ({ ...f, survey_id: survey.id })));
+          .insert(allFiles.map((f) => ({ ...f, survey_id: survey.id, organization_id: organizationId })));
         if (filesError) console.error("Files record error:", filesError);
       }
 

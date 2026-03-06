@@ -31,26 +31,40 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Get all admin user_ids
+    // Get all admin user_ids with their org
     const { data: admins } = await supabase
       .from("user_roles")
       .select("user_id")
       .eq("role", "admin");
 
+    // Get admin profiles with org
     const adminIds = (admins || []).map(a => a.user_id);
+    const { data: adminProfiles } = await supabase
+      .from("profiles")
+      .select("user_id, organization_id")
+      .in("user_id", adminIds);
+    
+    const adminProfileMap = new Map((adminProfiles || []).map(p => [p.user_id, p.organization_id]));
 
-    // Create notifications for each admin
+    // Create notifications for each admin (only for their org's assignments)
     const notifications = [];
-    for (const admin of adminIds) {
-      // Group notification
-      const srList = staleAssignments.slice(0, 5).map(a => a.sr_id).join(", ");
-      const extra = staleAssignments.length > 5 ? ` (+${staleAssignments.length - 5} ακόμα)` : "";
+    for (const adminId of adminIds) {
+      const adminOrgId = adminProfileMap.get(adminId);
+      // Filter stale assignments to this admin's org
+      const orgStale = staleAssignments.filter(a => 
+        !adminOrgId || a.organization_id === adminOrgId || !a.organization_id
+      );
+      if (orgStale.length === 0) continue;
+
+      const srList = orgStale.slice(0, 5).map(a => a.sr_id).join(", ");
+      const extra = orgStale.length > 5 ? ` (+${orgStale.length - 5} ακόμα)` : "";
 
       notifications.push({
-        user_id: admin,
-        title: `⚠️ ${staleAssignments.length} αναθέσεις σε αδράνεια`,
+        user_id: adminId,
+        title: `⚠️ ${orgStale.length} αναθέσεις σε αδράνεια`,
         message: `Οι αναθέσεις ${srList}${extra} δεν έχουν ενημερωθεί >3 ημέρες`,
-        data: { type: "stale_assignments", count: staleAssignments.length },
+        data: { type: "stale_assignments", count: orgStale.length },
+        organization_id: adminOrgId || null,
       });
     }
 

@@ -66,23 +66,31 @@ Deno.serve(async (req) => {
 
     const { data: profile } = await adminClient
       .from("profiles")
-      .select("full_name, phone")
+      .select("full_name, phone, organization_id")
       .eq("user_id", user.id)
       .single();
 
     const techName = profile?.full_name || user.email || "Τεχνικός";
     const techPhone = profile?.phone || "";
+    const orgId = profile?.organization_id;
 
-    const { data: settings } = await adminClient
-      .from("email_settings")
-      .select("*");
-
+    // Get org-specific settings
+    let settingsQuery = adminClient.from("email_settings").select("*");
+    if (orgId) settingsQuery = settingsQuery.eq("organization_id", orgId);
+    const { data: settings } = await settingsQuery;
     const settingsMap: Record<string, string> = {};
-    (settings || []).forEach((s: any) => {
-      settingsMap[s.setting_key] = s.setting_value;
-    });
+    (settings || []).forEach((s: any) => { settingsMap[s.setting_key] = s.setting_value; });
 
-    const toEmails = settingsMap["report_to_emails"] || "info@deltanetwork.gr";
+    let orgSettingsQuery = adminClient.from("org_settings").select("setting_key, setting_value");
+    if (orgId) orgSettingsQuery = orgSettingsQuery.eq("organization_id", orgId);
+    const { data: orgSettings } = await orgSettingsQuery;
+    const orgSettingsMap: Record<string, string> = {};
+    (orgSettings || []).forEach((s: any) => { orgSettingsMap[s.setting_key] = s.setting_value; });
+
+    const emailFrom = orgSettingsMap["email_from"] || "noreply@deltanetwork.gr";
+    const emailReplyTo = orgSettingsMap["email_reply_to"] || "info@deltanetwork.gr";
+
+    const toEmails = settingsMap["report_to_emails"] || emailReplyTo;
     const ccEmails = settingsMap["report_cc_emails"] || "";
 
     const subject = `[ΑΥΤΟΨΙΑ] SR: ${sr_id} — ${area || ""}`;
@@ -149,9 +157,9 @@ Deno.serve(async (req) => {
     `;
 
     const emailPayload: any = {
-      from: "DeltaNet FTTH <noreply@deltanetwork.gr>",
+      from: `DeltaNet FTTH <${emailFrom}>`,
       to: toEmails.split(",").map((e: string) => e.trim()),
-      reply_to: "info@deltanetwork.gr",
+      reply_to: emailReplyTo,
       subject,
       html: emailHtml,
     };
