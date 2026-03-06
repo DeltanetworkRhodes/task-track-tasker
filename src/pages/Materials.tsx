@@ -503,7 +503,7 @@ const Materials = () => {
                     <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Πηγή</label>
                     <select value={form.source} onChange={e => setForm(f => ({ ...f, source: e.target.value }))} className="mt-1 w-full rounded-lg border border-border bg-muted/50 px-3 py-2 text-sm focus:border-primary focus:outline-none">
                       <option value="OTE">OTE</option>
-                      <option value="DELTANETWORK">DELTANETWORK</option>
+                      <option value="DELTANETWORK">{orgName}</option>
                     </select>
                   </div>
                 </div>
