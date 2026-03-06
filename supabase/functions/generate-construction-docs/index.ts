@@ -1,5 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { PDFDocument, StandardFonts, rgb } from "https://esm.sh/pdf-lib@1.17.1";
+import { PDFDocument, rgb } from "https://esm.sh/pdf-lib@1.17.1";
 import * as XLSX from "https://esm.sh/xlsx@0.18.5";
 
 function uint8ToBase64(bytes: Uint8Array): string {
@@ -209,6 +209,29 @@ function generateConstructionXlsx(
   return new Uint8Array(xlsxData);
 }
 
+// ─── Font Loading ────────────────────────────────────────────────────
+
+let _fontCache: { regular: Uint8Array; bold: Uint8Array } | null = null;
+
+async function loadGreekFonts(): Promise<{ regular: Uint8Array; bold: Uint8Array }> {
+  if (_fontCache) return _fontCache;
+  
+  const [regularRes, boldRes] = await Promise.all([
+    fetch("https://fonts.gstatic.com/s/roboto/v47/KFOMCnqEu92Fr1ME7kSn66aGLdTylUAMQXC89YmC2DPNWubEbGmT.ttf"),
+    fetch("https://fonts.gstatic.com/s/roboto/v47/KFOMCnqEu92Fr1ME7kSn66aGLdTylUAMQXC89YmC2DPNWubEbFqQ.ttf"),
+  ]);
+  
+  if (!regularRes.ok || !boldRes.ok) {
+    throw new Error("Failed to fetch Greek fonts");
+  }
+  
+  _fontCache = {
+    regular: new Uint8Array(await regularRes.arrayBuffer()),
+    bold: new Uint8Array(await boldRes.arrayBuffer()),
+  };
+  return _fontCache;
+}
+
 // ─── PDF Generation ──────────────────────────────────────────────────
 
 async function generateWorksPdf(
@@ -216,16 +239,17 @@ async function generateWorksPdf(
   construction: any,
   works: any[]
 ): Promise<Uint8Array> {
+  const fonts = await loadGreekFonts();
   const pdf = await PDFDocument.create();
-  const font = await pdf.embedFont(StandardFonts.Helvetica);
-  const boldFont = await pdf.embedFont(StandardFonts.HelveticaBold);
+  const font = await pdf.embedFont(fonts.regular);
+  const boldFont = await pdf.embedFont(fonts.bold);
   
   let page = pdf.addPage([595, 842]); // A4
   let y = 800;
   const margin = 40;
 
   // Title
-  page.drawText("TIMOLOGHSH ERGASION FTTH", {
+  page.drawText("ΤΙΜΟΛΟΓΗΣΗ ΕΡΓΑΣΙΩΝ FTTH", {
     x: margin, y, font: boldFont, size: 14, color: rgb(0, 0, 0.6),
   });
   y -= 25;
@@ -233,9 +257,9 @@ async function generateWorksPdf(
   // Header info
   const headerLines = [
     `SR ID: ${assignment.sr_id}    SES ID: ${construction.ses_id || "-"}`,
-    `CAB: ${construction.cab || "-"}    A/K: ${construction.ak || "-"}    Orofoi: ${construction.floors || 0}`,
-    `Pelatis: ${assignment.customer_name || "-"}    Periohi: ${assignment.area}`,
-    `Hmeromhnia: ${new Date().toLocaleDateString("el-GR")}`,
+    `CAB: ${construction.cab || "-"}    Α/Κ: ${construction.ak || "-"}    Όροφοι: ${construction.floors || 0}`,
+    `Πελάτης: ${assignment.customer_name || "-"}    Περιοχή: ${assignment.area}`,
+    `Ημερομηνία: ${new Date().toLocaleDateString("el-GR")}`,
   ];
   for (const line of headerLines) {
     page.drawText(line, { x: margin, y, font, size: 9, color: rgb(0.2, 0.2, 0.2) });
@@ -246,7 +270,7 @@ async function generateWorksPdf(
   // Table header
   page.drawRectangle({ x: margin, y: y - 2, width: 515, height: 16, color: rgb(0.9, 0.9, 0.95) });
   const cols = [margin, margin + 70, margin + 330, margin + 390, margin + 440, margin + 490];
-  const headers = ["Kodikos", "Perigrafi", "Posotita", "Timi", "Sinolo"];
+  const headers = ["Κωδικός", "Περιγραφή", "Ποσότητα", "Τιμή", "Σύνολο"];
   headers.forEach((h, i) => {
     page.drawText(h, { x: cols[i], y, font: boldFont, size: 8, color: rgb(0, 0, 0) });
   });
@@ -262,7 +286,6 @@ async function generateWorksPdf(
     const subtotal = (w.unit_price || 0) * (w.quantity || 0);
     totalRevenue += subtotal;
     
-    // Truncate description to fit
     const desc = (w.description || "").substring(0, 55);
     
     page.drawText(w.code || "", { x: cols[0], y, font, size: 7.5 });
@@ -276,7 +299,7 @@ async function generateWorksPdf(
   // Total
   y -= 10;
   page.drawRectangle({ x: margin, y: y - 2, width: 515, height: 18, color: rgb(0.85, 0.92, 0.85) });
-  page.drawText(`SYNOLO ERGASION: ${totalRevenue.toFixed(2)} EUR`, {
+  page.drawText(`ΣΥΝΟΛΟ ΕΡΓΑΣΙΩΝ: ${totalRevenue.toFixed(2)}€`, {
     x: cols[3] - 60, y, font: boldFont, size: 10, color: rgb(0, 0.4, 0),
   });
 
@@ -290,9 +313,10 @@ async function generateMaterialsPdf(
   source: string,
   title: string
 ): Promise<Uint8Array> {
+  const fonts = await loadGreekFonts();
   const pdf = await PDFDocument.create();
-  const font = await pdf.embedFont(StandardFonts.Helvetica);
-  const boldFont = await pdf.embedFont(StandardFonts.HelveticaBold);
+  const font = await pdf.embedFont(fonts.regular);
+  const boldFont = await pdf.embedFont(fonts.bold);
   
   let page = pdf.addPage([595, 842]);
   let y = 800;
@@ -307,8 +331,8 @@ async function generateMaterialsPdf(
   // Header
   const headerLines = [
     `SR ID: ${assignment.sr_id}    CAB: ${construction.cab || "-"}`,
-    `Pelatis: ${assignment.customer_name || "-"}    Periohi: ${assignment.area}`,
-    `Hmeromhnia: ${new Date().toLocaleDateString("el-GR")}`,
+    `Πελάτης: ${assignment.customer_name || "-"}    Περιοχή: ${assignment.area}`,
+    `Ημερομηνία: ${new Date().toLocaleDateString("el-GR")}`,
   ];
   for (const line of headerLines) {
     page.drawText(line, { x: margin, y, font, size: 9, color: rgb(0.2, 0.2, 0.2) });
@@ -319,7 +343,7 @@ async function generateMaterialsPdf(
   // Table header
   page.drawRectangle({ x: margin, y: y - 2, width: 515, height: 16, color: rgb(0.9, 0.9, 0.95) });
   const cols = [margin, margin + 80, margin + 370, margin + 420, margin + 470];
-  const headers = ["Kodikos", "Perigrafi", "MM", "Posotita"];
+  const headers = ["Κωδικός", "Περιγραφή", "ΜΜ", "Ποσότητα"];
   headers.forEach((h, i) => {
     page.drawText(h, { x: cols[i], y, font: boldFont, size: 8 });
   });
@@ -342,7 +366,7 @@ async function generateMaterialsPdf(
   // Total count
   y -= 10;
   const totalItems = materials.reduce((s: number, m: any) => s + (m.quantity || 0), 0);
-  page.drawText(`Sinolo eidon: ${materials.length} | Sinolo posotitas: ${totalItems}`, {
+  page.drawText(`Σύνολο ειδών: ${materials.length} | Σύνολο ποσότητας: ${totalItems}`, {
     x: margin, y, font: boldFont, size: 9,
   });
 
@@ -438,10 +462,10 @@ Deno.serve(async (req) => {
     const xlsxData = generateConstructionXlsx(assignment, construction, works, oteMaterials, deltaMaterials);
     const worksPdf = await generateWorksPdf(assignment, construction, works);
     const otePdf = oteMaterials.length > 0
-      ? await generateMaterialsPdf(assignment, construction, oteMaterials, "OTE", "DELTIO APOSTOLIS YLIKON OTE")
+      ? await generateMaterialsPdf(assignment, construction, oteMaterials, "OTE", "ΔΕΛΤΙΟ ΑΠΟΣΤΟΛΗΣ ΥΛΙΚΩΝ ΟΤΕ")
       : null;
     const deltaPdf = deltaMaterials.length > 0
-      ? await generateMaterialsPdf(assignment, construction, deltaMaterials, "DELTANETWORK", "DELTIO APOSTOLIS YLIKON DELTANETWORK")
+      ? await generateMaterialsPdf(assignment, construction, deltaMaterials, "DELTANETWORK", "ΔΕΛΤΙΟ ΑΠΟΣΤΟΛΗΣ ΥΛΙΚΩΝ DELTANETWORK")
       : null;
 
     // Google Drive upload
