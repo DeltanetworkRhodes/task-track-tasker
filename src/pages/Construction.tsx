@@ -483,6 +483,28 @@ const ConstructionPage = () => {
             })()}
           </DialogContent>
         </Dialog>
+
+        {/* Delete Confirmation */}
+        <AlertDialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Διαγραφή Κατασκευής</AlertDialogTitle>
+              <AlertDialogDescription>
+                Είστε σίγουροι ότι θέλετε να διαγράψετε την κατασκευή <strong className="text-foreground">{deleteTarget?.srId}</strong>; Αυτή η ενέργεια δεν μπορεί να αναιρεθεί.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={deleting}>Ακύρωση</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleDelete}
+                disabled={deleting}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {deleting ? "Διαγραφή..." : "Διαγραφή"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </AppLayout>
   );
