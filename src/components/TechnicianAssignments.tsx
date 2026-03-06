@@ -315,7 +315,7 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
               <input
                 ref={gisFileInputRef}
                 type="file"
-                accept=".xlsx,.xls"
+                accept=".xlsx"
                 className="hidden"
                 onChange={handleGisUpload}
               />
