@@ -87,6 +87,7 @@ const App = () => (
         <TooltipProvider>
           <Toaster />
           <Sonner />
+          <HelpChatBot />
           <BrowserRouter>
             <Routes>
               <Route path="/install" element={<InstallApp />} />
