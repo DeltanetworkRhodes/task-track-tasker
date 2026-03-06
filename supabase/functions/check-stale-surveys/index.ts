@@ -102,6 +102,10 @@ Deno.serve(async (req) => {
       );
 
       for (const adminId of adminIds) {
+        // Only notify admin if survey belongs to their org
+        const adminOrgId = adminOrgMap.get(adminId);
+        if (adminOrgId && survey.organization_id && adminOrgId !== survey.organization_id) continue;
+        
         notifications.push({
           user_id: adminId,
           title: "Εκκρεμής Ελλιπής Αυτοψία",
@@ -113,6 +117,7 @@ Deno.serve(async (req) => {
             technician_id: survey.technician_id,
             hours_pending: hoursAgo,
           },
+          organization_id: survey.organization_id || null,
         });
       }
     }
