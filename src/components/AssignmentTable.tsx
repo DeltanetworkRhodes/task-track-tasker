@@ -188,6 +188,7 @@ const AssignmentTable = ({ assignments }: AssignmentTableProps) => {
               <th className="py-3 px-4 text-center font-medium text-muted-foreground text-xs uppercase tracking-wider">Φωτο</th>
               <th className="py-3 px-4 text-left font-medium text-muted-foreground text-xs uppercase tracking-wider">Σχόλια</th>
               <th className="py-3 px-4 text-center font-medium text-muted-foreground text-xs uppercase tracking-wider">Drive</th>
+              <th className="py-3 px-4 text-center font-medium text-muted-foreground text-xs uppercase tracking-wider"></th>
             </tr>
           </thead>
           <tbody>
