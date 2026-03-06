@@ -65,7 +65,7 @@ const AppSidebar = ({ onClose }: AppSidebarProps) => {
               <item.icon className={`h-[18px] w-[18px] shrink-0 ${isActive ? 'text-white' : ''}`} />
               {item.label}
               {isActive && (
-                <div className="ml-auto h-1.5 w-1.5 rounded-full bg-sidebar-primary animate-pulse" />
+                <div className="ml-auto h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
               )}
             </Link>
           );
