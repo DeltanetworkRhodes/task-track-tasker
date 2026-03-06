@@ -317,7 +317,7 @@ Deno.serve(async (req) => {
           let fileName = pathParts.pop() || `otdr_${i + 1}.pdf`;
           if (pathParts.length >= 4) {
             const asciiFolder = pathParts[pathParts.length - 1];
-            subfolder = (otdrSubfolderNames[asciiFolder] || asciiFolder) + "/";
+            subfolder = resolveOtdrZipPath(asciiFolder);
           }
           
           zipFiles[`ΜΕΤΡΗΣΕΙΣ/${subfolder}${fileName}`] = pdfBytes;

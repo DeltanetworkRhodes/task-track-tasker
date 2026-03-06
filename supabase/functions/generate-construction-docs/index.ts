@@ -938,11 +938,17 @@ Deno.serve(async (req) => {
           
           if (pathParts.length >= 4) {
             const asciiFolder = pathParts[pathParts.length - 1];
-            const subName = otdrSubfolderNames[asciiFolder] || asciiFolder;
-            if (!otdrFolderCache[subName]) {
-              otdrFolderCache[subName] = await findOrCreateFolder(accessToken, subName, metriseisFolder.id);
+            const folderPath = resolveOtdrFolder(asciiFolder);
+            // Navigate/create nested folders: e.g. ["FB", "00"] → ΜΕΤΡΗΣΕΙΣ/FB/00
+            let parentId = metriseisFolder.id;
+            for (const seg of folderPath) {
+              const cacheKey = parentId + "/" + seg;
+              if (!otdrFolderCache[cacheKey]) {
+                otdrFolderCache[cacheKey] = await findOrCreateFolder(accessToken, seg, parentId);
+              }
+              parentId = otdrFolderCache[cacheKey].id;
             }
-            targetFolderId = otdrFolderCache[subName].id;
+            targetFolderId = parentId;
           }
           
           const arrayBuf = await fileData.arrayBuffer();
