@@ -156,9 +156,9 @@ const Index = () => {
             <div className="flex items-start justify-between gap-4">
               <div className="flex items-center gap-4 sm:gap-5">
                 <img
-                  src={deltaLogo}
+                  src={deltaLogoLight}
                   alt="DeltaNetwork"
-                  className="h-10 sm:h-12 w-auto object-contain brightness-0 invert drop-shadow-lg"
+                  className="h-10 sm:h-12 w-auto object-contain drop-shadow-lg"
                 />
                 <div className="h-8 sm:h-10 w-px bg-white/15" />
                 <div>
