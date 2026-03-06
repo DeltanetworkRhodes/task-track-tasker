@@ -304,6 +304,7 @@ const ConstructionPage = () => {
                   <th className="py-3 px-4 text-right font-medium text-muted-foreground text-xs uppercase tracking-wider cursor-pointer hover:text-foreground" onClick={() => toggleSort("date")}>
                     <span className="flex items-center justify-end gap-1">Ημ/νία <SortIcon field="date" /></span>
                   </th>
+                  <th className="py-3 px-4 text-center font-medium text-muted-foreground text-xs uppercase tracking-wider"></th>
                 </tr>
               </thead>
               <tbody>
