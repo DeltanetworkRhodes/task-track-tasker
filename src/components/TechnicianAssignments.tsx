@@ -96,7 +96,7 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
     queryFn: async () => {
       const { data } = await supabase
         .from("gis_data")
-        .select("id, floors, bep_type, bmo_type, distance_from_cabinet, latitude, longitude, conduit")
+        .select("*")
         .eq("assignment_id", selectedAssignment!.id)
         .maybeSingle();
       return data;
@@ -336,12 +336,24 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
                 {uploadingGis ? "Ανάλυση GIS..." : existingGisData ? "Αντικατάσταση GIS" : "Upload Προδέσμευσης GIS"}
               </Button>
               {existingGisData && (
-                <div className="text-xs text-muted-foreground bg-blue-500/5 border border-blue-500/20 rounded-md p-2 space-y-1">
-                  <p className="font-medium text-blue-600">✓ GIS Αναλύθηκε</p>
-                  <p>Όροφοι: {existingGisData.floors} · BEP: {existingGisData.bep_type || "—"}</p>
-                  <p>BMO: {existingGisData.bmo_type || "—"} · Conduit: {existingGisData.conduit || "—"}</p>
-                  <p>Απόσταση από καμπίνα έως κτίριο: {existingGisData.distance_from_cabinet}μ</p>
-                </div>
+                 <div className="text-xs text-muted-foreground bg-blue-500/5 border border-blue-500/20 rounded-md p-2 space-y-1">
+                   <p className="font-medium text-blue-600">✓ GIS Αναλύθηκε</p>
+                   <p>Όροφοι: {existingGisData.floors} · BEP: {existingGisData.bep_type || "—"}</p>
+                   <p>BMO: {existingGisData.bmo_type || "—"} · Conduit: {existingGisData.conduit || "—"}</p>
+                   <p>Απόσταση καμπίνα-κτίριο: {existingGisData.distance_from_cabinet}μ</p>
+                   {existingGisData.building_id && <p>Building ID: {existingGisData.building_id}</p>}
+                   {existingGisData.area_type && <p>Τύπος περιοχής: {existingGisData.area_type}</p>}
+                   {existingGisData.associated_bcp && <p>BCP: {existingGisData.associated_bcp}</p>}
+                   {existingGisData.new_bcp && <p>Νέο BCP: {existingGisData.new_bcp}</p>}
+                   {existingGisData.nearby_bcp && <p>Κοντινό BCP: {existingGisData.nearby_bcp}</p>}
+                   {existingGisData.bep_floor && <p>Όροφος BEP: {existingGisData.bep_floor}</p>}
+                   {existingGisData.bep_template && <p>Template BEP: {existingGisData.bep_template}</p>}
+                   {existingGisData.customer_floor && <p>Όροφος πελάτη: {existingGisData.customer_floor}</p>}
+                   {(existingGisData.optical_paths as any[])?.length > 0 && (
+                     <p>Οπτικές διαδρομές: {(existingGisData.optical_paths as any[]).length}</p>
+                   )}
+                   {existingGisData.notes && <p>Σημειώσεις: {existingGisData.notes}</p>}
+                 </div>
               )}
             </>
           )}
@@ -362,11 +374,20 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
       return (
         <div className="space-y-2">
           {existingGisData && (
-            <div className="text-xs text-muted-foreground bg-blue-500/5 border border-blue-500/20 rounded-md p-2 space-y-1">
-              <p className="font-medium text-blue-600">✓ GIS Προδέσμευσης</p>
-              <p>Όροφοι: {existingGisData.floors} · BEP: {existingGisData.bep_type || "—"}</p>
-              <p>BMO: {existingGisData.bmo_type || "—"} · Απόσταση καμπίνα-κτίριο: {existingGisData.distance_from_cabinet}μ</p>
-            </div>
+             <div className="text-xs text-muted-foreground bg-blue-500/5 border border-blue-500/20 rounded-md p-2 space-y-1">
+               <p className="font-medium text-blue-600">✓ GIS Προδέσμευσης</p>
+               <p>Όροφοι: {existingGisData.floors} · BEP: {existingGisData.bep_type || "—"}</p>
+               <p>BMO: {existingGisData.bmo_type || "—"} · Απόσταση καμπίνα-κτίριο: {existingGisData.distance_from_cabinet}μ</p>
+               {existingGisData.building_id && <p>Building ID: {existingGisData.building_id}</p>}
+               {existingGisData.area_type && <p>Τύπος περιοχής: {existingGisData.area_type}</p>}
+               {existingGisData.associated_bcp && <p>BCP: {existingGisData.associated_bcp}</p>}
+               {existingGisData.new_bcp && <p>Νέο BCP: {existingGisData.new_bcp}</p>}
+               {existingGisData.bep_floor && <p>Όροφος BEP: {existingGisData.bep_floor}</p>}
+               {existingGisData.customer_floor && <p>Όροφος πελάτη: {existingGisData.customer_floor}</p>}
+               {(existingGisData.optical_paths as any[])?.length > 0 && (
+                 <p>Οπτικές διαδρομές: {(existingGisData.optical_paths as any[]).length}</p>
+               )}
+             </div>
           )}
           {/* Show incomplete survey files section */}
           {existingSurvey?.status === "ΕΛΛΙΠΗΣ ΑΥΤΟΨΙΑ" && (
@@ -596,8 +617,55 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
                   </Card>
                 )}
 
-                {/* Incomplete survey file uploads */}
-                {existingSurvey?.status === "ΕΛΛΙΠΗΣ ΑΥΤΟΨΙΑ" && (
+                {/* GIS Data full details */}
+                {existingGisData && (
+                  <Card className="p-3 space-y-2">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                      Στοιχεία GIS
+                    </p>
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+                      <div><span className="text-muted-foreground">Όροφοι:</span> <span className="font-medium">{existingGisData.floors}</span></div>
+                      <div><span className="text-muted-foreground">BEP Τύπος:</span> <span className="font-medium">{existingGisData.bep_type || "—"}</span></div>
+                      <div><span className="text-muted-foreground">BMO Τύπος:</span> <span className="font-medium">{existingGisData.bmo_type || "—"}</span></div>
+                      <div><span className="text-muted-foreground">Conduit:</span> <span className="font-medium">{existingGisData.conduit || "—"}</span></div>
+                      <div><span className="text-muted-foreground">Απόσταση:</span> <span className="font-medium">{existingGisData.distance_from_cabinet}μ</span></div>
+                      {existingGisData.building_id && <div><span className="text-muted-foreground">Building ID:</span> <span className="font-medium">{existingGisData.building_id}</span></div>}
+                      {existingGisData.area_type && <div><span className="text-muted-foreground">Τύπος περιοχής:</span> <span className="font-medium">{existingGisData.area_type}</span></div>}
+                      {existingGisData.associated_bcp && <div><span className="text-muted-foreground">BCP:</span> <span className="font-medium">{existingGisData.associated_bcp}</span></div>}
+                      {existingGisData.new_bcp && <div><span className="text-muted-foreground">Νέο BCP:</span> <span className="font-medium">{existingGisData.new_bcp}</span></div>}
+                      {existingGisData.nearby_bcp && <div><span className="text-muted-foreground">Κοντινό BCP:</span> <span className="font-medium">{existingGisData.nearby_bcp}</span></div>}
+                      {existingGisData.bep_floor && <div><span className="text-muted-foreground">Όροφος BEP:</span> <span className="font-medium">{existingGisData.bep_floor}</span></div>}
+                      {existingGisData.bep_template && <div><span className="text-muted-foreground">Template BEP:</span> <span className="font-medium">{existingGisData.bep_template}</span></div>}
+                      {existingGisData.customer_floor && <div><span className="text-muted-foreground">Όροφος πελάτη:</span> <span className="font-medium">{existingGisData.customer_floor}</span></div>}
+                      {existingGisData.bep_only && <div><span className="text-muted-foreground">BEP Only:</span> <span className="font-medium">Ναι</span></div>}
+                      {existingGisData.nanotronix && <div><span className="text-muted-foreground">Nanotronix:</span> <span className="font-medium">Ναι</span></div>}
+                      {existingGisData.deh_nanotronix && <div><span className="text-muted-foreground">ΔΕΗ Nanotronix:</span> <span className="font-medium">Ναι</span></div>}
+                      {existingGisData.smart_readiness && <div><span className="text-muted-foreground">Smart Readiness:</span> <span className="font-medium">Ναι</span></div>}
+                    </div>
+                    {(existingGisData.optical_paths as any[])?.length > 0 && (
+                      <div className="text-xs">
+                        <span className="text-muted-foreground">Οπτικές διαδρομές:</span> <span className="font-medium">{(existingGisData.optical_paths as any[]).length}</span>
+                      </div>
+                    )}
+                    {(existingGisData.floor_details as any[])?.length > 0 && (
+                      <div className="text-xs">
+                        <span className="text-muted-foreground">Λεπτομέρειες ορόφων:</span> <span className="font-medium">{(existingGisData.floor_details as any[]).length} εγγραφές</span>
+                      </div>
+                    )}
+                    {existingGisData.warning && (
+                      <p className="text-xs text-amber-600">⚠ {existingGisData.warning}</p>
+                    )}
+                    {existingGisData.failure && (
+                      <p className="text-xs text-destructive">✗ {existingGisData.failure}</p>
+                    )}
+                    {existingGisData.notes && (
+                      <p className="text-xs text-muted-foreground">📝 {existingGisData.notes}</p>
+                    )}
+                  </Card>
+                )}
+
+                {/* Survey file uploads - always show when survey exists (for editing/adding files) */}
+                {existingSurvey && (
                   <IncompleteSurveys filterSrId={selectedAssignment.sr_id} />
                 )}
 

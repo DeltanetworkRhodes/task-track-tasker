@@ -30,7 +30,7 @@ const IncompleteSurveys = ({ filterSrId }: { filterSrId?: string }) => {
   const [submitting, setSubmitting] = useState(false);
   const inputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
-  // Fetch incomplete surveys for this technician
+  // Fetch surveys for this technician (incomplete OR completed for editing)
   const { data: surveys, isLoading } = useQuery({
     queryKey: ["incomplete-surveys", user?.id, filterSrId],
     queryFn: async () => {
@@ -38,10 +38,12 @@ const IncompleteSurveys = ({ filterSrId }: { filterSrId?: string }) => {
         .from("surveys")
         .select("*, survey_files(*)")
         .eq("technician_id", user!.id)
-        .eq("status", "ΕΛΛΙΠΗΣ ΑΥΤΟΨΙΑ")
         .order("created_at", { ascending: false });
       if (filterSrId) {
         query = query.eq("sr_id", filterSrId);
+      } else {
+        // Only show incomplete when not filtering by SR
+        query = query.eq("status", "ΕΛΛΙΠΗΣ ΑΥΤΟΨΙΑ");
       }
       const { data, error } = await query;
       if (error) throw error;
@@ -68,6 +70,8 @@ const IncompleteSurveys = ({ filterSrId }: { filterSrId?: string }) => {
     );
     return REQUIRED_TYPES.filter((t) => !existingTypes.has(t.key));
   };
+
+  const isIncomplete = (survey: any) => survey.status === "ΕΛΛΙΠΗΣ ΑΥΤΟΨΙΑ";
 
   const handleFiles = (
     surveyId: string,
@@ -222,12 +226,12 @@ const IncompleteSurveys = ({ filterSrId }: { filterSrId?: string }) => {
       <div className="flex items-center gap-2">
         <AlertTriangle className="h-4 w-4 text-orange-500" />
         <h3 className="text-sm font-bold text-foreground">
-          Ελλιπείς Αυτοψίες ({surveys.length})
+          {filterSrId ? "Αρχεία Αυτοψίας" : `Ελλιπείς Αυτοψίες (${surveys.length})`}
         </h3>
       </div>
 
       {surveys.map((survey: any) => {
-        const isExpanded = expandedId === survey.id;
+        const isExpanded = expandedId === survey.id || (!!filterSrId && expandedId === null);
         const missingTypes = getMissingTypes(survey);
         const existingTypes = new Set(
           (survey.survey_files || []).map((f: any) => f.file_type)
@@ -245,9 +249,15 @@ const IncompleteSurveys = ({ filterSrId }: { filterSrId?: string }) => {
                   <span className="text-sm font-semibold text-foreground truncate">
                     {survey.sr_id}
                   </span>
-                  <Badge variant="outline" className="text-[10px] bg-orange-500/10 text-orange-600 border-orange-500/20">
-                    {missingTypes.length} λείπουν
-                  </Badge>
+                  {missingTypes.length > 0 ? (
+                    <Badge variant="outline" className="text-[10px] bg-orange-500/10 text-orange-600 border-orange-500/20">
+                      {missingTypes.length} λείπουν
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="text-[10px] bg-green-500/10 text-green-600 border-green-500/20">
+                      Πλήρη
+                    </Badge>
+                  )}
                 </div>
                 <p className="text-xs text-muted-foreground mt-0.5">
                   {survey.area} · {new Date(survey.created_at).toLocaleDateString("el-GR")}
