@@ -448,8 +448,13 @@ const Materials = () => {
           <div className="flex items-center gap-2">
             <label className={`flex items-center gap-2 rounded-xl border border-primary/30 bg-primary/5 px-4 py-2.5 text-sm font-semibold text-primary hover:bg-primary/10 transition-all cursor-pointer ${uploading ? 'opacity-50 pointer-events-none' : ''}`}>
               <Upload className={`h-4 w-4 ${uploading ? 'animate-pulse' : ''}`} />
-              {uploading ? 'Ανάγνωση PDF...' : 'Δελτία Αποστολής OTE'}
-              <input type="file" accept=".pdf" multiple onChange={handlePdfUpload} className="hidden" disabled={uploading} />
+              {uploading ? 'Ανάγνωση PDF...' : 'Δελτίο OTE'}
+              <input type="file" accept=".pdf" multiple onChange={(e) => handlePdfUpload(e, 'OTE')} className="hidden" disabled={uploading} />
+            </label>
+            <label className={`flex items-center gap-2 rounded-xl border border-accent/30 bg-accent/5 px-4 py-2.5 text-sm font-semibold text-accent-foreground hover:bg-accent/10 transition-all cursor-pointer ${uploading ? 'opacity-50 pointer-events-none' : ''}`}>
+              <Upload className={`h-4 w-4 ${uploading ? 'animate-pulse' : ''}`} />
+              {uploading ? 'Ανάγνωση PDF...' : 'Δελτίο DELTA'}
+              <input type="file" accept=".pdf" multiple onChange={(e) => handlePdfUpload(e, 'DELTANETWORK')} className="hidden" disabled={uploading} />
             </label>
             <Dialog open={addOpen} onOpenChange={setAddOpen}>
               <DialogTrigger asChild>
