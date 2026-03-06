@@ -7,8 +7,7 @@ const corsHeaders = {
 };
 
 // Simple XLSX parser for Deno - reads the XML inside xlsx zip
-async function parseXlsx(data: Uint8Array): Promise<Record<string, string[][]>> {
-  // Use a lightweight approach: read zip entries
+async function parseXlsx(data: Uint8Array): Promise<{ sheetsByName: Record<string, string[][]>; sheetsByIndex: Record<string, string[][]> }> {
   const { ZipReader, BlobReader, TextWriter } = await import("https://deno.land/x/zipjs@v2.7.32/index.js");
 
   const reader = new ZipReader(new BlobReader(new Blob([data])));
@@ -25,48 +24,55 @@ async function parseXlsx(data: Uint8Array): Promise<Record<string, string[][]>> 
     }
   }
 
+  // Read sheet names from workbook.xml
+  const workbookEntry = entries.find((e: any) => e.filename === "xl/workbook.xml");
+  const sheetNames: string[] = [];
+  if (workbookEntry) {
+    const wbXml = await workbookEntry.getData(new TextWriter());
+    const sheetMatches = wbXml.matchAll(/<sheet\s[^>]*name="([^"]*)"[^>]*\/>/g);
+    for (const sm of sheetMatches) {
+      sheetNames.push(sm[1]);
+    }
+  }
+  console.log("Sheet names from workbook:", JSON.stringify(sheetNames));
+
   // Read each sheet
-  const sheets: Record<string, string[][]> = {};
+  const sheetsByIndex: Record<string, string[][]> = {};
+  const sheetsByName: Record<string, string[][]> = {};
   const sheetEntries = entries
     .filter((e: any) => /^xl\/worksheets\/sheet\d+\.xml$/.test(e.filename))
     .sort((a: any, b: any) => a.filename.localeCompare(b.filename));
 
-  for (const entry of sheetEntries) {
+  for (let si = 0; si < sheetEntries.length; si++) {
+    const entry = sheetEntries[si];
     const xml = await entry.getData(new TextWriter());
     const rows: string[][] = [];
 
-    // Extract rows
     const rowMatches = xml.matchAll(/<row[^>]*>([\s\S]*?)<\/row>/g);
     for (const rowMatch of rowMatches) {
       const cells: string[] = [];
-      // Match each cell element (handles both <c ...>...</c> and self-closing)
       const cellMatches = rowMatch[1].matchAll(/<c\s([^>]*)(?:\/>|>([\s\S]*?)<\/c>)/g);
 
       for (const cellMatch of cellMatches) {
         const attrs = cellMatch[1];
         const inner = cellMatch[2] || "";
 
-        // Extract column reference
         const refMatch = attrs.match(/r="([A-Z]+)\d+"/);
         if (!refMatch) continue;
         const colLetter = refMatch[1];
 
-        // Extract type
         const typeMatch = attrs.match(/t="([^"]*)"/);
         const type = typeMatch ? typeMatch[1] : "";
 
-        // Extract value
         const valMatch = inner.match(/<v>([\s\S]*?)<\/v>/);
         const rawValue = valMatch ? valMatch[1] : "";
 
-        // Convert column letter to index
         let colIndex = 0;
         for (let i = 0; i < colLetter.length; i++) {
           colIndex = colIndex * 26 + (colLetter.charCodeAt(i) - 64);
         }
         colIndex -= 1;
 
-        // Fill gaps
         while (cells.length <= colIndex) cells.push("");
 
         if (type === "s") {
@@ -75,7 +81,6 @@ async function parseXlsx(data: Uint8Array): Promise<Record<string, string[][]>> 
         } else if (type === "b") {
           cells[colIndex] = rawValue === "1" ? "TRUE" : "FALSE";
         } else if (type === "inlineStr") {
-          // Inline string: extract from <is><t>...</t></is>
           const isMatch = inner.match(/<is>[\s\S]*?<t[^>]*>([\s\S]*?)<\/t>[\s\S]*?<\/is>/);
           cells[colIndex] = isMatch ? isMatch[1] : rawValue;
         } else {
@@ -88,12 +93,15 @@ async function parseXlsx(data: Uint8Array): Promise<Record<string, string[][]>> 
       }
     }
 
-    const sheetNum = entry.filename.match(/sheet(\d+)/)?.[1] || "1";
-    sheets[`sheet${sheetNum}`] = rows;
+    const sheetKey = `sheet${si + 1}`;
+    sheetsByIndex[sheetKey] = rows;
+    if (si < sheetNames.length) {
+      sheetsByName[sheetNames[si].toUpperCase()] = rows;
+    }
   }
 
   await reader.close();
-  return sheets;
+  return { sheetsByName, sheetsByIndex };
 }
 
 function parseBoolean(val: string): boolean {
