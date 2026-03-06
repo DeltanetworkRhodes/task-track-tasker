@@ -1113,7 +1113,72 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
         </div>
       </Card>
 
-      {/* Summary */}
+      {/* OTDR Measurements - PDF uploads */}
+      <Card className="p-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+            📊 Μετρήσεις OTDR (PDF)
+          </Label>
+          {totalOtdrFiles > 0 && (
+            <Badge variant="secondary" className="text-xs">{totalOtdrFiles} PDF</Badge>
+          )}
+        </div>
+
+        <div className="space-y-2">
+          {OTDR_CATEGORIES.map((cat) => {
+            const catFiles = otdrFiles[cat.key] || [];
+            return (
+              <div key={cat.key} className="border border-border rounded-lg p-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-medium">📊 {cat.label}</span>
+                  <div className="flex items-center gap-2">
+                    {catFiles.length > 0 && (
+                      <Badge variant="outline" className="text-[10px] h-5">{catFiles.length}</Badge>
+                    )}
+                    <input
+                      ref={(el) => { otdrInputRefs.current[cat.key] = el; }}
+                      type="file"
+                      accept=".pdf,application/pdf"
+                      multiple
+                      onChange={(e) => handleOtdrSelect(cat.key, e)}
+                      className="hidden"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => otdrInputRefs.current[cat.key]?.click()}
+                      className="h-7 text-[11px] gap-1 px-2"
+                    >
+                      PDF
+                    </Button>
+                  </div>
+                </div>
+                
+                {catFiles.length > 0 && (
+                  <div className="space-y-1">
+                    {catFiles.map((file, i) => (
+                      <div key={i} className="flex items-center gap-2 text-xs bg-muted/50 rounded px-2 py-1.5">
+                        <span className="text-muted-foreground">📄</span>
+                        <span className="flex-1 truncate">{file.name}</span>
+                        <span className="text-muted-foreground">{(file.size / 1024).toFixed(0)}KB</span>
+                        <button
+                          type="button"
+                          onClick={() => removeOtdrFile(cat.key, i)}
+                          className="text-destructive hover:text-destructive/80"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </Card>
+
       {(workItems.length > 0 || materialItems.length > 0) && (
         <Card className="p-4 space-y-2 border-primary/20">
           <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Σύνοψη</Label>
