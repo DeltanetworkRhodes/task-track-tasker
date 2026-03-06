@@ -608,6 +608,7 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
         }
       }
 
+      const { error: assignError } = await supabase
         .from("assignments")
         .update({ status: "completed", cab: cab.trim() })
         .eq("id", assignment.id);
