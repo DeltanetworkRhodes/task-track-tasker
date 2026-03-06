@@ -75,6 +75,68 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
     enabled: !!selectedAssignment && !!user,
   });
 
+  // Fetch GIS data for selected assignment
+  const { data: existingGisData } = useQuery({
+    queryKey: ["assignment-gis", selectedAssignment?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("gis_data")
+        .select("id, floors, bep_type, bmo_type, distance_from_cabinet, latitude, longitude, conduit")
+        .eq("assignment_id", selectedAssignment!.id)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!selectedAssignment && !!user,
+  });
+
+  const handleGisUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !selectedAssignment) return;
+
+    if (!file.name.endsWith('.xlsx') && !file.name.endsWith('.xls')) {
+      toast.error("Παρακαλώ ανεβάστε αρχείο Excel (.xlsx)");
+      return;
+    }
+
+    setUploadingGis(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("assignment_id", selectedAssignment.id);
+      formData.append("sr_id", selectedAssignment.sr_id);
+
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+
+      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+      const response = await fetch(
+        `https://${projectId}.supabase.co/functions/v1/parse-gis-excel`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          body: formData,
+        }
+      );
+
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Upload failed");
+
+      toast.success(
+        `GIS αναλύθηκε: ${result.parsed.floors} όροφοι, ${result.parsed.optical_paths} οπτικές διαδρομές`
+      );
+      queryClient.invalidateQueries({ queryKey: ["technician-assignments"] });
+      queryClient.invalidateQueries({ queryKey: ["assignment-gis"] });
+    } catch (err: any) {
+      console.error("GIS upload error:", err);
+      toast.error("Σφάλμα: " + (err.message || "Δοκιμάστε ξανά"));
+    } finally {
+      setUploadingGis(false);
+      if (gisFileInputRef.current) gisFileInputRef.current.value = "";
+    }
+  };
+
   const handleStatusChange = async (assignmentId: string, newStatus: string, oldStatus: string) => {
     setUpdating(assignmentId);
     try {
