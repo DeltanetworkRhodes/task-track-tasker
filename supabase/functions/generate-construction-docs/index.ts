@@ -699,7 +699,7 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json();
-    const { construction_id, photo_paths } = body;
+    const { construction_id, photo_paths, otdr_paths } = body;
 
     if (!construction_id) {
       return new Response(JSON.stringify({ error: "construction_id required" }), {

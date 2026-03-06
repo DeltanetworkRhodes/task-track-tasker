@@ -124,6 +124,7 @@ Deno.serve(async (req) => {
       cab,
       spreadsheet_id,
       photo_paths,
+      otdr_paths,
       drive_photo_ids,
       drive_folder_url,
     } = await req.json();
