@@ -347,7 +347,7 @@ const Index = () => {
             </div>
             <span className="text-[11px] text-muted-foreground font-mono bg-muted px-2.5 py-1 rounded-full">{assignments.length} εγγραφές</span>
           </div>
-          <AssignmentTable assignments={assignments.slice(0, 5)} />
+          <AssignmentTable assignments={[...assignments].sort((a, b) => (b.updatedAt || b.date).localeCompare(a.updatedAt || a.date)).slice(0, 5)} />
         </div>
       </div>
     </AppLayout>
