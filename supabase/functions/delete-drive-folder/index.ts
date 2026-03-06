@@ -173,7 +173,7 @@ Deno.serve(async (req) => {
     for (const folder of results) {
       // Delete each matching folder (moves to trash)
       try {
-        await deleteDriveFile(accessToken, folder.id);
+        await trashDriveFile(accessToken, folder.id);
         console.log(`Deleted folder: ${folder.name} (${folder.id})`);
         deleted = true;
       } catch (delErr) {
