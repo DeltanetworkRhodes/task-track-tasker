@@ -861,8 +861,10 @@ Deno.serve(async (req) => {
       uploadResults.push({ type: "delta_pdf", name: deltaResult.name, id: deltaResult.id });
     }
 
-    // 5. Upload photos from Supabase storage
+    // 5. Upload photos from Supabase storage (organized by category folders)
     if (photo_paths && photo_paths.length > 0) {
+      const categoryFolderCache: Record<string, any> = {};
+      
       for (const photoPath of photo_paths) {
         try {
           const { data: fileData, error: dlErr } = await adminClient.storage
@@ -872,13 +874,26 @@ Deno.serve(async (req) => {
             console.error(`Failed to download photo ${photoPath}:`, dlErr);
             continue;
           }
+          
+          // Extract category from path: constructions/{sr_id}/{cid}/{CATEGORY}/{file}
+          const pathParts = photoPath.split("/");
+          let targetFolderId = constructionFolder.id;
+          let fileName = pathParts.pop() || `photo_${Date.now()}.jpg`;
+          
+          if (pathParts.length >= 4) {
+            const category = pathParts[pathParts.length - 1];
+            if (!categoryFolderCache[category]) {
+              categoryFolderCache[category] = await findOrCreateFolder(accessToken, category, constructionFolder.id);
+            }
+            targetFolderId = categoryFolderCache[category].id;
+          }
+          
           const arrayBuf = await fileData.arrayBuffer();
-          const fileName = photoPath.split("/").pop() || `photo_${Date.now()}.jpg`;
           const mimeType = fileName.endsWith(".png") ? "image/png" : "image/jpeg";
           
           const photoResult = await uploadFileToDrive(
             accessToken, fileName, mimeType,
-            new Uint8Array(arrayBuf), constructionFolder.id
+            new Uint8Array(arrayBuf), targetFolderId
           );
           uploadResults.push({ type: "photo", name: photoResult.name, id: photoResult.id });
         } catch (photoErr: any) {
