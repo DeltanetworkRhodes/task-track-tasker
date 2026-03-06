@@ -26,6 +26,7 @@ import {
 
 const ICON_MAP: Record<string, React.ElementType> = {
   "hard-drive": HardDrive,
+  "key-round": KeyRound,
   folder: FolderOpen,
   mail: Mail,
   users: Users,
