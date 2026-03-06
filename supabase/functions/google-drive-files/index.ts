@@ -203,14 +203,14 @@ Deno.serve(async (req) => {
 
     if (action === "download" && file_id) {
       const metaRes = await fetch(
-        `https://www.googleapis.com/drive/v3/files/${file_id}?fields=name,mimeType`,
+        `https://www.googleapis.com/drive/v3/files/${file_id}?fields=name,mimeType&supportsAllDrives=true`,
         { headers: { Authorization: `Bearer ${accessToken}` } }
       );
       if (!metaRes.ok) throw new Error(await metaRes.text());
       const meta = await metaRes.json();
 
       const fileRes = await fetch(
-        `https://www.googleapis.com/drive/v3/files/${file_id}?alt=media`,
+        `https://www.googleapis.com/drive/v3/files/${file_id}?alt=media&supportsAllDrives=true`,
         { headers: { Authorization: `Bearer ${accessToken}` } }
       );
       if (!fileRes.ok) throw new Error(await fileRes.text());
