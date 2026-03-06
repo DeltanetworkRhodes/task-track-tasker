@@ -7,6 +7,8 @@ interface MaterialsListProps {
 }
 
 const MaterialsList = ({ materials }: MaterialsListProps) => {
+  const { organization } = useOrganization();
+  const orgName = organization?.name || 'DELTANETWORK';
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
