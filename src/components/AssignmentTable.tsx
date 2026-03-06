@@ -349,6 +349,26 @@ const AssignmentTable = ({ assignments }: AssignmentTableProps) => {
             </div>
           )}
 
+          {/* Status Change */}
+          {selected && (
+            <div className="mt-3 pt-3 border-t border-border/30">
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground/70 mb-2">Αλλαγή Κατάστασης</p>
+              <Select
+                value={selected.status}
+                onValueChange={(val) => handleStatusChange(selected.id, val)}
+              >
+                <SelectTrigger className="w-full h-8 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(statusLabels).map(([key, label]) => (
+                    <SelectItem key={key} value={key}>{label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
           {/* Timeline */}
           {history && history.length > 0 && (
             <div className="mt-4 pt-4 border-t border-border/30">
