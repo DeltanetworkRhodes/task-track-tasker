@@ -33,15 +33,29 @@ Deno.serve(async (req) => {
     const serviceAccountKey = JSON.parse(Deno.env.get("GOOGLE_SERVICE_ACCOUNT_KEY")!);
     const accessToken = await getAccessToken(serviceAccountKey);
     const spreadsheetId = "1Rc0rrrNbixf9G64G71aWDrQ_cFezADTt4JYbTeCSzic";
-    const sheetName = "ΦΥΛΛΟ_ΑΠΟΛΟΓΙΣΜΟΥ_ΕΡΓΑΣΙΩΝ_FTTH_Β_ΦΑΣΗ";
     
-    const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/'${encodeURIComponent(sheetName)}'!A1:Z200`;
+    // First get all sheet names
+    const metaUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}?fields=sheets.properties`;
+    const metaRes = await fetch(metaUrl, { headers: { Authorization: `Bearer ${accessToken}` } });
+    const meta = await metaRes.json();
+    const sheets = meta.sheets?.map((s: any) => ({ title: s.properties.title, gid: s.properties.sheetId })) || [];
+    
+    // Find the ΦΥΛΛΟ sheet
+    const target = sheets.find((s: any) => s.title.includes("ΦΥΛΛΟ") || s.title.includes("ΑΠΟΛΟΓΙΣΜΟΥ"));
+    if (!target) {
+      return new Response(JSON.stringify({ error: "Sheet not found", sheets }), {
+        status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    
+    // Read using ranges API with sheet title
+    const rangeParam = `${target.title}!A1:Z200`;
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(rangeParam)}`;
     const res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
     if (!res.ok) throw new Error(await res.text());
     const data = await res.json();
     const rows = data.values || [];
     
-    // Find headers and work/material columns
     let workCodeCol = -1, workQtyCol = -1, matCodeCol = -1, matQtyCol = -1, headerRow = -1;
     const headerFields: Record<string, string> = {};
     
@@ -51,8 +65,10 @@ Deno.serve(async (req) => {
         if (val === "Άρθρο") { headerRow = r; workCodeCol = c; }
         if (val === "ΠΟΣΟΤΗΤΑ" && headerRow === r) workQtyCol = c;
         if (val === "ΚΑΥ") matCodeCol = c;
-        if (["SR ID:", "ΠΕΡΙΟΧΗ", "SES ID:", "CAB:", "ΔΙΕΥΘΥΝΣΗ:", "ΕΙΔΟΣ ΟΔΕΥΣΗΣ:", "ΑΝΑΜΟΝΗ:", "ΟΡΟΦΟΙ:", "ΗΜ/ΝΙΑ", "Α/Κ:"].includes(val)) {
-          headerFields[val] = (rows[r]?.[c + 1] || "").toString();
+        for (const label of ["SR ID:", "ΠΕΡΙΟΧΗ", "SES ID:", "CAB:", "ΔΙΕΥΘΥΝΣΗ:", "ΕΙΔΟΣ ΟΔΕΥΣΗΣ:", "ΑΝΑΜΟΝΗ:", "ΟΡΟΦΟΙ:", "ΗΜ/ΝΙΑ", "Α/Κ:"]) {
+          if (val === label || val.includes(label)) {
+            headerFields[label] = (rows[r]?.[c + 1] || "").toString();
+          }
         }
       }
     }
@@ -75,30 +91,28 @@ Deno.serve(async (req) => {
       if (workCodeCol >= 0 && workQtyCol >= 0) {
         const code = (row[workCodeCol] || "").trim().replace(/\.+$/, "");
         const qty = (row[workQtyCol] || "").toString().trim();
-        if (code && qty && qty !== "0") {
+        if (code && qty && qty !== "0" && qty !== "") {
           filledWorks[code] = { row: r + 1, col: String.fromCharCode(65 + workQtyCol), quantity: qty };
         }
       }
       if (matCodeCol >= 0 && matQtyCol >= 0) {
         const matCode = (row[matCodeCol] || "").trim();
         const matQty = (row[matQtyCol] || "").toString().trim();
-        if (matCode && matQty && matQty !== "0") {
+        if (matCode && matQty && matQty !== "0" && matQty !== "") {
           filledMaterials[matCode] = { row: r + 1, col: String.fromCharCode(65 + matQtyCol), quantity: matQty };
         }
       }
     }
     
-    // Also get the first 15 rows for context
-    const sampleRows = rows.slice(0, 15).map((r: any[], i: number) => ({ row: i + 1, cells: r }));
-    
     return new Response(JSON.stringify({
-      sheetName,
+      sheetTitle: target.title,
+      allSheets: sheets,
       totalRows: rows.length,
-      columnPositions: { workCodeCol, workQtyCol, matCodeCol, matQtyCol, headerRow, dataStart },
+      positions: { workCodeCol, workQtyCol, matCodeCol, matQtyCol, headerRow, dataStart },
       headerFields,
       filledWorks,
       filledMaterials,
-      sampleRows,
+      sampleHeaderRows: rows.slice(0, 15),
     }, null, 2), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (error) {
     return new Response(JSON.stringify({ error: error.message }), {
