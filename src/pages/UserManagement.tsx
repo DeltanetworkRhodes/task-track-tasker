@@ -179,14 +179,73 @@ const UserManagement = () => {
   return (
     <AppLayout>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-            <UserCog className="h-6 w-6" />
-            Διαχείριση Χρηστών
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Εκχώρηση ρόλων · Επεξεργασία στοιχείων · Διαγραφή
-          </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+              <UserCog className="h-6 w-6" />
+              Διαχείριση Χρηστών
+            </h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Εκχώρηση ρόλων · Επεξεργασία στοιχείων · Διαγραφή
+            </p>
+          </div>
+
+          <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+            <DialogTrigger asChild>
+              <Button className="gap-2">
+                <UserPlus className="h-4 w-4" />
+                Νέος Χρήστης
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Δημιουργία Νέου Χρήστη</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 pt-2">
+                <div className="space-y-2">
+                  <Label>Ονοματεπώνυμο *</Label>
+                  <Input
+                    value={newUser.full_name}
+                    onChange={(e) => setNewUser({ ...newUser, full_name: e.target.value })}
+                    placeholder="π.χ. Γιώργος Παπαδόπουλος"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Email *</Label>
+                  <Input
+                    type="email"
+                    value={newUser.email}
+                    onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+                    placeholder="user@example.com"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Κωδικός *</Label>
+                  <Input
+                    type="password"
+                    value={newUser.password}
+                    onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+                    placeholder="Ελάχιστο 6 χαρακτήρες"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Ρόλος</Label>
+                  <Select value={newUser.role} onValueChange={(val) => setNewUser({ ...newUser, role: val })}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="technician">Τεχνικός</SelectItem>
+                      <SelectItem value="admin">Admin</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button className="w-full" onClick={handleCreateUser} disabled={creating}>
+                  {creating ? "Δημιουργία..." : "Δημιουργία Χρήστη"}
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
 
         {isLoading ? (
