@@ -75,6 +75,21 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
     enabled: !!selectedAssignment && !!user,
   });
 
+  // Fetch which assignments have GIS data (for card icons)
+  const { data: gisAssignmentIds } = useQuery({
+    queryKey: ["gis-assignment-ids", user?.id],
+    queryFn: async () => {
+      const ids = assignments.map((a: any) => a.id);
+      if (ids.length === 0) return [];
+      const { data } = await supabase
+        .from("gis_data")
+        .select("assignment_id")
+        .in("assignment_id", ids);
+      return (data || []).map((d: any) => d.assignment_id);
+    },
+    enabled: !!user && assignments.length > 0,
+  });
+
   // Fetch GIS data for selected assignment
   const { data: existingGisData } = useQuery({
     queryKey: ["assignment-gis", selectedAssignment?.id],
@@ -453,9 +468,17 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
               </div>
             )}
 
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-              <Calendar className="h-3 w-3" />
-              {new Date(a.created_at).toLocaleDateString("el-GR")}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Calendar className="h-3 w-3" />
+                {new Date(a.created_at).toLocaleDateString("el-GR")}
+              </div>
+              {gisAssignmentIds?.includes(a.id) && (
+                <div className="flex items-center gap-1 text-xs text-blue-600">
+                  <FileSpreadsheet className="h-3.5 w-3.5" />
+                  <span className="font-medium">GIS</span>
+                </div>
+              )}
             </div>
           </Card>
         ))}
