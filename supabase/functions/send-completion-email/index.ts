@@ -219,6 +219,12 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Map ASCII storage folder names to Greek display names
+    const folderDisplayNames: Record<string, string> = {
+      SKAMA: "ΣΚΑΜΑ", ODEFSI: "ΟΔΕΥΣΗ", BCP: "BCP", BEP: "BEP",
+      BMO: "BMO", FB: "FB", KAMPINA: "ΚΑΜΠΙΝΑ", G_FASI: "Γ_ΦΑΣΗ",
+    };
+
     // 2. Download photos from Supabase Storage (organized by category folders)
     if (photo_paths && photo_paths.length > 0) {
       for (let i = 0; i < photo_paths.length; i++) {
@@ -237,9 +243,10 @@ Deno.serve(async (req) => {
           const pathParts = photo_paths[i].split("/");
           let categoryFolder = "";
           let fileName = pathParts.pop() || `photo_${i + 1}.jpg`;
-          // If path has 5 parts: constructions/sr/cid/CATEGORY/file
           if (pathParts.length >= 4) {
-            categoryFolder = pathParts[pathParts.length - 1] + "/";
+            const asciiFolder = pathParts[pathParts.length - 1];
+            const displayName = folderDisplayNames[asciiFolder] || asciiFolder;
+            categoryFolder = displayName + "/";
           }
           
           zipFiles[`ΦΩΤΟΓΡΑΦΙΕΣ/${categoryFolder}${fileName}`] = photoBytes;

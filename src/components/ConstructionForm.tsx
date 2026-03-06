@@ -101,15 +101,16 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
 
   // Photo categories
   // Photo categories mapped to work code prefixes
+  // storageName uses ASCII for Supabase Storage compatibility
   const ALL_PHOTO_CATEGORIES = [
-    { key: "ΣΚΑΜΑ", label: "Σκάμα", icon: "⛏️", workPrefixes: ["1965"] },
-    { key: "ΟΔΕΥΣΗ", label: "Όδευση", icon: "🛤️", workPrefixes: [] }, // always shown
-    { key: "BCP", label: "BCP", icon: "📦", workPrefixes: ["1991", "1993"] },
-    { key: "BEP", label: "BEP", icon: "🔌", workPrefixes: [] }, // always shown
-    { key: "BMO", label: "BMO", icon: "📡", workPrefixes: [] }, // always shown
-    { key: "FB", label: "Floor Box", icon: "📋", workPrefixes: ["1984", "1985", "1986"] },
-    { key: "ΚΑΜΠΙΝΑ", label: "Καμπίνα", icon: "🏗️", workPrefixes: ["1980"] },
-    { key: "Γ_ΦΑΣΗ", label: "Γ' Φάση", icon: "👤", workPrefixes: ["1955"] },
+    { key: "ΣΚΑΜΑ", storageName: "SKAMA", label: "Σκάμα", icon: "⛏️", workPrefixes: ["1965"] },
+    { key: "ΟΔΕΥΣΗ", storageName: "ODEFSI", label: "Όδευση", icon: "🛤️", workPrefixes: [] },
+    { key: "BCP", storageName: "BCP", label: "BCP", icon: "📦", workPrefixes: ["1991", "1993"] },
+    { key: "BEP", storageName: "BEP", label: "BEP", icon: "🔌", workPrefixes: [] },
+    { key: "BMO", storageName: "BMO", label: "BMO", icon: "📡", workPrefixes: [] },
+    { key: "FB", storageName: "FB", label: "Floor Box", icon: "📋", workPrefixes: ["1984", "1985", "1986"] },
+    { key: "ΚΑΜΠΙΝΑ", storageName: "KAMPINA", label: "Καμπίνα", icon: "🏗️", workPrefixes: ["1980"] },
+    { key: "Γ_ΦΑΣΗ", storageName: "G_FASI", label: "Γ' Φάση", icon: "👤", workPrefixes: ["1955"] },
   ];
 
   // Filter photo categories based on selected works
@@ -530,19 +531,24 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
       const photoPaths: string[] = [];
       const allCategoryPhotos = Object.entries(categorizedPhotos).filter(([_, files]) => files.length > 0);
       const totalPhotoCount = allCategoryPhotos.reduce((sum, [_, files]) => sum + files.length, 0);
+      const safeSrId = assignment.sr_id.replace(/[^a-zA-Z0-9_-]/g, "_");
       
       if (totalPhotoCount > 0) {
         let uploaded = 0;
         setSubmitProgress(`Ανέβασμα φωτογραφιών (0/${totalPhotoCount})...`);
         for (const [category, files] of allCategoryPhotos) {
+          // Find the ASCII storageName for this category
+          const catDef = ALL_PHOTO_CATEGORIES.find((c) => c.key === category);
+          const folderName = catDef?.storageName || category.replace(/[^a-zA-Z0-9_-]/g, "_");
+          
           for (let i = 0; i < files.length; i++) {
             const photo = files[i];
             const ext = photo.name.split(".").pop() || "jpg";
-            const storagePath = `constructions/${assignment.sr_id}/${construction.id}/${category}/${i + 1}.${ext}`;
+            const storagePath = `constructions/${safeSrId}/${construction.id}/${folderName}/${i + 1}.${ext}`;
             const { error: uploadErr } = await supabase.storage
               .from("photos")
               .upload(storagePath, photo, { upsert: true });
-            if (uploadErr) console.error(`Photo upload error ${category}/${i}:`, uploadErr);
+            if (uploadErr) console.error(`Photo upload error ${folderName}/${i}:`, uploadErr);
             else photoPaths.push(storagePath);
             uploaded++;
             setSubmitProgress(`Ανέβασμα φωτογραφιών (${uploaded}/${totalPhotoCount})...`);
