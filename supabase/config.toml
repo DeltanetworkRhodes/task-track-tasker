@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.process-survey-completion]
 verify_jwt = false
+
+[functions.generate-construction-docs]
+verify_jwt = false
