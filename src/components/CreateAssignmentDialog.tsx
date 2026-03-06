@@ -40,6 +40,7 @@ interface Props {
 const CreateAssignmentDialog = ({ open, onOpenChange }: Props) => {
   const queryClient = useQueryClient();
   const { data: technicians } = useTechnicians();
+  const { organizationId } = useOrganization();
   const [submitting, setSubmitting] = useState(false);
 
   const [form, setForm] = useState({
