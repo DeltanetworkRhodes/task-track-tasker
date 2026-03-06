@@ -412,13 +412,17 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
                 {/* Existing survey info */}
                 {existingSurvey && (
                   <Card className="p-3 space-y-1">
-                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Αυτοψία</p>
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                      {existingSurvey.status === "ΕΛΛΙΠΗΣ ΑΥΤΟΨΙΑ" ? "Αυτοψία" : "Εντολή Κατασκευής"}
+                    </p>
                     <Badge variant="outline" className={
                       existingSurvey.status === "ΕΛΛΙΠΗΣ ΑΥΤΟΨΙΑ"
                         ? "bg-yellow-500/10 text-yellow-600 border-yellow-500/20"
                         : "bg-green-500/10 text-green-600 border-green-500/20"
                     }>
-                      {existingSurvey.status}
+                      {existingSurvey.status === "ΕΛΛΙΠΗΣ ΑΥΤΟΨΙΑ"
+                        ? existingSurvey.status
+                        : "Προδέσμευση Υλικών"}
                     </Badge>
                     {existingSurvey.comments && (
                       <p className="text-xs text-muted-foreground mt-1">{existingSurvey.comments}</p>
