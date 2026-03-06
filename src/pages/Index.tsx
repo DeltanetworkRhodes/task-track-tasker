@@ -194,7 +194,7 @@ const Index = () => {
               </div>
               <div className="hidden sm:block h-8 w-px bg-white/10" />
               <div className="text-center sm:text-left">
-                <p className="text-2xl sm:text-3xl font-extrabold text-white font-mono">{constructions.length}</p>
+                <p className="text-2xl sm:text-3xl font-extrabold text-white">{constructions.length}</p>
                 <p className="text-[9px] sm:text-[10px] uppercase tracking-wider text-white/40 mt-0.5">Κατασκευές</p>
               </div>
               <div className="hidden sm:block h-8 w-px bg-white/10" />
