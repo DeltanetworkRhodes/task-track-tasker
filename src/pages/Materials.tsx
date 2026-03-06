@@ -256,6 +256,24 @@ const Materials = () => {
   const queryClient = useQueryClient();
 
   const [form, setForm] = useState({ code: '', name: '', source: 'OTE' as string, stock: '', unit: 'τεμ.', price: '' });
+  const [historyMaterial, setHistoryMaterial] = useState<MaterialItem | null>(null);
+  const { data: profiles } = useProfiles();
+
+  const { data: stockHistory, isLoading: historyLoading } = useQuery({
+    queryKey: ["stock_history", historyMaterial?.id],
+    queryFn: async () => {
+      if (!historyMaterial) return [];
+      const { data, error } = await supabase
+        .from("material_stock_history" as any)
+        .select("*")
+        .eq("material_id", historyMaterial.id)
+        .order("created_at", { ascending: false })
+        .limit(50);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!historyMaterial,
+  });
 
   const handlePdfUpload = async (e: React.ChangeEvent<HTMLInputElement>, uploadSource: 'OTE' | 'DELTANETWORK') => {
     const files = e.target.files;
