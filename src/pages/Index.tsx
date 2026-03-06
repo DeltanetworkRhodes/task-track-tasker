@@ -286,7 +286,7 @@ const Index = () => {
                   <ChartContainer config={pieConfig} className="h-[160px] sm:h-[180px] w-full">
                     <PieChart>
                       <ChartTooltip content={<ChartTooltipContent />} />
-                      <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={40} outerRadius={70} strokeWidth={2} stroke="hsl(215 22% 15%)">
+                      <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={40} outerRadius={70} strokeWidth={2} stroke="hsl(var(--card))">
                         {pieData.map((entry, i) => (
                           <Cell key={i} fill={entry.fill} />
                         ))}
