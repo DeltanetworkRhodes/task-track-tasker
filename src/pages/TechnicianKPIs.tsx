@@ -194,7 +194,7 @@ const TechnicianKPIs = () => {
                 <div className="flex items-center gap-2">
                   <TrendingUp className="h-3.5 w-3.5 text-accent shrink-0" />
                   <div>
-                    <p className="text-xs font-mono font-semibold">{tech.profit.toLocaleString('el-GR')}€</p>
+                    <p className="text-xs font-bold">{tech.profit.toLocaleString('el-GR')}€</p>
                     <p className="text-[9px] text-muted-foreground">Κέρδος</p>
                   </div>
                 </div>

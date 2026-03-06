@@ -617,7 +617,7 @@ const Materials = () => {
             </div>
             {uploadResult.not_found?.length > 0 && (
               <p className="text-xs text-muted-foreground">
-                Μη αναγνωρισμένοι κωδικοί: <span className="font-mono">{uploadResult.not_found.join(', ')}</span>
+                Μη αναγνωρισμένοι κωδικοί: <span className="font-bold">{uploadResult.not_found.join(', ')}</span>
               </p>
             )}
           </div>

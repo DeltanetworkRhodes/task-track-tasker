@@ -212,7 +212,7 @@ const OrgSettings = () => {
                     value={newFolderId}
                     onChange={(e) => setNewFolderId(e.target.value)}
                     placeholder="π.χ. 1ABcD_EfGhIjKlMnOpQrS"
-                    className="text-sm font-mono"
+                    className="text-sm font-bold"
                   />
                 </div>
                 <Button size="sm" variant="outline" className="shrink-0 gap-1" onClick={addAreaFolder}>
