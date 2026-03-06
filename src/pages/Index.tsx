@@ -1,8 +1,10 @@
+import { useState } from "react";
 import AppLayout from "@/components/AppLayout";
 import deltaLogoLight from "@/assets/delta-logo-light.png";
 import StatCard from "@/components/StatCard";
 import AssignmentTable from "@/components/AssignmentTable";
 import SyncButton from "@/components/SyncButton";
+import SetupWizard from "@/components/SetupWizard";
 import { useAssignments, useConstructions } from "@/hooks/useData";
 import { statusLabels } from "@/data/mockData";
 import { ClipboardCheck, Wrench, TrendingUp, Euro, FolderOpen, Activity, Wifi, PieChartIcon, CalendarDays, Timer, Zap } from "lucide-react";
@@ -40,6 +42,7 @@ const GREEK_MONTHS: Record<number, string> = {
 };
 
 const Index = () => {
+  const [wizardDismissed, setWizardDismissed] = useState(false);
   const { data: dbAssignments } = useAssignments();
   const { data: dbConstructions } = useConstructions();
 
@@ -207,6 +210,11 @@ const Index = () => {
             </div>
           </div>
         </div>
+
+        {/* Setup Wizard */}
+        {!wizardDismissed && (
+          <SetupWizard onDismiss={() => setWizardDismissed(true)} />
+        )}
 
         {/* Stat Cards - responsive grid */}
         <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-6">
