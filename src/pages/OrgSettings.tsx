@@ -187,7 +187,7 @@ const OrgSettings = () => {
                   {areaFolders.map((af, i) => (
                     <div key={i} className="flex items-center gap-2 bg-muted/50 rounded-lg px-3 py-2">
                       <span className="text-xs font-semibold text-foreground min-w-[80px]">{af.area}</span>
-                      <span className="text-xs text-muted-foreground flex-1 font-mono truncate">{af.folderId}</span>
+                      <span className="text-xs text-muted-foreground flex-1 font-bold truncate">{af.folderId}</span>
                       <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => removeAreaFolder(i)}>
                         <Trash2 className="h-3 w-3 text-destructive" />
                       </Button>
