@@ -37,18 +37,18 @@ interface Props {
 
 // Category definitions for works based on code prefix
 const WORK_CATEGORIES: { prefix: string; label: string; icon: string }[] = [
-  { prefix: "1955", label: "Κατασκευή Πελάτη", icon: "👤" },
   { prefix: "1956", label: "Αυτοψία", icon: "🔍" },
-  { prefix: "1963", label: "Τάφρος", icon: "🕳️" },
-  { prefix: "1965", label: "Επέκταση Καλωδίωσης", icon: "🔌" },
-  { prefix: "1970", label: "BEP / ΚΟΙ", icon: "📦" },
-  { prefix: "1980", label: "Τοποθέτηση ΚΟΙ", icon: "🔧" },
-  { prefix: "1984", label: "Οριζόντια Όδευση", icon: "↔️" },
-  { prefix: "1985", label: "FB Τοποθέτηση", icon: "📋" },
-  { prefix: "1986", label: "Κατακόρυφη Καλωδίωση", icon: "↕️" },
-  { prefix: "1991", label: "Επέκταση Κλάδου", icon: "🌿" },
-  { prefix: "1993", label: "Υπόγεια / Εναέρια", icon: "🏗️" },
-  { prefix: "1930", label: "Διασύνδεση Σωληνίσκου", icon: "🔗" },
+  { prefix: "1991", label: "BCP – Σκάψιμο έως BCP", icon: "⛏️" },
+  { prefix: "1993", label: "BCP – Από BCP έως BEP", icon: "🔗" },
+  { prefix: "1963", label: "BEP – ΕΣΚΑΛΙΤ σωλήνωση", icon: "🕳️" },
+  { prefix: "1965", label: "BEP – Σκάψιμο έως BEP", icon: "⛏️" },
+  { prefix: "1970", label: "BEP – Τοποθέτηση BEP/ΚΟΙ", icon: "📦" },
+  { prefix: "1984", label: "FB–BEP στο ίδιο επίπεδο", icon: "↔️" },
+  { prefix: "1985", label: "FB – Τοποθέτηση & Κατακόρυφη ΚΟΙ", icon: "📋" },
+  { prefix: "1986", label: "FB – Κολλήσεις & Διασυνδέσεις", icon: "🔧" },
+  { prefix: "1980", label: "Εμφύσηση CAB", icon: "💨" },
+  { prefix: "1955", label: "Γ' Φάση – Σύνδεση Πελάτη", icon: "👤" },
+  { prefix: "1930", label: "Διασύνδεση Σωληνίσκου Φρεατίου", icon: "🔗" },
 ];
 
 // Material categories based on description patterns
