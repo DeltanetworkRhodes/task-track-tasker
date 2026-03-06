@@ -260,9 +260,8 @@ const Materials = () => {
     }
   };
 
-  const hasRealData = (dbMaterials?.length ?? 0) > 0;
-  const materials: MaterialItem[] = hasRealData
-    ? dbMaterials!.map(m => ({
+  const materials: MaterialItem[] = dbMaterials
+    ? dbMaterials.map(m => ({
         id: m.id,
         code: m.code,
         name: m.name,
@@ -272,7 +271,7 @@ const Materials = () => {
         price: Number(m.price),
         low_stock_threshold: Number((m as any).low_stock_threshold ?? 100),
       }))
-    : mockMaterials.map(m => ({ ...m, low_stock_threshold: 100 }));
+    : [];
 
   const filterAndSort = (items: MaterialItem[]) => {
     let result = items.filter(m =>
