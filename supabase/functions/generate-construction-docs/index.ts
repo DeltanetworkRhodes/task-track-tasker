@@ -148,91 +148,205 @@ async function uploadFileToDrive(
   return await uploadRes.json();
 }
 
-// ─── XLSX Generation ─────────────────────────────────────────────────
+// ─── XLSX Generation (Template-based) ────────────────────────────────
 
-function generateConstructionXlsx(
+async function generateConstructionXlsx(
   assignment: any,
   construction: any,
   works: any[],
   oteMaterials: any[],
-  deltaMaterials: any[]
-): Uint8Array {
-  const wb = XLSX.utils.book_new();
-  
-  // Header rows
-  const data: any[][] = [
-    ["ΦΥΛΛΟ ΑΠΟΛΟΓΙΣΜΟΥ ΕΡΓΑΣΙΩΝ FTTH Β ΦΑΣΗ"],
-    [],
-    ["SR ID:", assignment.sr_id, "", "SES ID:", construction.ses_id || "", "", "Α/Κ:", construction.ak || ""],
-    ["CAB:", construction.cab || "", "", "ΟΡΟΦΟΙ:", construction.floors || 0, "", "ΠΕΡΙΟΧΗ:", assignment.area],
-    ["ΔΙΕΥΘΥΝΣΗ:", assignment.address || "", "", "ΠΕΛΑΤΗΣ:", assignment.customer_name || ""],
-    ["ΕΙΔΟΣ ΟΔΕΥΣΗΣ:", construction.routing_type || "", "", "ΑΝΑΜΟΝΗ:", construction.pending_note || ""],
-    ["ΗΜΕΡΟΜΗΝΙΑ:", new Date().toLocaleDateString("el-GR")],
-    [],
-  ];
+  deltaMaterials: any[],
+  supabaseUrl: string,
+  serviceRoleKey: string
+): Promise<Uint8Array> {
+  // Download template from Supabase Storage
+  const templateUrl = `${supabaseUrl}/storage/v1/object/authenticated/photos/templates/construction_template.xlsx`;
+  const templateRes = await fetch(templateUrl, {
+    headers: { "apikey": serviceRoleKey, "Authorization": `Bearer ${serviceRoleKey}` }
+  });
+  if (!templateRes.ok) throw new Error(`Failed to download template: ${templateRes.status}`);
+  const templateBuffer = await templateRes.arrayBuffer();
 
-  // ΔΙΑΔΡΟΜΕΣ section
-  const routes = construction.routes || [];
-  if (routes.length > 0) {
-    data.push(["ΔΙΑΔΡΟΜΕΣ", "", "KOI (m)", "ΦΥΡΑ KOI (m)"]);
-    for (const r of routes) {
-      data.push(["", r.label || "", r.koi || 0, r.fyra_koi || 0]);
+  const wb = XLSX.read(new Uint8Array(templateBuffer), { type: "array" });
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  const range = XLSX.utils.decode_range(ws["!ref"] || "A1");
+
+  // Helper: set cell value
+  const setCell = (r: number, c: number, value: any) => {
+    const ref = XLSX.utils.encode_cell({ r, c });
+    if (!ws[ref]) ws[ref] = {};
+    ws[ref].v = value;
+    ws[ref].t = typeof value === "number" ? "n" : "s";
+  };
+
+  // Helper: get cell string value
+  const getCell = (r: number, c: number): string => {
+    const ref = XLSX.utils.encode_cell({ r, c });
+    return ws[ref] ? String(ws[ref].v || "").trim() : "";
+  };
+
+  // Helper: find cell containing text, return {r,c}
+  const findCell = (text: string): { r: number; c: number } | null => {
+    for (let r = range.s.r; r <= range.e.r; r++) {
+      for (let c = range.s.c; c <= range.e.c; c++) {
+        if (getCell(r, c).includes(text)) return { r, c };
+      }
     }
-    const totalKoi = routes.reduce((s: number, r: any) => s + (r.koi || 0), 0);
-    const totalFyra = routes.reduce((s: number, r: any) => s + (r.fyra_koi || 0), 0);
-    data.push(["", "ΣΥΝΟΛΟ", totalKoi, totalFyra]);
-    data.push([]);
+    return null;
+  };
+
+  // Helper: fill value next to a label
+  const fillNextTo = (label: string, value: any, colOffset = 1) => {
+    const pos = findCell(label);
+    if (pos) setCell(pos.r, pos.c + colOffset, value);
+  };
+
+  // ── Fill header fields ──
+  fillNextTo("ΠΕΡΙΟΧΗ", assignment.area);
+  fillNextTo("SR ID:", assignment.sr_id);
+  fillNextTo("SES ID:", construction.ses_id || "");
+  fillNextTo("Α/Κ:", construction.ak || "");
+  fillNextTo("CAB:", construction.cab || "");
+  fillNextTo("ΔΙΕΥΘΥΝΣΗ:", assignment.address || "");
+  fillNextTo("ΕΙΔΟΣ ΟΔΕΥΣΗΣ:", construction.routing_type || "");
+  fillNextTo("ΑΝΑΜΟΝΗ:", construction.pending_note || "");
+  fillNextTo("ΟΡΟΦΟΙ:", construction.floors || 0);
+
+  // Date - find ΗΜ/ΝΙΑ label
+  const datePos = findCell("ΗΜ/ΝΙΑ");
+  if (datePos) setCell(datePos.r, datePos.c + 1, new Date().toLocaleDateString("el-GR"));
+
+  // ── Fill routes (KOI / ΦΥΡΑ) ──
+  const routes: any[] = construction.routes || [];
+  const koiHeader = findCell("KOI(m)");
+  if (koiHeader && routes.length > 0) {
+    const koiCol = koiHeader.c;
+    // Find ΦΥΡΑ column
+    const fyraHeader = findCell("ΦΥΡΑ");
+    const fyraCol = fyraHeader ? fyraHeader.c : koiCol + 2;
+
+    // Route labels are in the rows below the header (rows koiHeader.r+1 to koiHeader.r+5)
+    // Template has 5 route type rows, then a "Συνολο" row
+    // Map our routes to template rows by matching labels
+    const routeLabelCol = koiHeader.c - 2; // Labels are ~2 cols left of KOI
+    
+    for (const route of routes) {
+      // Search template route rows for matching label
+      for (let r = koiHeader.r + 1; r <= koiHeader.r + 6; r++) {
+        const templateLabel = getCell(r, routeLabelCol);
+        if (!templateLabel) continue;
+        
+        // Match route by type/label
+        const routeLabel = (route.label || "").toLowerCase();
+        const tLabel = templateLabel.toLowerCase();
+        
+        if (
+          (routeLabel.includes("υπογ") && tLabel.includes("υπογ")) ||
+          (routeLabel.includes("εναεριο") && routeLabel.includes("δδ") && tLabel.includes("εναεριο") && tLabel.includes("δδ") && !tLabel.includes("συνδρομ")) ||
+          (routeLabel.includes("εναεριο") && routeLabel.includes("συνδρομ") && tLabel.includes("συνδρομ")) ||
+          (routeLabel.includes("inhouse") && tLabel.includes("inhouse")) ||
+          (routeLabel.includes("cabin") && tLabel.includes("cabin"))
+        ) {
+          setCell(r, koiCol, route.koi || 0);
+          setCell(r, fyraCol, route.fyra_koi || 0);
+          break;
+        }
+      }
+    }
+
+    // Fill totals in "Συνολο" row
+    const totalRow = findCell("Συνολο");
+    if (totalRow || findCell("συνολο")) {
+      const sumPos = totalRow || findCell("συνολο");
+      if (sumPos && sumPos.r > koiHeader.r) {
+        const totalKoi = routes.reduce((s: number, r: any) => s + (r.koi || 0), 0);
+        const totalFyra = routes.reduce((s: number, r: any) => s + (r.fyra_koi || 0), 0);
+        setCell(sumPos.r, koiCol, totalKoi);
+        setCell(sumPos.r, fyraCol, totalFyra);
+      }
+    }
+    
+    // Fill ΣΥΝΟΛΟ KOI(m) ΣΤΑ ΥΛΙΚΑ
+    const sumKoiMats = findCell("ΣΥΝΟΛΟ KOI");
+    if (sumKoiMats) {
+      const totalKoi = routes.reduce((s: number, r: any) => s + (r.koi || 0), 0);
+      setCell(sumKoiMats.r, sumKoiMats.c + 1, totalKoi);
+    }
   }
 
-  // Works + Materials header
-  data.push(["Άρθρο", "ΚΑΤΑΣΚΕΥΕΣ", "ΠΟΣΟΤΗΤΑ", "ΤΙΜΗ ΜΟΝΑΔΟΣ", "ΜΕΡΙΚΟ ΣΥΝΟΛΟ", "", "ΚΑΥ", "ΠΕΡΙΓΡΑΦΗ ΥΛΙΚΩΝ", "ΜΜ", "ΠΟΣΟΤΗΤΑ", "ΠΗΓΗ"]);
+  // ── Fill work quantities ──
+  // Build map: work code → quantity
+  const worksMap = new Map<string, number>();
+  for (const w of works) {
+    if (w.code) worksMap.set(w.code.trim(), w.quantity || 0);
+  }
 
-  // Find max rows between works and all materials
+  // Find "Άρθρο" header to locate works section
+  const arthroPos = findCell("Άρθρο");
+  if (arthroPos) {
+    const workCodeCol = arthroPos.c;
+    // Find ΠΟΣΟΤΗΤΑ column header in the same row or nearby
+    let workQtyCol = -1;
+    for (let c = workCodeCol + 1; c <= workCodeCol + 8; c++) {
+      if (getCell(arthroPos.r, c) === "ΠΟΣΟΤΗΤΑ") {
+        workQtyCol = c;
+        break;
+      }
+    }
+    
+    if (workQtyCol >= 0) {
+      // Scan rows below for work codes
+      for (let r = arthroPos.r + 1; r <= range.e.r; r++) {
+        const cellCode = getCell(r, workCodeCol);
+        if (!cellCode) continue;
+        const cleanCode = cellCode.replace(/\.$/, "").trim();
+        // Check exact match or close match
+        for (const [wCode, wQty] of worksMap) {
+          const cleanW = wCode.replace(/\.$/, "").trim();
+          if (cleanCode === cleanW || cellCode.trim() === wCode.trim()) {
+            setCell(r, workQtyCol, wQty);
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  // ── Fill material quantities ──
   const allMaterials = [...oteMaterials, ...deltaMaterials];
-  const maxRows = Math.max(works.length, allMaterials.length);
-
-  for (let i = 0; i < maxRows; i++) {
-    const row: any[] = [];
-    
-    // Works columns
-    if (i < works.length) {
-      const w = works[i];
-      row.push(w.code, w.description, w.quantity, w.unit_price, w.subtotal);
-    } else {
-      row.push("", "", "", "", "");
+  const matsMap = new Map<string, number>();
+  for (const m of allMaterials) {
+    if (m.code) {
+      const existing = matsMap.get(m.code.trim()) || 0;
+      matsMap.set(m.code.trim(), existing + (m.quantity || 0));
     }
-    
-    row.push(""); // spacer
-    
-    // Materials columns
-    if (i < allMaterials.length) {
-      const m = allMaterials[i];
-      row.push(m.code, m.name, m.unit, m.quantity, m.source);
-    } else {
-      row.push("", "", "", "", "");
-    }
-    
-    data.push(row);
   }
 
-  // Totals
-  data.push([]);
-  const totalRevenue = works.reduce((s: number, w: any) => s + (w.subtotal || 0), 0);
-  const totalMaterialCost = deltaMaterials.reduce((s: number, m: any) => s + (m.price || 0) * (m.quantity || 0), 0);
-  data.push(["", "ΣΥΝΟΛΟ ΕΡΓΑΣΙΩΝ:", "", "", totalRevenue]);
-  data.push(["", "ΚΟΣΤΟΣ ΥΛΙΚΩΝ (DELTANETWORK):", "", "", totalMaterialCost]);
-  data.push(["", "ΚΕΡΔΟΣ:", "", "", totalRevenue - totalMaterialCost]);
+  // Find "ΚΑΥ" header
+  const kauPos = findCell("ΚΑΥ");
+  if (kauPos) {
+    const matCodeCol = kauPos.c;
+    // Find material ΠΟΣΟΤΗΤΑ column
+    let matQtyCol = -1;
+    for (let c = matCodeCol + 1; c <= matCodeCol + 5; c++) {
+      if (getCell(kauPos.r, c) === "ΠΟΣΟΤΗΤΑ") {
+        matQtyCol = c;
+        break;
+      }
+    }
 
-  const ws = XLSX.utils.aoa_to_sheet(data);
-  
-  // Set column widths
-  ws["!cols"] = [
-    { wch: 12 }, { wch: 50 }, { wch: 10 }, { wch: 14 }, { wch: 14 },
-    { wch: 3 },
-    { wch: 12 }, { wch: 50 }, { wch: 8 }, { wch: 10 }, { wch: 14 },
-  ];
-  
-  XLSX.utils.book_append_sheet(wb, ws, "ΑΠΟΛΟΓΙΣΜΟΣ");
+    if (matQtyCol >= 0) {
+      for (let r = kauPos.r + 1; r <= range.e.r; r++) {
+        const cellCode = getCell(r, matCodeCol);
+        if (!cellCode) continue;
+        const qty = matsMap.get(cellCode.trim());
+        if (qty !== undefined && qty > 0) {
+          setCell(r, matQtyCol, qty);
+        }
+      }
+    }
+  }
+
   const xlsxData = XLSX.write(wb, { type: "array", bookType: "xlsx" });
   return new Uint8Array(xlsxData);
 }
