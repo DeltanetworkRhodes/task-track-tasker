@@ -3,7 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Search, Plus, Trash2, Loader2, CheckCircle, HardHat, Package, Wrench, Camera, Upload, X } from "lucide-react";
+import { Trash2, Loader2, CheckCircle, HardHat, Package, Wrench, Camera, Upload, X, ChevronDown, ChevronRight, Plus, Minus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -35,6 +35,33 @@ interface Props {
   onComplete: () => void;
 }
 
+// Category definitions for works based on code prefix
+const WORK_CATEGORIES: { prefix: string; label: string; icon: string }[] = [
+  { prefix: "1955", label: "Κατασκευή Πελάτη", icon: "👤" },
+  { prefix: "1956", label: "Αυτοψία", icon: "🔍" },
+  { prefix: "1963", label: "Τάφρος", icon: "🕳️" },
+  { prefix: "1965", label: "Επέκταση Καλωδίωσης", icon: "🔌" },
+  { prefix: "1970", label: "BEP / ΚΟΙ", icon: "📦" },
+  { prefix: "1980", label: "Τοποθέτηση ΚΟΙ", icon: "🔧" },
+  { prefix: "1984", label: "Οριζόντια Όδευση", icon: "↔️" },
+  { prefix: "1985", label: "FB Τοποθέτηση", icon: "📋" },
+  { prefix: "1986", label: "Κατακόρυφη Καλωδίωση", icon: "↕️" },
+  { prefix: "1991", label: "Επέκταση Κλάδου", icon: "🌿" },
+  { prefix: "1993", label: "Υπόγεια / Εναέρια", icon: "🏗️" },
+  { prefix: "1930", label: "Διασύνδεση Σωληνίσκου", icon: "🔗" },
+];
+
+// Material categories based on description patterns
+const MATERIAL_CATEGORIES: { label: string; match: (name: string, code: string) => boolean }[] = [
+  { label: "Καλώδια & Ίνες", match: (n) => /cable|καλώδ|ίν|fiber|FO |KOI/i.test(n) },
+  { label: "Microduct & Σωληνίσκοι", match: (n) => /duct|σωλην|multi-duct/i.test(n) },
+  { label: "BEP & BMO & Floor-box", match: (n) => /BEP|BMO|Floor|OTO|outlet/i.test(n) },
+  { label: "Splitter & Pigtail & Patchcord", match: (n) => /splitter|pigtail|patchcord|connector|HUA/i.test(n) },
+  { label: "Στηρίγματα & Αναρτήσεις", match: (n) => /στηρ|θηλε|κρικ|αγγιστ|στεφαν|ροδαντζ|σφιγκ|τσερκ|σύρμα|hook|clamp/i.test(n) },
+  { label: "Σήμανση & Ταινίες", match: (n) => /σήμαν|ταιν|marker|ball|endcap|ταπ/i.test(n) },
+  { label: "Σωλήνες & Στύλοι", match: (n) => /σωλήν|σιδηρ|δακτύλ|στύλ|ξύλιν/i.test(n) },
+];
+
 const ConstructionForm = ({ assignment, onComplete }: Props) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -48,13 +75,12 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
 
   // Work items
   const [workItems, setWorkItems] = useState<WorkItem[]>([]);
-  const [workSearch, setWorkSearch] = useState("");
-  const [showWorkDropdown, setShowWorkDropdown] = useState(false);
+  const [openWorkCategories, setOpenWorkCategories] = useState<string[]>([]);
 
   // Materials
   const [materialItems, setMaterialItems] = useState<MaterialItem[]>([]);
-  const [materialSearch, setMaterialSearch] = useState("");
-  const [showMaterialDropdown, setShowMaterialDropdown] = useState(false);
+  const [openMaterialCategories, setOpenMaterialCategories] = useState<string[]>([]);
+  const [materialTab, setMaterialTab] = useState("OTE");
 
   // Photos
   const [photos, setPhotos] = useState<File[]>([]);
@@ -90,87 +116,115 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
     },
   });
 
-  // Filter work items
-  const filteredWorks = useMemo(() => {
-    if (!workPricing || !workSearch.trim()) return [];
-    const q = workSearch.toLowerCase();
-    return workPricing
-      .filter(
-        (w) =>
-          !workItems.some((wi) => wi.work_pricing_id === w.id) &&
-          (w.code.toLowerCase().includes(q) || w.description.toLowerCase().includes(q))
-      )
-      .slice(0, 8);
-  }, [workPricing, workSearch, workItems]);
+  // Group works by category
+  const worksByCategory = useMemo(() => {
+    if (!workPricing) return {};
+    const groups: Record<string, typeof workPricing> = {};
+    const uncategorized: typeof workPricing = [];
+    
+    for (const w of workPricing) {
+      const cat = WORK_CATEGORIES.find((c) => w.code.startsWith(c.prefix));
+      if (cat) {
+        if (!groups[cat.prefix]) groups[cat.prefix] = [];
+        groups[cat.prefix].push(w);
+      } else {
+        uncategorized.push(w);
+      }
+    }
+    if (uncategorized.length > 0) groups["other"] = uncategorized;
+    return groups;
+  }, [workPricing]);
 
-  // Filter materials
-  const filteredMaterials = useMemo(() => {
-    if (!materials || !materialSearch.trim()) return [];
-    const q = materialSearch.toLowerCase();
-    return materials
-      .filter(
-        (m) =>
-          !materialItems.some((mi) => mi.material_id === m.id) &&
-          (m.code.toLowerCase().includes(q) || m.name.toLowerCase().includes(q))
-      )
-      .slice(0, 8);
-  }, [materials, materialSearch, materialItems]);
+  // Group materials by category
+  const materialsByCategory = useMemo(() => {
+    if (!materials) return {};
+    const groups: Record<string, Record<string, typeof materials>> = { OTE: {}, DELTANETWORK: {} };
+    
+    for (const m of materials) {
+      const source = m.source as "OTE" | "DELTANETWORK";
+      if (!groups[source]) groups[source] = {};
+      
+      const cat = MATERIAL_CATEGORIES.find((c) => c.match(m.name, m.code));
+      const catLabel = cat?.label || "Λοιπά";
+      if (!groups[source][catLabel]) groups[source][catLabel] = [];
+      groups[source][catLabel].push(m);
+    }
+    return groups;
+  }, [materials]);
 
-  // Add work item
-  const addWork = (w: any) => {
-    setWorkItems((prev) => [
-      ...prev,
-      {
-        work_pricing_id: w.id,
-        code: w.code,
-        description: w.description,
-        unit: w.unit,
-        unit_price: w.unit_price,
-        quantity: 1,
-      },
-    ]);
-    setWorkSearch("");
-    setShowWorkDropdown(false);
+  // Toggle category
+  const toggleWorkCategory = (prefix: string) => {
+    setOpenWorkCategories((prev) =>
+      prev.includes(prefix) ? prev.filter((p) => p !== prefix) : [...prev, prefix]
+    );
+  };
+  const toggleMaterialCategory = (cat: string) => {
+    setOpenMaterialCategories((prev) =>
+      prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat]
+    );
   };
 
-  // Add material
-  const addMaterial = (m: any) => {
-    setMaterialItems((prev) => [
-      ...prev,
-      {
-        material_id: m.id,
-        code: m.code,
-        name: m.name,
-        unit: m.unit,
-        price: m.price,
-        source: m.source,
-        quantity: 1,
-      },
-    ]);
-    setMaterialSearch("");
-    setShowMaterialDropdown(false);
+  // Check if work is selected
+  const isWorkSelected = (id: string) => workItems.some((w) => w.work_pricing_id === id);
+  const getWorkQty = (id: string) => workItems.find((w) => w.work_pricing_id === id)?.quantity || 0;
+  
+  const isMaterialSelected = (id: string) => materialItems.some((m) => m.material_id === id);
+  const getMaterialQty = (id: string) => materialItems.find((m) => m.material_id === id)?.quantity || 0;
+
+  // Toggle work item
+  const toggleWork = (w: any) => {
+    if (isWorkSelected(w.id)) {
+      setWorkItems((prev) => prev.filter((wi) => wi.work_pricing_id !== w.id));
+    } else {
+      setWorkItems((prev) => [
+        ...prev,
+        {
+          work_pricing_id: w.id,
+          code: w.code,
+          description: w.description,
+          unit: w.unit,
+          unit_price: w.unit_price,
+          quantity: 1,
+        },
+      ]);
+    }
   };
 
-  // Update quantity
-  const updateWorkQty = (index: number, qty: number) => {
-    setWorkItems((prev) => prev.map((w, i) => (i === index ? { ...w, quantity: qty } : w)));
-  };
-  const updateMaterialQty = (index: number, qty: number) => {
-    setMaterialItems((prev) => prev.map((m, i) => (i === index ? { ...m, quantity: qty } : m)));
+  // Toggle material
+  const toggleMaterial = (m: any) => {
+    if (isMaterialSelected(m.id)) {
+      setMaterialItems((prev) => prev.filter((mi) => mi.material_id !== m.id));
+    } else {
+      setMaterialItems((prev) => [
+        ...prev,
+        {
+          material_id: m.id,
+          code: m.code,
+          name: m.name,
+          unit: m.unit,
+          price: m.price,
+          source: m.source,
+          quantity: 1,
+        },
+      ]);
+    }
   };
 
-  // Remove
-  const removeWork = (index: number) => setWorkItems((prev) => prev.filter((_, i) => i !== index));
-  const removeMaterial = (index: number) => setMaterialItems((prev) => prev.filter((_, i) => i !== index));
+  // Update quantities
+  const updateWorkQty = (id: string, qty: number) => {
+    if (qty < 1) qty = 1;
+    setWorkItems((prev) => prev.map((w) => (w.work_pricing_id === id ? { ...w, quantity: qty } : w)));
+  };
+  const updateMaterialQty = (id: string, qty: number) => {
+    if (qty < 1) qty = 1;
+    setMaterialItems((prev) => prev.map((m) => (m.material_id === id ? { ...m, quantity: qty } : m)));
+  };
 
   // Photo handling
   const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
-    
     setPhotos((prev) => [...prev, ...files]);
-    
-    // Create previews
     files.forEach((file) => {
       const reader = new FileReader();
       reader.onload = (ev) => {
@@ -178,8 +232,6 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
       };
       reader.readAsDataURL(file);
     });
-    
-    // Reset input
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
@@ -200,7 +252,7 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
       return;
     }
     if (workItems.length === 0) {
-      toast.error("Προσθέστε τουλάχιστον μία εργασία");
+      toast.error("Επιλέξτε τουλάχιστον μία εργασία");
       return;
     }
 
@@ -208,7 +260,6 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
     try {
       setSubmitProgress("Καταχώρηση κατασκευής...");
 
-      // 1. Create construction record
       const { data: construction, error: constError } = await supabase
         .from("constructions")
         .insert({
@@ -227,7 +278,6 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
         .single();
       if (constError) throw constError;
 
-      // 2. Insert work items
       if (workItems.length > 0) {
         const { error: worksError } = await supabase.from("construction_works").insert(
           workItems.map((w) => ({
@@ -241,7 +291,6 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
         if (worksError) console.error("Works insert error:", worksError);
       }
 
-      // 3. Insert material items
       if (materialItems.length > 0) {
         const { error: matsError } = await supabase.from("construction_materials").insert(
           materialItems.map((m) => ({
@@ -254,7 +303,6 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
         if (matsError) console.error("Materials insert error:", matsError);
       }
 
-      // 4. Deduct DELTANETWORK materials from stock
       if (deltanetMaterials.length > 0) {
         setSubmitProgress("Ενημέρωση αποθέματος...");
         const { error: deductErr } = await supabase.functions.invoke("deduct-stock", {
@@ -270,7 +318,6 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
         if (deductErr) console.error("Stock deduction error:", deductErr);
       }
 
-      // 5. Upload photos to storage
       const photoPaths: string[] = [];
       if (photos.length > 0) {
         setSubmitProgress(`Ανέβασμα φωτογραφιών (0/${photos.length})...`);
@@ -278,44 +325,32 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
           const photo = photos[i];
           const ext = photo.name.split(".").pop() || "jpg";
           const storagePath = `constructions/${assignment.sr_id}/${construction.id}/${i + 1}.${ext}`;
-          
           const { error: uploadErr } = await supabase.storage
             .from("photos")
             .upload(storagePath, photo, { upsert: true });
-          
-          if (uploadErr) {
-            console.error(`Photo upload error ${i}:`, uploadErr);
-          } else {
-            photoPaths.push(storagePath);
-          }
+          if (uploadErr) console.error(`Photo upload error ${i}:`, uploadErr);
+          else photoPaths.push(storagePath);
           setSubmitProgress(`Ανέβασμα φωτογραφιών (${i + 1}/${photos.length})...`);
         }
       }
 
-      // 6. Update assignment status
       const { error: assignError } = await supabase
         .from("assignments")
         .update({ status: "completed", cab: cab.trim() })
         .eq("id", assignment.id);
       if (assignError) console.error("Assignment update error:", assignError);
 
-      // 7. Generate documents and upload to Drive (async, don't block)
       setSubmitProgress("Δημιουργία εγγράφων & upload στο Drive...");
       try {
         const { data: docsResult, error: docsErr } = await supabase.functions.invoke(
           "generate-construction-docs",
-          {
-            body: {
-              construction_id: construction.id,
-              photo_paths: photoPaths,
-            },
-          }
+          { body: { construction_id: construction.id, photo_paths: photoPaths } }
         );
         if (docsErr) {
           console.error("Docs generation error:", docsErr);
           toast.error("Τα έγγραφα δεν δημιουργήθηκαν, αλλά η κατασκευή καταχωρήθηκε");
         } else if (docsResult?.drive_uploaded) {
-          toast.success(`Τα αρχεία ανέβηκαν στο Drive (${docsResult.files?.length || 0} αρχεία)`);
+          toast.success(`Αρχεία ανέβηκαν στο Drive (${docsResult.files?.length || 0} αρχεία)`);
         }
       } catch (docsErr: any) {
         console.error("Docs error:", docsErr);
@@ -325,7 +360,6 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
       setSubmitted(true);
       queryClient.invalidateQueries({ queryKey: ["technician-assignments"] });
       queryClient.invalidateQueries({ queryKey: ["constructions"] });
-
       setTimeout(() => onComplete(), 2000);
     } catch (err: any) {
       console.error(err);
@@ -351,8 +385,19 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
     );
   }
 
+  // Count selected items per category
+  const selectedWorkCount = (prefix: string) => {
+    const catWorks = worksByCategory[prefix] || [];
+    return catWorks.filter((w) => isWorkSelected(w.id)).length;
+  };
+
+  const selectedMaterialCount = (source: string, catLabel: string) => {
+    const catMats = materialsByCategory[source]?.[catLabel] || [];
+    return catMats.filter((m) => isMaterialSelected(m.id)).length;
+  };
+
   return (
-    <div className="space-y-5 pb-8">
+    <div className="space-y-4 pb-8">
       <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
         <HardHat className="h-5 w-5" />
         Φόρμα Κατασκευής
@@ -383,170 +428,237 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
         </div>
       </Card>
 
-      {/* Work Items */}
-      <Card className="p-4 space-y-3">
-        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-          <Wrench className="h-3.5 w-3.5" />
-          Εργασίες <span className="text-destructive">*</span>
-        </Label>
-
-        <div className="relative">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-          <Input
-            value={workSearch}
-            onChange={(e) => {
-              setWorkSearch(e.target.value);
-              setShowWorkDropdown(true);
-            }}
-            onFocus={() => setShowWorkDropdown(true)}
-            placeholder="Αναζήτηση κωδικού ή περιγραφής..."
-            className="pl-8 text-sm"
-          />
-          {showWorkDropdown && filteredWorks.length > 0 && (
-            <div className="absolute z-20 top-full left-0 right-0 mt-1 bg-card border border-border rounded-lg shadow-lg max-h-48 overflow-y-auto">
-              {filteredWorks.map((w) => (
-                <button
-                  key={w.id}
-                  type="button"
-                  onClick={() => addWork(w)}
-                  className="w-full text-left px-3 py-2 hover:bg-muted transition-colors border-b border-border/30 last:border-0"
-                >
-                  <span className="text-xs font-mono text-primary">{w.code}</span>
-                  <span className="text-xs text-muted-foreground ml-2">{w.description}</span>
-                  <span className="text-xs font-semibold text-foreground ml-auto float-right">{w.unit_price}€/{w.unit}</span>
-                </button>
-              ))}
-            </div>
+      {/* Work Items - Category based */}
+      <Card className="p-4 space-y-2">
+        <div className="flex items-center justify-between">
+          <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+            <Wrench className="h-3.5 w-3.5" />
+            Εργασίες <span className="text-destructive">*</span>
+          </Label>
+          {workItems.length > 0 && (
+            <Badge variant="secondary" className="text-xs">
+              {workItems.length} επιλεγμένες · {totalRevenue.toFixed(2)}€
+            </Badge>
           )}
         </div>
 
-        {workItems.length > 0 && (
-          <div className="space-y-2">
-            {workItems.map((w, i) => (
-              <div key={i} className="flex items-center gap-2 bg-muted/50 rounded-lg px-3 py-2">
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-mono text-primary">{w.code}</p>
-                  <p className="text-xs text-muted-foreground truncate">{w.description}</p>
-                </div>
-                <Input
-                  type="number"
-                  min="1"
-                  value={w.quantity}
-                  onChange={(e) => updateWorkQty(i, parseFloat(e.target.value) || 1)}
-                  className="w-16 h-7 text-xs text-center"
-                />
-                <span className="text-xs text-muted-foreground w-8">{w.unit}</span>
-                <span className="text-xs font-semibold w-16 text-right">
-                  {(w.unit_price * w.quantity).toFixed(2)}€
-                </span>
-                <button type="button" onClick={() => removeWork(i)} className="text-destructive/60 hover:text-destructive">
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
-              </div>
-            ))}
-            <div className="flex justify-end pt-1">
-              <Badge variant="outline" className="text-xs font-semibold">
-                Σύνολο εργασιών: {totalRevenue.toFixed(2)}€
-              </Badge>
-            </div>
-          </div>
-        )}
-      </Card>
+        <div className="space-y-1">
+          {WORK_CATEGORIES.map((cat) => {
+            const catWorks = worksByCategory[cat.prefix] || [];
+            if (catWorks.length === 0) return null;
+            const isOpen = openWorkCategories.includes(cat.prefix);
+            const selectedCount = selectedWorkCount(cat.prefix);
 
-      {/* Materials */}
-      <Card className="p-4 space-y-3">
-        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-          <Package className="h-3.5 w-3.5" />
-          Υλικά
-        </Label>
-
-        <div className="relative">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-          <Input
-            value={materialSearch}
-            onChange={(e) => {
-              setMaterialSearch(e.target.value);
-              setShowMaterialDropdown(true);
-            }}
-            onFocus={() => setShowMaterialDropdown(true)}
-            placeholder="Αναζήτηση κωδικού ή ονόματος υλικού..."
-            className="pl-8 text-sm"
-          />
-          {showMaterialDropdown && filteredMaterials.length > 0 && (
-            <div className="absolute z-20 top-full left-0 right-0 mt-1 bg-card border border-border rounded-lg shadow-lg max-h-48 overflow-y-auto">
-              {filteredMaterials.map((m) => (
+            return (
+              <div key={cat.prefix} className="border border-border rounded-lg overflow-hidden">
                 <button
-                  key={m.id}
                   type="button"
-                  onClick={() => addMaterial(m)}
-                  className="w-full text-left px-3 py-2 hover:bg-muted transition-colors border-b border-border/30 last:border-0"
+                  onClick={() => toggleWorkCategory(cat.prefix)}
+                  className="w-full flex items-center gap-2 px-3 py-2.5 text-left hover:bg-muted/50 transition-colors"
                 >
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline" className={`text-[10px] ${m.source === "OTE" ? "border-blue-500/30 text-blue-600" : "border-orange-500/30 text-orange-600"}`}>
-                      {m.source}
+                  {isOpen ? (
+                    <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
+                  ) : (
+                    <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                  )}
+                  <span className="text-sm">{cat.icon}</span>
+                  <span className="text-sm font-medium flex-1">{cat.label}</span>
+                  <span className="text-xs text-muted-foreground">{catWorks.length}</span>
+                  {selectedCount > 0 && (
+                    <Badge className="text-[10px] h-5 min-w-[20px] justify-center bg-primary">
+                      {selectedCount}
                     </Badge>
-                    <span className="text-xs font-mono">{m.code}</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground truncate mt-0.5">{m.name}</p>
-                  {m.source === "DELTANETWORK" && (
-                    <span className="text-xs font-semibold text-foreground">{m.price}€/{m.unit}</span>
                   )}
                 </button>
-              ))}
-            </div>
+                
+                {isOpen && (
+                  <div className="border-t border-border bg-muted/20">
+                    {catWorks.map((w) => {
+                      const selected = isWorkSelected(w.id);
+                      const qty = getWorkQty(w.id);
+                      return (
+                        <div
+                          key={w.id}
+                          className={`flex items-center gap-2 px-3 py-2 border-b border-border/30 last:border-0 transition-colors ${
+                            selected ? "bg-primary/5" : ""
+                          }`}
+                        >
+                          <button
+                            type="button"
+                            onClick={() => toggleWork(w)}
+                            className={`shrink-0 w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
+                              selected
+                                ? "bg-primary border-primary text-primary-foreground"
+                                : "border-muted-foreground/30 hover:border-primary"
+                            }`}
+                          >
+                            {selected && <CheckCircle className="h-3 w-3" />}
+                          </button>
+                          
+                          <div className="flex-1 min-w-0" onClick={() => toggleWork(w)}>
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-xs font-mono text-primary font-semibold">{w.code}</span>
+                              <span className="text-xs font-semibold text-foreground">{w.unit_price}€</span>
+                            </div>
+                            <p className="text-[11px] text-muted-foreground leading-tight">{w.description}</p>
+                          </div>
+
+                          {selected && (
+                            <div className="flex items-center gap-1 shrink-0">
+                              <button
+                                type="button"
+                                onClick={() => updateWorkQty(w.id, qty - 1)}
+                                className="w-6 h-6 rounded bg-muted flex items-center justify-center hover:bg-muted-foreground/20"
+                              >
+                                <Minus className="h-3 w-3" />
+                              </button>
+                              <Input
+                                type="number"
+                                min="1"
+                                value={qty}
+                                onChange={(e) => updateWorkQty(w.id, parseFloat(e.target.value) || 1)}
+                                className="w-12 h-6 text-xs text-center p-0"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => updateWorkQty(w.id, qty + 1)}
+                                className="w-6 h-6 rounded bg-muted flex items-center justify-center hover:bg-muted-foreground/20"
+                              >
+                                <Plus className="h-3 w-3" />
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </Card>
+
+      {/* Materials - Category based */}
+      <Card className="p-4 space-y-2">
+        <div className="flex items-center justify-between">
+          <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+            <Package className="h-3.5 w-3.5" />
+            Υλικά
+          </Label>
+          {materialItems.length > 0 && (
+            <Badge variant="secondary" className="text-xs">
+              {oteMaterials.length} ΟΤΕ · {deltanetMaterials.length} ΔΝ
+            </Badge>
           )}
         </div>
 
-        {materialItems.length > 0 && (
-          <Tabs defaultValue="all" className="w-full">
-            <TabsList className="grid w-full grid-cols-3 h-8">
-              <TabsTrigger value="all" className="text-xs">Όλα ({materialItems.length})</TabsTrigger>
-              <TabsTrigger value="ote" className="text-xs">ΟΤΕ ({oteMaterials.length})</TabsTrigger>
-              <TabsTrigger value="delta" className="text-xs">Delta ({deltanetMaterials.length})</TabsTrigger>
-            </TabsList>
+        <Tabs value={materialTab} onValueChange={setMaterialTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-2 h-9">
+            <TabsTrigger value="OTE" className="text-xs gap-1">
+              <Badge variant="outline" className="text-[9px] px-1 border-blue-500/30 text-blue-600 h-4">ΟΤΕ</Badge>
+              {oteMaterials.length > 0 && <span className="text-primary font-bold">{oteMaterials.length}</span>}
+            </TabsTrigger>
+            <TabsTrigger value="DELTANETWORK" className="text-xs gap-1">
+              <Badge variant="outline" className="text-[9px] px-1 border-orange-500/30 text-orange-600 h-4">ΔΝ</Badge>
+              {deltanetMaterials.length > 0 && <span className="text-primary font-bold">{deltanetMaterials.length}</span>}
+            </TabsTrigger>
+          </TabsList>
 
-            {["all", "ote", "delta"].map((tab) => {
-              const items =
-                tab === "ote" ? oteMaterials : tab === "delta" ? deltanetMaterials : materialItems;
-              return (
-                <TabsContent key={tab} value={tab} className="space-y-2 mt-2">
-                  {items.map((m) => {
-                    const globalIndex = materialItems.findIndex((mi) => mi.material_id === m.material_id);
-                    return (
-                      <div key={m.material_id} className="flex items-center gap-2 bg-muted/50 rounded-lg px-3 py-2">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-1.5">
-                            <Badge variant="outline" className={`text-[9px] px-1.5 ${m.source === "OTE" ? "border-blue-500/30 text-blue-600" : "border-orange-500/30 text-orange-600"}`}>
-                              {m.source === "OTE" ? "ΟΤΕ" : "ΔΝ"}
-                            </Badge>
-                            <span className="text-xs font-mono">{m.code}</span>
-                          </div>
-                          <p className="text-xs text-muted-foreground truncate">{m.name}</p>
-                        </div>
-                        <Input
-                          type="number"
-                          min="1"
-                          value={m.quantity}
-                          onChange={(e) => updateMaterialQty(globalIndex, parseFloat(e.target.value) || 1)}
-                          className="w-16 h-7 text-xs text-center"
-                        />
-                        <span className="text-xs text-muted-foreground w-10">{m.unit}</span>
-                        {m.source === "DELTANETWORK" && (
-                          <span className="text-xs font-semibold w-16 text-right">
-                            {(m.price * m.quantity).toFixed(2)}€
-                          </span>
-                        )}
-                        <button type="button" onClick={() => removeMaterial(globalIndex)} className="text-destructive/60 hover:text-destructive">
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
+          {["OTE", "DELTANETWORK"].map((source) => (
+            <TabsContent key={source} value={source} className="space-y-1 mt-2">
+              {Object.entries(materialsByCategory[source] || {}).map(([catLabel, catMats]) => {
+                if (!catMats || catMats.length === 0) return null;
+                const catKey = `${source}-${catLabel}`;
+                const isOpen = openMaterialCategories.includes(catKey);
+                const selCount = selectedMaterialCount(source, catLabel);
+
+                return (
+                  <div key={catKey} className="border border-border rounded-lg overflow-hidden">
+                    <button
+                      type="button"
+                      onClick={() => toggleMaterialCategory(catKey)}
+                      className="w-full flex items-center gap-2 px-3 py-2.5 text-left hover:bg-muted/50 transition-colors"
+                    >
+                      {isOpen ? (
+                        <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                      )}
+                      <span className="text-sm font-medium flex-1">{catLabel}</span>
+                      <span className="text-xs text-muted-foreground">{catMats.length}</span>
+                      {selCount > 0 && (
+                        <Badge className="text-[10px] h-5 min-w-[20px] justify-center bg-primary">
+                          {selCount}
+                        </Badge>
+                      )}
+                    </button>
+
+                    {isOpen && (
+                      <div className="border-t border-border bg-muted/20">
+                        {catMats.map((m) => {
+                          const selected = isMaterialSelected(m.id);
+                          const qty = getMaterialQty(m.id);
+                          return (
+                            <div
+                              key={m.id}
+                              className={`flex items-center gap-2 px-3 py-2 border-b border-border/30 last:border-0 transition-colors ${
+                                selected ? "bg-primary/5" : ""
+                              }`}
+                            >
+                              <button
+                                type="button"
+                                onClick={() => toggleMaterial(m)}
+                                className={`shrink-0 w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
+                                  selected
+                                    ? "bg-primary border-primary text-primary-foreground"
+                                    : "border-muted-foreground/30 hover:border-primary"
+                                }`}
+                              >
+                                {selected && <CheckCircle className="h-3 w-3" />}
+                              </button>
+
+                              <div className="flex-1 min-w-0" onClick={() => toggleMaterial(m)}>
+                                <span className="text-xs font-mono text-primary">{m.code}</span>
+                                <p className="text-[11px] text-muted-foreground leading-tight truncate">{m.name}</p>
+                              </div>
+
+                              {selected && (
+                                <div className="flex items-center gap-1 shrink-0">
+                                  <button
+                                    type="button"
+                                    onClick={() => updateMaterialQty(m.id, qty - 1)}
+                                    className="w-6 h-6 rounded bg-muted flex items-center justify-center hover:bg-muted-foreground/20"
+                                  >
+                                    <Minus className="h-3 w-3" />
+                                  </button>
+                                  <Input
+                                    type="number"
+                                    min="1"
+                                    value={qty}
+                                    onChange={(e) => updateMaterialQty(m.id, parseFloat(e.target.value) || 1)}
+                                    className="w-12 h-6 text-xs text-center p-0"
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => updateMaterialQty(m.id, qty + 1)}
+                                    className="w-6 h-6 rounded bg-muted flex items-center justify-center hover:bg-muted-foreground/20"
+                                  >
+                                    <Plus className="h-3 w-3" />
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
-                    );
-                  })}
-                </TabsContent>
-              );
-            })}
-          </Tabs>
-        )}
+                    )}
+                  </div>
+                );
+              })}
+            </TabsContent>
+          ))}
+        </Tabs>
 
         {deltanetMaterials.length > 0 && (
           <div className="flex justify-end pt-1">
@@ -605,12 +717,6 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
             ))}
           </div>
         )}
-
-        {photos.length > 0 && (
-          <p className="text-xs text-muted-foreground text-center">
-            {photos.length} φωτογραφί{photos.length === 1 ? "α" : "ες"} επιλεγμέν{photos.length === 1 ? "η" : "ες"}
-          </p>
-        )}
       </Card>
 
       {/* Summary */}
@@ -630,6 +736,18 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
               <p className="text-lg font-bold text-green-600">{(totalRevenue - totalMaterialCost).toFixed(2)}€</p>
               <p className="text-[10px] text-muted-foreground">Κέρδος</p>
             </div>
+          </div>
+
+          {/* Selected items summary */}
+          <div className="space-y-1 pt-2 border-t border-border">
+            {workItems.map((w) => (
+              <div key={w.work_pricing_id} className="flex items-center justify-between text-xs">
+                <span className="text-muted-foreground truncate flex-1">
+                  <span className="font-mono text-primary">{w.code}</span> ×{w.quantity}
+                </span>
+                <span className="font-semibold">{(w.unit_price * w.quantity).toFixed(2)}€</span>
+              </div>
+            ))}
           </div>
         </Card>
       )}
