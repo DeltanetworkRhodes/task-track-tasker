@@ -527,6 +527,57 @@ export type Database = {
           },
         ]
       }
+      material_stock_history: {
+        Row: {
+          change_amount: number
+          changed_by: string | null
+          created_at: string
+          id: string
+          material_id: string
+          new_stock: number
+          old_stock: number
+          organization_id: string | null
+          reason: string | null
+        }
+        Insert: {
+          change_amount?: number
+          changed_by?: string | null
+          created_at?: string
+          id?: string
+          material_id: string
+          new_stock?: number
+          old_stock?: number
+          organization_id?: string | null
+          reason?: string | null
+        }
+        Update: {
+          change_amount?: number
+          changed_by?: string | null
+          created_at?: string
+          id?: string
+          material_id?: string
+          new_stock?: number
+          old_stock?: number
+          organization_id?: string | null
+          reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "material_stock_history_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "material_stock_history_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       materials: {
         Row: {
           code: string
