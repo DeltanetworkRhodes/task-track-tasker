@@ -171,6 +171,7 @@ const AssignmentTable = ({ assignments }: AssignmentTableProps) => {
             sr_id: target.sr_id || deleteTarget.srId,
             area: target.area,
             customer_name: target.customer_name,
+            organization_id: target.organization_id,
           },
         }).then(({ error: driveErr }) => {
           if (driveErr) console.error("Drive folder delete error:", driveErr);
