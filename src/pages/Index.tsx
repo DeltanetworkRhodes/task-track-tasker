@@ -175,7 +175,6 @@ const Index = () => {
                   </h1>
                   <p className="text-[10px] sm:text-xs text-white/45 mt-0.5">
                     Διαχείριση δικτύου οπτικών ινών — Ρόδος & Κως
-                    </p>
                   </p>
                 </div>
               </div>
