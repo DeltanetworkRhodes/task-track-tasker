@@ -180,11 +180,11 @@ const ProfitPerSR = () => {
                   const margin = revenue > 0 ? (profit / revenue * 100) : 0;
                   return (
                     <tr key={r.id} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
-                      <td className="py-3 px-4 font-mono text-xs font-semibold text-primary">{r.sr_id}</td>
-                      <td className="py-3 px-4 text-right font-mono text-accent">{fmt(revenue)}</td>
-                      <td className="py-3 px-4 text-right font-mono text-destructive">{fmt(expenses)}</td>
-                      <td className={`py-3 px-4 text-right font-mono font-bold ${profit >= 0 ? 'text-accent' : 'text-destructive'}`}>{fmt(profit)}</td>
-                      <td className={`py-3 px-4 text-right font-mono text-xs ${margin >= 0 ? 'text-accent' : 'text-destructive'}`}>{margin.toFixed(1)}%</td>
+                      <td className="py-3 px-4 text-xs font-bold text-primary">{r.sr_id}</td>
+                      <td className="py-3 px-4 text-right font-bold text-accent">{fmt(revenue)}</td>
+                      <td className="py-3 px-4 text-right font-bold text-destructive">{fmt(expenses)}</td>
+                      <td className={`py-3 px-4 text-right font-bold ${profit >= 0 ? 'text-accent' : 'text-destructive'}`}>{fmt(profit)}</td>
+                      <td className={`py-3 px-4 text-right font-bold text-xs ${margin >= 0 ? 'text-accent' : 'text-destructive'}`}>{margin.toFixed(1)}%</td>
                     </tr>
                   );
                 })}
