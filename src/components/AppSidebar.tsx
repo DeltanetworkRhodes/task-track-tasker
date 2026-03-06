@@ -1,8 +1,9 @@
 import { Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, ClipboardCheck, Wrench, Package, LogOut, Wifi, FileText, TrendingUp, Search, UserCog, X, BarChart3, Settings } from "lucide-react";
+import { LayoutDashboard, ClipboardCheck, Wrench, Package, LogOut, Wifi, FileText, TrendingUp, Search, UserCog, X, BarChart3, Settings, Sun, Moon } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import NotificationBell from "@/components/NotificationBell";
 import deltaLogoIcon from "@/assets/delta-logo-icon.png";
+import { useTheme } from "next-themes";
 
 const navItems = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard },
@@ -24,6 +25,7 @@ interface AppSidebarProps {
 const AppSidebar = ({ onClose }: AppSidebarProps) => {
   const location = useLocation();
   const { user, signOut } = useAuth();
+  const { theme, setTheme } = useTheme();
 
   return (
     <aside className="flex h-full w-64 flex-col bg-sidebar border-r border-sidebar-border">
@@ -77,13 +79,22 @@ const AppSidebar = ({ onClose }: AppSidebarProps) => {
           <p className="text-[11px] text-sidebar-foreground truncate flex-1">{user?.email}</p>
           <NotificationBell />
         </div>
-        <button
-          onClick={signOut}
-          className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
-        >
-          <LogOut className="h-3.5 w-3.5" />
-          Αποσύνδεση
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            className="flex items-center justify-center rounded-lg p-2 text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
+            title={theme === "dark" ? "Light mode" : "Dark mode"}
+          >
+            {theme === "dark" ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}
+          </button>
+          <button
+            onClick={signOut}
+            className="flex flex-1 items-center gap-2 rounded-lg px-3 py-2 text-xs text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
+          >
+            <LogOut className="h-3.5 w-3.5" />
+            Αποσύνδεση
+          </button>
+        </div>
       </div>
     </aside>
   );
