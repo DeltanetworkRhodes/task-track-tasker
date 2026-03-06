@@ -1,8 +1,10 @@
+import { useState } from "react";
 import AppLayout from "@/components/AppLayout";
 import deltaLogoLight from "@/assets/delta-logo-light.png";
 import StatCard from "@/components/StatCard";
 import AssignmentTable from "@/components/AssignmentTable";
 import SyncButton from "@/components/SyncButton";
+import SetupWizard from "@/components/SetupWizard";
 import { useAssignments, useConstructions } from "@/hooks/useData";
 import { statusLabels } from "@/data/mockData";
 import { ClipboardCheck, Wrench, TrendingUp, Euro, FolderOpen, Activity, Wifi, PieChartIcon, CalendarDays, Timer, Zap } from "lucide-react";
