@@ -383,6 +383,7 @@ async function generateMaterialsPdf(
 ): Promise<Uint8Array> {
   const fonts = await loadGreekFonts();
   const pdf = await PDFDocument.create();
+  pdf.registerFontkit(fontkit);
   const font = await pdf.embedFont(fonts.regular);
   const boldFont = await pdf.embedFont(fonts.bold);
   
