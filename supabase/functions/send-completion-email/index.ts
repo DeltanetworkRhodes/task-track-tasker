@@ -272,11 +272,8 @@ Deno.serve(async (req) => {
           </table>
 
 
-          ${drive_folder_url ? `
-          <div style="text-align: center; margin: 20px 0;">
-            <a href="${escapeHtml(drive_folder_url)}" style="background: #2563eb; color: white; padding: 10px 24px; border-radius: 6px; text-decoration: none; font-size: 14px; font-weight: bold;">📁 Φάκελος Google Drive</a>
-          </div>
-          ` : ""}
+
+
 
           <p style="color: #6b7280; font-size: 12px; margin-top: 16px;">
             📎 Συνημμένο: Φύλλο Απολογισμού & Φωτογραφίες (${photo_paths?.length || 0} φωτογραφίες)
