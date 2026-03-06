@@ -135,7 +135,8 @@ Deno.serve(async (req) => {
       });
     }
 
-    console.log(`Preparing completion email for SR ${sr_id}: spreadsheet=${spreadsheet_id}, photos=${photo_paths?.length || 0}`);
+    const allPhotoCount = (photo_paths?.length || 0) + (drive_photo_ids?.length || 0);
+    console.log(`Preparing completion email for SR ${sr_id}: spreadsheet=${spreadsheet_id}, photos=${allPhotoCount}`);
 
     // Get technician info
     let techName = "Τεχνικός";
