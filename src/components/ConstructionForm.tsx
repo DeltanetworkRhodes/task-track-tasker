@@ -293,7 +293,7 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
           floors: parseInt(floors) || 0,
           revenue: totalRevenue,
           material_cost: totalMaterialCost,
-          profit: totalRevenue - totalMaterialCost,
+          
           status: "completed",
           routing_type: routingType.trim() || null,
           pending_note: pendingNote.trim() || null,

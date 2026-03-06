@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { PDFDocument, rgb } from "https://esm.sh/pdf-lib@1.17.1";
+import fontkit from "https://esm.sh/@pdf-lib/fontkit@1.1.1";
 import * as XLSX from "https://esm.sh/xlsx@0.18.5";
 
 function uint8ToBase64(bytes: Uint8Array): string {
@@ -153,11 +154,26 @@ function generateConstructionXlsx(
     ["SR ID:", assignment.sr_id, "", "SES ID:", construction.ses_id || "", "", "Α/Κ:", construction.ak || ""],
     ["CAB:", construction.cab || "", "", "ΟΡΟΦΟΙ:", construction.floors || 0, "", "ΠΕΡΙΟΧΗ:", assignment.area],
     ["ΔΙΕΥΘΥΝΣΗ:", assignment.address || "", "", "ΠΕΛΑΤΗΣ:", assignment.customer_name || ""],
+    ["ΕΙΔΟΣ ΟΔΕΥΣΗΣ:", construction.routing_type || "", "", "ΑΝΑΜΟΝΗ:", construction.pending_note || ""],
     ["ΗΜΕΡΟΜΗΝΙΑ:", new Date().toLocaleDateString("el-GR")],
     [],
-    // Works header
-    ["Άρθρο", "ΚΑΤΑΣΚΕΥΕΣ", "ΠΟΣΟΤΗΤΑ", "ΤΙΜΗ ΜΟΝΑΔΟΣ", "ΜΕΡΙΚΟ ΣΥΝΟΛΟ", "", "ΚΑΥ", "ΠΕΡΙΓΡΑΦΗ ΥΛΙΚΩΝ", "ΜΜ", "ΠΟΣΟΤΗΤΑ", "ΠΗΓΗ"],
   ];
+
+  // ΔΙΑΔΡΟΜΕΣ section
+  const routes = construction.routes || [];
+  if (routes.length > 0) {
+    data.push(["ΔΙΑΔΡΟΜΕΣ", "", "KOI (m)", "ΦΥΡΑ KOI (m)"]);
+    for (const r of routes) {
+      data.push(["", r.label || "", r.koi || 0, r.fyra_koi || 0]);
+    }
+    const totalKoi = routes.reduce((s: number, r: any) => s + (r.koi || 0), 0);
+    const totalFyra = routes.reduce((s: number, r: any) => s + (r.fyra_koi || 0), 0);
+    data.push(["", "ΣΥΝΟΛΟ", totalKoi, totalFyra]);
+    data.push([]);
+  }
+
+  // Works + Materials header
+  data.push(["Άρθρο", "ΚΑΤΑΣΚΕΥΕΣ", "ΠΟΣΟΤΗΤΑ", "ΤΙΜΗ ΜΟΝΑΔΟΣ", "ΜΕΡΙΚΟ ΣΥΝΟΛΟ", "", "ΚΑΥ", "ΠΕΡΙΓΡΑΦΗ ΥΛΙΚΩΝ", "ΜΜ", "ΠΟΣΟΤΗΤΑ", "ΠΗΓΗ"]);
 
   // Find max rows between works and all materials
   const allMaterials = [...oteMaterials, ...deltaMaterials];
@@ -216,9 +232,43 @@ let _fontCache: { regular: Uint8Array; bold: Uint8Array } | null = null;
 async function loadGreekFonts(): Promise<{ regular: Uint8Array; bold: Uint8Array }> {
   if (_fontCache) return _fontCache;
   
+  // Use fonts.googleapis.com CSS to discover TTF URLs
+  const cssRes = await fetch("https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap", {
+    headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" },
+  });
+  if (!cssRes.ok) {
+    console.error("CSS fetch failed:", cssRes.status, await cssRes.text());
+    throw new Error("Failed to fetch font CSS");
+  }
+  const css = await cssRes.text();
+  
+  // Extract TTF URLs from CSS
+  const urls = [...css.matchAll(/url\((https:\/\/fonts\.gstatic\.com\/[^)]+\.ttf)\)/g)].map(m => m[1]);
+  console.log("Found font URLs:", urls.length);
+  
+  if (urls.length < 2) {
+    // Fallback: use known static URLs
+    const [regularRes, boldRes] = await Promise.all([
+      fetch("https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu4mxP.ttf"),
+      fetch("https://fonts.gstatic.com/s/roboto/v30/KFOlCnqEu92Fr1MmWUlfBBc9.ttf"),
+    ]);
+    if (!regularRes.ok || !boldRes.ok) {
+      throw new Error("Failed to fetch Greek fonts (fallback)");
+    }
+    _fontCache = {
+      regular: new Uint8Array(await regularRes.arrayBuffer()),
+      bold: new Uint8Array(await boldRes.arrayBuffer()),
+    };
+    return _fontCache;
+  }
+  
+  // Last 2 URLs are typically the latin/greek ones for 400 and 700
+  const regularUrl = urls.find(u => css.indexOf(u) > css.indexOf("font-weight: 400")) || urls[0];
+  const boldUrl = urls.find(u => css.indexOf(u) > css.lastIndexOf("font-weight: 700")) || urls[urls.length - 1];
+  
   const [regularRes, boldRes] = await Promise.all([
-    fetch("https://fonts.gstatic.com/s/roboto/v47/KFOMCnqEu92Fr1ME7kSn66aGLdTylUAMQXC89YmC2DPNWubEbGmT.ttf"),
-    fetch("https://fonts.gstatic.com/s/roboto/v47/KFOMCnqEu92Fr1ME7kSn66aGLdTylUAMQXC89YmC2DPNWubEbFqQ.ttf"),
+    fetch(regularUrl),
+    fetch(boldUrl),
   ]);
   
   if (!regularRes.ok || !boldRes.ok) {
@@ -241,6 +291,7 @@ async function generateWorksPdf(
 ): Promise<Uint8Array> {
   const fonts = await loadGreekFonts();
   const pdf = await PDFDocument.create();
+  pdf.registerFontkit(fontkit);
   const font = await pdf.embedFont(fonts.regular);
   const boldFont = await pdf.embedFont(fonts.bold);
   
@@ -259,11 +310,28 @@ async function generateWorksPdf(
     `SR ID: ${assignment.sr_id}    SES ID: ${construction.ses_id || "-"}`,
     `CAB: ${construction.cab || "-"}    Α/Κ: ${construction.ak || "-"}    Όροφοι: ${construction.floors || 0}`,
     `Πελάτης: ${assignment.customer_name || "-"}    Περιοχή: ${assignment.area}`,
+    `Είδος Όδευσης: ${construction.routing_type || "-"}    Αναμονή: ${construction.pending_note || "-"}`,
     `Ημερομηνία: ${new Date().toLocaleDateString("el-GR")}`,
   ];
   for (const line of headerLines) {
     page.drawText(line, { x: margin, y, font, size: 9, color: rgb(0.2, 0.2, 0.2) });
     y -= 15;
+  }
+
+  // Routes section
+  const routes = construction.routes || [];
+  if (routes.length > 0) {
+    y -= 5;
+    page.drawText("ΔΙΑΔΡΟΜΕΣ:", { x: margin, y, font: boldFont, size: 9, color: rgb(0, 0, 0.5) });
+    y -= 14;
+    for (const r of routes) {
+      if (r.koi || r.fyra_koi) {
+        page.drawText(`${r.label}: KOI ${r.koi || 0}m | ΦΥΡΑ ${r.fyra_koi || 0}m`, {
+          x: margin + 10, y, font, size: 8, color: rgb(0.3, 0.3, 0.3),
+        });
+        y -= 12;
+      }
+    }
   }
   y -= 10;
 
@@ -315,6 +383,7 @@ async function generateMaterialsPdf(
 ): Promise<Uint8Array> {
   const fonts = await loadGreekFonts();
   const pdf = await PDFDocument.create();
+  pdf.registerFontkit(fontkit);
   const font = await pdf.embedFont(fonts.regular);
   const boldFont = await pdf.embedFont(fonts.bold);
   
