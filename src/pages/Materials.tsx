@@ -559,7 +559,7 @@ const Materials = () => {
               <div className="rounded-lg bg-accent/10 p-2"><Box className="h-4 w-4 text-accent" /></div>
               <div>
                 <p className="text-2xl font-extrabold font-mono text-gradient-accent">{materials.filter(m => m.source === 'DELTANETWORK').length}</p>
-                <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Υλικά Delta</p>
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Υλικά {orgName}</p>
               </div>
             </div>
           </div>
