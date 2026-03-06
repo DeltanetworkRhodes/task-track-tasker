@@ -274,11 +274,28 @@ async function generateWorksPdf(
     `SR ID: ${assignment.sr_id}    SES ID: ${construction.ses_id || "-"}`,
     `CAB: ${construction.cab || "-"}    Α/Κ: ${construction.ak || "-"}    Όροφοι: ${construction.floors || 0}`,
     `Πελάτης: ${assignment.customer_name || "-"}    Περιοχή: ${assignment.area}`,
+    `Είδος Όδευσης: ${construction.routing_type || "-"}    Αναμονή: ${construction.pending_note || "-"}`,
     `Ημερομηνία: ${new Date().toLocaleDateString("el-GR")}`,
   ];
   for (const line of headerLines) {
     page.drawText(line, { x: margin, y, font, size: 9, color: rgb(0.2, 0.2, 0.2) });
     y -= 15;
+  }
+
+  // Routes section
+  const routes = construction.routes || [];
+  if (routes.length > 0) {
+    y -= 5;
+    page.drawText("ΔΙΑΔΡΟΜΕΣ:", { x: margin, y, font: boldFont, size: 9, color: rgb(0, 0, 0.5) });
+    y -= 14;
+    for (const r of routes) {
+      if (r.koi || r.fyra_koi) {
+        page.drawText(`${r.label}: KOI ${r.koi || 0}m | ΦΥΡΑ ${r.fyra_koi || 0}m`, {
+          x: margin + 10, y, font, size: 8, color: rgb(0.3, 0.3, 0.3),
+        });
+        y -= 12;
+      }
+    }
   }
   y -= 10;
 
