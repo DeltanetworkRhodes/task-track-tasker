@@ -598,17 +598,14 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
                       </div>
                     )}
                     {(existingGisData.floor_details as any[])?.length > 0 && (() => {
-                      const details = existingGisData.floor_details as Record<string, any>[];
-                      // Collect all unique keys across all rows
+                      // Normalize: if items have a "raw" key, use that instead
+                      const rawDetails = (existingGisData.floor_details as any[]).map((fd: any) => {
+                        if (fd.raw && typeof fd.raw === 'object') return fd.raw;
+                        return fd;
+                      });
                       const allKeysSet = new Set<string>();
-                      details.forEach((d) => Object.keys(d).forEach((k) => allKeysSet.add(k)));
+                      rawDetails.forEach((d: any) => Object.keys(d).forEach((k) => allKeysSet.add(k)));
                       const allKeys = Array.from(allKeysSet);
-                      
-                      const renderCellValue = (val: any): string => {
-                        if (val === null || val === undefined || val === "") return "—";
-                        if (typeof val === "object") return JSON.stringify(val);
-                        return String(val);
-                      };
                       
                       return (
                         <div className="text-xs space-y-1">
@@ -625,11 +622,11 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
                                 </tr>
                               </thead>
                               <tbody>
-                                {details.map((fd: any, idx: number) => (
+                                {rawDetails.map((fd: any, idx: number) => (
                                   <tr key={idx} className="border-t border-border hover:bg-muted/30">
                                     {allKeys.map((key) => (
                                       <td key={key} className="px-2 py-1 font-medium border-r border-border last:border-r-0">
-                                        {renderCellValue(fd[key])}
+                                        {fd[key] != null && fd[key] !== "" ? String(fd[key]) : "—"}
                                       </td>
                                     ))}
                                   </tr>
