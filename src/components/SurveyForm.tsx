@@ -129,6 +129,29 @@ const SurveyForm = ({ assignments, prefillSrId, prefillArea, onComplete }: Props
       toast.success("Η αυτοψία υποβλήθηκε επιτυχώς!");
       setSubmitted(true);
 
+      // If survey is complete, auto-advance assignment to construction
+      if (autoStatus === "ΠΡΟΔΕΣΜΕΥΣΗ ΥΛΙΚΩΝ") {
+        try {
+          // Find the assignment for this SR and update to construction
+          const { data: assignmentData } = await supabase
+            .from("assignments")
+            .select("id, status")
+            .eq("sr_id", srId.trim())
+            .eq("technician_id", user!.id)
+            .maybeSingle();
+
+          if (assignmentData && assignmentData.status !== "completed" && assignmentData.status !== "cancelled") {
+            await supabase
+              .from("assignments")
+              .update({ status: "construction" })
+              .eq("id", assignmentData.id);
+            toast.success("Πλήρης αυτοψία → Εντολή Κατασκευής");
+          }
+        } catch (statusErr) {
+          console.error("Auto status update error:", statusErr);
+        }
+      }
+
       // Always trigger automation: file check, PDF, Drive folder, email (if complete)
       try {
         const { data: result, error: procError } = await supabase.functions.invoke("process-survey-completion", {
