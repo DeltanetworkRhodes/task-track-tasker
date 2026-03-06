@@ -320,10 +320,14 @@ Deno.serve(async (req) => {
 
 
 
-
-          <p style="color: #6b7280; font-size: 12px; margin-top: 16px;">
-            📎 Συνημμένο: Φύλλο Απολογισμού & Φωτογραφίες (${allPhotoCount} φωτογραφίες)
+          ${zipDownloadUrl ? `
+          <div style="text-align: center; margin: 20px 0;">
+            <a href="${escapeHtml(zipDownloadUrl)}" style="background: #2563eb; color: white; padding: 12px 28px; border-radius: 6px; text-decoration: none; font-size: 14px; font-weight: bold; display: inline-block;">📥 Κατέβασε τα αρχεία (ZIP)</a>
+          </div>
+          <p style="color: #9ca3af; font-size: 11px; text-align: center; margin-top: 4px;">
+            Φύλλο Απολογισμού & ${allPhotoCount} φωτογραφίες · Ισχύει για 7 ημέρες
           </p>
+          ` : ""}
 
           <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;" />
           
@@ -348,16 +352,6 @@ Deno.serve(async (req) => {
 
     if (ccEmails.trim()) {
       emailPayload.cc = ccEmails.split(",").map((e: string) => e.trim());
-    }
-
-    // Attach ZIP if we have files
-    if (zipBase64) {
-      emailPayload.attachments = [
-        {
-          filename: zipFileName,
-          content: zipBase64,
-        },
-      ];
     }
 
     const resendResponse = await fetch("https://api.resend.com/emails", {
