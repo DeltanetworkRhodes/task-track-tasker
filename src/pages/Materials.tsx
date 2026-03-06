@@ -157,7 +157,7 @@ const MaterialTable = ({ items, hasRealData, editingId, editValues, onEdit, onSa
                     />
                   ) : m.name}
                 </td>
-                <td className="py-3 px-4 text-right font-mono">
+                <td className="py-3 px-4 text-right font-bold">
                   {isEditing ? (
                     <div className="flex items-center gap-1 justify-end">
                       <input
