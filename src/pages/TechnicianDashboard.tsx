@@ -43,11 +43,11 @@ const TechnicianDashboard = () => {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="sticky top-0 z-50 border-b border-border bg-card/80 backdrop-blur-md">
+      <header className="sticky top-0 z-50 border-b border-border bg-gradient-to-r from-amber-600 via-orange-500 to-amber-600 shadow-lg">
         <div className="flex items-center justify-between px-4 py-3">
           <div>
-            <h1 className="text-lg font-bold text-foreground">DeltaNet FTTH</h1>
-            <p className="text-xs text-muted-foreground">
+            <h1 className="text-lg font-bold text-white drop-shadow-sm">DeltaNet FTTH</h1>
+            <p className="text-xs text-amber-100">
               {profile?.full_name || user?.email} · {profile?.area || "—"}
             </p>
           </div>
@@ -55,7 +55,7 @@ const TechnicianDashboard = () => {
             <NotificationBell />
             <button
               onClick={signOut}
-              className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs text-muted-foreground hover:bg-muted transition-colors"
+              className="flex items-center gap-1.5 rounded-lg border border-white/30 bg-white/10 px-3 py-1.5 text-xs text-white hover:bg-white/20 transition-colors backdrop-blur-sm"
             >
               <LogOut className="h-3.5 w-3.5" />
               Έξοδος
