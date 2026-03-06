@@ -551,16 +551,21 @@ const Materials = () => {
           <TabsContent value="ote">
             <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
               <div className="flex items-center justify-between border-b border-border px-5 py-4 bg-primary/5">
-                <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2">
                   <div className="h-3 w-3 rounded-full bg-primary" />
                   <h2 className="font-bold text-sm">Υλικά OTE</h2>
                   <span className="text-[11px] text-muted-foreground font-mono ml-1">({oteItems.length} είδη)</span>
                 </div>
-                {oteValue > 0 && (
-                  <span className="text-[11px] text-muted-foreground font-mono">
-                    Αξία: <span className="font-semibold text-foreground">{oteValue.toLocaleString('el-GR', { minimumFractionDigits: 2 })}€</span>
-                  </span>
-                )}
+                <div className="flex items-center gap-3">
+                  {oteValue > 0 && (
+                    <span className="text-[11px] text-muted-foreground font-mono">
+                      Αξία: <span className="font-semibold text-foreground">{oteValue.toLocaleString('el-GR', { minimumFractionDigits: 2 })}€</span>
+                    </span>
+                  )}
+                  <button onClick={() => exportToCsv(oteItems, 'OTE')} className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 py-1.5 text-[11px] font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
+                    <Download className="h-3 w-3" /> Export
+                  </button>
+                </div>
               </div>
               <MaterialTable items={oteItems} {...sharedTableProps} />
             </div>
