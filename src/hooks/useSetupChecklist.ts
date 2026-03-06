@@ -67,6 +67,14 @@ export function useSetupChecklist() {
 
       const steps: SetupStep[] = [
         {
+          id: "service_account",
+          title: "Service Account",
+          description: "Δημιουργία Google Service Account για σύνδεση με Drive & Sheets",
+          completed: !!settingsMap["shared_drive_id"], // If drive is set, service account exists
+          route: "/settings",
+          icon: "key-round",
+        },
+        {
           id: "drive",
           title: "Google Drive",
           description: "Σύνδεση με Shared Drive για αρχεία αυτοψιών & κατασκευών",
