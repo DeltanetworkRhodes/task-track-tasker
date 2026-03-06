@@ -129,6 +129,25 @@ const AssignmentTable = ({ assignments }: AssignmentTableProps) => {
     }
   };
 
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      const { error } = await supabase
+        .from("assignments")
+        .delete()
+        .eq("id", deleteTarget.id);
+      if (error) throw error;
+      toast.success(`Το SR ${deleteTarget.srId} διαγράφηκε`);
+      queryClient.invalidateQueries({ queryKey: ["assignments"] });
+      setDeleteTarget(null);
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   useEffect(() => {
     if (!selected?.srId) {
       setDriveData(null);
