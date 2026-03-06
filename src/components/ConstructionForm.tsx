@@ -648,6 +648,7 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
               cab: cab.trim(),
               spreadsheet_id: spreadsheetFile?.id || null,
               photo_paths: photoPaths,
+              otdr_paths: otdrPaths,
               drive_folder_url: docsResult?.sr_folder?.url || assignment.drive_folder_url,
             },
           }
