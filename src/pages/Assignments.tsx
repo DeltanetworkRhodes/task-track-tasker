@@ -106,8 +106,6 @@ const Assignments = () => {
           >
             <option value="active">Ενεργές</option>
             <option value="all">Όλες</option>
-            <option value="unassigned">Χωρίς Ανάθεση</option>
-            <option value="completed">Ολοκληρωμένες</option>
             <option value="cancelled">Ακυρωμένες</option>
           </select>
           {sources.length > 0 && (
