@@ -369,7 +369,7 @@ const Materials = () => {
             <h1 className="text-2xl font-extrabold tracking-tight">Αποθήκη Υλικών</h1>
             <p className="text-sm text-muted-foreground mt-1">
               Διαχείριση αποθεμάτων OTE & DELTANETWORK
-              {!hasRealData && <span className="ml-2 text-[11px] rounded-full bg-warning/10 text-warning px-2 py-0.5 font-medium">demo</span>}
+              
             </p>
           </div>
           <div className="flex items-center gap-2">
