@@ -362,7 +362,7 @@ const AssignmentTable = ({ assignments }: AssignmentTableProps) => {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Hash className="h-4 w-4 text-primary" />
-              <span className="font-mono">{selected?.srId}</span>
+              <span className="font-bold">{selected?.srId}</span>
               <span className={`ml-auto inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${statusColors[selected?.status] || statusColors.pending}`}>
                 {statusLabels[selected?.status as keyof typeof statusLabels] || selected?.status}
               </span>
