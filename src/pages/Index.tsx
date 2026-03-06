@@ -236,8 +236,8 @@ const Index = () => {
             </h2>
             <ChartContainer config={chartConfig} className="h-[200px] sm:h-[220px] w-full">
               <BarChart data={statusCounts} margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
-                <XAxis dataKey="label" tick={{ fill: "hsl(220 10% 46%)", fontSize: 9 }} axisLine={false} tickLine={false} interval={0} angle={-20} textAnchor="end" height={45} />
-                <YAxis allowDecimals={false} tick={{ fill: "hsl(220 10% 46%)", fontSize: 11 }} axisLine={false} tickLine={false} width={25} />
+                <XAxis dataKey="label" tick={{ fill: "hsl(210 14% 55%)", fontSize: 9 }} axisLine={false} tickLine={false} interval={0} angle={-20} textAnchor="end" height={45} />
+                <YAxis allowDecimals={false} tick={{ fill: "hsl(210 14% 55%)", fontSize: 11 }} axisLine={false} tickLine={false} width={25} />
                 <ChartTooltip content={<ChartTooltipContent />} />
                 <Bar dataKey="count" radius={[8, 8, 0, 0]} barSize={28}>
                   {statusCounts.map((entry, i) => (
@@ -256,9 +256,9 @@ const Index = () => {
             </h2>
             <ChartContainer config={trendConfig} className="h-[200px] sm:h-[220px] w-full">
               <BarChart data={monthlyTrend} margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(220 10% 90%)" />
-                <XAxis dataKey="label" tick={{ fill: "hsl(220 10% 46%)", fontSize: 11 }} axisLine={false} tickLine={false} />
-                <YAxis allowDecimals={false} tick={{ fill: "hsl(220 10% 46%)", fontSize: 11 }} axisLine={false} tickLine={false} width={30} />
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(215 18% 25%)" />
+                <XAxis dataKey="label" tick={{ fill: "hsl(210 14% 55%)", fontSize: 11 }} axisLine={false} tickLine={false} />
+                <YAxis allowDecimals={false} tick={{ fill: "hsl(210 14% 55%)", fontSize: 11 }} axisLine={false} tickLine={false} width={30} />
                 <ChartTooltip content={<ChartTooltipContent />} />
                 <Bar dataKey="completed" name="Ολοκληρωμένα" fill="hsl(152 60% 42%)" radius={[6, 6, 0, 0]} barSize={24} />
               </BarChart>
@@ -286,7 +286,7 @@ const Index = () => {
                   <ChartContainer config={pieConfig} className="h-[160px] sm:h-[180px] w-full">
                     <PieChart>
                       <ChartTooltip content={<ChartTooltipContent />} />
-                      <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={40} outerRadius={70} strokeWidth={2} stroke="hsl(0 0% 100%)">
+                      <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={40} outerRadius={70} strokeWidth={2} stroke="hsl(215 22% 15%)">
                         {pieData.map((entry, i) => (
                           <Cell key={i} fill={entry.fill} />
                         ))}
@@ -346,9 +346,9 @@ const Index = () => {
             </h2>
             <ChartContainer config={trendConfig} className="h-[200px] sm:h-[220px] w-full">
               <LineChart data={monthlyTrend} margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(220 10% 90%)" />
-                <XAxis dataKey="label" tick={{ fill: "hsl(220 10% 46%)", fontSize: 11 }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fill: "hsl(220 10% 46%)", fontSize: 11 }} axisLine={false} tickLine={false} width={45} />
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(215 18% 25%)" />
+                <XAxis dataKey="label" tick={{ fill: "hsl(210 14% 55%)", fontSize: 11 }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fill: "hsl(210 14% 55%)", fontSize: 11 }} axisLine={false} tickLine={false} width={45} />
                 <ChartTooltip content={<ChartTooltipContent />} />
                 <Line type="monotone" dataKey="revenue" name="Έσοδα" stroke="hsl(220 70% 55%)" strokeWidth={2} dot={{ r: 3 }} />
                 <Line type="monotone" dataKey="profit" name="Κέρδος" stroke="hsl(152 60% 42%)" strokeWidth={2} dot={{ r: 3 }} />
