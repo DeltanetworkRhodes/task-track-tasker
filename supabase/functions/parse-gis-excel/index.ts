@@ -313,10 +313,25 @@ Deno.serve(async (req) => {
       gisRecord = data;
     }
 
-    // Update assignment status to pre_committed
+    // Check if survey is complete (all required file types exist)
+    const { data: survey } = await adminClient
+      .from("surveys")
+      .select("id, status")
+      .eq("sr_id", srId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    let newStatus = "pre_committed"; // Default: incomplete survey
+    if (survey && survey.status !== "ΕΛΛΙΠΗΣ ΑΥΤΟΨΙΑ") {
+      // Survey is complete → go directly to construction
+      newStatus = "construction";
+    }
+
+    // Update assignment status
     await supabase
       .from("assignments")
-      .update({ status: "pre_committed" })
+      .update({ status: newStatus })
       .eq("id", assignmentId);
 
     return new Response(
