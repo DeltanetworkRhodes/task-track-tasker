@@ -28,7 +28,9 @@ const AppSidebar = ({ onClose }: AppSidebarProps) => {
   const { theme, setTheme } = useTheme();
 
   return (
-    <aside className="flex h-full w-64 flex-col bg-sidebar border-r border-sidebar-border">
+    <aside className="flex h-full w-64 flex-col bg-sidebar border-r border-sidebar-border overflow-hidden">
+      {/* Top gradient line */}
+      <div className="h-0.5 w-full cosmote-gradient shrink-0" />
       {/* Logo */}
       <div className="flex items-center justify-between px-4 py-4 border-b border-sidebar-border">
         <div className="flex-1 min-w-0">
@@ -54,16 +56,16 @@ const AppSidebar = ({ onClose }: AppSidebarProps) => {
               key={item.to}
               to={item.to}
               onClick={onClose}
-              className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-all ${
+              className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-all ${
                 isActive
-                  ? 'bg-sidebar-primary/15 text-sidebar-primary font-semibold'
+                  ? 'cosmote-gradient text-white font-semibold shadow-lg shadow-primary/20'
                   : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
               }`}
             >
-              <item.icon className={`h-[18px] w-[18px] shrink-0 ${isActive ? 'text-sidebar-primary' : ''}`} />
+              <item.icon className={`h-[18px] w-[18px] shrink-0 ${isActive ? 'text-white' : ''}`} />
               {item.label}
               {isActive && (
-                <div className="ml-auto h-1.5 w-1.5 rounded-full bg-sidebar-primary animate-pulse" />
+                <div className="ml-auto h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
               )}
             </Link>
           );
