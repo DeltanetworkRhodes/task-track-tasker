@@ -23,7 +23,7 @@ interface MaterialItem {
   low_stock_threshold: number;
 }
 
-const MaterialTable = ({ items, hasRealData, editingId, editValues, onEdit, onSave, onCancel, onEditChange, sortField, sortDir, toggleSort }: {
+const MaterialTable = ({ items, hasRealData, editingId, editValues, onEdit, onSave, onCancel, onEditChange, onDelete, sortField, sortDir, toggleSort }: {
   items: MaterialItem[];
   hasRealData: boolean;
   editingId: string | null;
@@ -32,9 +32,11 @@ const MaterialTable = ({ items, hasRealData, editingId, editValues, onEdit, onSa
   onSave: () => void;
   onCancel: () => void;
   onEditChange: (field: 'stock' | 'price' | 'name' | 'unit' | 'low_stock_threshold', val: string) => void;
+  onDelete: (m: MaterialItem) => void;
   sortField: SortField;
   sortDir: SortDir;
   toggleSort: (f: SortField) => void;
+}) => {
 }) => {
   const SortHeader = ({ field, label, align = 'left' }: { field: SortField; label: string; align?: string }) => (
     <th
