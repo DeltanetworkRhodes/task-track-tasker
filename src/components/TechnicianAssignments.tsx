@@ -609,13 +609,13 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
                       
                       return (
                         <div className="text-xs space-y-1">
-                          <span className="text-muted-foreground font-semibold">Στοιχεία Ορόφων:</span>
-                          <div className="border border-border rounded-md overflow-x-auto">
+                          <span className="font-semibold text-foreground">📋 Στοιχεία Ορόφων:</span>
+                          <div className="border border-amber-300 rounded-md overflow-x-auto shadow-sm">
                             <table className="w-full text-xs whitespace-nowrap">
                               <thead>
-                                <tr className="bg-muted/50">
+                                <tr className="bg-gradient-to-r from-amber-500 to-orange-500">
                                   {allKeys.map((key) => (
-                                    <th key={key} className="text-left px-2 py-1.5 font-bold text-foreground border-r border-border last:border-r-0">
+                                    <th key={key} className="text-left px-2 py-1.5 font-bold text-white border-r border-amber-400 last:border-r-0">
                                       {String(key)}
                                     </th>
                                   ))}
@@ -623,7 +623,7 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
                               </thead>
                               <tbody>
                                 {rawDetails.map((fd: any, idx: number) => (
-                                  <tr key={idx} className={`border-t border-border hover:bg-muted/50 ${idx % 2 === 0 ? 'bg-background' : 'bg-muted/30'}`}>
+                                  <tr key={idx} className={`border-t border-amber-100 hover:bg-amber-100/60 ${idx % 2 === 0 ? 'bg-background' : 'bg-amber-50/50'}`}>
                                     {allKeys.map((key) => (
                                       <td key={key} className="px-2 py-1 font-medium border-r border-border last:border-r-0">
                                         {fd[key] != null && fd[key] !== "" ? String(fd[key]) : "—"}
