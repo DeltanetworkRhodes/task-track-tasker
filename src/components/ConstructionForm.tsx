@@ -546,6 +546,7 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
             quantity: w.quantity,
             unit_price: w.unit_price,
             subtotal: w.unit_price * w.quantity,
+            organization_id: organizationId,
           }))
         );
         if (worksError) console.error("Works insert error:", worksError);
