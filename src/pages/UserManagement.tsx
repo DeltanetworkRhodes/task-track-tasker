@@ -56,18 +56,19 @@ const UserManagement = () => {
     }
   };
 
-  // Fetch profiles filtered by organization
+  // Fetch profiles filtered by organization — never load without org filter
   const { data: profiles, isLoading } = useQuery({
     queryKey: ["all-profiles", organizationId],
     queryFn: async () => {
-      let query = supabase.from("profiles").select("*").order("created_at", { ascending: true });
-      if (organizationId) {
-        query = query.eq("organization_id", organizationId);
-      }
-      const { data, error } = await query;
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("organization_id", organizationId!)
+        .order("created_at", { ascending: true });
       if (error) throw error;
       return data;
     },
+    enabled: !!organizationId,
   });
 
   const { data: roles } = useQuery({
