@@ -16,7 +16,7 @@
         {
           "key": "customer_father_name",
           "type": "text",
-          "x": 442,
+          "x": 474,
           "y": 675,
           "size": 9,
           "maxWidth": 95
@@ -107,8 +107,8 @@
         {
           "key": "customer_notes",
           "type": "wrapped",
-          "x": 237,
-          "y": 449,
+          "x": 226,
+          "y": 468,
           "size": 8,
           "maxWidth": 286,
           "lineHeight": 10,
