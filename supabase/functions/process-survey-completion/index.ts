@@ -236,7 +236,7 @@ async function buildZip(files: { name: string; data: Uint8Array }[]): Promise<Ui
     const view = new DataView(localHeader.buffer);
     view.setUint32(0, 0x04034b50, true);
     view.setUint16(4, 20, true);
-    view.setUint16(6, 0, true);
+    view.setUint16(6, 0x0800, true); // bit 11 = UTF-8 filenames
     view.setUint16(8, isCompressed ? 8 : 0, true); // 8 = deflate, 0 = store
     view.setUint16(10, 0, true);
     view.setUint16(12, 0, true);
