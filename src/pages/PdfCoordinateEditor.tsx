@@ -326,7 +326,7 @@ const PdfCoordinateEditor = () => {
         {/* Toggle labels */}
         <Button variant="outline" size="sm" className="w-full" onClick={() => setShowLabels((v) => !v)}>
           {showLabels ? <EyeOff className="h-4 w-4 mr-2" /> : <Eye className="h-4 w-4 mr-2" />}
-          {showLabels ? "Κρύψε labels" : "Δείξε labels"}
+          {showLabels ? "Κρύψε ετικέτες" : "Δείξε ετικέτες"}
         </Button>
 
         {/* Field list */}
