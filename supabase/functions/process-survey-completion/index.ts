@@ -259,7 +259,7 @@ async function buildZip(files: { name: string; data: Uint8Array }[]): Promise<Ui
     cdView.setUint32(0, 0x02014b50, true);
     cdView.setUint16(4, 20, true);
     cdView.setUint16(6, 20, true);
-    cdView.setUint16(8, 0, true);
+    cdView.setUint16(8, 0x0800, true); // bit 11 = UTF-8 filenames
     cdView.setUint16(10, entry.isCompressed ? 8 : 0, true);
     cdView.setUint16(12, 0, true);
     cdView.setUint16(14, 0, true);
