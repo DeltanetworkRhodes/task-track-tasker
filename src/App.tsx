@@ -109,7 +109,7 @@ const App = () => (
                 <Route path="/users" element={<ProtectedRoute><RoleGate><AdminRoute><UserManagement /></AdminRoute></RoleGate></ProtectedRoute>} />
                 <Route path="/settings" element={<ProtectedRoute><RoleGate><AdminRoute><OrgSettings /></AdminRoute></RoleGate></ProtectedRoute>} />
                 <Route path="/kpis" element={<ProtectedRoute><RoleGate><AdminRoute><TechnicianKPIs /></AdminRoute></RoleGate></ProtectedRoute>} />
-                <Route path="/kanban" element={<ProtectedRoute><RoleGate><AdminRoute><Kanban /></AdminRoute></RoleGate></ProtectedRoute>} />
+                
                 <Route path="/calendar" element={<ProtectedRoute><RoleGate><AdminRoute><Calendar /></AdminRoute></RoleGate></ProtectedRoute>} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
