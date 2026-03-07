@@ -92,6 +92,7 @@ const InspectionReportForm = ({ assignment, surveyId, onComplete, onCancel }: Pr
     excavation_to_building: false,
     bep_position: [] as string[],
     vertical_routing: "",
+    vertical_routing_other_notes: "",
     sketch_notes: "",
     optical_socket_position: "",
     // Signatures (stored in form state to survive step navigation)
