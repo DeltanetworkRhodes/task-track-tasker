@@ -184,8 +184,7 @@ function crc32(data: Uint8Array): number {
   return (crc ^ 0xFFFFFFFF) >>> 0;
 }
 
-
-
+async function buildZip(files: { name: string; data: Uint8Array }[]): Promise<Uint8Array> {
   // STORE only (no compression) to minimize CPU usage
   const entries: { name: Uint8Array; dataLen: number; crc: number; offset: number }[] = [];
   const parts: Uint8Array[] = [];
