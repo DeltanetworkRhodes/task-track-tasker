@@ -121,7 +121,9 @@ export type Database = {
           comments: string | null
           created_at: string
           customer_name: string | null
+          drive_egrafa_url: string | null
           drive_folder_url: string | null
+          drive_promeleti_url: string | null
           google_sheet_row_id: number | null
           id: string
           organization_id: string | null
@@ -141,7 +143,9 @@ export type Database = {
           comments?: string | null
           created_at?: string
           customer_name?: string | null
+          drive_egrafa_url?: string | null
           drive_folder_url?: string | null
+          drive_promeleti_url?: string | null
           google_sheet_row_id?: number | null
           id?: string
           organization_id?: string | null
@@ -161,7 +165,9 @@ export type Database = {
           comments?: string | null
           created_at?: string
           customer_name?: string | null
+          drive_egrafa_url?: string | null
           drive_folder_url?: string | null
+          drive_promeleti_url?: string | null
           google_sheet_row_id?: number | null
           id?: string
           organization_id?: string | null
