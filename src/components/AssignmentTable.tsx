@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Assignment, statusLabels } from "@/data/mockData";
 import { Camera, MessageSquare, ExternalLink, User, MapPin, Phone, Hash, FolderOpen, FileText, Image, Loader2, Clock, ArrowRight, Trash2 } from "lucide-react";
 import SRComments from "@/components/SRComments";
@@ -110,6 +110,34 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
   const { data: history } = useAssignmentHistory(selected?.id || null);
   const queryClient = useQueryClient();
 
+  // Prefetch assignment details on hover (comments, history)
+  const handleRowHover = useCallback((assignment: any) => {
+    queryClient.prefetchQuery({
+      queryKey: ["sr_comments", assignment.id],
+      queryFn: async () => {
+        const { data } = await supabase
+          .from("sr_comments" as any)
+          .select("*")
+          .eq("assignment_id", assignment.id)
+          .order("created_at", { ascending: true });
+        return data || [];
+      },
+      staleTime: 30_000,
+    });
+    queryClient.prefetchQuery({
+      queryKey: ["assignment-history", assignment.id],
+      queryFn: async () => {
+        const { data } = await supabase
+          .from("assignment_history")
+          .select("*")
+          .eq("assignment_id", assignment.id)
+          .order("created_at", { ascending: true });
+        return data || [];
+      },
+      staleTime: 30_000,
+    });
+  }, [queryClient]);
+
   // Build a map of technician_id -> name
   const techMap = (technicians || []).reduce((acc: Record<string, string>, t) => {
     acc[t.user_id] = t.full_name || "—";
@@ -118,16 +146,22 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
 
   const handleAssign = async (assignmentId: string, technicianId: string) => {
     setAssigning(assignmentId);
+    const newValue = technicianId === "__none__" ? null : technicianId;
+
+    // Optimistic update
+    queryClient.setQueryData(["assignments"], (old: any) =>
+      old?.map((a: any) => a.id === assignmentId ? { ...a, technician_id: newValue } : a)
+    );
+
     try {
-      const newValue = technicianId === "__none__" ? null : technicianId;
       const { error } = await supabase
         .from("assignments")
         .update({ technician_id: newValue })
         .eq("id", assignmentId);
       if (error) throw error;
       toast.success(newValue ? `Ανατέθηκε σε ${techMap[newValue] || "τεχνικό"}` : "Αφαιρέθηκε η ανάθεση");
-      queryClient.invalidateQueries({ queryKey: ["assignments"] });
     } catch (err: any) {
+      queryClient.invalidateQueries({ queryKey: ["assignments"] });
       toast.error(err.message);
     } finally {
       setAssigning(null);
@@ -195,17 +229,21 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
   };
 
   const handleStatusChange = async (assignmentId: string, newStatus: string) => {
+    // Optimistic update
+    queryClient.setQueryData(["assignments"], (old: any) =>
+      old?.map((a: any) => a.id === assignmentId ? { ...a, status: newStatus, updated_at: new Date().toISOString() } : a)
+    );
+    if (selected?.id === assignmentId) {
+      setSelected({ ...selected, status: newStatus });
+    }
+    toast.success(`Κατάσταση → ${statusLabels[newStatus] || newStatus}`);
+
     try {
       const { error } = await supabase
         .from("assignments")
         .update({ status: newStatus })
         .eq("id", assignmentId);
       if (error) throw error;
-      toast.success(`Κατάσταση → ${statusLabels[newStatus] || newStatus}`);
-      if (selected?.id === assignmentId) {
-        setSelected({ ...selected, status: newStatus });
-      }
-      queryClient.invalidateQueries({ queryKey: ["assignments"] });
 
       // If cancelled, move the SR folder in Drive to ΑΚΥΡΩΜΕΝΕΣ ΚΑΤΑΣΚΕΥΕΣ
       if (newStatus === "cancelled") {
@@ -226,6 +264,8 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
         }
       }
     } catch (err: any) {
+      // Rollback on error
+      queryClient.invalidateQueries({ queryKey: ["assignments"] });
       toast.error(err.message);
     }
   };
@@ -319,6 +359,7 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
           <div
             key={a.id}
             className="rounded-xl border border-border bg-card p-3.5 active:bg-secondary/50 transition-colors"
+            onMouseEnter={() => handleRowHover(a)}
             onClick={() => setSelected(a)}
           >
             <div className="flex items-center justify-between mb-2">
@@ -423,6 +464,7 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
               <tr
                 key={a.id}
                 className={`border-b border-border/30 hover:bg-secondary/50 transition-colors ${selectedIds.includes(a.id) ? 'bg-primary/5' : ''}`}
+                onMouseEnter={() => handleRowHover(a)}
               >
                 {onSelectionChange && (
                   <td className="py-3 px-2" onClick={(e) => e.stopPropagation()}>

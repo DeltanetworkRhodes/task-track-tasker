@@ -1,7 +1,8 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 import { MapPin, Phone, Calendar, MessageSquare, Loader2, Eye, FileEdit, CheckCircle, Clock, HardHat, XCircle, Ban, Upload, FileSpreadsheet } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
@@ -155,6 +156,12 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
 
   const handleStatusChange = async (assignmentId: string, newStatus: string, oldStatus: string) => {
     setUpdating(assignmentId);
+
+    // Optimistic update
+    queryClient.setQueryData(["technician-assignments"], (old: any) =>
+      old?.map((a: any) => a.id === assignmentId ? { ...a, status: newStatus, updated_at: new Date().toISOString() } : a)
+    );
+
     try {
       const { error } = await supabase
         .from("assignments")
@@ -163,7 +170,6 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
       if (error) throw error;
 
       toast.success(`Κατάσταση → ${statusLabels[newStatus]}`);
-      queryClient.invalidateQueries({ queryKey: ["technician-assignments"] });
 
       if (newStatus === "inspection" && oldStatus !== "inspection") {
         try {
@@ -185,6 +191,8 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
         }
       }
     } catch (err: any) {
+      // Rollback optimistic update
+      queryClient.invalidateQueries({ queryKey: ["technician-assignments"] });
       toast.error(err.message || "Σφάλμα ενημέρωσης");
     } finally {
       setUpdating(null);
@@ -268,11 +276,71 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
     }
   };
 
+  // Prefetch survey + GIS data on card hover
+  const handleCardHover = useCallback((assignment: any) => {
+    queryClient.prefetchQuery({
+      queryKey: ["assignment-survey", assignment.sr_id],
+      queryFn: async () => {
+        const { data } = await supabase
+          .from("surveys")
+          .select("*")
+          .eq("sr_id", assignment.sr_id)
+          .eq("technician_id", user!.id)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        return data;
+      },
+      staleTime: 30_000,
+    });
+    queryClient.prefetchQuery({
+      queryKey: ["assignment-gis", assignment.id],
+      queryFn: async () => {
+        const { data } = await supabase
+          .from("gis_data")
+          .select("*")
+          .eq("assignment_id", assignment.id)
+          .maybeSingle();
+        return data;
+      },
+      staleTime: 30_000,
+    });
+    queryClient.prefetchQuery({
+      queryKey: ["sr_comments", assignment.id],
+      queryFn: async () => {
+        const { data } = await supabase
+          .from("sr_comments" as any)
+          .select("*")
+          .eq("assignment_id", assignment.id)
+          .order("created_at", { ascending: true });
+        return data || [];
+      },
+      staleTime: 30_000,
+    });
+  }, [queryClient, user]);
+
   if (loading) {
     return (
       <div className="space-y-3">
         {[1, 2, 3].map((i) => (
-          <div key={i} className="h-24 rounded-xl bg-muted animate-pulse" />
+          <Card key={i} className="p-4 space-y-3">
+            <div className="flex items-start justify-between">
+              <div className="space-y-1.5">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-3 w-16" />
+              </div>
+              <Skeleton className="h-5 w-20 rounded-full" />
+            </div>
+            <Skeleton className="h-3 w-48" />
+            <div className="flex gap-4">
+              <Skeleton className="h-3 w-28" />
+              <Skeleton className="h-3 w-20" />
+            </div>
+            <div className="flex justify-between pt-1">
+              <Skeleton className="h-3 w-20" />
+              <Skeleton className="h-3 w-12" />
+            </div>
+          </Card>
         ))}
       </div>
     );
@@ -450,6 +518,8 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
             key={a.id}
             className="p-4 space-y-2 cursor-pointer hover:border-primary/30 transition-colors"
             onClick={() => { setSelectedAssignment(a); setShowSurveyForm(false); setShowConstructionForm(false); }}
+            onMouseEnter={() => handleCardHover(a)}
+            onTouchStart={() => handleCardHover(a)}
           >
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
