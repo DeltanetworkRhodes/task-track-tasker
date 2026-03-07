@@ -53,6 +53,7 @@ const FIELD_COLORS: Record<string, string> = {
   check_if: "#ef4444",
   check_if_not: "#ef4444",
   check_map: "#f97316",
+  check_map_multi: "#f97316",
   floor_check: "#f97316",
   equipment_grid: "#06b6d4",
   signature: "#10b981",
@@ -210,7 +211,7 @@ const PdfCoordinateEditor = () => {
   const getPositionableItems = useCallback(() => {
     const items: { key: string; subKey?: string; label: string; x: number; y: number; type: string; color: string }[] = [];
     for (const field of currentFields) {
-      if (field.type === "check_map" || field.type === "floor_check") {
+      if (field.type === "check_map" || field.type === "check_map_multi" || field.type === "floor_check") {
         if (field.map) {
           for (const [mapKey, coords] of Object.entries(field.map)) {
             const fullKey = `${field.key}.${mapKey}`;
@@ -306,7 +307,7 @@ const PdfCoordinateEditor = () => {
         if (!field) return prev;
 
         if (dragging.subKey) {
-          if ((field.type === "check_map" || field.type === "floor_check") && field.map && field.map[dragging.subKey]) {
+          if ((field.type === "check_map" || field.type === "check_map_multi" || field.type === "floor_check") && field.map && field.map[dragging.subKey]) {
             field.map[dragging.subKey] = { x: pdfCoords.x, y: pdfCoords.y };
           } else if (field.type === "equipment_grid" && dragging.subKey.includes("_")) {
             const [brand, size] = dragging.subKey.split("_");
@@ -348,7 +349,7 @@ const PdfCoordinateEditor = () => {
       if (!field) return prev;
 
       if (subKey) {
-        if ((field.type === "check_map" || field.type === "floor_check") && field.map && field.map[subKey]) {
+        if ((field.type === "check_map" || field.type === "check_map_multi" || field.type === "floor_check") && field.map && field.map[subKey]) {
           field.map[subKey][axis] = value;
         }
       } else {
