@@ -307,7 +307,7 @@ const PdfCoordinateEditor = () => {
         if (!field) return prev;
 
         if (dragging.subKey) {
-          if ((field.type === "check_map" || field.type === "floor_check") && field.map && field.map[dragging.subKey]) {
+          if ((field.type === "check_map" || field.type === "check_map_multi" || field.type === "floor_check") && field.map && field.map[dragging.subKey]) {
             field.map[dragging.subKey] = { x: pdfCoords.x, y: pdfCoords.y };
           } else if (field.type === "equipment_grid" && dragging.subKey.includes("_")) {
             const [brand, size] = dragging.subKey.split("_");
