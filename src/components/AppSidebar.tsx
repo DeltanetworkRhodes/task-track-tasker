@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, ClipboardCheck, Wrench, Package, LogOut, FileText, TrendingUp, Search, UserCog, X, BarChart3, Settings, Sun, Moon, CalendarDays, GripVertical, Check } from "lucide-react";
+import { LayoutDashboard, ClipboardCheck, Wrench, Package, LogOut, FileText, TrendingUp, Search, UserCog, X, BarChart3, Settings, Sun, Moon, CalendarDays, GripVertical, Check, Columns3 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import NotificationBell from "@/components/NotificationBell";
 import deltaLogoIcon from "@/assets/delta-logo-icon.png";
