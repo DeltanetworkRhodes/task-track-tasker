@@ -92,20 +92,20 @@ const UserManagement = () => {
   return (
     <AppLayout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-              <UserCog className="h-6 w-6" />
+            <h1 className="text-xl sm:text-2xl font-bold text-foreground flex items-center gap-2">
+              <UserCog className="h-5 sm:h-6 w-5 sm:w-6 shrink-0" />
               Διαχείριση Χρηστών
             </h1>
-            <p className="text-sm text-muted-foreground mt-1">
+            <p className="text-xs sm:text-sm text-muted-foreground mt-1">
               Εκχώρηση ρόλων · Επεξεργασία στοιχείων · Διαγραφή
             </p>
           </div>
 
           <Dialog open={createOpen} onOpenChange={setCreateOpen}>
             <DialogTrigger asChild>
-              <Button className="gap-2">
+              <Button className="gap-2 self-start sm:self-auto" size="sm">
                 <UserPlus className="h-4 w-4" />
                 Νέος Χρήστης
               </Button>
