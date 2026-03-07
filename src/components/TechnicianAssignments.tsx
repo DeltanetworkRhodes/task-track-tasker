@@ -19,6 +19,7 @@ import IncompleteSurveys from "@/components/IncompleteSurveys";
 import ConstructionForm from "@/components/ConstructionForm";
 import SRComments from "@/components/SRComments";
 import InspectionReportForm from "@/components/InspectionReportForm";
+import InspectionReportViewer from "@/components/InspectionReportViewer";
 
 const statusFlow: { value: string; label: string }[] = [
   { value: "pending", label: "Αναμονή" },
@@ -56,6 +57,7 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
   const [showSurveyForm, setShowSurveyForm] = useState(false);
   const [showConstructionForm, setShowConstructionForm] = useState(false);
   const [showInspectionReport, setShowInspectionReport] = useState(false);
+  const [showInspectionViewer, setShowInspectionViewer] = useState(false);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
   const [cancelling, setCancelling] = useState(false);
@@ -410,15 +412,26 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
             {existingSurvey ? "Συνέχεια Αυτοψίας" : "Έναρξη Αυτοψίας"}
           </Button>
           {existingSurvey && (
-            <Button
-              size="sm"
-              variant="outline"
-              className="w-full gap-2 border-primary/30 text-primary hover:bg-primary/10"
-              onClick={() => setShowInspectionReport(true)}
-            >
-              <FileText className="h-4 w-4" />
-              Δελτίο Αυτοψίας
-            </Button>
+            <div className="flex gap-2 w-full">
+              <Button
+                size="sm"
+                variant="outline"
+                className="flex-1 gap-2 border-primary/30 text-primary hover:bg-primary/10"
+                onClick={() => setShowInspectionReport(true)}
+              >
+                <FileEdit className="h-4 w-4" />
+                Δελτίο Αυτοψίας
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="gap-2"
+                onClick={() => setShowInspectionViewer(true)}
+              >
+                <Eye className="h-4 w-4" />
+                Προβολή
+              </Button>
+            </div>
           )}
           {existingSurvey && existingSurvey.status !== "ΕΛΛΙΠΗΣ ΑΥΤΟΨΙΑ" && (
             <>
@@ -913,6 +926,16 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Inspection Report Viewer */}
+      {selectedAssignment && (
+        <InspectionReportViewer
+          assignmentId={selectedAssignment.id}
+          srId={selectedAssignment.sr_id}
+          open={showInspectionViewer}
+          onOpenChange={setShowInspectionViewer}
+        />
+      )}
     </>
   );
 };
