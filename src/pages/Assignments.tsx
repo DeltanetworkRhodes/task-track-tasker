@@ -186,7 +186,11 @@ const Assignments = () => {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <AssignmentTable assignments={filtered} />
+              <AssignmentTable
+                assignments={filtered}
+                selectedIds={selectedIds}
+                onSelectionChange={setSelectedIds}
+              />
             </div>
           )}
         </div>
