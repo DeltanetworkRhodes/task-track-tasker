@@ -221,9 +221,7 @@ Deno.serve(async (req) => {
       if (!fileRes.ok) throw new Error(await fileRes.text());
       const fileBlob = await fileRes.blob();
 
-      const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-      const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-      const supabase = createClient(supabaseUrl, supabaseServiceKey);
+      const supabase = createClient(supabaseUrl, serviceRoleKey);
 
       const filePath = `drive/${file_id}/${meta.name}`;
       const { error: uploadError } = await supabase.storage
