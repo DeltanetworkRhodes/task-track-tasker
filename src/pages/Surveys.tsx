@@ -689,38 +689,6 @@ const Surveys = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Email Settings Dialog */}
-      <Dialog open={showSettings} onOpenChange={setShowSettings}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Ρυθμίσεις Email Αναφορών</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 mt-2">
-            <div className="space-y-2">
-              <Label className="text-xs">Παραλήπτες (To)</Label>
-              <Input
-                value={toEmails}
-                onChange={(e) => setToEmails(e.target.value)}
-                placeholder="email1@example.com, email2@example.com"
-                className="text-sm"
-              />
-              <p className="text-xs text-muted-foreground">Χωρίστε πολλαπλά emails με κόμμα</p>
-            </div>
-            <div className="space-y-2">
-              <Label className="text-xs">Κοινοποίηση (CC)</Label>
-              <Input
-                value={ccEmails}
-                onChange={(e) => setCcEmails(e.target.value)}
-                placeholder="cc@example.com"
-                className="text-sm"
-              />
-            </div>
-            <Button onClick={handleSaveSettings} className="w-full">
-              Αποθήκευση
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
 
       {/* Delete Confirmation */}
       <AlertDialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}>
