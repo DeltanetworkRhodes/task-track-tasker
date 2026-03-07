@@ -24,7 +24,6 @@ import {
 const fileTypeLabels: Record<string, string> = {
   building_photo: "Φωτογραφία Κτιρίου",
   screenshot: "Screenshot (ΧΕΜΔ/AutoCAD)",
-  inspection_form: "Έντυπο Αυτοψίας",
 };
 
 const fileTypeIcons: Record<string, typeof FileImage> = {
