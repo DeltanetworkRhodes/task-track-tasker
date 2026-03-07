@@ -196,6 +196,23 @@ IMPORTANT: Return ONLY the JSON array, no markdown, no explanation.`
     let created = 0;
     const notFound: string[] = [];
 
+    // Post-process: fix Greek number misreads (1.8 → 1800, 2.0 → 2000, etc.)
+    for (const item of extractedMaterials) {
+      const q = item.quantity;
+      // If quantity has a decimal and multiplying by 1000 gives a round number,
+      // it was likely a Greek thousands separator misread
+      if (q > 0 && q < 100 && !Number.isInteger(q)) {
+        const corrected = Math.round(q * 1000);
+        // Check if the corrected value looks reasonable (e.g. 1.8 → 1800, 2.5 → 2500)
+        if (corrected % 100 === 0 || corrected % 50 === 0) {
+          console.log(`Correcting quantity: ${q} → ${corrected} (Greek number format fix)`);
+          item.quantity = corrected;
+        }
+      }
+      // Also fix cases like 2.0 which JS treats as integer 2
+      // Delivery notes rarely have qty=1,2,3 for bulk materials
+    }
+
     for (const item of extractedMaterials) {
       // Search ONLY within the specified source — prevents mixing OTE/DELTANETWORK
       const { data: existing } = await supabase
