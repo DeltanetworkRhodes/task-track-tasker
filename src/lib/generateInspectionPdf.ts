@@ -58,6 +58,17 @@ function drawCheck(page: PDFPage, x: number, y: number, font: PDFFont, size = 9)
   page.drawText("X", { x, y, size, font, color: BLACK });
 }
 
+function drawCircleAround(page: PDFPage, x: number, y: number, radius = 7) {
+  page.drawEllipse({
+    x: x + radius / 2,
+    y: y + radius / 2,
+    xScale: radius,
+    yScale: radius,
+    borderColor: BLACK,
+    borderWidth: 1.5,
+  });
+}
+
 function drawBoxedText(page: PDFPage, text: string, x: number, y: number, font: PDFFont, size: number, boxWidth: number, boxCount: number) {
   if (!text) return;
   const chars = text.replace(/\s/g, "").split("");
