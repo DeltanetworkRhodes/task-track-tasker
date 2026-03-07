@@ -97,75 +97,80 @@ Deno.serve(async (req) => {
       const html = `
 <!DOCTYPE html>
 <html><head><meta charset="utf-8"></head>
-<body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f8f9fa;padding:32px 16px;">
+<body style="font-family:'Segoe UI',Arial,sans-serif;background:#f5f7fa;padding:32px 16px;">
 <div style="max-width:600px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.08);">
-  <div style="background:linear-gradient(135deg,#1a1a2e,#16213e);padding:24px 32px;">
-    <h1 style="color:#fff;font-size:20px;margin:0;">📊 Εβδομαδιαία Σύνοψη</h1>
-    <p style="color:rgba(255,255,255,0.6);font-size:13px;margin:6px 0 0;">${escapeHtml(org.name)} — ${weekStart} έως ${weekEnd}</p>
+  <div style="background:linear-gradient(135deg,#1a9a8a,#2d8a4e);padding:24px 28px;">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span style="font-size:24px;">📊</span>
+      <div>
+        <h1 style="color:#fff;font-size:20px;margin:0;font-weight:700;letter-spacing:0.3px;">Εβδομαδιαία Σύνοψη</h1>
+        <p style="color:rgba(255,255,255,0.85);font-size:13px;margin:6px 0 0;">${escapeHtml(org.name)} — ${weekStart} έως ${weekEnd}</p>
+      </div>
+    </div>
   </div>
-  <div style="padding:24px 32px;">
+  <div style="padding:24px 28px;">
     <table style="width:100%;border-collapse:collapse;">
       <tr>
-        <td style="padding:12px 0;border-bottom:1px solid #eee;">
-          <span style="color:#666;font-size:13px;">Νέες Αναθέσεις</span>
+        <td style="padding:12px 0;border-bottom:1px solid #e2e8f0;">
+          <span style="color:#718096;font-size:13px;">Νέες Αναθέσεις</span>
         </td>
-        <td style="padding:12px 0;border-bottom:1px solid #eee;text-align:right;font-weight:700;font-size:18px;">
+        <td style="padding:12px 0;border-bottom:1px solid #e2e8f0;text-align:right;font-weight:700;font-size:18px;color:#1a2332;">
           ${newAssignments || 0}
         </td>
       </tr>
       <tr>
-        <td style="padding:12px 0;border-bottom:1px solid #eee;">
-          <span style="color:#666;font-size:13px;">Ολοκληρωμένες</span>
+        <td style="padding:12px 0;border-bottom:1px solid #e2e8f0;">
+          <span style="color:#718096;font-size:13px;">Ολοκληρωμένες</span>
         </td>
-        <td style="padding:12px 0;border-bottom:1px solid #eee;text-align:right;font-weight:700;font-size:18px;color:#22c55e;">
+        <td style="padding:12px 0;border-bottom:1px solid #e2e8f0;text-align:right;font-weight:700;font-size:18px;color:#1a9a8a;">
           ${completedAssignments || 0}
-          <span style="font-size:12px;color:#888;margin-left:8px;">${changeIcon} ${completedChange >= 0 ? '+' : ''}${completedChange} vs προηγ.</span>
+          <span style="font-size:12px;color:#718096;margin-left:8px;">${changeIcon} ${completedChange >= 0 ? '+' : ''}${completedChange} vs προηγ.</span>
         </td>
       </tr>
       <tr>
-        <td style="padding:12px 0;border-bottom:1px solid #eee;">
-          <span style="color:#666;font-size:13px;">Αυτοψίες</span>
+        <td style="padding:12px 0;border-bottom:1px solid #e2e8f0;">
+          <span style="color:#718096;font-size:13px;">Αυτοψίες</span>
         </td>
-        <td style="padding:12px 0;border-bottom:1px solid #eee;text-align:right;font-weight:700;font-size:18px;">
+        <td style="padding:12px 0;border-bottom:1px solid #e2e8f0;text-align:right;font-weight:700;font-size:18px;color:#1a2332;">
           ${newSurveys || 0}
         </td>
       </tr>
       <tr>
-        <td style="padding:12px 0;border-bottom:1px solid #eee;">
-          <span style="color:#666;font-size:13px;">Κατασκευές</span>
+        <td style="padding:12px 0;border-bottom:1px solid #e2e8f0;">
+          <span style="color:#718096;font-size:13px;">Κατασκευές</span>
         </td>
-        <td style="padding:12px 0;border-bottom:1px solid #eee;text-align:right;font-weight:700;font-size:18px;">
+        <td style="padding:12px 0;border-bottom:1px solid #e2e8f0;text-align:right;font-weight:700;font-size:18px;color:#1a2332;">
           ${newConstructions || 0}
         </td>
       </tr>
       <tr>
-        <td style="padding:12px 0;border-bottom:1px solid #eee;">
-          <span style="color:#666;font-size:13px;">Έσοδα Εβδομάδας</span>
+        <td style="padding:12px 0;border-bottom:1px solid #e2e8f0;">
+          <span style="color:#718096;font-size:13px;">Έσοδα Εβδομάδας</span>
         </td>
-        <td style="padding:12px 0;border-bottom:1px solid #eee;text-align:right;font-weight:700;font-size:18px;color:#3b82f6;">
+        <td style="padding:12px 0;border-bottom:1px solid #e2e8f0;text-align:right;font-weight:700;font-size:18px;color:#1a9a8a;">
           ${weekRevenue.toLocaleString("el-GR")}€
         </td>
       </tr>
       <tr>
-        <td style="padding:12px 0;border-bottom:1px solid #eee;">
-          <span style="color:#666;font-size:13px;">Κέρδος Εβδομάδας</span>
+        <td style="padding:12px 0;border-bottom:1px solid #e2e8f0;">
+          <span style="color:#718096;font-size:13px;">Κέρδος Εβδομάδας</span>
         </td>
-        <td style="padding:12px 0;border-bottom:1px solid #eee;text-align:right;font-weight:700;font-size:18px;color:#22c55e;">
+        <td style="padding:12px 0;border-bottom:1px solid #e2e8f0;text-align:right;font-weight:700;font-size:18px;color:#2d8a4e;">
           ${weekProfit.toLocaleString("el-GR")}€
         </td>
       </tr>
       <tr>
         <td style="padding:12px 0;">
-          <span style="color:#666;font-size:13px;">Εκκρεμείς Αναθέσεις</span>
+          <span style="color:#718096;font-size:13px;">Εκκρεμείς Αναθέσεις</span>
         </td>
-        <td style="padding:12px 0;text-align:right;font-weight:700;font-size:18px;color:#f59e0b;">
+        <td style="padding:12px 0;text-align:right;font-weight:700;font-size:18px;color:#ea580c;">
           ${pendingCount || 0}
         </td>
       </tr>
     </table>
   </div>
-  <div style="background:#f8f9fa;padding:16px 32px;text-align:center;">
-    <p style="color:#999;font-size:11px;margin:0;">Αυτό το email αποστέλλεται αυτόματα κάθε Δευτέρα.</p>
+  <div style="background:#f0f4f8;padding:16px 28px;text-align:center;">
+    <p style="color:#718096;font-size:11px;margin:0;">Αυτό το email αποστέλλεται αυτόματα κάθε Δευτέρα.</p>
   </div>
 </div>
 </body></html>`;
