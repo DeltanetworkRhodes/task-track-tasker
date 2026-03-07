@@ -297,8 +297,8 @@ const Surveys = () => {
         {/* Header */}
         <div className="flex items-start justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Αυτοψίες Τεχνικών</h1>
-            <p className="text-sm text-muted-foreground mt-1">
+            <h1 className="text-xl sm:text-2xl font-bold text-foreground">Αυτοψίες Τεχνικών</h1>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-1">
               Προβολή, διαχείριση & αναφορές αυτοψιών
             </p>
           </div>
