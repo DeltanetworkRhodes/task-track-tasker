@@ -412,13 +412,19 @@ const PdfCoordinateEditor = () => {
             background: "#fff",
           }}
         >
-          {/* PDF background */}
-          <iframe
-            src={`/templates/inspection_template.pdf#page=${currentPage}&toolbar=0&navpanes=0`}
-            className="absolute inset-0 w-full h-full pointer-events-none"
-            style={{ border: "none" }}
-            title="PDF Template"
-          />
+          {/* PDF background rendered as image */}
+          {pageImages[currentPage - 1] ? (
+            <img
+              src={pageImages[currentPage - 1]}
+              className="absolute inset-0 w-full h-full pointer-events-none"
+              alt={`PDF Page ${currentPage}`}
+              draggable={false}
+            />
+          ) : (
+            <div className="absolute inset-0 flex items-center justify-center text-muted-foreground text-sm">
+              Φόρτωση σελίδας...
+            </div>
+          )}
 
           {/* Field markers */}
           {items.map((item) => {
