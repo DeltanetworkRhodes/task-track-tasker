@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, ClipboardCheck, Wrench, Package, LogOut, Wifi, FileText, TrendingUp, Search, UserCog, X, BarChart3, Settings, Sun, Moon } from "lucide-react";
+import { LayoutDashboard, ClipboardCheck, Wrench, Package, LogOut, Wifi, FileText, TrendingUp, Search, UserCog, X, BarChart3, Settings, Sun, Moon, CalendarDays } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import NotificationBell from "@/components/NotificationBell";
 import deltaLogoIcon from "@/assets/delta-logo-icon.png";
