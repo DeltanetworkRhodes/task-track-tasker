@@ -539,15 +539,45 @@ const PdfCoordinateEditor = () => {
                 }}
                 onMouseDown={(e) => handleMouseDown(e, item.key, item.subKey)}
               >
-                {/* Dot */}
-                <div
-                  className="w-3 h-3 rounded-full border-2 border-white shadow-md transition-transform"
-                  style={{
-                    backgroundColor: item.color,
-                    transform: isSelected ? "scale(1.5)" : "scale(1)",
-                    boxShadow: isSelected ? `0 0 0 3px ${item.color}40, 0 2px 8px rgba(0,0,0,0.3)` : "0 1px 3px rgba(0,0,0,0.3)",
-                  }}
-                />
+                {/* Marker: X for checks, ○ for check_if/check_if_not */}
+                {(item.type === "check_if" || item.type === "check_if_not") ? (
+                  <div
+                    className="flex items-center justify-center transition-transform"
+                    style={{
+                      width: 16,
+                      height: 16,
+                      borderRadius: "50%",
+                      border: `2px solid ${item.color}`,
+                      backgroundColor: isSelected ? `${item.color}30` : "transparent",
+                      transform: isSelected ? "scale(1.4)" : "scale(1)",
+                      boxShadow: isSelected ? `0 0 0 3px ${item.color}40, 0 2px 8px rgba(0,0,0,0.3)` : "0 1px 3px rgba(0,0,0,0.3)",
+                    }}
+                  >
+                    <span style={{ fontSize: 9, fontWeight: 700, color: item.color, lineHeight: 1 }}>○</span>
+                  </div>
+                ) : (item.type === "check" || item.type === "check_map" || item.type === "check_map_multi") ? (
+                  <div
+                    className="flex items-center justify-center transition-transform"
+                    style={{
+                      width: 14,
+                      height: 14,
+                      backgroundColor: isSelected ? item.color : `${item.color}cc`,
+                      transform: isSelected ? "scale(1.4)" : "scale(1)",
+                      boxShadow: isSelected ? `0 0 0 3px ${item.color}40, 0 2px 8px rgba(0,0,0,0.3)` : "0 1px 3px rgba(0,0,0,0.3)",
+                    }}
+                  >
+                    <span style={{ fontSize: 10, fontWeight: 900, color: "#fff", lineHeight: 1 }}>✕</span>
+                  </div>
+                ) : (
+                  <div
+                    className="w-3 h-3 rounded-full border-2 border-white shadow-md transition-transform"
+                    style={{
+                      backgroundColor: item.color,
+                      transform: isSelected ? "scale(1.5)" : "scale(1)",
+                      boxShadow: isSelected ? `0 0 0 3px ${item.color}40, 0 2px 8px rgba(0,0,0,0.3)` : "0 1px 3px rgba(0,0,0,0.3)",
+                    }}
+                  />
+                )}
                 {/* Label */}
                 {showLabels && (
                   <div
