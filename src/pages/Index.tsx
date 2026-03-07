@@ -46,8 +46,24 @@ const GREEK_MONTHS: Record<number, string> = {
 
 const Index = () => {
   const [wizardDismissed, setWizardDismissed] = useState(false);
+  const { organizationId } = useOrganization();
   const { data: dbAssignments } = useAssignments();
   const { data: dbConstructions } = useConstructions();
+
+  const { data: wizardCompleted } = useQuery({
+    queryKey: ["setup-wizard-status", organizationId],
+    queryFn: async () => {
+      if (!organizationId) return false;
+      const { data } = await supabase
+        .from("org_settings")
+        .select("setting_value")
+        .eq("organization_id", organizationId)
+        .eq("setting_key", "setup_wizard_completed")
+        .maybeSingle();
+      return data?.setting_value === "true";
+    },
+    enabled: !!organizationId,
+  });
 
   const assignments = useMemo(() => {
     if (!dbAssignments) return [];
