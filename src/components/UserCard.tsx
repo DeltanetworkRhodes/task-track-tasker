@@ -107,7 +107,7 @@ const UserCard = ({ profile: p, role, roleMap, isPending }: UserCardProps) => {
   return (
     <Card className={`p-4 space-y-3 ${isPending ? "border-orange-500/30 bg-orange-500/5" : ""}`}>
       {/* Header row */}
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
           <div className={`flex h-10 w-10 items-center justify-center rounded-full shrink-0 ${isPending ? "bg-orange-500/10" : "bg-muted"}`}>
             {role === "admin" ? (
@@ -119,22 +119,23 @@ const UserCard = ({ profile: p, role, roleMap, isPending }: UserCardProps) => {
             )}
           </div>
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-foreground truncate">{p.full_name || "—"}</p>
+            <div className="flex items-center gap-2">
+              <p className="text-sm font-semibold text-foreground truncate">{p.full_name || "—"}</p>
+              {role && (
+                <Badge variant="outline" className={`shrink-0 text-[10px] ${role === "admin" ? "bg-primary/10 text-primary border-primary/20" : "bg-blue-500/10 text-blue-600 border-blue-500/20"}`}>
+                  {role}
+                </Badge>
+              )}
+            </div>
             {isPending && (
               <span className="text-[10px] text-orange-500 font-medium">Αναμονή έγκρισης</span>
             )}
           </div>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
-          {role && (
-            <Badge variant="outline" className={role === "admin" ? "bg-primary/10 text-primary border-primary/20" : "bg-blue-500/10 text-blue-600 border-blue-500/20"}>
-              {role}
-            </Badge>
-          )}
-
+        <div className="flex items-center gap-2 shrink-0 pl-[52px] sm:pl-0">
           <Select value={role || ""} onValueChange={(val) => handleSetRole(p.user_id, val)} disabled={assigning}>
-            <SelectTrigger className="w-[130px] text-xs h-8">
+            <SelectTrigger className="w-[120px] text-xs h-8">
               <SelectValue placeholder="Χωρίς ρόλο" />
             </SelectTrigger>
             <SelectContent>
