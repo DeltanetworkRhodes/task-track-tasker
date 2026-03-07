@@ -176,12 +176,12 @@ const IncompleteSurveys = ({ filterSrId }: { filterSrId?: string }) => {
                 .eq("technician_id", user!.id)
                 .maybeSingle();
 
-              if (assignmentData && assignmentData.status !== "completed" && assignmentData.status !== "cancelled") {
+              if (assignmentData && assignmentData.status !== "completed" && assignmentData.status !== "cancelled" && assignmentData.status !== "pre_committed") {
                 await supabase
                   .from("assignments")
-                  .update({ status: "construction" })
+                  .update({ status: "pre_committed" })
                   .eq("id", assignmentData.id);
-                toast.success("Πλήρης αυτοψία → Εντολή Κατασκευής");
+                toast.success("Πλήρης αυτοψία → Προδέσμευση Υλικών");
                 queryClient.invalidateQueries({ queryKey: ["technician-assignments"] });
               }
             } catch (statusErr) {
