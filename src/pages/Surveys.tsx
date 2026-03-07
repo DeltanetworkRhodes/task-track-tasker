@@ -118,10 +118,7 @@ const Surveys = () => {
     }, {});
   }, [profiles]);
 
-  const getFileUrl = (path: string) => {
-    const { data } = supabase.storage.from("surveys").getPublicUrl(path);
-    return data.publicUrl;
-  };
+  // Signed URLs are now generated in the surveyFiles query
 
   const handleStatusChange = async (surveyId: string, newStatus: string) => {
     const { error } = await supabase
