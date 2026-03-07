@@ -779,8 +779,6 @@ Deno.serve(async (req) => {
                 ${surveyFiles.length} αρχεία · Ισχύει για 7 ημέρες
               </p>` : ""}
 
-              ${skippedFiles > 0 ? `
-              <p style="color: #ea580c; font-size: 12px; margin-top: 8px;">⚠️ ${skippedFiles} αρχεία παραλείφθηκαν λόγω μεγέθους.</p>` : ""}
               
               <p style="color: ${textSecondary}; font-size: 14px; line-height: 1.6; margin-top: 28px;">Με εκτίμηση,</p>
               
