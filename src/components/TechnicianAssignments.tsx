@@ -393,6 +393,29 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
             <HardHat className="h-4 w-4" />
             Φόρμα Κατασκευής
           </Button>
+          <input
+            ref={gisFileInputRef}
+            type="file"
+            accept=".xlsx"
+            className="hidden"
+            onChange={handleGisUpload}
+          />
+          <Button
+            size="sm"
+            variant="outline"
+            className="w-full gap-2 border-blue-500/30 text-blue-600 hover:bg-blue-500/10"
+            onClick={() => gisFileInputRef.current?.click()}
+            disabled={uploadingGis}
+          >
+            {uploadingGis ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : existingGisData ? (
+              <FileSpreadsheet className="h-4 w-4" />
+            ) : (
+              <Upload className="h-4 w-4" />
+            )}
+            {uploadingGis ? "Ανάλυση GIS..." : existingGisData ? "Αντικατάσταση GIS" : "Upload GIS"}
+          </Button>
           <Button
             size="sm"
             variant="outline"
