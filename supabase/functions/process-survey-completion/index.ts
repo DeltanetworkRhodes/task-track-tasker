@@ -33,6 +33,25 @@ const areaRootFolders: Record<string, string> = {
 
 const REQUIRED_FILE_TYPES = ["building_photo", "screenshot", "inspection_form"];
 
+// ─── CRC32 with precomputed lookup table (10x faster) ───────────────
+
+const CRC32_TABLE = new Uint32Array(256);
+for (let i = 0; i < 256; i++) {
+  let c = i;
+  for (let j = 0; j < 8; j++) {
+    c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+  }
+  CRC32_TABLE[i] = c;
+}
+
+function crc32(data: Uint8Array): number {
+  let crc = 0xFFFFFFFF;
+  for (let i = 0; i < data.length; i++) {
+    crc = CRC32_TABLE[(crc ^ data[i]) & 0xFF] ^ (crc >>> 8);
+  }
+  return (crc ^ 0xFFFFFFFF) >>> 0;
+}
+
 // ─── Google Drive helpers ────────────────────────────────────────────
 
 async function getAccessToken(serviceAccountKey: any): Promise<string> {
@@ -171,25 +190,12 @@ async function getTargetParentFolder(
   return { folderId: targetFolder.id, folderType: targetName };
 }
 
-// ─── Minimal ZIP builder (no external deps) ─────────────────────────
-
-function crc32(data: Uint8Array): number {
-  let crc = 0xFFFFFFFF;
-  for (let i = 0; i < data.length; i++) {
-    crc ^= data[i];
-    for (let j = 0; j < 8; j++) {
-      crc = (crc >>> 1) ^ (crc & 1 ? 0xEDB88320 : 0);
-    }
-  }
-  return (crc ^ 0xFFFFFFFF) >>> 0;
-}
+// ─── Minimal ZIP builder (STORE, no compression) ────────────────────
 
 async function buildZip(files: { name: string; data: Uint8Array }[]): Promise<Uint8Array> {
-  // STORE only (no compression) to minimize CPU usage
   const entries: { name: Uint8Array; dataLen: number; crc: number; offset: number }[] = [];
   const parts: Uint8Array[] = [];
   let offset = 0;
-
   const encoder = new TextEncoder();
 
   for (const file of files) {
@@ -200,12 +206,12 @@ async function buildZip(files: { name: string; data: Uint8Array }[]): Promise<Ui
     const view = new DataView(localHeader.buffer);
     view.setUint32(0, 0x04034b50, true);
     view.setUint16(4, 20, true);
-    view.setUint16(6, 0x0800, true); // bit 11 = UTF-8 filenames
-    view.setUint16(8, 0, true); // 0 = STORE (no compression)
+    view.setUint16(6, 0x0800, true);
+    view.setUint16(8, 0, true); // STORE
     view.setUint16(10, 0, true);
     view.setUint16(12, 0, true);
     view.setUint32(14, crcVal, true);
-    view.setUint32(18, file.data.length, true); // compressed = uncompressed
+    view.setUint32(18, file.data.length, true);
     view.setUint32(22, file.data.length, true);
     view.setUint16(26, nameBytes.length, true);
     view.setUint16(28, 0, true);
@@ -223,12 +229,12 @@ async function buildZip(files: { name: string; data: Uint8Array }[]): Promise<Ui
     cdView.setUint32(0, 0x02014b50, true);
     cdView.setUint16(4, 20, true);
     cdView.setUint16(6, 20, true);
-    cdView.setUint16(8, 0x0800, true); // bit 11 = UTF-8 filenames
-    cdView.setUint16(10, 0, true); // STORE
+    cdView.setUint16(8, 0x0800, true);
+    cdView.setUint16(10, 0, true);
     cdView.setUint16(12, 0, true);
     cdView.setUint16(14, 0, true);
     cdView.setUint32(16, entry.crc, true);
-    cdView.setUint32(20, entry.dataLen, true); // compressed = uncompressed
+    cdView.setUint32(20, entry.dataLen, true);
     cdView.setUint32(24, entry.dataLen, true);
     cdView.setUint16(28, entry.name.length, true);
     cdView.setUint16(30, 0, true);
@@ -289,13 +295,20 @@ function escapeHtml(str: string): string {
   return str.replace(/[<>&"']/g, (c: string) => `&#${c.charCodeAt(0)};`);
 }
 
-// ─── PDF builder from already-downloaded inspection photos ──────────
+// ─── PDF builder (only for inspection_form images, skip if >5MB total) ──
 
 async function buildInspectionPdf(
   inspectionData: { fileName: string; data: Uint8Array }[],
   srId: string
 ): Promise<Uint8Array | null> {
   if (inspectionData.length === 0) return null;
+  
+  // Skip PDF generation if inspection images are too large (saves CPU)
+  const totalInspectionSize = inspectionData.reduce((s, f) => s + f.data.length, 0);
+  if (totalInspectionSize > 8 * 1024 * 1024) {
+    console.log(`Skipping PDF generation: inspection images total ${(totalInspectionSize / 1024 / 1024).toFixed(1)}MB (>8MB limit)`);
+    return null;
+  }
   
   try {
     const pdfDoc = await PDFDocument.create();
@@ -314,18 +327,15 @@ async function buildInspectionPdf(
         continue;
       }
       
-      // A4 dimensions in points (595.28 x 841.89)
       const A4_W = 595.28;
       const A4_H = 841.89;
       const margin = 40;
       const availW = A4_W - margin * 2;
       const availH = A4_H - margin * 2;
       
-      const imgW = image.width;
-      const imgH = image.height;
-      const scale = Math.min(availW / imgW, availH / imgH, 1);
-      const drawW = imgW * scale;
-      const drawH = imgH * scale;
+      const scale = Math.min(availW / image.width, availH / image.height, 1);
+      const drawW = image.width * scale;
+      const drawH = image.height * scale;
       
       const page = pdfDoc.addPage([A4_W, A4_H]);
       page.drawImage(image, {
@@ -392,42 +402,33 @@ Deno.serve(async (req) => {
 
     console.log(`Processing survey: SR ${sr_id}, area ${area}`);
 
-    // 1. Get assignment info
-    const { data: assignment } = await adminClient
-      .from("assignments")
-      .select("customer_name, address, phone, cab, organization_id")
-      .eq("sr_id", sr_id)
-      .limit(1)
-      .single();
+    // 1. Get assignment + survey info in parallel
+    const [assignmentRes, surveyRes] = await Promise.all([
+      adminClient.from("assignments")
+        .select("customer_name, address, phone, cab, organization_id")
+        .eq("sr_id", sr_id).limit(1).single(),
+      adminClient.from("surveys")
+        .select("technician_id, comments")
+        .eq("id", survey_id).single(),
+    ]);
 
+    const assignment = assignmentRes.data;
+    const survey = surveyRes.data;
     const orgId = assignment?.organization_id || null;
     const customerName = assignment?.customer_name || "—";
     const address = assignment?.address || "—";
     const phone = assignment?.phone || "";
     const cab = assignment?.cab || "—";
 
-    // 2. Get survey info
-    const { data: survey } = await adminClient
-      .from("surveys")
-      .select("technician_id, comments")
-      .eq("id", survey_id)
-      .single();
+    // Get technician name + survey files in parallel
+    const profilePromise = survey?.technician_id
+      ? adminClient.from("profiles").select("full_name").eq("user_id", survey.technician_id).single()
+      : Promise.resolve({ data: null });
+    const filesPromise = adminClient.from("survey_files").select("*").eq("survey_id", survey_id);
 
-    let technicianName = "Technician";
-    if (survey?.technician_id) {
-      const { data: profile } = await adminClient
-        .from("profiles")
-        .select("full_name")
-        .eq("user_id", survey.technician_id)
-        .single();
-      technicianName = profile?.full_name || "Technician";
-    }
-
-    // 3. Get survey files
-    const { data: surveyFiles } = await adminClient
-      .from("survey_files")
-      .select("*")
-      .eq("survey_id", survey_id);
+    const [profileRes, filesRes] = await Promise.all([profilePromise, filesPromise]);
+    const technicianName = profileRes.data?.full_name || "Technician";
+    const surveyFiles = filesRes.data;
 
     if (!surveyFiles || surveyFiles.length === 0) {
       return new Response(JSON.stringify({ error: "No files found for survey" }), {
@@ -442,7 +443,25 @@ Deno.serve(async (req) => {
 
     console.log(`File check: present=${presentTypes.join(",")}, missing=${missingTypes.join(",")}, complete=${isComplete}`);
 
-    // 4. Google Drive: create folder structure & upload files ONE BY ONE
+    // 2. Download ALL files ONCE (used for both Drive upload and ZIP)
+    const downloadedFiles: { sf: any; data: Uint8Array }[] = [];
+    // Download in batches of 3 to limit concurrent memory usage
+    const BATCH_SIZE = 3;
+    for (let i = 0; i < surveyFiles.length; i += BATCH_SIZE) {
+      const batch = surveyFiles.slice(i, i + BATCH_SIZE);
+      const results = await Promise.all(
+        batch.map(async (sf: any) => {
+          const data = await downloadFile(adminClient, sf.file_path);
+          return data ? { sf, data } : null;
+        })
+      );
+      for (const r of results) {
+        if (r) downloadedFiles.push(r);
+      }
+    }
+    console.log(`Downloaded ${downloadedFiles.length}/${surveyFiles.length} files`);
+
+    // 3. Google Drive: create folder structure & upload from downloaded data
     const folderName = `${sr_id} - ${customerName}`;
     let driveFolderUrl = "";
     let driveTargetType = "";
@@ -501,36 +520,31 @@ Deno.serve(async (req) => {
 
           driveFolderUrl = folder.webViewLink || `https://drive.google.com/drive/folders/${folder.id}`;
 
-          // Create subfolders
-          const egrafaFolder = await findOrCreateFolder(accessToken, "ΕΓΓΡΑΦΑ", folder.id);
-          const promelethFolder = await findOrCreateFolder(accessToken, "ΠΡΟΜΕΛΕΤΗ", folder.id);
+          // Create subfolders in parallel
+          const [egrafaFolder, promelethFolder] = await Promise.all([
+            findOrCreateFolder(accessToken, "ΕΓΓΡΑΦΑ", folder.id),
+            findOrCreateFolder(accessToken, "ΠΡΟΜΕΛΕΤΗ", folder.id),
+          ]);
 
-          // Upload files ONE BY ONE to save memory
-          const buildingFiles = surveyFiles.filter((f: any) => f.file_type === "building_photo");
-          for (const sf of buildingFiles) {
-            const fileData = await downloadFile(adminClient, sf.file_path);
-            if (fileData) {
-              await uploadFileToDrive(accessToken, sf.file_name, getMime(sf.file_name), fileData, promelethFolder.id);
-              filesUploadedCount++;
-            }
-          }
+          // Upload files using already-downloaded data (2 concurrent uploads)
+          const UPLOAD_BATCH = 2;
+          const uploadQueue = downloadedFiles.map(({ sf, data }) => {
+            const targetFolder = sf.file_type === "building_photo" ? promelethFolder : egrafaFolder;
+            return { sf, data, targetFolder };
+          });
 
-          const screenshotFiles = surveyFiles.filter((f: any) => f.file_type === "screenshot");
-          for (const sf of screenshotFiles) {
-            const fileData = await downloadFile(adminClient, sf.file_path);
-            if (fileData) {
-              await uploadFileToDrive(accessToken, sf.file_name, getMime(sf.file_name), fileData, egrafaFolder.id);
-              filesUploadedCount++;
-            }
-          }
-
-          const inspectionFiles = surveyFiles.filter((f: any) => f.file_type === "inspection_form");
-          for (const sf of inspectionFiles) {
-            const fileData = await downloadFile(adminClient, sf.file_path);
-            if (fileData) {
-              await uploadFileToDrive(accessToken, sf.file_name, getMime(sf.file_name), fileData, egrafaFolder.id);
-              filesUploadedCount++;
-            }
+          for (let i = 0; i < uploadQueue.length; i += UPLOAD_BATCH) {
+            const batch = uploadQueue.slice(i, i + UPLOAD_BATCH);
+            await Promise.all(
+              batch.map(async ({ sf, data, targetFolder }) => {
+                try {
+                  await uploadFileToDrive(accessToken, sf.file_name, getMime(sf.file_name), data, targetFolder.id);
+                  filesUploadedCount++;
+                } catch (e: any) {
+                  console.error(`Drive upload failed for ${sf.file_name}: ${e.message}`);
+                }
+              })
+            );
           }
 
           // Update assignment with Drive folder URLs
@@ -550,26 +564,18 @@ Deno.serve(async (req) => {
       }
     }
 
-    // 5. Update status based on completeness
-    // Complete survey → pre_committed (waiting for GIS upload to move to construction)
-    // If GIS already exists → construction
+    // 4. Update status based on completeness
     const newSurveyStatus = isComplete ? "ΠΡΟΔΕΣΜΕΥΣΗ ΥΛΙΚΩΝ" : "ΕΛΛΙΠΗΣ ΑΥΤΟΨΙΑ";
-    // Always set pre_committed for complete surveys — construction requires GIS + manual transition
     const newAssignmentStatus = isComplete ? "pre_committed" : "pending";
     
-    await adminClient
-      .from("assignments")
-      .update({ status: newAssignmentStatus })
-      .eq("sr_id", sr_id);
-    
-    await adminClient
-      .from("surveys")
-      .update({ status: newSurveyStatus })
-      .eq("id", survey_id);
+    await Promise.all([
+      adminClient.from("assignments").update({ status: newAssignmentStatus }).eq("sr_id", sr_id),
+      adminClient.from("surveys").update({ status: newSurveyStatus }).eq("id", survey_id),
+    ]);
     
     console.log(`Assignment ${sr_id} status → ${newAssignmentStatus}, Survey → ${newSurveyStatus}`);
 
-    // 6. Build ZIP and send email — ALWAYS (complete or incomplete)
+    // 5. Build ZIP from already-downloaded files and send email
     let emailSent = false;
     const resendApiKey = Deno.env.get("RESEND_API_KEY");
 
@@ -590,32 +596,23 @@ Deno.serve(async (req) => {
 
     if (resendApiKey && recipients.length > 0) {
       try {
-        // Download files for ZIP (one by one, keep in array)
-        // No size limit — ZIP is uploaded to storage and only a link is sent
+        // Build ZIP entries from already-downloaded data (NO re-download!)
         const zipFiles: { name: string; data: Uint8Array }[] = [];
         let totalSize = 0;
 
-        for (const sf of surveyFiles) {
-          const fileData = await downloadFile(adminClient, sf.file_path);
-          if (fileData) {
-            // Prefix with folder name based on type (ASCII for ZIP compatibility)
-            const prefix = sf.file_type === "building_photo" ? "PROMELETI/" 
-              : sf.file_type === "screenshot" ? "EGRAFA/"
-              : sf.file_type === "inspection_form" ? "EGRAFA/"
-              : "";
-            zipFiles.push({ name: `${prefix}${sf.file_name}`, data: fileData });
-            totalSize += fileData.length;
-          }
+        for (const { sf, data } of downloadedFiles) {
+          const prefix = sf.file_type === "building_photo" ? "PROMELETI/" 
+            : sf.file_type === "screenshot" ? "EGRAFA/"
+            : sf.file_type === "inspection_form" ? "EGRAFA/"
+            : "";
+          zipFiles.push({ name: `${prefix}${sf.file_name}`, data });
+          totalSize += data.length;
         }
 
-        // Generate PDF from inspection_form photos already in zipFiles (avoid re-downloading)
-        const inspectionInZip = zipFiles
-          .filter(f => f.name.startsWith("EGRAFA/") && !f.name.endsWith(".pdf"))
-          .filter(f => {
-            const matchingSf = surveyFiles.find((sf: any) => f.name === `EGRAFA/${sf.file_name}` && sf.file_type === "inspection_form");
-            return !!matchingSf;
-          })
-          .map(f => ({ fileName: f.name.replace("EGRAFA/", ""), data: f.data }));
+        // Generate PDF from inspection_form images (skip if too large)
+        const inspectionInZip = downloadedFiles
+          .filter(({ sf }) => sf.file_type === "inspection_form" && !sf.file_name.endsWith(".pdf"))
+          .map(({ sf, data }) => ({ fileName: sf.file_name, data }));
         
         if (inspectionInZip.length > 0) {
           const pdfData = await buildInspectionPdf(inspectionInZip, sr_id);
@@ -628,10 +625,10 @@ Deno.serve(async (req) => {
 
         console.log(`ZIP: ${zipFiles.length} files, ${(totalSize / 1024 / 1024).toFixed(1)}MB`);
 
-        // Build ZIP
         const zipData = await buildZip(zipFiles);
-        // Free file references
+        // Free memory
         zipFiles.length = 0;
+        downloadedFiles.length = 0;
 
         // Upload ZIP to storage
         const zipFileName = `${sr_id}_survey_${Date.now()}.zip`;
@@ -647,7 +644,6 @@ Deno.serve(async (req) => {
           console.error("ZIP upload error:", uploadErr);
         }
 
-        // Generate signed URL (7 days)
         const { data: signedUrlData } = await adminClient.storage
           .from("surveys")
           .createSignedUrl(zipStoragePath, 60 * 60 * 24 * 7);
@@ -656,14 +652,9 @@ Deno.serve(async (req) => {
 
         const statusLabel = isComplete ? "ΠΡΟΔΕΣΜΕΥΣΗ ΥΛΙΚΩΝ" : "ΕΛΛΙΠΗΣ ΑΥΤΟΨΙΑ";
         const headerIcon = isComplete ? "📋" : "⚠️";
-
-        // Brand colors matching the app's Dark Industrial identity
-        const brandDark = "#1a2332";       // Σκούρο ανθρακί (--background)
-        const brandTeal = "#1a9a8a";       // Teal primary
-        const brandGreen = "#2d8a4e";      // Green accent
-        const brandGradient = "linear-gradient(135deg, #1a9a8a, #2d8a4e)";
-        const headerBg = isComplete ? brandGradient : "linear-gradient(135deg, #ea580c, #dc2626)";
-        const accentColor = isComplete ? brandTeal : "#ea580c";
+        const brandTeal = "#1a9a8a";
+        const brandDark = "#1a2332";
+        const headerBg = isComplete ? "linear-gradient(135deg, #1a9a8a, #2d8a4e)" : "linear-gradient(135deg, #ea580c, #dc2626)";
         const tableLabelBg = "#f0f4f8";
         const tableBorder = "#d1d9e0";
         const textPrimary = "#1a2332";
@@ -672,12 +663,10 @@ Deno.serve(async (req) => {
 
         const emailFrom = emailSettingsMap["email_from"] || "noreply@deltanetwork.gr";
         const emailReplyTo = emailSettingsMap["email_reply_to"] || "info@deltanetwork.gr";
-
         const surveyComments = survey?.comments || "";
 
         const emailHtml = `
           <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f5f7fa;">
-            <!-- Header with brand gradient -->
             <div style="background: ${headerBg}; color: white; padding: 24px 28px; border-radius: 12px 12px 0 0;">
               <div style="display: flex; align-items: center; gap: 10px;">
                 <span style="font-size: 24px;">${headerIcon}</span>
@@ -694,7 +683,6 @@ Deno.serve(async (req) => {
                 Ο τεχνικός <strong style="color: ${textPrimary};">${escapeHtml(technicianName)}</strong> μετέβη για αυτοψία στο <strong style="color: ${textPrimary};">SR: ${escapeHtml(sr_id)}</strong>.${isComplete ? " Σας αποστέλλουμε τα αρχεία για προδέσμευση υλικών." : " Η αυτοψία είναι ελλιπής."}
               </p>
               
-              <!-- Info table -->
               <div style="border-radius: 8px; overflow: hidden; border: 1px solid ${tableBorder}; margin: 20px 0;">
                 <table style="width: 100%; border-collapse: collapse;">
                   <tr>
@@ -744,12 +732,10 @@ Deno.serve(async (req) => {
                 ${surveyFiles.length} αρχεία · Ισχύει για 7 ημέρες
               </p>` : ""}
 
-              
               <p style="color: ${textSecondary}; font-size: 14px; line-height: 1.6; margin-top: 28px;">Με εκτίμηση,</p>
               
               <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 24px 0;" />
               
-              <!-- Footer with brand styling -->
               <div style="font-size: 12px; color: ${textMuted};">
                 <img src="https://task-track-tasker.lovable.app/assets/delta-network-logo.png" alt="Delta Network Inc." style="width: 180px; margin-bottom: 12px; display: block;" />
                 <p style="margin: 0; font-weight: 700; color: ${textPrimary};">Κούλλαρος Μιχαήλ Άγγελος</p>
@@ -809,11 +795,11 @@ Deno.serve(async (req) => {
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
-  } catch (error) {
-    console.error("Process survey error:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+  } catch (error: any) {
+    console.error("Error:", error);
+    return new Response(
+      JSON.stringify({ error: error.message || "Unknown error" }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
   }
 });
