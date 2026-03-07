@@ -157,11 +157,11 @@ async function processField(
       break;
     }
     case "check_if": {
-      if (val === field.match) drawCheck(page, field.x!, field.y!, boldFont, defaults.checkSize);
+      if (val === field.match) drawCircleAround(page, field.x!, field.y!);
       break;
     }
     case "check_if_not": {
-      if (val !== field.match && val != null) drawCheck(page, field.x!, field.y!, boldFont, defaults.checkSize);
+      if (val !== field.match && val != null) drawCircleAround(page, field.x!, field.y!);
       break;
     }
     case "check_map": {
