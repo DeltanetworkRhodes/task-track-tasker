@@ -195,17 +195,21 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
   };
 
   const handleStatusChange = async (assignmentId: string, newStatus: string) => {
+    // Optimistic update
+    queryClient.setQueryData(["assignments"], (old: any) =>
+      old?.map((a: any) => a.id === assignmentId ? { ...a, status: newStatus, updated_at: new Date().toISOString() } : a)
+    );
+    if (selected?.id === assignmentId) {
+      setSelected({ ...selected, status: newStatus });
+    }
+    toast.success(`Κατάσταση → ${statusLabels[newStatus] || newStatus}`);
+
     try {
       const { error } = await supabase
         .from("assignments")
         .update({ status: newStatus })
         .eq("id", assignmentId);
       if (error) throw error;
-      toast.success(`Κατάσταση → ${statusLabels[newStatus] || newStatus}`);
-      if (selected?.id === assignmentId) {
-        setSelected({ ...selected, status: newStatus });
-      }
-      queryClient.invalidateQueries({ queryKey: ["assignments"] });
 
       // If cancelled, move the SR folder in Drive to ΑΚΥΡΩΜΕΝΕΣ ΚΑΤΑΣΚΕΥΕΣ
       if (newStatus === "cancelled") {
