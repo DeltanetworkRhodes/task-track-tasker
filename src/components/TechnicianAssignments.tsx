@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import SurveyForm from "@/components/SurveyForm";
 import IncompleteSurveys from "@/components/IncompleteSurveys";
 import ConstructionForm from "@/components/ConstructionForm";
+import SRComments from "@/components/SRComments";
 
 const statusFlow: { value: string; label: string }[] = [
   { value: "pending", label: "Αναμονή" },
