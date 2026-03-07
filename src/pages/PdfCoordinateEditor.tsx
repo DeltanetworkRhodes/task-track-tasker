@@ -589,7 +589,17 @@ const PdfCoordinateEditor = () => {
 
         {/* Export */}
         <div className="space-y-2 pt-2 border-t">
-          <Button onClick={exportMapping} className="w-full" size="sm">
+          <Button 
+            onClick={handlePreviewPdf} 
+            className="w-full" 
+            size="sm" 
+            variant="default"
+            disabled={previewLoading || !mapping}
+          >
+            <FileText className="h-4 w-4 mr-2" />
+            {previewLoading ? "Δημιουργία..." : "Preview PDF"}
+          </Button>
+          <Button onClick={exportMapping} className="w-full" size="sm" variant="outline">
             <Download className="h-4 w-4 mr-2" />
             Εξαγωγή JSON
           </Button>
