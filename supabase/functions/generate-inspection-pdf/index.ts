@@ -156,6 +156,16 @@ function drawText(page: any, text: string, x: number, y: number, font: any, size
   page.drawText(text, { x, y, size, font, color: BLACK });
 }
 
+function drawBoxedText(page: any, text: string, x: number, y: number, font: any, size: number, boxWidth: number, boxCount: number) {
+  if (!text) return;
+  const chars = text.replace(/\s/g, "").split("");
+  for (let i = 0; i < Math.min(chars.length, boxCount); i++) {
+    const charW = font.widthOfTextAtSize(chars[i], size);
+    const cx = x + i * boxWidth + (boxWidth - charW) / 2;
+    page.drawText(chars[i], { x: cx, y, size, font, color: BLACK });
+  }
+}
+
 function drawCheck(page: any, checked: boolean, x: number, y: number, font: any) {
   if (!checked) return;
   page.drawText("X", { x, y, size: 9, font, color: BLACK });
