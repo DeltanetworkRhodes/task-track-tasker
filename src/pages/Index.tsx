@@ -112,22 +112,43 @@ const Index = () => {
   // Monthly completions trend
   const monthlyTrend = useMemo(() => {
     const now = new Date();
-    const months: { month: string; label: string; completed: number; revenue: number; profit: number }[] = [];
+    const months: { month: string; label: string; completed: number; revenue: number; profit: number; prevCompleted: number; prevRevenue: number }[] = [];
     for (let i = 5; i >= 0; i--) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
       const label = GREEK_MONTHS[d.getMonth()];
       const monthAssignments = assignments.filter(a => a.date.startsWith(key) && a.status === 'completed');
       const monthConstructions = constructions.filter(c => c.date.startsWith(key));
+
+      // Previous month for comparison
+      const pd = new Date(d.getFullYear(), d.getMonth() - 1, 1);
+      const prevKey = `${pd.getFullYear()}-${String(pd.getMonth() + 1).padStart(2, '0')}`;
+      const prevCompleted = assignments.filter(a => a.date.startsWith(prevKey) && a.status === 'completed').length;
+      const prevRevenue = constructions.filter(c => c.date.startsWith(prevKey)).reduce((s, c) => s + c.revenue, 0);
+
       months.push({
         month: key, label,
         completed: monthAssignments.length,
         revenue: monthConstructions.reduce((s, c) => s + c.revenue, 0),
         profit: monthConstructions.reduce((s, c) => s + c.profit, 0),
+        prevCompleted, prevRevenue,
       });
     }
     return months;
   }, [assignments, constructions]);
+
+  // Month-over-month changes for current month
+  const momChanges = useMemo(() => {
+    if (monthlyTrend.length < 2) return null;
+    const curr = monthlyTrend[monthlyTrend.length - 1];
+    const prev = monthlyTrend[monthlyTrend.length - 2];
+    const pctChange = (c: number, p: number) => p === 0 ? (c > 0 ? 100 : 0) : Math.round(((c - p) / p) * 100);
+    return {
+      completedPct: pctChange(curr.completed, prev.completed),
+      revenuePct: pctChange(curr.revenue, prev.revenue),
+      profitPct: pctChange(curr.profit, prev.profit),
+    };
+  }, [monthlyTrend]);
 
   const trendConfig = {
     completed: { label: "Ολοκληρωμένα", color: "hsl(152 60% 42%)" },
