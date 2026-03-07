@@ -442,20 +442,38 @@ const PdfCoordinateEditor = () => {
 
   const handlePreviewPdf = async () => {
     if (!mapping) return;
+
+    // Open immediately to keep browser "user gesture" and avoid popup/client blocking
+    const previewTab = window.open("", "_blank");
+    if (previewTab) {
+      previewTab.document.write("<html><head><title>PDF Preview</title></head><body style='font-family: sans-serif; padding: 16px;'>Generating preview PDF...</body></html>");
+      previewTab.document.close();
+    }
+
     setPreviewLoading(true);
     try {
       const { generateInspectionPdfBytes: genPdf, clearMappingCache } = await import("@/lib/generateInspectionPdf");
       clearMappingCache();
-      
+
       const pdfBytes = await genPdf(PREVIEW_SAMPLE_DATA, mapping);
-      
       const blob = new Blob([new Uint8Array(pdfBytes)], { type: "application/pdf" });
       const url = URL.createObjectURL(blob);
-      
-      // Open in new tab instead of iframe (avoids Chrome CSP blocking)
-      window.open(url, "_blank");
-      toast.success("Preview PDF άνοιξε σε νέα καρτέλα!");
+
+      if (previewTab && !previewTab.closed) {
+        previewTab.location.href = url;
+        toast.success("Preview PDF άνοιξε σε νέα καρτέλα!");
+      } else {
+        const a = document.createElement("a");
+        a.href = url;
+        a.target = "_blank";
+        a.rel = "noopener noreferrer";
+        a.click();
+        toast.success("Preview PDF δημιουργήθηκε (fallback άνοιγμα). ");
+      }
+
+      window.setTimeout(() => URL.revokeObjectURL(url), 60000);
     } catch (err) {
+      if (previewTab && !previewTab.closed) previewTab.close();
       console.error("Preview error:", err);
       toast.error("Σφάλμα δημιουργίας preview: " + (err as Error).message);
     } finally {
