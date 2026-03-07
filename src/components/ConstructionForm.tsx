@@ -902,7 +902,7 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
           </Label>
           {workItems.length > 0 && (
             <Badge variant="secondary" className="text-xs">
-              {workItems.length} επιλεγμένες · {totalRevenue.toFixed(2)}€
+              {workItems.length} επιλεγμένες
             </Badge>
           )}
         </div>
