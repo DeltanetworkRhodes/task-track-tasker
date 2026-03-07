@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 async function getAccessToken(serviceAccountKey: any): Promise<string> {
@@ -88,17 +88,22 @@ Deno.serve(async (req) => {
       });
     }
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const adminClient = createClient(supabaseUrl, serviceRoleKey);
+    const supabaseAuth = createClient(supabaseUrl, anonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
     const token = authHeader.replace("Bearer ", "");
-    const { data: { user }, error: userError } = await adminClient.auth.getUser(token);
-    if (userError || !user) {
+    const { data: claimsData, error: claimsError } = await supabaseAuth.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const { data: roleData } = await adminClient.from("user_roles").select("role").eq("user_id", user.id).single();
-    if (roleData?.role !== "admin") {
+    const userId = claimsData.claims.sub;
+    const adminClient = createClient(supabaseUrl, serviceRoleKey);
+    const { data: roleData } = await adminClient.from("user_roles").select("role").eq("user_id", userId).single();
+    if (!roleData || (roleData.role !== "admin" && roleData.role !== "super_admin")) {
       return new Response(JSON.stringify({ error: "Forbidden" }), {
         status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -216,9 +221,7 @@ Deno.serve(async (req) => {
       if (!fileRes.ok) throw new Error(await fileRes.text());
       const fileBlob = await fileRes.blob();
 
-      const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-      const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-      const supabase = createClient(supabaseUrl, supabaseServiceKey);
+      const supabase = createClient(supabaseUrl, serviceRoleKey);
 
       const filePath = `drive/${file_id}/${meta.name}`;
       const { error: uploadError } = await supabase.storage
