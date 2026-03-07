@@ -1,4 +1,15 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { PDFDocument } from "https://esm.sh/pdf-lib@1.17.1";
+
+function uint8ToBase64(bytes: Uint8Array): string {
+  let binary = "";
+  const chunkSize = 8192;
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    const chunk = bytes.subarray(i, i + chunkSize);
+    binary += String.fromCharCode(...chunk);
+  }
+  return btoa(binary);
+}
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -15,6 +26,130 @@ function escapeHtml(str: string): string {
     .replace(/'/g, "&#39;");
 }
 
+// ─── CRC32 ──────────────────────────────────────────────────────────
+function crc32(data: Uint8Array): number {
+  let crc = 0xffffffff;
+  for (let i = 0; i < data.length; i++) {
+    crc ^= data[i];
+    for (let j = 0; j < 8; j++) {
+      crc = (crc >>> 1) ^ (crc & 1 ? 0xedb88320 : 0);
+    }
+  }
+  return (crc ^ 0xffffffff) >>> 0;
+}
+
+// ─── ZIP builder (STORE only, no compression) ───────────────────────
+function buildZip(files: { name: string; data: Uint8Array }[]): Uint8Array {
+  const entries: { name: Uint8Array; dataLen: number; crc: number; offset: number }[] = [];
+  const parts: Uint8Array[] = [];
+  let offset = 0;
+  const encoder = new TextEncoder();
+
+  for (const file of files) {
+    const nameBytes = encoder.encode(file.name);
+    const crcVal = crc32(file.data);
+
+    const localHeader = new Uint8Array(30 + nameBytes.length);
+    const view = new DataView(localHeader.buffer);
+    view.setUint32(0, 0x04034b50, true);
+    view.setUint16(4, 20, true);
+    view.setUint16(6, 0x0800, true);
+    view.setUint16(8, 0, true); // STORE
+    view.setUint16(10, 0, true);
+    view.setUint16(12, 0, true);
+    view.setUint32(14, crcVal, true);
+    view.setUint32(18, file.data.length, true);
+    view.setUint32(22, file.data.length, true);
+    view.setUint16(26, nameBytes.length, true);
+    view.setUint16(28, 0, true);
+    localHeader.set(nameBytes, 30);
+
+    entries.push({ name: nameBytes, dataLen: file.data.length, crc: crcVal, offset });
+    parts.push(localHeader, file.data);
+    offset += localHeader.length + file.data.length;
+  }
+
+  const centralDirStart = offset;
+  for (const entry of entries) {
+    const cdHeader = new Uint8Array(46 + entry.name.length);
+    const cdView = new DataView(cdHeader.buffer);
+    cdView.setUint32(0, 0x02014b50, true);
+    cdView.setUint16(4, 20, true);
+    cdView.setUint16(6, 20, true);
+    cdView.setUint16(8, 0x0800, true);
+    cdView.setUint16(10, 0, true);
+    cdView.setUint16(12, 0, true);
+    cdView.setUint16(14, 0, true);
+    cdView.setUint32(16, entry.crc, true);
+    cdView.setUint32(20, entry.dataLen, true);
+    cdView.setUint32(24, entry.dataLen, true);
+    cdView.setUint16(28, entry.name.length, true);
+    cdView.setUint16(30, 0, true);
+    cdView.setUint16(32, 0, true);
+    cdView.setUint16(34, 0, true);
+    cdView.setUint16(36, 0, true);
+    cdView.setUint32(38, 0, true);
+    cdView.setUint32(42, entry.offset, true);
+    cdHeader.set(entry.name, 46);
+    parts.push(cdHeader);
+    offset += cdHeader.length;
+  }
+
+  const endRecord = new Uint8Array(22);
+  const endView = new DataView(endRecord.buffer);
+  endView.setUint32(0, 0x06054b50, true);
+  endView.setUint16(8, entries.length, true);
+  endView.setUint16(10, entries.length, true);
+  endView.setUint32(12, offset - centralDirStart, true);
+  endView.setUint32(16, centralDirStart, true);
+  parts.push(endRecord);
+
+  const totalLength = parts.reduce((sum, p) => sum + p.length, 0);
+  const result = new Uint8Array(totalLength);
+  let pos = 0;
+  for (const part of parts) { result.set(part, pos); pos += part.length; }
+  return result;
+}
+
+// ─── Download helper ────────────────────────────────────────────────
+async function downloadFile(adminClient: any, filePath: string): Promise<Uint8Array | null> {
+  const { data, error } = await adminClient.storage.from("surveys").download(filePath);
+  if (error || !data) return null;
+  return new Uint8Array(await data.arrayBuffer());
+}
+
+// ─── PDF from inspection images ─────────────────────────────────────
+async function buildInspectionPdf(images: { fileName: string; data: Uint8Array }[], srId: string): Promise<Uint8Array | null> {
+  if (images.length === 0) return null;
+  try {
+    const pdfDoc = await PDFDocument.create();
+    for (const item of images) {
+      const ext = item.fileName.split(".").pop()?.toLowerCase() || "";
+      let image;
+      try {
+        image = ext === "png" ? await pdfDoc.embedPng(item.data) : await pdfDoc.embedJpg(item.data);
+      } catch { continue; }
+      const A4_W = 595.28, A4_H = 841.89, margin = 40;
+      const availW = A4_W - margin * 2, availH = A4_H - margin * 2;
+      const scale = Math.min(availW / image.width, availH / image.height, 1);
+      const drawW = image.width * scale, drawH = image.height * scale;
+      const page = pdfDoc.addPage([A4_W, A4_H]);
+      page.drawImage(image, {
+        x: margin + (availW - drawW) / 2,
+        y: A4_H - margin - drawH + (availH - drawH) / 2,
+        width: drawW, height: drawH,
+      });
+    }
+    if (pdfDoc.getPageCount() === 0) return null;
+    const pdfBytes = await pdfDoc.save();
+    console.log(`Built inspection PDF: ${pdfDoc.getPageCount()} pages, ${(pdfBytes.length / 1024).toFixed(0)}KB`);
+    return new Uint8Array(pdfBytes);
+  } catch (err) {
+    console.error("PDF error:", err);
+    return null;
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -24,19 +159,16 @@ Deno.serve(async (req) => {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const resendApiKey = Deno.env.get("RESEND_API_KEY");
-
     if (!resendApiKey) {
       return new Response(JSON.stringify({ error: "RESEND_API_KEY not configured" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -48,16 +180,14 @@ Deno.serve(async (req) => {
     const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
     if (claimsError || !claimsData?.claims) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     const { survey_id } = await req.json();
     if (!survey_id) {
       return new Response(JSON.stringify({ error: "Missing survey_id" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -66,14 +196,10 @@ Deno.serve(async (req) => {
 
     // Get survey
     const { data: survey, error: surveyErr } = await adminClient
-      .from("surveys")
-      .select("*")
-      .eq("id", survey_id)
-      .single();
+      .from("surveys").select("*").eq("id", survey_id).single();
     if (surveyErr || !survey) {
       return new Response(JSON.stringify({ error: "Survey not found" }), {
-        status: 404,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -82,30 +208,20 @@ Deno.serve(async (req) => {
 
     // Get assignment info
     const { data: assignment } = await adminClient
-      .from("assignments")
-      .select("customer_name, address, cab")
-      .eq("sr_id", sr_id)
-      .maybeSingle();
-
+      .from("assignments").select("customer_name, address, cab").eq("sr_id", sr_id).maybeSingle();
     const customerName = assignment?.customer_name || "";
     const address = assignment?.address || "";
     const cab = assignment?.cab || "";
 
     // Get technician name
     const { data: techProfile } = await adminClient
-      .from("profiles")
-      .select("full_name")
-      .eq("user_id", survey.technician_id)
-      .single();
+      .from("profiles").select("full_name").eq("user_id", survey.technician_id).single();
     const technicianName = techProfile?.full_name || "Τεχνικός";
 
     // Get org settings
     const userId = claimsData.claims.sub as string;
     const { data: profile } = await adminClient
-      .from("profiles")
-      .select("organization_id")
-      .eq("user_id", userId)
-      .single();
+      .from("profiles").select("organization_id").eq("user_id", userId).single();
     const orgId = profile?.organization_id;
 
     let orgSettingsQuery = adminClient.from("org_settings").select("setting_key, setting_value");
@@ -121,36 +237,84 @@ Deno.serve(async (req) => {
 
     if (recipients.length === 0) {
       return new Response(JSON.stringify({ error: "No email recipients configured" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Find existing ZIP in storage
-    const { data: zipFiles } = await adminClient.storage
-      .from("surveys")
-      .list("zips", { search: sr_id });
+    // Get survey files
+    const { data: surveyFiles } = await adminClient
+      .from("survey_files").select("*").eq("survey_id", survey_id);
+    const fileCount = surveyFiles?.length || 0;
 
+    // Find existing ZIP or build new one
     let zipUrl = "";
-    if (zipFiles && zipFiles.length > 0) {
-      // Get the most recent one
-      const latestZip = zipFiles
-        .filter((f: any) => f.name.includes(sr_id))
-        .sort((a: any, b: any) => b.name.localeCompare(a.name))[0];
-      if (latestZip) {
-        const { data: signedUrlData } = await adminClient.storage
-          .from("surveys")
-          .createSignedUrl(`zips/${latestZip.name}`, 60 * 60 * 24 * 7);
-        zipUrl = signedUrlData?.signedUrl || "";
-      }
+    const { data: existingZips } = await adminClient.storage
+      .from("surveys").list("zips", { search: sr_id });
+
+    const latestZip = existingZips
+      ?.filter((f: any) => f.name.includes(sr_id))
+      ?.sort((a: any, b: any) => b.name.localeCompare(a.name))?.[0];
+
+    if (latestZip) {
+      const { data: signedUrlData } = await adminClient.storage
+        .from("surveys").createSignedUrl(`zips/${latestZip.name}`, 60 * 60 * 24 * 7);
+      zipUrl = signedUrlData?.signedUrl || "";
+      console.log(`Found existing ZIP: ${latestZip.name}`);
     }
 
-    // Get file count
-    const { data: surveyFiles } = await adminClient
-      .from("survey_files")
-      .select("id")
-      .eq("survey_id", survey_id);
-    const fileCount = surveyFiles?.length || 0;
+    // If no ZIP exists, build one
+    if (!zipUrl && surveyFiles && surveyFiles.length > 0) {
+      console.log(`No ZIP found, building new one for ${sr_id}...`);
+      const zipFileEntries: { name: string; data: Uint8Array }[] = [];
+      let totalSize = 0;
+
+      for (const sf of surveyFiles) {
+        const fileData = await downloadFile(adminClient, sf.file_path);
+        if (fileData) {
+          const prefix = sf.file_type === "building_photo" ? "PROMELETI/"
+            : sf.file_type === "screenshot" ? "EGRAFA/"
+            : sf.file_type === "inspection_form" ? "EGRAFA/"
+            : "";
+          zipFileEntries.push({ name: `${prefix}${sf.file_name}`, data: fileData });
+          totalSize += fileData.length;
+        }
+      }
+
+      // Build inspection PDF from downloaded inspection images
+      const inspectionImages = zipFileEntries
+        .filter(f => {
+          const sf = surveyFiles.find((s: any) => f.name === `EGRAFA/${s.file_name}` && s.file_type === "inspection_form");
+          return !!sf;
+        })
+        .map(f => ({ fileName: f.name.replace("EGRAFA/", ""), data: f.data }));
+
+      if (inspectionImages.length > 0) {
+        const pdfData = await buildInspectionPdf(inspectionImages, sr_id);
+        if (pdfData) {
+          zipFileEntries.push({ name: `EGRAFA/Deltio_Autopsias_${sr_id}.pdf`, data: pdfData });
+          totalSize += pdfData.length;
+          console.log(`Added inspection PDF: ${(pdfData.length / 1024).toFixed(0)}KB`);
+        }
+      }
+
+      console.log(`ZIP: ${zipFileEntries.length} files, ${(totalSize / 1024 / 1024).toFixed(1)}MB`);
+      const zipData = buildZip(zipFileEntries);
+      zipFileEntries.length = 0;
+
+      // Upload
+      const zipFileName = `${sr_id}_survey_${Date.now()}.zip`;
+      const zipStoragePath = `zips/${zipFileName}`;
+      const { error: uploadErr } = await adminClient.storage
+        .from("surveys").upload(zipStoragePath, zipData, { contentType: "application/zip", upsert: true });
+      if (uploadErr) {
+        console.error("ZIP upload error:", uploadErr);
+      } else {
+        const { data: signedUrlData } = await adminClient.storage
+          .from("surveys").createSignedUrl(zipStoragePath, 60 * 60 * 24 * 7);
+        zipUrl = signedUrlData?.signedUrl || "";
+        console.log(`Built and uploaded new ZIP: ${zipFileName}`);
+      }
+    }
 
     const isComplete = survey.status === "ΠΡΟΔΕΣΜΕΥΣΗ ΥΛΙΚΩΝ";
     const statusLabel = isComplete ? "ΠΡΟΔΕΣΜΕΥΣΗ ΥΛΙΚΩΝ" : "ΕΛΛΙΠΗΣ ΑΥΤΟΨΙΑ";
@@ -229,10 +393,7 @@ Deno.serve(async (req) => {
           </div>
           <p style="color: ${textMuted}; font-size: 11px; text-align: center; margin-top: 4px;">
             ${fileCount} αρχεία · Ισχύει για 7 ημέρες
-          </p>` : `
-          <div style="background: #fef2f2; border-left: 4px solid #dc2626; padding: 14px 18px; margin: 20px 0; border-radius: 0 8px 8px 0;">
-            <p style="font-weight: 700; color: #991b1b; font-size: 13px; margin: 0;">⚠️ Δεν βρέθηκε αρχείο ZIP στο αποθετήριο</p>
-          </div>`}
+          </p>` : ""}
           
           <p style="color: ${textSecondary}; font-size: 14px; line-height: 1.6; margin-top: 28px;">Με εκτίμηση,</p>
           
@@ -255,10 +416,7 @@ Deno.serve(async (req) => {
       subject: `[ΑΥΤΟΨΙΑ] SR: ${sr_id} — ${area}`,
       html: emailHtml,
     };
-
-    if (ccRecipients.length > 0) {
-      emailPayload.cc = ccRecipients;
-    }
+    if (ccRecipients.length > 0) emailPayload.cc = ccRecipients;
 
     const emailRes = await fetch("https://api.resend.com/emails", {
       method: "POST",
@@ -273,17 +431,13 @@ Deno.serve(async (req) => {
       const errText = await emailRes.text();
       console.error("Resend error:", errText);
       return new Response(JSON.stringify({ error: "Email send failed", details: errText }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    console.log(`Email resent for SR: ${sr_id} to: ${recipients.join(", ")}`);
+    console.log(`Email sent for SR: ${sr_id} to: ${recipients.join(", ")}`);
 
-    await adminClient
-      .from("surveys")
-      .update({ email_sent: true })
-      .eq("id", survey_id);
+    await adminClient.from("surveys").update({ email_sent: true }).eq("id", survey_id);
 
     return new Response(
       JSON.stringify({ success: true, has_zip: !!zipUrl }),
@@ -292,8 +446,7 @@ Deno.serve(async (req) => {
   } catch (err: any) {
     console.error("Resend survey email error:", err);
     return new Response(JSON.stringify({ error: err.message || "Internal error" }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });
