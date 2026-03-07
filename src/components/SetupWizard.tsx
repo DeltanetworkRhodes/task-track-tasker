@@ -352,7 +352,7 @@ const SetupWizard = ({ onDismiss, demoMode = false }: SetupWizardProps) => {
   const totalSteps = steps.length;
   const progress = Math.round((completedCount / totalSteps) * 100);
 
-  // All done
+  // All done — show validation button
   if (completedCount === totalSteps) {
     return (
       <Card className="p-5 sm:p-6 border-success/30 bg-success/5">
@@ -361,16 +361,42 @@ const SetupWizard = ({ onDismiss, demoMode = false }: SetupWizardProps) => {
             <CheckCircle2 className="h-6 w-6 text-success" />
           </div>
           <div className="flex-1">
-            <h3 className="text-base font-bold text-foreground">Η ρύθμιση ολοκληρώθηκε! 🎉</h3>
+            <h3 className="text-base font-bold text-foreground">Όλα τα βήματα ολοκληρώθηκαν!</h3>
             <p className="text-sm text-muted-foreground mt-1">
-              Όλα είναι έτοιμα. Μπορείτε να ξεκινήσετε να δημιουργείτε αναθέσεις και να διαχειρίζεστε τις κατασκευές σας.
+              Πατήστε «Επαλήθευση & Ολοκλήρωση» για να ελέγξουμε ότι όλα ρυθμίστηκαν σωστά.
             </p>
           </div>
-          {onDismiss && (
-            <Button variant="ghost" size="icon" className="shrink-0" onClick={onDismiss}>
-              <X className="h-4 w-4" />
-            </Button>
-          )}
+        </div>
+        {validationErrors.length > 0 && (
+          <div className="mt-4 rounded-xl bg-destructive/5 border border-destructive/20 p-3 space-y-1.5">
+            <p className="text-[11px] font-bold text-destructive uppercase tracking-wider flex items-center gap-1.5">
+              <AlertCircle className="h-3.5 w-3.5" />
+              Βρέθηκαν σφάλματα
+            </p>
+            {validationErrors.map((err, i) => (
+              <p key={i} className="text-xs text-destructive/80 pl-5">• {err}</p>
+            ))}
+          </div>
+        )}
+        <div className="mt-4 flex justify-end">
+          <Button
+            size="sm"
+            className="gap-1.5"
+            onClick={handleFinalValidation}
+            disabled={validating}
+          >
+            {validating ? (
+              <>
+                <span className="h-3.5 w-3.5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                Έλεγχος...
+              </>
+            ) : (
+              <>
+                <CheckCircle2 className="h-4 w-4" />
+                Επαλήθευση & Ολοκλήρωση
+              </>
+            )}
+          </Button>
         </div>
       </Card>
     );
