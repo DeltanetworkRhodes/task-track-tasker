@@ -210,8 +210,8 @@ async function embedSignature(pdfDoc: any, page: any, dataUrl: string, x: number
 
 async function generateInspectionPdf(data: InspectionData, templateBytes: Uint8Array): Promise<Uint8Array> {
   const [fontBytes, boldFontBytes] = await Promise.all([
-    fetch("https://cdn.jsdelivr.net/fontsource/fonts/roboto@latest/greek-400-normal.woff").then((r) => r.arrayBuffer()),
-    fetch("https://cdn.jsdelivr.net/fontsource/fonts/roboto@latest/greek-700-normal.woff").then((r) => r.arrayBuffer()),
+    fetch("https://fonts.gstatic.com/s/roboto/v47/KFOMCnqEu92Fr1ME7kSn66aGLdTylUAMQXC89YmC2DPNWubEbGmT.ttf").then((r) => r.arrayBuffer()),
+    fetch("https://fonts.gstatic.com/s/roboto/v47/KFOMCnqEu92Fr1ME7kSn66aGLdTylUAMQXC89YmC2DPNWubEbFqQ.ttf").then((r) => r.arrayBuffer()),
   ]);
 
   const pdfDoc = await PDFDocument.load(templateBytes);
