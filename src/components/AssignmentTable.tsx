@@ -395,6 +395,16 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border/50">
+              {onSelectionChange && (
+                <th className="py-3 px-2 w-8">
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.length === assignments.length && assignments.length > 0}
+                    onChange={toggleAll}
+                    className="h-3.5 w-3.5 rounded border-border accent-primary"
+                  />
+                </th>
+              )}
               <th className="py-3 px-4 text-left font-medium text-muted-foreground text-xs uppercase tracking-wider">SR ID</th>
               <th className="py-3 px-4 text-left font-medium text-muted-foreground text-xs uppercase tracking-wider">Περιοχή</th>
               <th className="py-3 px-4 text-left font-medium text-muted-foreground text-xs uppercase tracking-wider">Πελάτης</th>
@@ -412,8 +422,18 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
             {assignments.map((a) => (
               <tr
                 key={a.id}
-                className="border-b border-border/30 hover:bg-secondary/50 transition-colors"
+                className={`border-b border-border/30 hover:bg-secondary/50 transition-colors ${selectedIds.includes(a.id) ? 'bg-primary/5' : ''}`}
               >
+                {onSelectionChange && (
+                  <td className="py-3 px-2" onClick={(e) => e.stopPropagation()}>
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.includes(a.id)}
+                      onChange={() => toggleSelect(a.id)}
+                      className="h-3.5 w-3.5 rounded border-border accent-primary"
+                    />
+                  </td>
+                )}
                 <td
                   className="py-3 px-4 font-bold text-primary cursor-pointer"
                   onClick={() => setSelected(a)}
