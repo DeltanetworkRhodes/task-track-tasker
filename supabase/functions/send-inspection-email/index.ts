@@ -44,13 +44,15 @@ Deno.serve(async (req) => {
       global: { headers: { Authorization: authHeader } },
     });
 
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
-    if (userError || !user) {
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+    const userId = claimsData.claims.sub;
 
     const { assignment_id, sr_id, area, customer_name, address, cab, comments } = await req.json();
 
@@ -67,10 +69,10 @@ Deno.serve(async (req) => {
     const { data: profile } = await adminClient
       .from("profiles")
       .select("full_name, phone, organization_id")
-      .eq("user_id", user.id)
+      .eq("user_id", userId)
       .single();
 
-    const techName = profile?.full_name || user.email || "Τεχνικός";
+    const techName = profile?.full_name || "Τεχνικός";
     const techPhone = profile?.phone || "";
     const orgId = profile?.organization_id;
 
