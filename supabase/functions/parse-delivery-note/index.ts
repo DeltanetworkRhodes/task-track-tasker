@@ -28,7 +28,12 @@ async function getAccessToken(serviceAccountKey: any): Promise<string> {
   );
   const signatureInput = new TextEncoder().encode(`${header}.${payload}`);
   const signature = await crypto.subtle.sign("RSASSA-PKCS1-v1_5", cryptoKey, signatureInput);
-  const signatureB64 = btoa(String.fromCharCode(...new Uint8Array(signature)))
+  const sigBytes = new Uint8Array(signature);
+  let sigBinary = "";
+  for (let i = 0; i < sigBytes.length; i += 8192) {
+    sigBinary += String.fromCharCode(...sigBytes.subarray(i, i + 8192));
+  }
+  const signatureB64 = btoa(sigBinary)
     .replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
   const jwt = `${header}.${payload}.${signatureB64}`;
   const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
