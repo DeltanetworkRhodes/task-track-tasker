@@ -100,6 +100,8 @@ const FIELD_LABELS: Record<string, string> = {
   excavation_to_rg_yes: "Εκσκαφή→RG: ΝΑΙ",
   excavation_to_rg_no: "Εκσκαφή→RG: ΟΧΙ",
   wall_mount: "Επίτοιχη Στήριξη",
+  pipe_placement: "Τοποθέτηση Σιδηροσωλήνα",
+  excavation_to_building: "Εκσκαφή έως Κτίριο",
   fence_building_mount: "Στήριξη Περίφραξη/Κτίριο",
   sketch_notes: "Σημειώσεις Σκαριφήματος",
   optical_socket_position: "Θέση Οπτικής Πρίζας",
