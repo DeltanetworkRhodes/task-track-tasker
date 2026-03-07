@@ -33,24 +33,6 @@ const areaRootFolders: Record<string, string> = {
 
 const REQUIRED_FILE_TYPES = ["building_photo", "screenshot", "inspection_form"];
 
-// ─── CRC32 with precomputed lookup table ────────────────────────────
-
-const CRC32_TABLE = new Uint32Array(256);
-for (let i = 0; i < 256; i++) {
-  let c = i;
-  for (let j = 0; j < 8; j++) {
-    c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
-  }
-  CRC32_TABLE[i] = c;
-}
-
-function crc32(data: Uint8Array): number {
-  let crc = 0xFFFFFFFF;
-  for (let i = 0; i < data.length; i++) {
-    crc = CRC32_TABLE[(crc ^ data[i]) & 0xFF] ^ (crc >>> 8);
-  }
-  return (crc ^ 0xFFFFFFFF) >>> 0;
-}
 
 // ─── Google Drive helpers ────────────────────────────────────────────
 
@@ -60,7 +42,7 @@ async function getAccessToken(serviceAccountKey: any): Promise<string> {
   const payload = btoa(
     JSON.stringify({
       iss: serviceAccountKey.client_email,
-      scope: "https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/presentations",
+      scope: "https://www.googleapis.com/auth/drive",
       aud: "https://oauth2.googleapis.com/token",
       exp: now + 3600,
       iat: now,
@@ -190,264 +172,38 @@ async function getTargetParentFolder(
   return { folderId: targetFolder.id, folderType: targetName };
 }
 
-// ─── Cleanup temporary public permissions ───────────────────────────
-async function cleanupPermissions(accessToken: string, permissionIds: string[]) {
-  for (const entry of permissionIds) {
-    const [fileId, permId] = entry.split(":");
-    try {
-      const res = await fetch(
-        `https://www.googleapis.com/drive/v3/files/${fileId}/permissions/${permId}?supportsAllDrives=true`,
-        { method: "DELETE", headers: { Authorization: `Bearer ${accessToken}` } }
-      );
-      if (!res.ok) await res.text();
-    } catch { /* ignore */ }
-  }
-}
-
-// ─── Google Slides PDF generation (zero local CPU) ──────────────────
-async function buildPdfViaGoogleSlides(
-  accessToken: string,
-  imageFiles: { driveFileId: string; fileName: string }[],
-  pdfName: string,
-  parentFolderId: string
-): Promise<{ pdfBytes: Uint8Array; pdfDriveId: string } | null> {
-  if (imageFiles.length === 0) return null;
-
+// ─── Build inspection PDF from image bytes using pdf-lib ────────────
+async function buildInspectionPdf(
+  images: { fileName: string; data: Uint8Array }[]
+): Promise<Uint8Array | null> {
+  if (images.length === 0) return null;
   try {
-    // 1. Create a Google Slides presentation in the target folder
-    const createRes = await fetch(
-      "https://www.googleapis.com/drive/v3/files?fields=id&supportsAllDrives=true",
-      {
-        method: "POST",
-        headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: pdfName.replace(".pdf", ""),
-          mimeType: "application/vnd.google-apps.presentation",
-          parents: [parentFolderId],
-        }),
-      }
-    );
-    if (!createRes.ok) {
-      console.error(`Slides create failed: ${await createRes.text()}`);
-      return null;
-    }
-    const { id: presentationId } = await createRes.json();
-    console.log(`Created Google Slides: ${presentationId}`);
-
-    // 2. Get presentation to find the default blank slide
-    const getRes = await fetch(
-      `https://slides.googleapis.com/v1/presentations/${presentationId}`,
-      { headers: { Authorization: `Bearer ${accessToken}` } }
-    );
-    if (!getRes.ok) {
-      console.error(`Slides get failed: ${await getRes.text()}`);
-      return null;
-    }
-    const presentation = await getRes.json();
-    const defaultSlideId = presentation.slides?.[0]?.objectId;
-
-    // 3. Build batch update requests: one slide per image
-    const requests: any[] = [];
-    const permissionIds: string[] = [];
-
-    // Make each image temporarily public so Slides can access them
-    for (const img of imageFiles) {
+    const pdfDoc = await PDFDocument.create();
+    for (const item of images) {
+      const ext = item.fileName.split(".").pop()?.toLowerCase() || "";
+      let image;
       try {
-        const permRes = await fetch(
-          `https://www.googleapis.com/drive/v3/files/${img.driveFileId}/permissions?supportsAllDrives=true`,
-          {
-            method: "POST",
-            headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
-            body: JSON.stringify({ role: "reader", type: "anyone" }),
-          }
-        );
-        if (permRes.ok) {
-          const perm = await permRes.json();
-          permissionIds.push(`${img.driveFileId}:${perm.id}`);
-        } else {
-          await permRes.text();
-        }
-      } catch { /* ignore */ }
-    }
-
-    // Wait for permissions to propagate
-    await new Promise(r => setTimeout(r, 3000));
-
-    for (let i = 0; i < imageFiles.length; i++) {
-      const img = imageFiles[i];
-      const slideObjectId = `slide_${i}`;
-      const imageObjectId = `image_${i}`;
-      // Use webContentLink-style URL that works with Slides API
-      const imageUrl = `https://drive.google.com/uc?id=${img.driveFileId}`;
-
-      if (i === 0 && defaultSlideId) {
-        requests.push({
-          createImage: {
-            objectId: imageObjectId,
-            elementProperties: {
-              pageObjectId: defaultSlideId,
-              size: { width: { magnitude: 720, unit: "PT" }, height: { magnitude: 540, unit: "PT" } },
-              transform: { scaleX: 1, scaleY: 1, translateX: 0, translateY: 0, unit: "PT" },
-            },
-            url: imageUrl,
-          },
-        });
-      } else {
-        requests.push({
-          createSlide: {
-            objectId: slideObjectId,
-            insertionIndex: i,
-            slideLayoutReference: { predefinedLayout: "BLANK" },
-          },
-        });
-        requests.push({
-          createImage: {
-            objectId: imageObjectId,
-            elementProperties: {
-              pageObjectId: slideObjectId,
-              size: { width: { magnitude: 720, unit: "PT" }, height: { magnitude: 540, unit: "PT" } },
-              transform: { scaleX: 1, scaleY: 1, translateX: 0, translateY: 0, unit: "PT" },
-            },
-            url: imageUrl,
-          },
-        });
-      }
-    }
-
-    // 4. Execute batch update
-    const batchRes = await fetch(
-      `https://slides.googleapis.com/v1/presentations/${presentationId}:batchUpdate`,
-      {
-        method: "POST",
-        headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ requests }),
-      }
-    );
-    if (!batchRes.ok) {
-      const errText = await batchRes.text();
-      console.error(`Slides batchUpdate failed: ${errText}`);
-      // Cleanup: delete the presentation and revoke permissions
-      await cleanupPermissions(accessToken, permissionIds);
-      await fetch(`https://www.googleapis.com/drive/v3/files/${presentationId}?supportsAllDrives=true`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${accessToken}` },
+        image = ext === "png" ? await pdfDoc.embedPng(item.data) : await pdfDoc.embedJpg(item.data);
+      } catch { continue; }
+      const A4_W = 595.28, A4_H = 841.89, margin = 40;
+      const availW = A4_W - margin * 2, availH = A4_H - margin * 2;
+      const scale = Math.min(availW / image.width, availH / image.height, 1);
+      const drawW = image.width * scale, drawH = image.height * scale;
+      const page = pdfDoc.addPage([A4_W, A4_H]);
+      page.drawImage(image, {
+        x: margin + (availW - drawW) / 2,
+        y: A4_H - margin - drawH + (availH - drawH) / 2,
+        width: drawW, height: drawH,
       });
-      return null;
     }
-    console.log(`Added ${imageFiles.length} images to Slides`);
-
-    // 5. Export as PDF via Drive API
-    const exportRes = await fetch(
-      `https://www.googleapis.com/drive/v3/files/${presentationId}/export?mimeType=application/pdf`,
-      { headers: { Authorization: `Bearer ${accessToken}` } }
-    );
-    if (!exportRes.ok) {
-      console.error(`PDF export failed: ${await exportRes.text()}`);
-      await fetch(`https://www.googleapis.com/drive/v3/files/${presentationId}?supportsAllDrives=true`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
-      return null;
-    }
-    const pdfBytes = new Uint8Array(await exportRes.arrayBuffer());
-    console.log(`Exported PDF from Slides: ${(pdfBytes.length / 1024).toFixed(0)}KB`);
-
-    // 6. Cleanup: delete presentation and revoke temporary permissions
-    await cleanupPermissions(accessToken, permissionIds);
-    await fetch(`https://www.googleapis.com/drive/v3/files/${presentationId}?supportsAllDrives=true`, {
-      method: "DELETE",
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
-
-    // 7. Upload the PDF to Drive in the same folder
-    const pdfFile = await uploadFileToDrive(accessToken, pdfName, "application/pdf", pdfBytes, parentFolderId);
-    console.log(`Uploaded PDF to Drive: ${pdfFile.name}`);
-
-    return { pdfBytes, pdfDriveId: pdfFile.id };
-  } catch (err: any) {
-    console.error(`Slides PDF generation error: ${err.message}`);
+    if (pdfDoc.getPageCount() === 0) return null;
+    const pdfBytes = await pdfDoc.save();
+    console.log(`Built inspection PDF: ${pdfDoc.getPageCount()} pages, ${(pdfBytes.length / 1024).toFixed(0)}KB`);
+    return new Uint8Array(pdfBytes);
+  } catch (err) {
+    console.error("PDF error:", err);
     return null;
   }
-}
-
-// ─── Minimal ZIP builder (STORE, no compression) ────────────────────
-
-async function buildZip(files: { name: string; data: Uint8Array }[]): Promise<Uint8Array> {
-  const entries: { name: Uint8Array; dataLen: number; crc: number; offset: number }[] = [];
-  const parts: Uint8Array[] = [];
-  let offset = 0;
-  const encoder = new TextEncoder();
-
-  for (const file of files) {
-    const nameBytes = encoder.encode(file.name);
-    const crcVal = crc32(file.data);
-
-    const localHeader = new Uint8Array(30 + nameBytes.length);
-    const view = new DataView(localHeader.buffer);
-    view.setUint32(0, 0x04034b50, true);
-    view.setUint16(4, 20, true);
-    view.setUint16(6, 0x0800, true);
-    view.setUint16(8, 0, true);
-    view.setUint16(10, 0, true);
-    view.setUint16(12, 0, true);
-    view.setUint32(14, crcVal, true);
-    view.setUint32(18, file.data.length, true);
-    view.setUint32(22, file.data.length, true);
-    view.setUint16(26, nameBytes.length, true);
-    view.setUint16(28, 0, true);
-    localHeader.set(nameBytes, 30);
-
-    entries.push({ name: nameBytes, dataLen: file.data.length, crc: crcVal, offset });
-    parts.push(localHeader, file.data);
-    offset += localHeader.length + file.data.length;
-  }
-
-  const centralDirStart = offset;
-  for (const entry of entries) {
-    const cdHeader = new Uint8Array(46 + entry.name.length);
-    const cdView = new DataView(cdHeader.buffer);
-    cdView.setUint32(0, 0x02014b50, true);
-    cdView.setUint16(4, 20, true);
-    cdView.setUint16(6, 20, true);
-    cdView.setUint16(8, 0x0800, true);
-    cdView.setUint16(10, 0, true);
-    cdView.setUint16(12, 0, true);
-    cdView.setUint16(14, 0, true);
-    cdView.setUint32(16, entry.crc, true);
-    cdView.setUint32(20, entry.dataLen, true);
-    cdView.setUint32(24, entry.dataLen, true);
-    cdView.setUint16(28, entry.name.length, true);
-    cdView.setUint16(30, 0, true);
-    cdView.setUint16(32, 0, true);
-    cdView.setUint16(34, 0, true);
-    cdView.setUint16(36, 0, true);
-    cdView.setUint32(38, 0, true);
-    cdView.setUint32(42, entry.offset, true);
-    cdHeader.set(entry.name, 46);
-    parts.push(cdHeader);
-    offset += cdHeader.length;
-  }
-
-  const endRecord = new Uint8Array(22);
-  const endView = new DataView(endRecord.buffer);
-  endView.setUint32(0, 0x06054b50, true);
-  endView.setUint16(4, 0, true);
-  endView.setUint16(6, 0, true);
-  endView.setUint16(8, entries.length, true);
-  endView.setUint16(10, entries.length, true);
-  endView.setUint32(12, offset - centralDirStart, true);
-  endView.setUint32(16, centralDirStart, true);
-  endView.setUint16(20, 0, true);
-  parts.push(endRecord);
-
-  const totalLength = parts.reduce((sum, p) => sum + p.length, 0);
-  const result = new Uint8Array(totalLength);
-  let pos = 0;
-  for (const part of parts) {
-    result.set(part, pos);
-    pos += part.length;
-  }
-  return result;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────
@@ -647,8 +403,6 @@ Deno.serve(async (req) => {
           ]);
 
           // Upload files using already-downloaded data (2 concurrent uploads)
-          // Track uploaded inspection_form IDs for PDF generation
-          const uploadedInspectionIds: { driveFileId: string; fileName: string }[] = [];
           const UPLOAD_BATCH = 2;
           const uploadQueue = downloadedFiles.map(({ sf, data }) => {
             const targetFolder = sf.file_type === "building_photo" ? promelethFolder : egrafaFolder;
@@ -662,33 +416,36 @@ Deno.serve(async (req) => {
                 try {
                   const uploaded = await uploadFileToDrive(accessToken, sf.file_name, getMime(sf.file_name), data, targetFolder.id);
                   filesUploadedCount++;
-                  // Track inspection form images for PDF
-                  if (sf.file_type === "inspection_form" && !sf.file_name.endsWith(".pdf")) {
-                    return { driveFileId: uploaded.id, fileName: sf.file_name };
-                  }
                 } catch (e: any) {
                   console.error(`Drive upload failed for ${sf.file_name}: ${e.message}`);
                 }
                 return null;
               })
             );
-            for (const r of results) {
-              if (r) uploadedInspectionIds.push(r);
-            }
           }
 
-          // Generate PDF via Google Slides from uploaded inspection images
-          if (uploadedInspectionIds.length > 0) {
-            console.log(`Generating PDF via Google Slides from ${uploadedInspectionIds.length} inspection images`);
-            const pdfResult = await buildPdfViaGoogleSlides(
-              accessToken,
-              uploadedInspectionIds,
-              `Deltio_Autopsias_${sr_id}.pdf`,
-              egrafaFolder.id
-            );
-            if (pdfResult) {
-              inspectionPdfBytes = pdfResult.pdfBytes;
-              console.log(`PDF generated via Slides: ${(inspectionPdfBytes.length / 1024).toFixed(0)}KB`);
+          // Generate PDF locally with pdf-lib from inspection images, then upload to Drive
+          const inspectionImages = downloadedFiles
+            .filter(({ sf }) => sf.file_type === "inspection_form" && !sf.file_name.endsWith(".pdf"))
+            .map(({ sf, data }) => ({ fileName: sf.file_name, data }));
+
+          if (inspectionImages.length > 0) {
+            // Guard: skip if total image data exceeds 8MB to prevent CPU timeout
+            const totalImageSize = inspectionImages.reduce((s, i) => s + i.data.length, 0);
+            if (totalImageSize <= 8 * 1024 * 1024) {
+              console.log(`Building inspection PDF from ${inspectionImages.length} images (${(totalImageSize / 1024 / 1024).toFixed(1)}MB)`);
+              inspectionPdfBytes = await buildInspectionPdf(inspectionImages);
+              if (inspectionPdfBytes) {
+                // Upload PDF to Drive ΕΓΓΡΑΦΑ folder
+                try {
+                  await uploadFileToDrive(accessToken, `Deltio_Autopsias_${sr_id}.pdf`, "application/pdf", inspectionPdfBytes, egrafaFolder.id);
+                  console.log(`Uploaded inspection PDF to Drive ΕΓΓΡΑΦΑ`);
+                } catch (e: any) {
+                  console.error(`PDF Drive upload failed: ${e.message}`);
+                }
+              }
+            } else {
+              console.log(`Skipping PDF: inspection images too large (${(totalImageSize / 1024 / 1024).toFixed(1)}MB > 8MB)`);
             }
           }
 
@@ -720,7 +477,7 @@ Deno.serve(async (req) => {
     
     console.log(`Assignment ${sr_id} status → ${newAssignmentStatus}, Survey → ${newSurveyStatus}`);
 
-    // 5. Build ZIP from already-downloaded files + PDF from Drive, then send email
+    // 5. Send email with Google Drive folder link (no ZIP)
     let emailSent = false;
     const resendApiKey = Deno.env.get("RESEND_API_KEY");
 
@@ -739,55 +496,11 @@ Deno.serve(async (req) => {
     const recipients = toEmails.split(",").map((e: string) => e.trim()).filter(Boolean);
     const ccRecipients = ccEmails.split(",").map((e: string) => e.trim()).filter(Boolean);
 
+    // Free memory - no longer needed
+    downloadedFiles.length = 0;
+
     if (resendApiKey && recipients.length > 0) {
       try {
-        // Build ZIP entries from already-downloaded data (NO re-download!)
-        const zipFiles: { name: string; data: Uint8Array }[] = [];
-        let totalSize = 0;
-
-        for (const { sf, data } of downloadedFiles) {
-          const prefix = sf.file_type === "building_photo" ? "PROMELETI/" 
-            : sf.file_type === "screenshot" ? "EGRAFA/"
-            : sf.file_type === "inspection_form" ? "EGRAFA/"
-            : "";
-          zipFiles.push({ name: `${prefix}${sf.file_name}`, data });
-          totalSize += data.length;
-        }
-
-        // Add the PDF generated via Google Slides (if available)
-        if (inspectionPdfBytes) {
-          zipFiles.push({ name: `EGRAFA/Deltio_Autopsias_${sr_id}.pdf`, data: inspectionPdfBytes });
-          totalSize += inspectionPdfBytes.length;
-          console.log(`Added Slides-generated PDF to ZIP: ${(inspectionPdfBytes.length / 1024).toFixed(0)}KB`);
-        }
-
-        console.log(`ZIP: ${zipFiles.length} files, ${(totalSize / 1024 / 1024).toFixed(1)}MB`);
-
-        const zipData = await buildZip(zipFiles);
-        // Free memory
-        zipFiles.length = 0;
-        downloadedFiles.length = 0;
-
-        // Upload ZIP to storage
-        const zipFileName = `${sr_id}_survey_${Date.now()}.zip`;
-        const zipStoragePath = `zips/${zipFileName}`;
-        const { error: uploadErr } = await adminClient.storage
-          .from("surveys")
-          .upload(zipStoragePath, zipData, {
-            contentType: "application/zip",
-            upsert: true,
-          });
-
-        if (uploadErr) {
-          console.error("ZIP upload error:", uploadErr);
-        }
-
-        const { data: signedUrlData } = await adminClient.storage
-          .from("surveys")
-          .createSignedUrl(zipStoragePath, 60 * 60 * 24 * 7);
-
-        const zipUrl = signedUrlData?.signedUrl || "";
-
         const statusLabel = isComplete ? "ΠΡΟΔΕΣΜΕΥΣΗ ΥΛΙΚΩΝ" : "ΕΛΛΙΠΗΣ ΑΥΤΟΨΙΑ";
         const headerIcon = isComplete ? "📋" : "⚠️";
         const brandTeal = "#1a9a8a";
@@ -862,12 +575,12 @@ Deno.serve(async (req) => {
                 <p style="color: #dc2626; font-size: 14px; margin: 0;">${missingTypes.map(t => t === "building_photo" ? "Φωτογραφίες κτιρίου" : t === "screenshot" ? "Screenshots" : t === "inspection_form" ? "Έντυπο αυτοψίας" : t).join(", ")}</p>
               </div>` : ""}
 
-              ${zipUrl ? `
+              ${driveFolderUrl ? `
               <div style="text-align: center; margin: 24px 0;">
-                <a href="${zipUrl}" style="background: ${brandDark}; color: white; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-size: 14px; font-weight: 700; display: inline-block; letter-spacing: 0.3px;">📥 Λήψη Αρχείων (ZIP)</a>
+                <a href="${driveFolderUrl}" style="background: ${brandDark}; color: white; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-size: 14px; font-weight: 700; display: inline-block; letter-spacing: 0.3px;">📂 Άνοιγμα Φακέλου Google Drive</a>
               </div>
               <p style="color: ${textMuted}; font-size: 11px; text-align: center; margin-top: 4px;">
-                ${surveyFiles.length} αρχεία · Ισχύει για 7 ημέρες
+                ${surveyFiles.length} αρχεία στο φάκελο
               </p>` : ""}
 
               <p style="color: ${textSecondary}; font-size: 14px; line-height: 1.6; margin-top: 28px;">Με εκτίμηση,</p>
