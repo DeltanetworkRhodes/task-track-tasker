@@ -75,38 +75,45 @@ Deno.serve(async (req) => {
     const now = new Date().toLocaleString("el-GR", { timeZone: "Europe/Athens" });
 
     const htmlBody = `
-      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-        <div style="background: linear-gradient(135deg, #0d9488, #0891b2); border-radius: 12px; padding: 24px; color: white; text-align: center; margin-bottom: 24px;">
-          <h1 style="margin: 0; font-size: 22px;">✅ Δοκιμαστικό Email</h1>
-          <p style="margin: 8px 0 0; opacity: 0.9; font-size: 14px;">${orgName}</p>
+      <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f5f7fa;">
+        <div style="background: linear-gradient(135deg, #1a9a8a, #2d8a4e); border-radius: 12px 12px 0 0; padding: 24px 28px; color: white;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span style="font-size: 24px;">✅</span>
+            <div>
+              <h1 style="margin: 0; font-size: 20px; font-weight: 700; letter-spacing: 0.3px;">Δοκιμαστικό Email</h1>
+              <p style="margin: 4px 0 0; opacity: 0.85; font-size: 13px;">${orgName}</p>
+            </div>
+          </div>
         </div>
-        <div style="background: #f8fafc; border-radius: 12px; padding: 20px; border: 1px solid #e2e8f0;">
-          <p style="margin: 0 0 12px; font-size: 15px; color: #1e293b;">
+        <div style="background: white; border: 1px solid #d1d9e0; border-top: none; border-radius: 0 0 12px 12px; padding: 28px;">
+          <p style="margin: 0 0 12px; font-size: 15px; color: #1a2332;">
             Αυτό είναι ένα <strong>δοκιμαστικό email</strong> από την πλατφόρμα FTTH Operations.
           </p>
-          <p style="margin: 0 0 16px; font-size: 14px; color: #475569;">
+          <p style="margin: 0 0 20px; font-size: 14px; color: #4a5568;">
             Αν βλέπετε αυτό το μήνυμα, τα email σας λειτουργούν σωστά! 🎉
           </p>
-          <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
-            <tr>
-              <td style="padding: 8px 0; color: #64748b; border-top: 1px solid #e2e8f0;">Αποστολέας (From)</td>
-              <td style="padding: 8px 0; color: #1e293b; font-weight: 600; border-top: 1px solid #e2e8f0;">${emailFrom}</td>
-            </tr>
-            ${emailReplyTo ? `<tr>
-              <td style="padding: 8px 0; color: #64748b; border-top: 1px solid #e2e8f0;">Reply-To</td>
-              <td style="padding: 8px 0; color: #1e293b; font-weight: 600; border-top: 1px solid #e2e8f0;">${emailReplyTo}</td>
-            </tr>` : ""}
-            <tr>
-              <td style="padding: 8px 0; color: #64748b; border-top: 1px solid #e2e8f0;">Ημερομηνία</td>
-              <td style="padding: 8px 0; color: #1e293b; font-weight: 600; border-top: 1px solid #e2e8f0;">${now}</td>
-            </tr>
-            <tr>
-              <td style="padding: 8px 0; color: #64748b; border-top: 1px solid #e2e8f0;">Εταιρία</td>
-              <td style="padding: 8px 0; color: #1e293b; font-weight: 600; border-top: 1px solid #e2e8f0;">${orgName}</td>
-            </tr>
-          </table>
+          <div style="border-radius: 8px; overflow: hidden; border: 1px solid #d1d9e0;">
+            <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+              <tr>
+                <td style="padding: 10px 14px; background: #f0f4f8; border-bottom: 1px solid #d1d9e0; color: #718096; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">Αποστολέας (From)</td>
+                <td style="padding: 10px 14px; color: #1a2332; font-weight: 700; border-bottom: 1px solid #d1d9e0;">${emailFrom}</td>
+              </tr>
+              ${emailReplyTo ? `<tr>
+                <td style="padding: 10px 14px; background: #f0f4f8; border-bottom: 1px solid #d1d9e0; color: #718096; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">Reply-To</td>
+                <td style="padding: 10px 14px; color: #1a2332; font-weight: 700; border-bottom: 1px solid #d1d9e0;">${emailReplyTo}</td>
+              </tr>` : ""}
+              <tr>
+                <td style="padding: 10px 14px; background: #f0f4f8; border-bottom: 1px solid #d1d9e0; color: #718096; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">Ημερομηνία</td>
+                <td style="padding: 10px 14px; color: #1a2332; font-weight: 700; border-bottom: 1px solid #d1d9e0;">${now}</td>
+              </tr>
+              <tr>
+                <td style="padding: 10px 14px; background: #f0f4f8; color: #718096; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">Εταιρία</td>
+                <td style="padding: 10px 14px; color: #1a2332; font-weight: 700;">${orgName}</td>
+              </tr>
+            </table>
+          </div>
         </div>
-        <p style="text-align: center; font-size: 11px; color: #94a3b8; margin-top: 16px;">
+        <p style="text-align: center; font-size: 11px; color: #718096; margin-top: 16px;">
           Αυτό είναι αυτοματοποιημένο μήνυμα — δεν χρειάζεται απάντηση.
         </p>
       </div>

@@ -48,34 +48,39 @@ Deno.serve(async (req) => {
     }
 
     const rows = lowStockItems.map(item => `
-      <tr style="border-bottom: 1px solid #e5e7eb;">
-        <td style="padding: 10px 12px; font-family: monospace; font-weight: 600; color: #e4006e;">${escapeHtml(item.code)}</td>
-        <td style="padding: 10px 12px;">${escapeHtml(item.name)}</td>
-        <td style="padding: 10px 12px; text-align: right; font-family: monospace; font-weight: 700; color: ${Number(item.stock) < 50 ? '#dc2626' : '#f59e0b'};">
+      <tr style="border-bottom: 1px solid #e2e8f0;">
+        <td style="padding: 10px 14px; font-family: monospace; font-weight: 600; color: #1a9a8a;">${escapeHtml(item.code)}</td>
+        <td style="padding: 10px 14px; color: #1a2332;">${escapeHtml(item.name)}</td>
+        <td style="padding: 10px 14px; text-align: right; font-family: monospace; font-weight: 700; color: ${Number(item.stock) < 50 ? '#dc2626' : '#ea580c'};">
           ${Number(item.stock).toLocaleString('el-GR')} ${escapeHtml(item.unit)}
         </td>
       </tr>
     `).join('');
 
     const html = `
-      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto;">
-        <div style="background: linear-gradient(135deg, #e4006e, #00b140); padding: 24px 32px; border-radius: 12px 12px 0 0;">
-          <h1 style="color: white; margin: 0; font-size: 20px;">⚠️ Χαμηλά Αποθέματα OTE</h1>
-          <p style="color: rgba(255,255,255,0.85); margin: 4px 0 0; font-size: 13px;">${lowStockItems.length} υλικά κάτω από το όριο</p>
+      <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f5f7fa;">
+        <div style="background: linear-gradient(135deg, #ea580c, #dc2626); padding: 24px 28px; border-radius: 12px 12px 0 0;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span style="font-size: 24px;">⚠️</span>
+            <div>
+              <h1 style="color: white; margin: 0; font-size: 20px; font-weight: 700; letter-spacing: 0.3px;">Χαμηλά Αποθέματα OTE</h1>
+              <p style="color: rgba(255,255,255,0.85); margin: 4px 0 0; font-size: 13px;">${lowStockItems.length} υλικά κάτω από το όριο</p>
+            </div>
+          </div>
         </div>
-        <div style="border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 12px 12px; overflow: hidden;">
+        <div style="background: white; border: 1px solid #d1d9e0; border-top: none; border-radius: 0 0 12px 12px; overflow: hidden;">
           <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
             <thead>
-              <tr style="background: #f9fafb;">
-                <th style="padding: 10px 12px; text-align: left; font-size: 11px; text-transform: uppercase; color: #6b7280;">Κωδικός</th>
-                <th style="padding: 10px 12px; text-align: left; font-size: 11px; text-transform: uppercase; color: #6b7280;">Περιγραφή</th>
-                <th style="padding: 10px 12px; text-align: right; font-size: 11px; text-transform: uppercase; color: #6b7280;">Απόθεμα</th>
+              <tr style="background: #f0f4f8;">
+                <th style="padding: 10px 14px; text-align: left; font-size: 11px; text-transform: uppercase; color: #718096; letter-spacing: 0.5px; font-weight: 600;">Κωδικός</th>
+                <th style="padding: 10px 14px; text-align: left; font-size: 11px; text-transform: uppercase; color: #718096; letter-spacing: 0.5px; font-weight: 600;">Περιγραφή</th>
+                <th style="padding: 10px 14px; text-align: right; font-size: 11px; text-transform: uppercase; color: #718096; letter-spacing: 0.5px; font-weight: 600;">Απόθεμα</th>
               </tr>
             </thead>
             <tbody>${rows}</tbody>
           </table>
         </div>
-        <p style="color: #9ca3af; font-size: 11px; margin-top: 16px; text-align: center;">DeltaNet FTTH Ops — Αυτόματη ειδοποίηση αποθέματος</p>
+        <p style="color: #718096; font-size: 11px; margin-top: 16px; text-align: center;">DeltaNet FTTH Ops — Αυτόματη ειδοποίηση αποθέματος</p>
       </div>
     `;
 

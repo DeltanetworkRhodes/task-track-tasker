@@ -421,21 +421,23 @@ Deno.serve(async (req) => {
 
 
           ${zipDownloadUrl ? `
-          <div style="text-align: center; margin: 20px 0;">
-            <a href="${escapeHtml(zipDownloadUrl)}" style="background: #2563eb; color: white; padding: 12px 28px; border-radius: 6px; text-decoration: none; font-size: 14px; font-weight: bold; display: inline-block;">📥 Κατέβασε τα αρχεία (ZIP)</a>
+          <div style="text-align: center; margin: 24px 0;">
+            <a href="${escapeHtml(zipDownloadUrl)}" style="background: #1a2332; color: white; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-size: 14px; font-weight: 700; display: inline-block; letter-spacing: 0.3px;">📥 Λήψη Αρχείων (ZIP)</a>
           </div>
-          <p style="color: #9ca3af; font-size: 11px; text-align: center; margin-top: 4px;">
+          <p style="color: #718096; font-size: 11px; text-align: center; margin-top: 4px;">
             Φύλλο Απολογισμού & ${allPhotoCount} φωτογραφίες · Ισχύει για 7 ημέρες
           </p>
           ` : ""}
 
-          <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;" />
+          <p style="color: #4a5568; font-size: 14px; line-height: 1.7; margin-top: 28px;">Με εκτίμηση,</p>
+
+          <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 24px 0;" />
           
-          <div style="font-size: 12px; color: #6b7280;">
-            <img src="https://task-track-tasker.lovable.app/assets/delta-network-logo.png" alt="Delta Network Inc." style="width: 200px; margin-bottom: 12px; display: block;" />
-            <p style="margin: 0;"><strong>Κούλλαρος Μιχαήλ Άγγελος</strong></p>
-            <p style="margin: 2px 0;">Technical Operations Manager | FTTx Projects | South Aegean</p>
-            <p style="margin: 2px 0;">M: +30 690 710 5282 | E: info@deltanetwork.gr</p>
+          <div style="font-size: 12px; color: #718096;">
+            <img src="https://task-track-tasker.lovable.app/assets/delta-network-logo.png" alt="Delta Network Inc." style="width: 180px; margin-bottom: 12px; display: block;" />
+            <p style="margin: 0; font-weight: 700; color: #1a2332;">Κούλλαρος Μιχαήλ Άγγελος</p>
+            <p style="margin: 2px 0; color: #4a5568;">Technical Operations Manager | FTTx Projects | South Aegean</p>
+            <p style="margin: 2px 0;">M: +30 690 710 5282 | E: <a href="mailto:info@deltanetwork.gr" style="color: #1a9a8a; text-decoration: none;">info@deltanetwork.gr</a></p>
           </div>
         </div>
       </div>
