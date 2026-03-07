@@ -179,7 +179,7 @@ const UserCard = ({ profile: p, role, roleMap, isPending }: UserCardProps) => {
           </div>
         </div>
       ) : (
-        <div className="flex items-center justify-between pl-[52px]">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pl-0 sm:pl-[52px]">
           <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
             {p.email && (
               <span className="flex items-center gap-1"><Mail className="h-3 w-3" />{p.email}</span>
