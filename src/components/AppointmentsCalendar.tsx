@@ -187,7 +187,9 @@ const AppointmentsCalendar = ({ viewMode }: AppointmentsCalendarProps) => {
       const assignment = assignments.find((a) => a.id === createAssignmentId);
       if (!assignment) throw new Error("Δεν βρέθηκε η ανάθεση");
 
-      const appointmentAt = `${createDate}T${createHour}:00`;
+      // Create date in local timezone with explicit offset to avoid UTC conversion
+      const localDate = new Date(`${createDate}T${createHour}:00`);
+      const appointmentAt = localDate.toISOString();
       const { error } = await supabase.from("appointments").insert({
         sr_id: assignment.sr_id,
         appointment_at: appointmentAt,
@@ -226,7 +228,8 @@ const AppointmentsCalendar = ({ viewMode }: AppointmentsCalendarProps) => {
       if (!assignment) return;
 
       try {
-        const appointmentAt = `${dateKey}T09:00:00`;
+        const localDate = new Date(`${dateKey}T09:00:00`);
+        const appointmentAt = localDate.toISOString();
         const { error } = await supabase.from("appointments").insert({
           sr_id: assignment.sr_id,
           appointment_at: appointmentAt,
