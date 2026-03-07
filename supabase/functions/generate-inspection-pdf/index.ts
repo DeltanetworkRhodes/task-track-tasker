@@ -585,7 +585,7 @@ Deno.serve(async (req) => {
           }
         }
 
-        // 3) Find ΕΓΓΡΑΦΑ inside SR folder
+        // 3) Find/create ΕΓΓΡΑΦΑ inside SR folder
         if (!targetFolderId && parentFolderId) {
           const egrafaFolders = await driveSearch(
             accessToken,
@@ -600,9 +600,40 @@ Deno.serve(async (req) => {
               .update({ drive_egrafa_url: egrafaFolders[0].webViewLink || null })
               .eq("id", assignment_id);
           } else {
-            // Fallback: upload to parent SR folder
-            targetFolderId = parentFolderId;
+            // If SR folder exists but ΕΓΓΡΑΦΑ does not, create it
+            const createdEgrafa = await findOrCreateDriveFolder(accessToken, "ΕΓΓΡΑΦΑ", parentFolderId);
+            targetFolderId = createdEgrafa.id;
+
+            await adminClient
+              .from("assignments")
+              .update({ drive_egrafa_url: createdEgrafa.webViewLink || null })
+              .eq("id", assignment_id);
           }
+        }
+
+        // 4) Absolute fallback: create SR + ΕΓΓΡΑΦΑ folders by area root
+        if (!targetFolderId && sr_id) {
+          const areaText = String(area || "").toUpperCase();
+          const areaRootId = areaText.includes("ΚΩ")
+            ? "1X1mtK4tV_sgGM9IdizNSK7AS19qX1nYl" // ΚΩΣ
+            : "1JvcSG3tiOplSujXhb3yj_ELQLjfrgOzO"; // ΡΟΔΟΣ (default)
+
+          const createdSrFolder = await findOrCreateDriveFolder(accessToken, String(sr_id), areaRootId);
+          const createdEgrafa = await findOrCreateDriveFolder(accessToken, "ΕΓΓΡΑΦΑ", createdSrFolder.id);
+
+          parentFolderId = createdSrFolder.id;
+          parentFolderUrl = createdSrFolder.webViewLink || "";
+          targetFolderId = createdEgrafa.id;
+
+          await adminClient
+            .from("assignments")
+            .update({
+              drive_folder_url: parentFolderUrl || null,
+              drive_egrafa_url: createdEgrafa.webViewLink || null,
+            })
+            .eq("id", assignment_id);
+
+          console.log(`Created fallback Drive folders for SR ${sr_id}`);
         }
 
         if (!targetFolderId) {
