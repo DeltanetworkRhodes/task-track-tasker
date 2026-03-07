@@ -68,7 +68,17 @@ const AppSidebar = ({ onClose }: AppSidebarProps) => {
             >
               <item.icon className={`h-[18px] w-[18px] shrink-0 ${isActive ? 'text-white' : ''}`} />
               {item.label}
-              {isActive && (
+              {item.to === '/construction' && activeConstructions > 0 && (
+                <span className={`ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+                  isActive ? 'bg-white/20 text-white' : 'bg-primary/10 text-primary'
+                }`}>
+                  {activeConstructions}
+                </span>
+              )}
+              {isActive && item.to !== '/construction' && (
+                <div className="ml-auto h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
+              )}
+              {isActive && item.to === '/construction' && activeConstructions === 0 && (
                 <div className="ml-auto h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
               )}
             </Link>
