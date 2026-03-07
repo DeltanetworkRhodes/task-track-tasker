@@ -189,8 +189,21 @@ async function getTargetParentFolder(
   return { folderId: targetFolder.id, folderType: targetName };
 }
 
-// ─── Google Slides PDF generation (zero local CPU) ──────────────────
+// ─── Cleanup temporary public permissions ───────────────────────────
+async function cleanupPermissions(accessToken: string, permissionIds: string[]) {
+  for (const entry of permissionIds) {
+    const [fileId, permId] = entry.split(":");
+    try {
+      const res = await fetch(
+        `https://www.googleapis.com/drive/v3/files/${fileId}/permissions/${permId}?supportsAllDrives=true`,
+        { method: "DELETE", headers: { Authorization: `Bearer ${accessToken}` } }
+      );
+      if (!res.ok) await res.text();
+    } catch { /* ignore */ }
+  }
+}
 
+// ─── Google Slides PDF generation (zero local CPU) ──────────────────
 async function buildPdfViaGoogleSlides(
   accessToken: string,
   imageFiles: { driveFileId: string; fileName: string }[],
