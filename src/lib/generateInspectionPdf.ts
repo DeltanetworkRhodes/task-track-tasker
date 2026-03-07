@@ -223,6 +223,10 @@ async function processField(
 // --------------- main export ---------------
 let cachedMapping: PdfMapping | null = null;
 
+export function clearMappingCache() {
+  cachedMapping = null;
+}
+
 async function loadMapping(): Promise<PdfMapping> {
   if (cachedMapping) return cachedMapping;
   const resp = await fetch(`/templates/pdf-mapping.json?v=${Date.now()}`);
