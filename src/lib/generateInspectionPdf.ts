@@ -21,7 +21,7 @@ function drawCheckbox(page: any, checked: boolean, label: string, x: number, y: 
     color: checked ? rgb(0.1, 0.6, 0.54) : rgb(1, 1, 1),
   });
   if (checked) {
-    page.drawText("✓", { x: x + 1.5, y: y - 0.5, size: 8, font, color: rgb(1, 1, 1) });
+    page.drawText("V", { x: x + 2, y, size: 7, font, color: rgb(1, 1, 1) });
   }
   page.drawText(label, { x: x + boxSize + 4, y, size: 8, font, color: rgb(0.1, 0.14, 0.2) });
 }
