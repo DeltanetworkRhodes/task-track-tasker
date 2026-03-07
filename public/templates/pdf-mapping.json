@@ -262,6 +262,18 @@
           "y": 607
         },
         {
+          "key": "pipe_placement",
+          "type": "check",
+          "x": 310,
+          "y": 590
+        },
+        {
+          "key": "excavation_to_building",
+          "type": "check",
+          "x": 312,
+          "y": 575
+        },
+        {
           "key": "bep_position",
           "type": "check_map",
           "map": {
