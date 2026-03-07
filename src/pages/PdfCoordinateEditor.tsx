@@ -449,11 +449,12 @@ const PdfCoordinateEditor = () => {
       
       const pdfBytes = await genPdf(PREVIEW_SAMPLE_DATA, mapping);
       
-      if (previewUrl) URL.revokeObjectURL(previewUrl);
-      
       const blob = new Blob([new Uint8Array(pdfBytes)], { type: "application/pdf" });
-      setPreviewUrl(URL.createObjectURL(blob));
-      toast.success("Preview PDF δημιουργήθηκε!");
+      const url = URL.createObjectURL(blob);
+      
+      // Open in new tab instead of iframe (avoids Chrome CSP blocking)
+      window.open(url, "_blank");
+      toast.success("Preview PDF άνοιξε σε νέα καρτέλα!");
     } catch (err) {
       console.error("Preview error:", err);
       toast.error("Σφάλμα δημιουργίας preview: " + (err as Error).message);
