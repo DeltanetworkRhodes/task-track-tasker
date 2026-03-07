@@ -185,6 +185,23 @@ const OrgSettings = () => {
     }
   };
 
+  const handleSendTestEmail = async () => {
+    if (!organizationId) return;
+    setSendingTestEmail(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("send-test-email", {
+        body: { organization_id: organizationId },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast.success(`Δοκιμαστικό email στάλθηκε στο ${data.to}`);
+    } catch (err: any) {
+      toast.error(err.message || "Αποτυχία αποστολής δοκιμαστικού email");
+    } finally {
+      setSendingTestEmail(false);
+    }
+  };
+
   const addAreaFolder = () => {
     if (!newArea.trim() || !newFolderId.trim()) return;
     setAreaFolders([...areaFolders, { area: newArea.trim().toUpperCase(), folderId: newFolderId.trim() }]);
