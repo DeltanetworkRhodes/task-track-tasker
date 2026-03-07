@@ -544,8 +544,8 @@ const PdfCoordinateEditor = () => {
                   <div
                     className="flex items-center justify-center transition-transform"
                     style={{
-                      width: 16,
-                      height: 16,
+                      width: 22,
+                      height: 22,
                       borderRadius: "50%",
                       border: `2px solid ${item.color}`,
                       backgroundColor: isSelected ? `${item.color}30` : "transparent",
