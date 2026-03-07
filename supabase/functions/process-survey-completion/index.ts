@@ -626,35 +626,100 @@ Deno.serve(async (req) => {
         const zipUrl = signedUrlData?.signedUrl || "";
 
         const statusLabel = isComplete ? "ΠΡΟΔΕΣΜΕΥΣΗ ΥΛΙΚΩΝ" : "ΕΛΛΙΠΗΣ ΑΥΤΟΨΙΑ";
-        const statusColor = isComplete ? "#2e7d32" : "#e65100";
+        const headerColor = isComplete ? "#2563eb" : "#ea580c";
+        const headerIcon = isComplete ? "📋" : "⚠️";
+        const labelBgColor = isComplete ? "#f0f9ff" : "#fff7ed";
+        const labelBorderColor = isComplete ? "#bfdbfe" : "#fed7aa";
+        const labelTextColor = isComplete ? "#1e40af" : "#9a3412";
+
+        const emailFrom = emailSettingsMap["email_from"] || "noreply@deltanetwork.gr";
+        const emailReplyTo = emailSettingsMap["email_reply_to"] || "info@deltanetwork.gr";
 
         const emailHtml = `
-          <div style="font-family:Arial,sans-serif;padding:20px;">
-            <h2 style="color:#1a73e8;">Αυτοψία - ${escapeHtml(sr_id)}</h2>
-            <div style="display:inline-block;padding:4px 12px;border-radius:4px;background:${statusColor};color:#fff;font-weight:bold;margin-bottom:16px;">
-              ${statusLabel}
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <div style="background: ${headerColor}; color: white; padding: 16px 24px; border-radius: 8px 8px 0 0;">
+              <h2 style="margin: 0; font-size: 18px;">${headerIcon} ${escapeHtml(statusLabel)} — SR: ${escapeHtml(sr_id)}</h2>
+              <p style="margin: 4px 0 0; font-size: 13px; opacity: 0.9;">Περιοχή: ${escapeHtml(area)}</p>
             </div>
-            <table style="border-collapse:collapse;margin:16px 0;">
-              <tr><td style="padding:4px 12px 4px 0;font-weight:bold;">SR ID:</td><td>${escapeHtml(sr_id)}</td></tr>
-              <tr><td style="padding:4px 12px 4px 0;font-weight:bold;">Πελάτης:</td><td>${escapeHtml(customerName)}</td></tr>
-              <tr><td style="padding:4px 12px 4px 0;font-weight:bold;">Διεύθυνση:</td><td>${escapeHtml(address) || "—"}</td></tr>
-              <tr><td style="padding:4px 12px 4px 0;font-weight:bold;">Τηλέφωνο:</td><td>${escapeHtml(phone) || "—"}</td></tr>
-              <tr><td style="padding:4px 12px 4px 0;font-weight:bold;">Περιοχή:</td><td>${escapeHtml(area)}</td></tr>
-              <tr><td style="padding:4px 12px 4px 0;font-weight:bold;">Τεχνικός:</td><td>${escapeHtml(technicianName)}</td></tr>
-              <tr><td style="padding:4px 12px 4px 0;font-weight:bold;">Αρχεία:</td><td>${surveyFiles.length} αρχεία</td></tr>
-              ${!isComplete ? `<tr><td style="padding:4px 12px 4px 0;font-weight:bold;color:${statusColor};">Λείπουν:</td><td style="color:${statusColor};">${missingTypes.join(", ")}</td></tr>` : ""}
-              ${driveFolderUrl ? `<tr><td style="padding:4px 12px 4px 0;font-weight:bold;">Drive:</td><td><a href="${driveFolderUrl}">Άνοιγμα φακέλου</a></td></tr>` : ""}
-            </table>
-            ${zipUrl ? `<p><a href="${zipUrl}" style="display:inline-block;padding:10px 20px;background:#1a73e8;color:#fff;border-radius:6px;text-decoration:none;font-weight:bold;">📥 Λήψη αρχείων (ZIP)</a></p>` : ""}
-            ${skippedFiles > 0 ? `<p style="color:#999;font-size:12px;">⚠️ ${skippedFiles} αρχεία παραλείφθηκαν λόγω μεγέθους. Δείτε τα στο Google Drive.</p>` : ""}
-            <p style="color:#666;font-size:13px;">Ο σύνδεσμος ZIP ισχύει για 7 ημέρες.</p>
+            
+            <div style="border: 1px solid #e5e7eb; border-top: none; padding: 24px; border-radius: 0 0 8px 8px;">
+              <p style="color: #374151; font-size: 14px; line-height: 1.6;">Αξιότιμοι συνεργάτες,</p>
+              <p style="color: #374151; font-size: 14px; line-height: 1.6;">
+                Σας ενημερώνουμε ότι ολοκληρώθηκε η αυτοψία για το <strong>SR: ${escapeHtml(sr_id)}</strong>${isComplete ? " και απαιτείται προδέσμευση υλικών." : ". Η αυτοψία είναι ελλιπής."}
+              </p>
+              
+              <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
+                <tr>
+                  <td style="padding: 8px 12px; background: ${labelBgColor}; border: 1px solid ${labelBorderColor}; font-size: 13px; color: ${labelTextColor}; width: 120px;">SR ID</td>
+                  <td style="padding: 8px 12px; border: 1px solid #e5e7eb; font-size: 14px; font-weight: bold;">${escapeHtml(sr_id)}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px 12px; background: ${labelBgColor}; border: 1px solid ${labelBorderColor}; font-size: 13px; color: ${labelTextColor};">Περιοχή</td>
+                  <td style="padding: 8px 12px; border: 1px solid #e5e7eb; font-size: 14px;">${escapeHtml(area)}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px 12px; background: ${labelBgColor}; border: 1px solid ${labelBorderColor}; font-size: 13px; color: ${labelTextColor};">Πελάτης</td>
+                  <td style="padding: 8px 12px; border: 1px solid #e5e7eb; font-size: 14px;">${escapeHtml(customerName || "—")}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px 12px; background: ${labelBgColor}; border: 1px solid ${labelBorderColor}; font-size: 13px; color: ${labelTextColor};">Διεύθυνση</td>
+                  <td style="padding: 8px 12px; border: 1px solid #e5e7eb; font-size: 14px;">${escapeHtml(address || "—")}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px 12px; background: ${labelBgColor}; border: 1px solid ${labelBorderColor}; font-size: 13px; color: ${labelTextColor};">Τηλέφωνο</td>
+                  <td style="padding: 8px 12px; border: 1px solid #e5e7eb; font-size: 14px;">${escapeHtml(phone || "—")}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px 12px; background: ${labelBgColor}; border: 1px solid ${labelBorderColor}; font-size: 13px; color: ${labelTextColor};">Τεχνικός</td>
+                  <td style="padding: 8px 12px; border: 1px solid #e5e7eb; font-size: 14px;">${escapeHtml(technicianName)}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px 12px; background: ${labelBgColor}; border: 1px solid ${labelBorderColor}; font-size: 13px; color: ${labelTextColor};">Αρχεία</td>
+                  <td style="padding: 8px 12px; border: 1px solid #e5e7eb; font-size: 14px;">${surveyFiles.length} αρχεία</td>
+                </tr>
+                ${!isComplete ? `
+                <tr>
+                  <td style="padding: 8px 12px; background: #fef2f2; border: 1px solid #fecaca; font-size: 13px; color: #991b1b;">Λείπουν</td>
+                  <td style="padding: 8px 12px; border: 1px solid #e5e7eb; font-size: 14px; color: #dc2626;">${missingTypes.join(", ")}</td>
+                </tr>` : ""}
+              </table>
+
+              ${driveFolderUrl ? `
+              <div style="background: #f0f9ff; border-left: 4px solid #2563eb; padding: 12px 16px; margin: 16px 0; border-radius: 0 8px 8px 0;">
+                <p style="font-weight: bold; color: #1f2937; font-size: 13px; margin: 0 0 6px;">📁 Φάκελος Google Drive:</p>
+                <a href="${driveFolderUrl}" style="color: #2563eb; font-size: 14px;">${escapeHtml(driveFolderUrl)}</a>
+              </div>` : ""}
+
+              ${zipUrl ? `
+              <div style="text-align: center; margin: 20px 0;">
+                <a href="${zipUrl}" style="background: #2563eb; color: white; padding: 12px 28px; border-radius: 6px; text-decoration: none; font-size: 14px; font-weight: bold; display: inline-block;">📥 Κατέβασε τα αρχεία (ZIP)</a>
+              </div>
+              <p style="color: #9ca3af; font-size: 11px; text-align: center; margin-top: 4px;">
+                ${surveyFiles.length} αρχεία · Ισχύει για 7 ημέρες
+              </p>` : ""}
+
+              ${skippedFiles > 0 ? `
+              <p style="color: #ea580c; font-size: 12px; margin-top: 8px;">⚠️ ${skippedFiles} αρχεία παραλείφθηκαν λόγω μεγέθους. Δείτε τα στο Google Drive.</p>` : ""}
+              
+              <p style="color: #374151; font-size: 14px; line-height: 1.6; margin-top: 24px;">Με εκτίμηση,</p>
+              
+              <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;" />
+              
+              <div style="font-size: 12px; color: #6b7280;">
+                <img src="https://task-track-tasker.lovable.app/assets/delta-network-logo.png" alt="Delta Network Inc." style="width: 200px; margin-bottom: 12px; display: block;" />
+                <p style="margin: 0;"><strong>Κούλλαρος Μιχαήλ Άγγελος</strong></p>
+                <p style="margin: 2px 0;">Technical Operations Manager | FTTx Projects | South Aegean</p>
+                <p style="margin: 2px 0;">M: +30 690 710 5282 | E: info@deltanetwork.gr</p>
+              </div>
+            </div>
           </div>
         `;
 
         const emailPayload: any = {
-          from: `DeltaNet FTTH <${emailSettingsMap["email_from"] || "onboarding@resend.dev"}>`,
+          from: `DeltaNet FTTH <${emailFrom}>`,
           to: recipients,
-          subject: `Αυτοψία ${sr_id} - ${customerName} - ${statusLabel}`,
+          reply_to: emailReplyTo,
+          subject: `[${escapeHtml(statusLabel)}] Αυτοψία SR: ${sr_id} — ${area}`,
           html: emailHtml,
         };
 
