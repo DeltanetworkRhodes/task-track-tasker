@@ -429,10 +429,10 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
                 size="sm"
                 variant="outline"
                 className="flex-1 gap-2 border-primary/30 text-primary hover:bg-primary/10"
-                onClick={() => setShowInspectionReport(true)}
+                onClick={() => setShowSurveyForm(true)}
               >
                 <FileEdit className="h-4 w-4" />
-                Δελτίο Αυτοψίας
+                Αρχεία Αυτοψίας
               </Button>
               <Button
                 size="sm"
