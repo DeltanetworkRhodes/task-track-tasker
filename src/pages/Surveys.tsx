@@ -410,8 +410,8 @@ const Surveys = () => {
         )}
 
         {/* Filters */}
-        <div className="flex flex-wrap gap-3">
-          <div className="relative flex-1 min-w-[200px] max-w-sm">
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+          <div className="relative flex-1 min-w-0">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Αναζήτηση SR ID..."
@@ -420,34 +420,36 @@ const Surveys = () => {
               className="pl-9"
             />
           </div>
-          <Select value={areaFilter} onValueChange={setAreaFilter}>
-            <SelectTrigger className="w-[160px]">
-              <Filter className="h-4 w-4 mr-2 text-muted-foreground" />
-              <SelectValue placeholder="Περιοχή" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Όλες</SelectItem>
-              <SelectItem value="ΡΟΔΟΣ">ΡΟΔΟΣ</SelectItem>
-              <SelectItem value="ΚΩΣ">ΚΩΣ</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[220px]">
-              <SelectValue placeholder="Κατάσταση" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Όλες οι καταστάσεις</SelectItem>
-              <SelectItem value="ΠΡΟΔΕΣΜΕΥΣΗ ΥΛΙΚΩΝ">Προδέσμευση Υλικών</SelectItem>
-              <SelectItem value="ΕΛΛΙΠΗΣ ΑΥΤΟΨΙΑ">Ελλιπής Αυτοψία</SelectItem>
-              <SelectItem value="ΑΠΑΙΤΕΙΤΑΙ ΕΝΕΡΓΕΙΑ">Απαιτείται Ενέργεια</SelectItem>
-              <SelectItem value="BLOCKER">Blocker</SelectItem>
-              <SelectItem value="ΡΑΝΤΕΒΟΥ">Ραντεβού</SelectItem>
-              <SelectItem value="submitted">Υποβλήθηκε</SelectItem>
-            </SelectContent>
-          </Select>
-          <span className="text-xs text-muted-foreground font-bold self-center bg-muted px-2.5 py-1.5 rounded-full">
-            {filtered.length} / {totalSurveys}
-          </span>
+          <div className="flex gap-2 overflow-x-auto">
+            <Select value={areaFilter} onValueChange={setAreaFilter}>
+              <SelectTrigger className="w-[130px] sm:w-[160px] shrink-0">
+                <Filter className="h-4 w-4 mr-2 text-muted-foreground" />
+                <SelectValue placeholder="Περιοχή" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Όλες</SelectItem>
+                <SelectItem value="ΡΟΔΟΣ">ΡΟΔΟΣ</SelectItem>
+                <SelectItem value="ΚΩΣ">ΚΩΣ</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-[160px] sm:w-[220px] shrink-0">
+                <SelectValue placeholder="Κατάσταση" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Όλες οι καταστάσεις</SelectItem>
+                <SelectItem value="ΠΡΟΔΕΣΜΕΥΣΗ ΥΛΙΚΩΝ">Προδέσμευση Υλικών</SelectItem>
+                <SelectItem value="ΕΛΛΙΠΗΣ ΑΥΤΟΨΙΑ">Ελλιπής Αυτοψία</SelectItem>
+                <SelectItem value="ΑΠΑΙΤΕΙΤΑΙ ΕΝΕΡΓΕΙΑ">Απαιτείται Ενέργεια</SelectItem>
+                <SelectItem value="BLOCKER">Blocker</SelectItem>
+                <SelectItem value="ΡΑΝΤΕΒΟΥ">Ραντεβού</SelectItem>
+                <SelectItem value="submitted">Υποβλήθηκε</SelectItem>
+              </SelectContent>
+            </Select>
+            <span className="text-xs text-muted-foreground font-bold self-center bg-muted px-2.5 py-1.5 rounded-full whitespace-nowrap shrink-0">
+              {filtered.length} / {totalSurveys}
+            </span>
+          </div>
         </div>
 
         {/* Table */}
