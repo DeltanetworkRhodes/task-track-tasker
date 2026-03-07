@@ -35,13 +35,12 @@ const SurveyForm = ({ assignments, prefillSrId, prefillArea, onComplete }: Props
   const [comments, setComments] = useState("");
   const [buildingPhotos, setBuildingPhotos] = useState<FileUpload[]>([]);
   const [screenshots, setScreenshots] = useState<FileUpload[]>([]);
-  const [inspectionPhotos, setInspectionPhotos] = useState<FileUpload[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
   const buildingRef = useRef<HTMLInputElement>(null);
   const screenshotRef = useRef<HTMLInputElement>(null);
-  const inspectionRef = useRef<HTMLInputElement>(null);
+  
 
   const handleFiles = (
     files: FileList | null,
@@ -94,8 +93,8 @@ const SurveyForm = ({ assignments, prefillSrId, prefillArea, onComplete }: Props
 
     setSubmitting(true);
     try {
-      // Auto-detect completeness
-      const hasAllFiles = buildingPhotos.length > 0 && screenshots.length > 0 && inspectionPhotos.length > 0;
+      // Auto-detect completeness (inspection_form no longer required — generated as PDF)
+      const hasAllFiles = buildingPhotos.length > 0 && screenshots.length > 0;
       const autoStatus = hasAllFiles ? "ΠΡΟΔΕΣΜΕΥΣΗ ΥΛΙΚΩΝ" : "ΕΛΛΙΠΗΣ ΑΥΤΟΨΙΑ";
 
       // Create survey record
@@ -118,7 +117,6 @@ const SurveyForm = ({ assignments, prefillSrId, prefillArea, onComplete }: Props
       const allFiles = [
         ...(await uploadFiles(buildingPhotos, survey.id, "building_photo")),
         ...(await uploadFiles(screenshots, survey.id, "screenshot")),
-        ...(await uploadFiles(inspectionPhotos, survey.id, "inspection_form")),
       ];
 
       // Save file records
@@ -174,7 +172,7 @@ const SurveyForm = ({ assignments, prefillSrId, prefillArea, onComplete }: Props
       }
 
       // Cleanup previews
-      [...buildingPhotos, ...screenshots, ...inspectionPhotos].forEach((f) =>
+      [...buildingPhotos, ...screenshots].forEach((f) =>
         URL.revokeObjectURL(f.preview)
       );
 
@@ -185,7 +183,6 @@ const SurveyForm = ({ assignments, prefillSrId, prefillArea, onComplete }: Props
         setComments("");
         setBuildingPhotos([]);
         setScreenshots([]);
-        setInspectionPhotos([]);
         setSubmitted(false);
       }, 3000);
 
@@ -266,16 +263,6 @@ const SurveyForm = ({ assignments, prefillSrId, prefillArea, onComplete }: Props
         accept="image/*"
       />
 
-      {/* ΦΩΤΟΓΡΑΦΙΑ ΕΝΤΥΠΟΥ */}
-      <FileUploadSection
-        label="Φωτογραφία Εντύπου Αυτοψίας"
-        files={inspectionPhotos}
-        inputRef={inspectionRef}
-        onAdd={(files) => handleFiles(files, setInspectionPhotos, inspectionPhotos)}
-        onRemove={(i) => removeFile(i, setInspectionPhotos, inspectionPhotos)}
-        accept="image/*"
-        capture
-      />
 
       {/* ΣΧΟΛΙΑ */}
       <Card className="p-4 space-y-3">

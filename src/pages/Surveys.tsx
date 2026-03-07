@@ -24,13 +24,11 @@ import {
 const fileTypeLabels: Record<string, string> = {
   building_photo: "Φωτογραφία Κτιρίου",
   screenshot: "Screenshot (ΧΕΜΔ/AutoCAD)",
-  inspection_form: "Έντυπο Αυτοψίας",
 };
 
 const fileTypeIcons: Record<string, typeof FileImage> = {
   building_photo: Image,
   screenshot: FileImage,
-  inspection_form: FileText,
 };
 
 const statusConfig: Record<string, { label: string; color: string; icon: typeof CheckCircle; chartColor: string }> = {

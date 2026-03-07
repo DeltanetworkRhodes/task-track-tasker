@@ -31,7 +31,7 @@ const areaRootFolders: Record<string, string> = {
   "ΚΩΣ": "1X1mtK4tV_sgGM9IdizNSK7AS19qX1nYl",
 };
 
-const REQUIRED_FILE_TYPES = ["building_photo", "screenshot", "inspection_form"];
+const REQUIRED_FILE_TYPES = ["building_photo", "screenshot"];
 
 
 // ─── Google Drive helpers ────────────────────────────────────────────
@@ -572,7 +572,7 @@ Deno.serve(async (req) => {
               ${!isComplete ? `
               <div style="background: #fef2f2; border-left: 4px solid #dc2626; padding: 14px 18px; margin: 20px 0; border-radius: 0 8px 8px 0;">
                 <p style="font-weight: 700; color: #991b1b; font-size: 13px; margin: 0 0 6px;">⚠️ Ελλιπή Αρχεία</p>
-                <p style="color: #dc2626; font-size: 14px; margin: 0;">${missingTypes.map(t => t === "building_photo" ? "Φωτογραφίες κτιρίου" : t === "screenshot" ? "Screenshots" : t === "inspection_form" ? "Έντυπο αυτοψίας" : t).join(", ")}</p>
+                <p style="color: #dc2626; font-size: 14px; margin: 0;">${missingTypes.map(t => t === "building_photo" ? "Φωτογραφίες κτιρίου" : t === "screenshot" ? "Screenshots" : t).join(", ")}</p>
               </div>` : ""}
 
               ${driveFolderUrl ? `
