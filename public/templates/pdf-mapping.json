@@ -263,7 +263,7 @@
         },
         {
           "key": "bep_position",
-          "type": "check_map",
+          "type": "check_map_multi",
           "map": {
             "internal": {
               "x": 88,

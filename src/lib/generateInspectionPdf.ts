@@ -159,6 +159,15 @@ async function processField(
       if (coord) drawCheck(page, coord.x, coord.y, boldFont, defaults.checkSize);
       break;
     }
+    case "check_map_multi": {
+      // Support comma-separated multi-values
+      const values = val ? String(val).split(",").map((v: string) => v.trim()) : [];
+      for (const v of values) {
+        const coord = field.map?.[v];
+        if (coord) drawCheck(page, coord.x, coord.y, boldFont, defaults.checkSize);
+      }
+      break;
+    }
     case "floor_check": {
       const normalized = normalizeFloor(val);
       const coord = field.map?.[normalized];
