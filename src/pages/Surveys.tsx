@@ -182,18 +182,6 @@ const Surveys = () => {
     queryClient.invalidateQueries({ queryKey: ["appointments"] });
   };
 
-  const handleSaveSettings = async () => {
-    const updates = [
-      { setting_key: "report_to_emails", setting_value: toEmails },
-      { setting_key: "report_cc_emails", setting_value: ccEmails },
-    ];
-    for (const u of updates) {
-      await supabase.from("email_settings").upsert(u, { onConflict: "setting_key" });
-    }
-    toast.success("Ρυθμίσεις αποθηκεύτηκαν");
-    queryClient.invalidateQueries({ queryKey: ["email-settings"] });
-    setShowSettings(false);
-  };
 
   const handleSendReminder = async (survey: any) => {
     setSendingReminder(true);
