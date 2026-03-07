@@ -186,29 +186,6 @@ function crc32(data: Uint8Array): number {
 
 
 
-  // Use DecompressionStream/CompressionStream unavailable for raw deflate,
-  // so we use the "deflate" format and strip the 2-byte header and 4-byte trailer
-  const cs = new CompressionStream("deflate");
-  const writer = cs.writable.getWriter();
-  writer.write(data);
-  writer.close();
-  const reader = cs.readable.getReader();
-  const chunks: Uint8Array[] = [];
-  let totalLen = 0;
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    chunks.push(value);
-    totalLen += value.length;
-  }
-  const full = new Uint8Array(totalLen);
-  let pos = 0;
-  for (const c of chunks) { full.set(c, pos); pos += c.length; }
-  // Strip zlib header (2 bytes) and adler32 checksum (4 bytes) to get raw deflate
-  return full.subarray(2, full.length - 4);
-}
-
-async function buildZip(files: { name: string; data: Uint8Array }[]): Promise<Uint8Array> {
   // STORE only (no compression) to minimize CPU usage
   const entries: { name: Uint8Array; dataLen: number; crc: number; offset: number }[] = [];
   const parts: Uint8Array[] = [];
