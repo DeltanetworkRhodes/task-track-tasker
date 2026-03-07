@@ -1,0 +1,163 @@
+{
+  "template": "inspection_template.pdf",
+  "version": "1.0.0",
+  "pages": {
+    "1": {
+      "title": "Στοιχεία Πελάτη / Διαχειριστή / Τεχν. Υπηρεσίας",
+      "fields": [
+        { "key": "customer_name",           "type": "text",  "x": 185, "y": 664, "size": 8.5, "maxWidth": 250 },
+        { "key": "customer_father_name",    "type": "text",  "x": 466, "y": 664, "size": 8.5, "maxWidth": 100 },
+        { "key": "customer_mobile",         "type": "text",  "x": 172, "y": 629, "size": 8.5, "maxWidth": 200 },
+        { "key": "customer_phone",          "type": "text",  "x": 176, "y": 594, "size": 8.5, "maxWidth": 200 },
+        { "key": "customer_email",          "type": "text",  "x": 82,  "y": 560, "size": 8.5, "maxWidth": 400 },
+        { "key": "customer_street",         "type": "text",  "x": 72,  "y": 512, "size": 8.5, "maxWidth": 200 },
+        { "key": "customer_number",         "type": "text",  "x": 292, "y": 512, "size": 8.5, "maxWidth": 60 },
+        { "key": "customer_postal_code",    "type": "boxed", "x": 385, "y": 512, "size": 8, "boxWidth": 13.5, "boxCount": 5 },
+        { "key": "customer_floor",          "type": "text",  "x": 92,  "y": 478, "size": 8.5, "maxWidth": 120 },
+        { "key": "customer_apartment_code", "type": "text",  "x": 250, "y": 478, "size": 8.5, "maxWidth": 100 },
+        { "key": "customer_county",         "type": "text",  "x": 368, "y": 478, "size": 8.5, "maxWidth": 90 },
+        { "key": "customer_municipality",   "type": "text",  "x": 470, "y": 478, "size": 8.5, "maxWidth": 100 },
+        { "key": "customer_notes",          "type": "wrapped", "x": 35, "y": 430, "size": 8, "maxWidth": 520, "lineHeight": 12, "maxLines": 6 },
+        { "key": "manager_name",            "type": "text",  "x": 170, "y": 307, "size": 8.5, "maxWidth": 300 },
+        { "key": "manager_mobile",          "type": "text",  "x": 214, "y": 274, "size": 8.5, "maxWidth": 200 },
+        { "key": "manager_email",           "type": "text",  "x": 82,  "y": 240, "size": 8.5, "maxWidth": 400 },
+        { "key": "service_address",         "type": "text",  "x": 190, "y": 184, "size": 8.5, "maxWidth": 350 },
+        { "key": "service_phone",           "type": "text",  "x": 224, "y": 151, "size": 8.5, "maxWidth": 200 },
+        { "key": "service_email",           "type": "text",  "x": 82,  "y": 119, "size": 8.5, "maxWidth": 400 },
+        { "key": "technician_name",         "type": "text",  "x": 350, "y": 85,  "size": 8.5, "maxWidth": 200 }
+      ]
+    },
+    "2": {
+      "title": "Τεχνική Περιγραφή – Επιθεώρηση",
+      "fields": [
+        { "key": "routing_escalit",       "type": "check", "x": 123, "y": 730 },
+        { "key": "routing_external_pipe", "type": "check", "x": 311, "y": 730 },
+        { "key": "routing_aerial",        "type": "check", "x": 427, "y": 730 },
+        { "key": "routing_other",         "type": "check", "x": 542, "y": 730 },
+        { "key": "routing_other_text",    "type": "text",  "x": 468, "y": 707, "size": 7, "maxWidth": 90, "sourceKey": "routing_other" },
+
+        { "key": "excavation_to_pipe_yes", "type": "check_if", "x": 132, "y": 657, "sourceKey": "excavation_to_pipe", "match": true },
+        { "key": "excavation_to_pipe_no",  "type": "check_if", "x": 172, "y": 657, "sourceKey": "excavation_to_pipe", "match": false },
+        { "key": "excavation_to_rg_yes",   "type": "check_if", "x": 332, "y": 657, "sourceKey": "excavation_to_rg",   "match": true },
+        { "key": "excavation_to_rg_no",    "type": "check_if", "x": 374, "y": 657, "sourceKey": "excavation_to_rg",   "match": false },
+
+        { "key": "pipe_placement",         "type": "check", "x": 322, "y": 592 },
+        { "key": "wall_mount",             "type": "check", "x": 542, "y": 592 },
+        { "key": "fence_building_mount",   "type": "check", "x": 542, "y": 578 },
+        { "key": "excavation_to_building", "type": "check", "x": 542, "y": 550 },
+
+        { "key": "bep_position", "type": "check_map", "map": {
+          "internal":  { "x": 106, "y": 580 },
+          "external":  { "x": 106, "y": 564 },
+          "fence":     { "x": 219, "y": 580 },
+          "building":  { "x": 219, "y": 564 },
+          "pole":      { "x": 327, "y": 580 },
+          "pillar":    { "x": 327, "y": 564 },
+          "basement":  { "x": 439, "y": 580 },
+          "ground":    { "x": 439, "y": 564 },
+          "rooftop":   { "x": 525, "y": 580 },
+          "piloti":    { "x": 525, "y": 564 }
+        }},
+
+        { "key": "vertical_routing", "type": "check_map", "map": {
+          "shaft":             { "x": 100, "y": 528 },
+          "staircase":         { "x": 258, "y": 528 },
+          "lightwell":         { "x": 376, "y": 528 },
+          "other":             { "x": 477, "y": 528 },
+          "elevator":          { "x": 100, "y": 512 },
+          "internal_external": { "x": 258, "y": 512 },
+          "lantern":           { "x": 376, "y": 512 }
+        }},
+
+        { "key": "sketch_notes",            "type": "wrapped", "x": 35,  "y": 168, "size": 8, "maxWidth": 525, "lineHeight": 12, "maxLines": 4 },
+        { "key": "optical_socket_position", "type": "text",    "x": 125, "y": 133, "size": 8, "maxWidth": 300 },
+
+        { "key": "sketch_image", "type": "image", "x": 40, "y": 200, "maxW": 520, "maxH": 280, "format": "auto" },
+
+        { "key": "engineer_signature",  "type": "signature", "x": 420, "y": 122, "maxW": 130, "maxH": 32 },
+        { "key": "customer_signature",  "type": "signature", "x": 420, "y": 93,  "maxW": 130, "maxH": 32 },
+        { "key": "manager_signature",   "type": "signature", "x": 420, "y": 64,  "maxW": 130, "maxH": 32 }
+      ]
+    },
+    "3": {
+      "title": "Υπεύθυνη Δήλωση Διαχειριστή",
+      "fields": [
+        { "key": "declarant_name",        "type": "text",  "x": 180, "y": 678, "size": 8.5, "maxWidth": 250 },
+        { "key": "declarant_id_number",   "type": "text",  "x": 456, "y": 678, "size": 8.5, "maxWidth": 100 },
+        { "key": "declarant_city",        "type": "text",  "x": 92,  "y": 648, "size": 8.5, "maxWidth": 130 },
+        { "key": "declarant_street",      "type": "text",  "x": 246, "y": 648, "size": 8.5, "maxWidth": 130 },
+        { "key": "declarant_number",      "type": "text",  "x": 394, "y": 648, "size": 8.5, "maxWidth": 50 },
+        { "key": "declarant_postal_code", "type": "boxed", "x": 467, "y": 648, "size": 8, "boxWidth": 13.5, "boxCount": 5 },
+
+        { "key": "cost_option_ote",     "type": "check_if", "x": 47, "y": 522, "sourceKey": "cost_option", "match": "ote_covers" },
+        { "key": "cost_option_other",   "type": "check_if_not", "x": 47, "y": 500, "sourceKey": "cost_option", "match": "ote_covers" },
+
+        { "key": "declaration_date",      "type": "text",  "x": 170, "y": 450, "size": 8.5, "maxWidth": 200 },
+        { "key": "declaration_signature", "type": "signature", "x": 125, "y": 365, "maxW": 210, "maxH": 45 }
+      ]
+    },
+    "4": {
+      "title": "Στοιχεία Κτιρίου / Εξοπλισμός",
+      "fields": [
+        { "key": "building_address", "type": "text", "x": 102, "y": 790, "size": 8.5, "maxWidth": 300 },
+        { "key": "building_id",      "type": "text", "x": 367, "y": 766, "size": 8.5, "maxWidth": 180 },
+
+        { "key": "customer_floor_select", "type": "floor_check", "map": {
+          "basement":       { "x": 95,  "y": 714 },
+          "semi-basement":  { "x": 365, "y": 714 },
+          "ground":         { "x": 95,  "y": 641 },
+          "half-floor":     { "x": 365, "y": 641 },
+          "1":              { "x": 95,  "y": 568 },
+          "2":              { "x": 365, "y": 568 },
+          "3":              { "x": 95,  "y": 495 },
+          "4":              { "x": 365, "y": 495 },
+          "5":              { "x": 95,  "y": 422 },
+          "6":              { "x": 365, "y": 422 },
+          "7":              { "x": 95,  "y": 349 },
+          "8":              { "x": 365, "y": 349 }
+        }},
+
+        { "key": "total_apartments", "type": "text", "x": 188, "y": 360, "size": 8.5, "maxWidth": 60 },
+        { "key": "total_shops",      "type": "text", "x": 188, "y": 327, "size": 8.5, "maxWidth": 60 },
+        { "key": "total_spaces",     "type": "text", "x": 188, "y": 294, "size": 8.5, "maxWidth": 60 },
+        { "key": "total_floors",     "type": "text", "x": 188, "y": 261, "size": 8.5, "maxWidth": 60 },
+
+        { "key": "sr_id",     "type": "text", "x": 395, "y": 360, "size": 8.5, "maxWidth": 130 },
+        { "key": "cabinet",   "type": "text", "x": 395, "y": 327, "size": 8.5, "maxWidth": 130 },
+        { "key": "pipe_code", "type": "text", "x": 395, "y": 294, "size": 8.5, "maxWidth": 130 },
+
+        { "key": "bcp", "type": "equipment_grid", "brands": {
+          "RAYCAP": 214, "ZTT": 277
+        }, "sizes": {
+          "SMALL": 264, "MEDIUM": 246
+        }},
+        { "key": "bcp_floorbox", "type": "check", "x": 385, "y": 266 },
+        { "key": "bcp_drop_4",   "type": "check", "x": 436, "y": 266 },
+        { "key": "bcp_drop_6",   "type": "check", "x": 486, "y": 266 },
+        { "key": "bcp_drop_12",  "type": "check", "x": 536, "y": 266 },
+
+        { "key": "bep", "type": "equipment_grid", "brands": {
+          "RAYCAP": 214, "ZTT": 277
+        }, "sizes": {
+          "SMALL": 202, "MEDIUM": 184, "LARGE": 166, "XLARGE": 148
+        }, "capacityX": 350 },
+
+        { "key": "bmo", "type": "equipment_grid", "brands": {
+          "RAYCAP": 214, "ZTT": 277
+        }, "sizes": {
+          "SMALL": 102, "MEDIUM": 84, "LARGE": 66
+        }, "capacityX": 350 }
+      ]
+    }
+  },
+  "fonts": {
+    "regular": "https://cdn.jsdelivr.net/fontsource/fonts/roboto@latest/greek-400-normal.woff",
+    "bold": "https://cdn.jsdelivr.net/fontsource/fonts/roboto@latest/greek-700-normal.woff"
+  },
+  "defaults": {
+    "fontSize": 8.5,
+    "checkSize": 9,
+    "signatureMaxW": 130,
+    "signatureMaxH": 32
+  }
+}
