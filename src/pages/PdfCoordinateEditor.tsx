@@ -5,8 +5,10 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Download, ZoomIn, ZoomOut, RotateCcw, Eye, EyeOff, Copy, ChevronLeft, ChevronRight } from "lucide-react";
-import { PDFDocument } from "pdf-lib";
+import * as pdfjsLib from "pdfjs-dist";
 import { toast } from "sonner";
+
+pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
 
 interface FieldDef {
   key: string;
