@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { PDFDocument } from "https://esm.sh/pdf-lib@1.17.1";
 
 function uint8ToBase64(bytes: Uint8Array): string {
   let binary = "";
@@ -189,8 +190,21 @@ async function getTargetParentFolder(
   return { folderId: targetFolder.id, folderType: targetName };
 }
 
-// ─── Google Slides PDF generation (zero local CPU) ──────────────────
+// ─── Cleanup temporary public permissions ───────────────────────────
+async function cleanupPermissions(accessToken: string, permissionIds: string[]) {
+  for (const entry of permissionIds) {
+    const [fileId, permId] = entry.split(":");
+    try {
+      const res = await fetch(
+        `https://www.googleapis.com/drive/v3/files/${fileId}/permissions/${permId}?supportsAllDrives=true`,
+        { method: "DELETE", headers: { Authorization: `Bearer ${accessToken}` } }
+      );
+      if (!res.ok) await res.text();
+    } catch { /* ignore */ }
+  }
+}
 
+// ─── Google Slides PDF generation (zero local CPU) ──────────────────
 async function buildPdfViaGoogleSlides(
   accessToken: string,
   imageFiles: { driveFileId: string; fileName: string }[],
@@ -234,37 +248,51 @@ async function buildPdfViaGoogleSlides(
 
     // 3. Build batch update requests: one slide per image
     const requests: any[] = [];
+    const permissionIds: string[] = [];
 
-    // Make each Drive file publicly readable temporarily via a direct content URL
-    // We'll use the Drive thumbnail/content URL approach
+    // Make each image temporarily public so Slides can access them
+    for (const img of imageFiles) {
+      try {
+        const permRes = await fetch(
+          `https://www.googleapis.com/drive/v3/files/${img.driveFileId}/permissions?supportsAllDrives=true`,
+          {
+            method: "POST",
+            headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+            body: JSON.stringify({ role: "reader", type: "anyone" }),
+          }
+        );
+        if (permRes.ok) {
+          const perm = await permRes.json();
+          permissionIds.push(`${img.driveFileId}:${perm.id}`);
+        } else {
+          await permRes.text();
+        }
+      } catch { /* ignore */ }
+    }
+
+    // Wait for permissions to propagate
+    await new Promise(r => setTimeout(r, 3000));
+
     for (let i = 0; i < imageFiles.length; i++) {
       const img = imageFiles[i];
       const slideObjectId = `slide_${i}`;
       const imageObjectId = `image_${i}`;
+      // Use webContentLink-style URL that works with Slides API
+      const imageUrl = `https://drive.google.com/uc?id=${img.driveFileId}`;
 
-      // Create a new slide (except for first one if we reuse the default)
       if (i === 0 && defaultSlideId) {
-        // Use the existing default slide
         requests.push({
           createImage: {
             objectId: imageObjectId,
             elementProperties: {
               pageObjectId: defaultSlideId,
-              size: {
-                width: { magnitude: 720, unit: "PT" },
-                height: { magnitude: 540, unit: "PT" },
-              },
-              transform: {
-                scaleX: 1, scaleY: 1,
-                translateX: 0, translateY: 0,
-                unit: "PT",
-              },
+              size: { width: { magnitude: 720, unit: "PT" }, height: { magnitude: 540, unit: "PT" } },
+              transform: { scaleX: 1, scaleY: 1, translateX: 0, translateY: 0, unit: "PT" },
             },
-            url: `https://drive.google.com/uc?id=${img.driveFileId}&export=download`,
+            url: imageUrl,
           },
         });
       } else {
-        // Create new slide
         requests.push({
           createSlide: {
             objectId: slideObjectId,
@@ -277,17 +305,10 @@ async function buildPdfViaGoogleSlides(
             objectId: imageObjectId,
             elementProperties: {
               pageObjectId: slideObjectId,
-              size: {
-                width: { magnitude: 720, unit: "PT" },
-                height: { magnitude: 540, unit: "PT" },
-              },
-              transform: {
-                scaleX: 1, scaleY: 1,
-                translateX: 0, translateY: 0,
-                unit: "PT",
-              },
+              size: { width: { magnitude: 720, unit: "PT" }, height: { magnitude: 540, unit: "PT" } },
+              transform: { scaleX: 1, scaleY: 1, translateX: 0, translateY: 0, unit: "PT" },
             },
-            url: `https://drive.google.com/uc?id=${img.driveFileId}&export=download`,
+            url: imageUrl,
           },
         });
       }
@@ -305,7 +326,8 @@ async function buildPdfViaGoogleSlides(
     if (!batchRes.ok) {
       const errText = await batchRes.text();
       console.error(`Slides batchUpdate failed: ${errText}`);
-      // Cleanup: delete the presentation
+      // Cleanup: delete the presentation and revoke permissions
+      await cleanupPermissions(accessToken, permissionIds);
       await fetch(`https://www.googleapis.com/drive/v3/files/${presentationId}?supportsAllDrives=true`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${accessToken}` },
@@ -330,7 +352,8 @@ async function buildPdfViaGoogleSlides(
     const pdfBytes = new Uint8Array(await exportRes.arrayBuffer());
     console.log(`Exported PDF from Slides: ${(pdfBytes.length / 1024).toFixed(0)}KB`);
 
-    // 6. Delete the temporary Slides presentation (we have the PDF)
+    // 6. Cleanup: delete presentation and revoke temporary permissions
+    await cleanupPermissions(accessToken, permissionIds);
     await fetch(`https://www.googleapis.com/drive/v3/files/${presentationId}?supportsAllDrives=true`, {
       method: "DELETE",
       headers: { Authorization: `Bearer ${accessToken}` },
