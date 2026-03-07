@@ -252,8 +252,8 @@ const Index = () => {
         </div>
 
         {/* Setup Wizard */}
-        {!wizardDismissed && (
-          <SetupWizard onDismiss={() => setWizardDismissed(true)} demoMode />
+        {!wizardDismissed && !wizardCompleted && (
+          <SetupWizard onDismiss={() => setWizardDismissed(true)} />
         )}
 
         {/* Stat Cards - responsive grid */}
