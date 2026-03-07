@@ -262,57 +262,41 @@ Deno.serve(async (req) => {
       console.log(`Found existing ZIP: ${latestZip.name}`);
     }
 
-    // If no ZIP exists, build one
-    if (!zipUrl && surveyFiles && surveyFiles.length > 0) {
-      console.log(`No ZIP found, building new one for ${sr_id}...`);
-      const zipFileEntries: { name: string; data: Uint8Array }[] = [];
-      let totalSize = 0;
-
-      for (const sf of surveyFiles) {
-        const fileData = await downloadFile(adminClient, sf.file_path);
-        if (fileData) {
-          const prefix = sf.file_type === "building_photo" ? "PROMELETI/"
-            : sf.file_type === "screenshot" ? "EGRAFA/"
-            : sf.file_type === "inspection_form" ? "EGRAFA/"
-            : "";
-          zipFileEntries.push({ name: `${prefix}${sf.file_name}`, data: fileData });
-          totalSize += fileData.length;
+    // If no ZIP exists, call process-survey-completion for full rebuild
+    if (!zipUrl) {
+      console.log(`No cached ZIP found for ${sr_id}, calling process-survey-completion for full rebuild...`);
+      
+      const { data: rebuildResult, error: rebuildErr } = await adminClient.functions.invoke(
+        "process-survey-completion",
+        {
+          body: { survey_id },
+          headers: { Authorization: authHeader },
         }
-      }
+      );
 
-      // Build inspection PDF from downloaded inspection images
-      const inspectionImages = zipFileEntries
-        .filter(f => {
-          const sf = surveyFiles.find((s: any) => f.name === `EGRAFA/${s.file_name}` && s.file_type === "inspection_form");
-          return !!sf;
-        })
-        .map(f => ({ fileName: f.name.replace("EGRAFA/", ""), data: f.data }));
-
-      if (inspectionImages.length > 0) {
-        const pdfData = await buildInspectionPdf(inspectionImages, sr_id);
-        if (pdfData) {
-          zipFileEntries.push({ name: `EGRAFA/Deltio_Autopsias_${sr_id}.pdf`, data: pdfData });
-          totalSize += pdfData.length;
-          console.log(`Added inspection PDF: ${(pdfData.length / 1024).toFixed(0)}KB`);
-        }
-      }
-
-      console.log(`ZIP: ${zipFileEntries.length} files, ${(totalSize / 1024 / 1024).toFixed(1)}MB`);
-      const zipData = buildZip(zipFileEntries);
-      zipFileEntries.length = 0;
-
-      // Upload
-      const zipFileName = `${sr_id}_survey_${Date.now()}.zip`;
-      const zipStoragePath = `zips/${zipFileName}`;
-      const { error: uploadErr } = await adminClient.storage
-        .from("surveys").upload(zipStoragePath, zipData, { contentType: "application/zip", upsert: true });
-      if (uploadErr) {
-        console.error("ZIP upload error:", uploadErr);
+      if (rebuildErr) {
+        console.error("process-survey-completion rebuild error:", rebuildErr);
       } else {
-        const { data: signedUrlData } = await adminClient.storage
-          .from("surveys").createSignedUrl(zipStoragePath, 60 * 60 * 24 * 7);
-        zipUrl = signedUrlData?.signedUrl || "";
-        console.log(`Built and uploaded new ZIP: ${zipFileName}`);
+        console.log("process-survey-completion rebuild result:", JSON.stringify(rebuildResult));
+        
+        // After rebuild, check for the newly created ZIP
+        const { data: newZips } = await adminClient.storage
+          .from("surveys").list("zips", { search: sr_id });
+        const newLatestZip = newZips
+          ?.filter((f: any) => f.name.includes(sr_id))
+          ?.sort((a: any, b: any) => b.name.localeCompare(a.name))?.[0];
+        
+        if (newLatestZip) {
+          const { data: newSignedUrl } = await adminClient.storage
+            .from("surveys").createSignedUrl(`zips/${newLatestZip.name}`, 60 * 60 * 24 * 7);
+          zipUrl = newSignedUrl?.signedUrl || "";
+          console.log(`Got ZIP after rebuild: ${newLatestZip.name}`);
+
+          // Update file count from fresh data
+          const { data: freshFiles } = await adminClient
+            .from("survey_files").select("id").eq("survey_id", survey_id);
+          if (freshFiles) fileCount = freshFiles.length;
+        }
       }
     }
 
