@@ -177,7 +177,7 @@ Deno.serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: "google/gemini-2.5-pro",
         messages: [
           {
             role: "system",
@@ -272,6 +272,11 @@ IMPORTANT: Return ONLY the JSON array, no markdown, no explanation.`
     }
 
     const aiData = await aiResponse.json();
+    console.log("AI response structure:", JSON.stringify({
+      hasToolCalls: !!aiData.choices?.[0]?.message?.tool_calls,
+      hasContent: !!aiData.choices?.[0]?.message?.content,
+      finishReason: aiData.choices?.[0]?.finish_reason,
+    }));
     
     // Extract from tool call response
     let extractedMaterials: { code: string; name: string; quantity: number; unit: string }[] = [];
@@ -280,6 +285,28 @@ IMPORTANT: Return ONLY the JSON array, no markdown, no explanation.`
       const parsed = JSON.parse(toolCall.function.arguments);
       extractedMaterials = parsed.materials || [];
     }
+    
+    // Fallback: if no tool call, try parsing from message content
+    if (extractedMaterials.length === 0) {
+      const content = aiData.choices?.[0]?.message?.content;
+      if (content) {
+        console.log("No tool call result, trying content fallback. Content length:", content.length);
+        try {
+          // Try to find JSON array in content
+          const jsonMatch = content.match(/\[[\s\S]*\]/);
+          if (jsonMatch) {
+            const parsed = JSON.parse(jsonMatch[0]);
+            if (Array.isArray(parsed)) {
+              extractedMaterials = parsed.filter((item: any) => item.code && item.quantity);
+            }
+          }
+        } catch (parseErr) {
+          console.error("Content parse fallback failed:", parseErr);
+        }
+      }
+    }
+    
+    console.log(`Extracted ${extractedMaterials.length} materials`);
 
     // Post-process: fix Greek number misreads (1.8 → 1800, 2.0 → 2000, etc.)
     for (const item of extractedMaterials) {

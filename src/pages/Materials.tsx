@@ -783,7 +783,7 @@ const Materials = () => {
                 </tbody>
               </table>
             </div>
-            <div className="flex items-center justify-between pt-4 border-t border-border">
+            <div className="flex items-center justify-between pt-4 border-t border-border mt-auto">
               <p className="text-sm text-muted-foreground">
                 {previewData?.materials.length || 0} υλικά — Σύνολο: <span className="font-bold text-foreground">{(previewData?.materials || []).reduce((s, m) => s + m.quantity, 0).toLocaleString('el-GR')}</span> τεμάχια
               </p>
@@ -794,13 +794,15 @@ const Materials = () => {
                 >
                   Ακύρωση
                 </button>
-                <button
-                  onClick={handleConfirmUpload}
-                  disabled={confirmingUpload || !previewData?.materials.length}
-                  className="rounded-xl cosmote-gradient px-5 py-2 text-sm font-bold text-white shadow-lg shadow-primary/20 hover:opacity-90 transition-all disabled:opacity-50"
-                >
-                  {confirmingUpload ? 'Αποθήκευση...' : 'Επιβεβαίωση & Αποθήκευση'}
-                </button>
+                {(previewData?.materials?.length || 0) > 0 && (
+                  <button
+                    onClick={handleConfirmUpload}
+                    disabled={confirmingUpload}
+                    className="rounded-xl cosmote-gradient px-5 py-2 text-sm font-bold text-white shadow-lg shadow-primary/20 hover:opacity-90 transition-all disabled:opacity-50"
+                  >
+                    {confirmingUpload ? 'Αποθήκευση...' : 'Επιβεβαίωση & Αποθήκευση'}
+                  </button>
+                )}
               </div>
             </div>
           </DialogContent>
