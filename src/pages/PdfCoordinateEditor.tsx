@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Download, ZoomIn, ZoomOut, RotateCcw, Eye, EyeOff, Copy, ChevronLeft, ChevronRight, FileText, X } from "lucide-react";
+import { Download, ZoomIn, ZoomOut, RotateCcw, Eye, EyeOff, Copy, ChevronLeft, ChevronRight, FileText } from "lucide-react";
 import * as pdfjsLib from "pdfjs-dist";
 import { toast } from "sonner";
 import { generateInspectionPdfBytes } from "@/lib/generateInspectionPdf";
@@ -241,7 +241,7 @@ const PdfCoordinateEditor = () => {
   const [selectedField, setSelectedField] = useState<string | null>(null);
   const [dragging, setDragging] = useState<{ key: string; subKey?: string; offsetX: number; offsetY: number } | null>(null);
   const [pdfDims, setPdfDims] = useState<{ width: number; height: number }>({ width: 595, height: 842 });
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  
   const [previewLoading, setPreviewLoading] = useState(false);
   const canvasRef = useRef<HTMLDivElement>(null);
 
@@ -449,11 +449,12 @@ const PdfCoordinateEditor = () => {
       
       const pdfBytes = await genPdf(PREVIEW_SAMPLE_DATA, mapping);
       
-      if (previewUrl) URL.revokeObjectURL(previewUrl);
-      
       const blob = new Blob([new Uint8Array(pdfBytes)], { type: "application/pdf" });
-      setPreviewUrl(URL.createObjectURL(blob));
-      toast.success("Preview PDF δημιουργήθηκε!");
+      const url = URL.createObjectURL(blob);
+      
+      // Open in new tab instead of iframe (avoids Chrome CSP blocking)
+      window.open(url, "_blank");
+      toast.success("Preview PDF άνοιξε σε νέα καρτέλα!");
     } catch (err) {
       console.error("Preview error:", err);
       toast.error("Σφάλμα δημιουργίας preview: " + (err as Error).message);
@@ -708,47 +709,6 @@ const PdfCoordinateEditor = () => {
           })}
         </div>
       </div>
-
-      {/* PDF Preview Overlay */}
-      {previewUrl && (
-        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-8">
-          <div className="bg-card rounded-lg shadow-2xl flex flex-col w-full max-w-4xl h-[90vh]">
-            <div className="flex items-center justify-between p-4 border-b">
-              <h2 className="text-lg font-bold text-foreground">Preview PDF</h2>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    const a = document.createElement("a");
-                    a.href = previewUrl;
-                    a.download = "preview-inspection.pdf";
-                    a.click();
-                  }}
-                >
-                  <Download className="h-4 w-4 mr-1" />
-                  Λήψη
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => {
-                    URL.revokeObjectURL(previewUrl);
-                    setPreviewUrl(null);
-                  }}
-                >
-                  <X className="h-5 w-5" />
-                </Button>
-              </div>
-            </div>
-            <iframe
-              src={previewUrl}
-              className="flex-1 w-full rounded-b-lg"
-              title="PDF Preview"
-            />
-          </div>
-        </div>
-      )}
     </div>
   );
 };
