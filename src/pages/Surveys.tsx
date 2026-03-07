@@ -53,6 +53,7 @@ const Surveys = () => {
   const [deleteTarget, setDeleteTarget] = useState<any>(null);
   const [deleting, setDeleting] = useState(false);
   const [reprocessing, setReprocessing] = useState(false);
+  const [resendingEmail, setResendingEmail] = useState(false);
 
   const { data: surveys, isLoading } = useQuery({
     queryKey: ["admin-surveys"],
@@ -726,6 +727,36 @@ const Surveys = () => {
                           <RefreshCw className="h-3.5 w-3.5 text-primary" />
                         )}
                         {reprocessing ? "Επεξεργασία..." : "Επανεπεξεργασία"}
+                      </Button>
+                      <Button
+                        size="sm" variant="outline" className="gap-1.5 text-xs border-green-500/30"
+                        disabled={resendingEmail}
+                        onClick={async () => {
+                          setResendingEmail(true);
+                          try {
+                            const { data: result, error } = await supabase.functions.invoke(
+                              "resend-survey-email",
+                              { body: { survey_id: selectedSurvey.id } }
+                            );
+                            if (error) throw error;
+                            toast.success(result?.has_zip 
+                              ? "Email εστάλη επιτυχώς με ZIP!" 
+                              : "Email εστάλη (χωρίς ZIP)");
+                            queryClient.invalidateQueries({ queryKey: ["admin-surveys"] });
+                          } catch (err: any) {
+                            console.error("Resend email error:", err);
+                            toast.error("Σφάλμα: " + (err.message || "Δοκιμάστε ξανά"));
+                          } finally {
+                            setResendingEmail(false);
+                          }
+                        }}
+                      >
+                        {resendingEmail ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <Send className="h-3.5 w-3.5 text-green-600" />
+                        )}
+                        {resendingEmail ? "Αποστολή..." : "Αποστολή Email"}
                       </Button>
                     </div>
                     {selectedSurvey.email_sent && (
