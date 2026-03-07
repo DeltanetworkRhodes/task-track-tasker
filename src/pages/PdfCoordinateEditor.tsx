@@ -237,7 +237,7 @@ const PdfCoordinateEditor = () => {
       } else if (field.x != null && field.y != null) {
         items.push({
           key: field.key,
-          label: field.key,
+          label: FIELD_LABELS[field.key] || field.key,
           x: field.x,
           y: field.y,
           type: field.type,
