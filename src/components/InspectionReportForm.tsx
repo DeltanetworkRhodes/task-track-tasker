@@ -89,6 +89,10 @@ const InspectionReportForm = ({ assignment, surveyId, onComplete, onCancel }: Pr
     vertical_routing: "",
     sketch_notes: "",
     optical_socket_position: "",
+    // Signatures (stored in form state to survive step navigation)
+    engineer_signature: "",
+    customer_signature: "",
+    manager_signature: "",
     // Page 3
     declaration_type: "approve",
     declarant_name: "",
@@ -99,6 +103,7 @@ const InspectionReportForm = ({ assignment, surveyId, onComplete, onCancel }: Pr
     declarant_postal_code: "",
     declaration_date: new Date().toISOString().split("T")[0],
     cost_option: "ote_covers",
+    declaration_signature: "",
     // Page 4
     building_id: "",
     building_address: assignment?.address || "",
