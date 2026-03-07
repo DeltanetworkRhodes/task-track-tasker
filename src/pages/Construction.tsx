@@ -204,12 +204,11 @@ const ConstructionPage = () => {
 
   return (
     <AppLayout>
-      <div className="space-y-6 max-w-[1400px]">
+      <div className="space-y-5 sm:space-y-6 max-w-[1400px]">
         <div>
-          <h1 className="text-2xl font-bold">Πυλώνας 2 — Κατασκευές</h1>
-          <p className="text-sm text-muted-foreground mt-1">
+          <h1 className="text-xl sm:text-2xl font-bold">Πυλώνας 2 — Κατασκευές</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1">
             Διαχείριση κατασκευών, υλικών και φύλλων απολογισμού
-            
           </p>
         </div>
 
