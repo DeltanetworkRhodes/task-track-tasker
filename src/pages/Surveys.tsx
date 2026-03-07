@@ -682,6 +682,45 @@ const Surveys = () => {
                           {sendingReminder ? "Αποστολή..." : "Υπενθύμιση Τεχνικού"}
                         </Button>
                       )}
+                      <Button
+                        size="sm" variant="outline" className="gap-1.5 text-xs border-primary/30"
+                        disabled={reprocessing}
+                        onClick={async () => {
+                          setReprocessing(true);
+                          try {
+                            const { data: result, error } = await supabase.functions.invoke(
+                              "process-survey-completion",
+                              {
+                                body: {
+                                  survey_id: selectedSurvey.id,
+                                  sr_id: selectedSurvey.sr_id,
+                                  area: selectedSurvey.area,
+                                },
+                              }
+                            );
+                            if (error) throw error;
+                            if (result?.is_complete) {
+                              toast.success(`Ολοκληρωμένη αυτοψία → ${result.drive_target || "Drive"} + email`);
+                            } else {
+                              toast.info(`Ακόμα ελλιπής. Λείπουν: ${(result?.missing_types || []).length} τύποι`);
+                            }
+                            queryClient.invalidateQueries({ queryKey: ["admin-surveys"] });
+                            queryClient.invalidateQueries({ queryKey: ["survey-files"] });
+                          } catch (err: any) {
+                            console.error("Reprocess error:", err);
+                            toast.error("Σφάλμα: " + (err.message || "Δοκιμάστε ξανά"));
+                          } finally {
+                            setReprocessing(false);
+                          }
+                        }}
+                      >
+                        {reprocessing ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <RefreshCw className="h-3.5 w-3.5 text-primary" />
+                        )}
+                        {reprocessing ? "Επεξεργασία..." : "Επανεπεξεργασία"}
+                      </Button>
                     </div>
                     {selectedSurvey.email_sent && (
                       <p className="text-xs text-green-600 flex items-center gap-1">
