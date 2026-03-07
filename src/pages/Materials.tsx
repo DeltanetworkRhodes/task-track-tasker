@@ -729,20 +729,22 @@ const Materials = () => {
 
         {/* Delivery Note Preview/Confirmation Dialog */}
         <Dialog open={!!previewData} onOpenChange={(open) => !open && setPreviewData(null)}>
-          <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-hidden flex flex-col">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <FileText className="h-4 w-4 text-primary" />
-                Επιβεβαίωση Δελτίου Αποστολής — {previewData?.source}
-              </DialogTitle>
-              <p className="text-sm text-muted-foreground">
-                Ελέγξτε τα υλικά και τις ποσότητες πριν την αποθήκευση. Μπορείτε να τροποποιήσετε ποσότητες ή να αφαιρέσετε γραμμές.
-              </p>
-            </DialogHeader>
-            <div className="overflow-y-auto flex-1 -mx-6 px-6">
+          <DialogContent className="sm:max-w-2xl max-h-[85vh] flex flex-col !p-0">
+            <div className="px-6 pt-5 pb-2 flex-shrink-0">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-primary" />
+                  Επιβεβαίωση Δελτίου Αποστολής — {previewData?.source}
+                </DialogTitle>
+                <DialogDescription>
+                  Ελέγξτε τα υλικά και τις ποσότητες πριν την αποθήκευση. Μπορείτε να τροποποιήσετε ποσότητες ή να αφαιρέσετε γραμμές.
+                </DialogDescription>
+              </DialogHeader>
+            </div>
+            <div className="overflow-y-auto flex-1 min-h-0 px-6">
               <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border bg-muted/30 sticky top-0">
+                <thead className="sticky top-0 z-10">
+                  <tr className="border-b border-border bg-muted/80 backdrop-blur-sm">
                     <th className="py-2.5 px-3 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Κωδικός</th>
                     <th className="py-2.5 px-3 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Περιγραφή</th>
                     <th className="py-2.5 px-3 text-right text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Ποσότητα</th>
@@ -783,7 +785,7 @@ const Materials = () => {
                 </tbody>
               </table>
             </div>
-            <div className="flex items-center justify-between pt-4 border-t border-border mt-auto">
+            <div className="flex items-center justify-between px-6 py-4 border-t border-border flex-shrink-0 bg-card">
               <p className="text-sm text-muted-foreground">
                 {previewData?.materials.length || 0} υλικά — Σύνολο: <span className="font-bold text-foreground">{(previewData?.materials || []).reduce((s, m) => s + m.quantity, 0).toLocaleString('el-GR')}</span> τεμάχια
               </p>
