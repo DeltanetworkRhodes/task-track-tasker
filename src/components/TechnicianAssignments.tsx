@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback } from "react";
-import { MapPin, Phone, Calendar, MessageSquare, Loader2, Eye, FileEdit, CheckCircle, Clock, HardHat, XCircle, Ban, Upload, FileSpreadsheet } from "lucide-react";
+
+import { MapPin, Phone, Calendar, MessageSquare, Loader2, Eye, FileEdit, CheckCircle, Clock, HardHat, XCircle, Ban, Upload, FileSpreadsheet, FileText } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -17,6 +18,7 @@ import SurveyForm from "@/components/SurveyForm";
 import IncompleteSurveys from "@/components/IncompleteSurveys";
 import ConstructionForm from "@/components/ConstructionForm";
 import SRComments from "@/components/SRComments";
+import InspectionReportForm from "@/components/InspectionReportForm";
 
 const statusFlow: { value: string; label: string }[] = [
   { value: "pending", label: "Αναμονή" },
@@ -53,6 +55,7 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
   const [selectedAssignment, setSelectedAssignment] = useState<any | null>(null);
   const [showSurveyForm, setShowSurveyForm] = useState(false);
   const [showConstructionForm, setShowConstructionForm] = useState(false);
+  const [showInspectionReport, setShowInspectionReport] = useState(false);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
   const [cancelling, setCancelling] = useState(false);
@@ -406,6 +409,17 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
             <FileEdit className="h-4 w-4" />
             {existingSurvey ? "Συνέχεια Αυτοψίας" : "Έναρξη Αυτοψίας"}
           </Button>
+          {existingSurvey && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="w-full gap-2 border-primary/30 text-primary hover:bg-primary/10"
+              onClick={() => setShowInspectionReport(true)}
+            >
+              <FileText className="h-4 w-4" />
+              Δελτίο Αυτοψίας
+            </Button>
+          )}
           {existingSurvey && existingSurvey.status !== "ΕΛΛΙΠΗΣ ΑΥΤΟΨΙΑ" && (
             <>
               <input
@@ -616,7 +630,7 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
       </div>
 
       {/* SR Detail Sheet */}
-      <Sheet open={!!selectedAssignment} onOpenChange={(open) => { if (!open) { setSelectedAssignment(null); setShowSurveyForm(false); setShowConstructionForm(false); } }}>
+      <Sheet open={!!selectedAssignment} onOpenChange={(open) => { if (!open) { setSelectedAssignment(null); setShowSurveyForm(false); setShowConstructionForm(false); setShowInspectionReport(false); } }}>
         <SheetContent side="bottom" className="h-[90vh] p-0">
           <SheetHeader className="px-4 pt-4 pb-2">
             <SheetTitle className="text-left">
@@ -628,7 +642,7 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
           </SheetHeader>
 
           <ScrollArea className="h-[calc(90vh-80px)] px-4 pb-6">
-            {selectedAssignment && !showSurveyForm && !showConstructionForm && (
+            {selectedAssignment && !showSurveyForm && !showConstructionForm && !showInspectionReport && (
               <div className="space-y-4">
                 {/* Status badge */}
                 <div className="flex items-center gap-2">
@@ -833,6 +847,18 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
               />
             )}
 
+            {/* Inspection Report Form (inline in sheet) */}
+            {selectedAssignment && showInspectionReport && (
+              <InspectionReportForm
+                assignment={selectedAssignment}
+                surveyId={existingSurvey?.id}
+                onComplete={() => {
+                  setShowInspectionReport(false);
+                  queryClient.invalidateQueries({ queryKey: ["technician-assignments"] });
+                }}
+                onCancel={() => setShowInspectionReport(false)}
+              />
+            )}
             {/* Construction Form (inline in sheet) */}
             {selectedAssignment && showConstructionForm && (
               <ConstructionForm

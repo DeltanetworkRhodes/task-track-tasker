@@ -533,6 +533,268 @@ export type Database = {
           },
         ]
       }
+      inspection_reports: {
+        Row: {
+          assignment_id: string
+          bcp_brand: string | null
+          bcp_drop_12: boolean | null
+          bcp_drop_6: boolean | null
+          bcp_floorbox: boolean | null
+          bcp_size: string | null
+          bep_brand: string | null
+          bep_capacity: string | null
+          bep_position: string | null
+          bep_size: string | null
+          bmo_brand: string | null
+          bmo_capacity: string | null
+          bmo_size: string | null
+          building_address: string | null
+          building_id: string | null
+          cabinet: string | null
+          cost_option: string | null
+          created_at: string
+          customer_apartment_code: string | null
+          customer_county: string | null
+          customer_email: string | null
+          customer_father_name: string | null
+          customer_floor: string | null
+          customer_floor_select: string | null
+          customer_mobile: string | null
+          customer_municipality: string | null
+          customer_name: string | null
+          customer_notes: string | null
+          customer_number: string | null
+          customer_phone: string | null
+          customer_postal_code: string | null
+          customer_signature: string | null
+          customer_street: string | null
+          declarant_city: string | null
+          declarant_id_number: string | null
+          declarant_name: string | null
+          declarant_number: string | null
+          declarant_postal_code: string | null
+          declarant_street: string | null
+          declaration_date: string | null
+          declaration_signature: string | null
+          declaration_type: string | null
+          engineer_signature: string | null
+          excavation_to_building: boolean | null
+          excavation_to_pipe: boolean | null
+          excavation_to_rg: boolean | null
+          fence_building_mount: boolean | null
+          id: string
+          manager_email: string | null
+          manager_mobile: string | null
+          manager_name: string | null
+          manager_signature: string | null
+          optical_socket_position: string | null
+          organization_id: string | null
+          pdf_drive_url: string | null
+          pdf_generated: boolean | null
+          pipe_code: string | null
+          pipe_placement: boolean | null
+          routing_aerial: boolean | null
+          routing_escalit: boolean | null
+          routing_external_pipe: boolean | null
+          routing_other: string | null
+          service_address: string | null
+          service_email: string | null
+          service_phone: string | null
+          sketch_notes: string | null
+          sr_id: string
+          survey_id: string
+          technician_id: string
+          technician_name: string | null
+          total_apartments: number | null
+          total_floors: number | null
+          total_shops: number | null
+          total_spaces: number | null
+          updated_at: string
+          vertical_routing: string | null
+          wall_mount: boolean | null
+        }
+        Insert: {
+          assignment_id: string
+          bcp_brand?: string | null
+          bcp_drop_12?: boolean | null
+          bcp_drop_6?: boolean | null
+          bcp_floorbox?: boolean | null
+          bcp_size?: string | null
+          bep_brand?: string | null
+          bep_capacity?: string | null
+          bep_position?: string | null
+          bep_size?: string | null
+          bmo_brand?: string | null
+          bmo_capacity?: string | null
+          bmo_size?: string | null
+          building_address?: string | null
+          building_id?: string | null
+          cabinet?: string | null
+          cost_option?: string | null
+          created_at?: string
+          customer_apartment_code?: string | null
+          customer_county?: string | null
+          customer_email?: string | null
+          customer_father_name?: string | null
+          customer_floor?: string | null
+          customer_floor_select?: string | null
+          customer_mobile?: string | null
+          customer_municipality?: string | null
+          customer_name?: string | null
+          customer_notes?: string | null
+          customer_number?: string | null
+          customer_phone?: string | null
+          customer_postal_code?: string | null
+          customer_signature?: string | null
+          customer_street?: string | null
+          declarant_city?: string | null
+          declarant_id_number?: string | null
+          declarant_name?: string | null
+          declarant_number?: string | null
+          declarant_postal_code?: string | null
+          declarant_street?: string | null
+          declaration_date?: string | null
+          declaration_signature?: string | null
+          declaration_type?: string | null
+          engineer_signature?: string | null
+          excavation_to_building?: boolean | null
+          excavation_to_pipe?: boolean | null
+          excavation_to_rg?: boolean | null
+          fence_building_mount?: boolean | null
+          id?: string
+          manager_email?: string | null
+          manager_mobile?: string | null
+          manager_name?: string | null
+          manager_signature?: string | null
+          optical_socket_position?: string | null
+          organization_id?: string | null
+          pdf_drive_url?: string | null
+          pdf_generated?: boolean | null
+          pipe_code?: string | null
+          pipe_placement?: boolean | null
+          routing_aerial?: boolean | null
+          routing_escalit?: boolean | null
+          routing_external_pipe?: boolean | null
+          routing_other?: string | null
+          service_address?: string | null
+          service_email?: string | null
+          service_phone?: string | null
+          sketch_notes?: string | null
+          sr_id: string
+          survey_id: string
+          technician_id: string
+          technician_name?: string | null
+          total_apartments?: number | null
+          total_floors?: number | null
+          total_shops?: number | null
+          total_spaces?: number | null
+          updated_at?: string
+          vertical_routing?: string | null
+          wall_mount?: boolean | null
+        }
+        Update: {
+          assignment_id?: string
+          bcp_brand?: string | null
+          bcp_drop_12?: boolean | null
+          bcp_drop_6?: boolean | null
+          bcp_floorbox?: boolean | null
+          bcp_size?: string | null
+          bep_brand?: string | null
+          bep_capacity?: string | null
+          bep_position?: string | null
+          bep_size?: string | null
+          bmo_brand?: string | null
+          bmo_capacity?: string | null
+          bmo_size?: string | null
+          building_address?: string | null
+          building_id?: string | null
+          cabinet?: string | null
+          cost_option?: string | null
+          created_at?: string
+          customer_apartment_code?: string | null
+          customer_county?: string | null
+          customer_email?: string | null
+          customer_father_name?: string | null
+          customer_floor?: string | null
+          customer_floor_select?: string | null
+          customer_mobile?: string | null
+          customer_municipality?: string | null
+          customer_name?: string | null
+          customer_notes?: string | null
+          customer_number?: string | null
+          customer_phone?: string | null
+          customer_postal_code?: string | null
+          customer_signature?: string | null
+          customer_street?: string | null
+          declarant_city?: string | null
+          declarant_id_number?: string | null
+          declarant_name?: string | null
+          declarant_number?: string | null
+          declarant_postal_code?: string | null
+          declarant_street?: string | null
+          declaration_date?: string | null
+          declaration_signature?: string | null
+          declaration_type?: string | null
+          engineer_signature?: string | null
+          excavation_to_building?: boolean | null
+          excavation_to_pipe?: boolean | null
+          excavation_to_rg?: boolean | null
+          fence_building_mount?: boolean | null
+          id?: string
+          manager_email?: string | null
+          manager_mobile?: string | null
+          manager_name?: string | null
+          manager_signature?: string | null
+          optical_socket_position?: string | null
+          organization_id?: string | null
+          pdf_drive_url?: string | null
+          pdf_generated?: boolean | null
+          pipe_code?: string | null
+          pipe_placement?: boolean | null
+          routing_aerial?: boolean | null
+          routing_escalit?: boolean | null
+          routing_external_pipe?: boolean | null
+          routing_other?: string | null
+          service_address?: string | null
+          service_email?: string | null
+          service_phone?: string | null
+          sketch_notes?: string | null
+          sr_id?: string
+          survey_id?: string
+          technician_id?: string
+          technician_name?: string | null
+          total_apartments?: number | null
+          total_floors?: number | null
+          total_shops?: number | null
+          total_spaces?: number | null
+          updated_at?: string
+          vertical_routing?: string | null
+          wall_mount?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inspection_reports_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "assignments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inspection_reports_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inspection_reports_survey_id_fkey"
+            columns: ["survey_id"]
+            isOneToOne: false
+            referencedRelation: "surveys"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       material_stock_history: {
         Row: {
           change_amount: number
