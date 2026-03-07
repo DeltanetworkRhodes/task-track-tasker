@@ -52,6 +52,7 @@ const Surveys = () => {
   const [sendingReminder, setSendingReminder] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<any>(null);
   const [deleting, setDeleting] = useState(false);
+  const [reprocessing, setReprocessing] = useState(false);
 
   const { data: surveys, isLoading } = useQuery({
     queryKey: ["admin-surveys"],
