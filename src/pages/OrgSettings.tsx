@@ -378,6 +378,25 @@ const OrgSettings = () => {
                     </div>
                   ))}
                 </div>
+
+                {/* Test email button for Email section */}
+                {section.section === "Email" && (
+                  <div className="pt-2 border-t border-border">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleSendTestEmail}
+                      disabled={sendingTestEmail || !values["email_from"]}
+                      className="gap-2"
+                    >
+                      <Send className="h-3.5 w-3.5" />
+                      {sendingTestEmail ? "Αποστολή..." : "Αποστολή Δοκιμαστικού Email"}
+                    </Button>
+                    <p className="text-[11px] text-muted-foreground mt-1.5">
+                      Στέλνει ένα test email στο Email Αποστολέα για να επιβεβαιώσετε ότι η ρύθμιση λειτουργεί
+                    </p>
+                  </div>
+                )}
               </Card>
             ))}
 
