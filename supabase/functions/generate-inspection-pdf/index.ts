@@ -118,24 +118,45 @@ async function uploadFileToDrive(
   return await uploadRes.json();
 }
 
-// ─── PDF Generation (Template Overlay) ───────────────────────────────
+// ─── PDF Generation (Template Overlay - Mapping Driven) ─────────────────
 
 const BLACK = rgb(0, 0, 0);
 
-const FLOOR_CHECK_COORDS: Record<string, { x: number; y: number }> = {
-  basement: { x: 95, y: 714 },
-  "semi-basement": { x: 365, y: 714 },
-  ground: { x: 95, y: 641 },
-  "half-floor": { x: 365, y: 641 },
-  "1": { x: 95, y: 568 },
-  "2": { x: 365, y: 568 },
-  "3": { x: 95, y: 495 },
-  "4": { x: 365, y: 495 },
-  "5": { x: 95, y: 422 },
-  "6": { x: 365, y: 422 },
-  "7": { x: 95, y: 349 },
-  "8": { x: 365, y: 349 },
-};
+interface FieldDef {
+  key: string;
+  type: string;
+  x?: number;
+  y?: number;
+  size?: number;
+  maxWidth?: number;
+  maxW?: number;
+  maxH?: number;
+  lineHeight?: number;
+  maxLines?: number;
+  boxWidth?: number;
+  boxCount?: number;
+  sourceKey?: string;
+  match?: any;
+  map?: Record<string, { x: number; y: number }>;
+  brands?: Record<string, number>;
+  sizes?: Record<string, number>;
+  capacityX?: number;
+}
+
+interface PageDef {
+  title: string;
+  fields: FieldDef[];
+}
+
+interface PdfMapping {
+  pages: Record<string, PageDef>;
+  defaults: {
+    fontSize: number;
+    checkSize: number;
+    signatureMaxW: number;
+    signatureMaxH: number;
+  };
+}
 
 interface InspectionData {
   [key: string]: any;
@@ -156,7 +177,20 @@ function drawText(page: any, text: string, x: number, y: number, font: any, size
   page.drawText(text, { x, y, size, font, color: BLACK });
 }
 
-function drawBoxedText(page: any, text: string, x: number, y: number, font: any, size: number, boxWidth: number, boxCount: number) {
+function drawCheck(page: any, x: number, y: number, font: any, size = 9) {
+  page.drawText("X", { x, y, size, font, color: BLACK });
+}
+
+function drawBoxedText(
+  page: any,
+  text: string,
+  x: number,
+  y: number,
+  font: any,
+  size: number,
+  boxWidth: number,
+  boxCount: number,
+) {
   if (!text) return;
   const chars = text.replace(/\s/g, "").split("");
   for (let i = 0; i < Math.min(chars.length, boxCount); i++) {
@@ -166,12 +200,17 @@ function drawBoxedText(page: any, text: string, x: number, y: number, font: any,
   }
 }
 
-function drawCheck(page: any, checked: boolean, x: number, y: number, font: any) {
-  if (!checked) return;
-  page.drawText("X", { x, y, size: 9, font, color: BLACK });
-}
-
-function drawWrappedText(page: any, text: string, x: number, startY: number, maxWidth: number, lineHeight: number, font: any, size: number, maxLines = 6) {
+function drawWrappedText(
+  page: any,
+  text: string,
+  x: number,
+  startY: number,
+  maxWidth: number,
+  lineHeight: number,
+  font: any,
+  size: number,
+  maxLines = 6,
+) {
   if (!text) return;
   const words = text.split(/\s+/).filter(Boolean);
   let line = "";
@@ -195,175 +234,201 @@ function drawWrappedText(page: any, text: string, x: number, startY: number, max
   if (line && lines < maxLines) drawText(page, line, x, y, font, size);
 }
 
-async function embedSignature(pdfDoc: any, page: any, dataUrl: string, x: number, y: number, maxW = 130, maxH = 32) {
-  if (!dataUrl || !dataUrl.startsWith("data:image/png;base64,")) return;
+function dataUrlToBytes(dataUrl: string): { bytes: Uint8Array; isPng: boolean } | null {
+  if (!dataUrl || !dataUrl.includes(",")) return null;
+  const isPng = dataUrl.startsWith("data:image/png");
+  const isJpg = dataUrl.startsWith("data:image/jpeg") || dataUrl.startsWith("data:image/jpg");
+  if (!isPng && !isJpg) return null;
+
+  const base64 = dataUrl.split(",")[1];
+  if (!base64) return null;
+
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return { bytes, isPng };
+}
+
+async function embedImage(
+  pdfDoc: any,
+  page: any,
+  dataUrl: string,
+  x: number,
+  y: number,
+  maxW: number,
+  maxH: number,
+) {
+  const parsed = dataUrlToBytes(dataUrl);
+  if (!parsed) return;
+
   try {
-    const base64 = dataUrl.split(",")[1];
-    const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
-    const img = await pdfDoc.embedPng(bytes);
+    const img = parsed.isPng
+      ? await pdfDoc.embedPng(parsed.bytes)
+      : await pdfDoc.embedJpg(parsed.bytes);
+
     const scale = Math.min(maxW / img.width, maxH / img.height, 1);
     page.drawImage(img, { x, y, width: img.width * scale, height: img.height * scale });
-  } catch (e) {
-    console.error("Signature embed error:", e);
+  } catch (error) {
+    console.error("Image embed error:", error);
+  }
+}
+
+async function loadPdfMapping(adminClient: any): Promise<PdfMapping> {
+  const { data, error } = await adminClient.storage.from("surveys").download("templates/pdf-mapping.json");
+  if (error || !data) {
+    throw new Error(`Mapping load failed: ${error?.message || "templates/pdf-mapping.json not found"}`);
+  }
+
+  const mappingText = await data.text();
+  const mapping = JSON.parse(mappingText) as PdfMapping;
+
+  if (!mapping?.pages || !mapping?.defaults) {
+    throw new Error("Invalid pdf-mapping.json format");
+  }
+
+  return mapping;
+}
+
+async function processField(
+  field: FieldDef,
+  data: InspectionData,
+  page: any,
+  pdfDoc: any,
+  font: any,
+  boldFont: any,
+  defaults: PdfMapping["defaults"],
+) {
+  const val = field.sourceKey ? data[field.sourceKey] : data[field.key];
+  const size = field.size ?? defaults.fontSize;
+
+  switch (field.type) {
+    case "text": {
+      const txt = val != null ? String(val) : "";
+      drawText(page, txt, field.x!, field.y!, font, size);
+      break;
+    }
+    case "boxed": {
+      const txt = val != null ? String(val) : "";
+      drawBoxedText(page, txt, field.x!, field.y!, font, size, field.boxWidth ?? 13.5, field.boxCount ?? 5);
+      break;
+    }
+    case "wrapped": {
+      const txt = val != null ? String(val) : "";
+      drawWrappedText(page, txt, field.x!, field.y!, field.maxWidth ?? 500, field.lineHeight ?? 12, font, size, field.maxLines ?? 6);
+      break;
+    }
+    case "check": {
+      if (val) drawCheck(page, field.x!, field.y!, boldFont, defaults.checkSize);
+      break;
+    }
+    case "check_if": {
+      if (val === field.match) drawCheck(page, field.x!, field.y!, boldFont, defaults.checkSize);
+      break;
+    }
+    case "check_if_not": {
+      if (val !== field.match && val != null) drawCheck(page, field.x!, field.y!, boldFont, defaults.checkSize);
+      break;
+    }
+    case "check_map": {
+      const mapVal = val ? String(val) : "";
+      const coord = field.map?.[mapVal];
+      if (coord) drawCheck(page, coord.x, coord.y, boldFont, defaults.checkSize);
+      break;
+    }
+    case "floor_check": {
+      const normalized = normalizeFloor(val);
+      const coord = field.map?.[normalized];
+      if (coord) drawCheck(page, coord.x, coord.y, boldFont, defaults.checkSize);
+      break;
+    }
+    case "equipment_grid": {
+      const prefix = field.key;
+      const sizeVal = (data[`${prefix}_size`] || "").toUpperCase();
+      const brandVal = (data[`${prefix}_brand`] || "").toUpperCase();
+      const rowY = field.sizes?.[sizeVal];
+      const colX = field.brands?.[brandVal];
+
+      if (rowY != null && colX != null) drawCheck(page, colX, rowY, boldFont, defaults.checkSize);
+
+      if (rowY != null && field.capacityX != null) {
+        const cap = data[`${prefix}_capacity`] || "";
+        if (cap) drawText(page, String(cap), field.capacityX, rowY, font, 8);
+      }
+      break;
+    }
+    case "signature": {
+      if (val) {
+        await embedImage(
+          pdfDoc,
+          page,
+          val,
+          field.x!,
+          field.y!,
+          field.maxW ?? defaults.signatureMaxW,
+          field.maxH ?? defaults.signatureMaxH,
+        );
+      }
+      break;
+    }
+    case "image": {
+      if (val) {
+        await embedImage(
+          pdfDoc,
+          page,
+          val,
+          field.x!,
+          field.y!,
+          field.maxW ?? 520,
+          field.maxH ?? 280,
+        );
+      }
+      break;
+    }
+    default:
+      break;
   }
 }
 
 async function generateInspectionPdf(data: InspectionData, templateBytes: Uint8Array, adminClient: any): Promise<Uint8Array> {
-  // Load static Roboto TTF fonts from Supabase storage (Greek-compatible)
-  const [fontFile, boldFontFile] = await Promise.all([
+  const [fontFile, boldFontFile, mapping] = await Promise.all([
     adminClient.storage.from("surveys").download("fonts/Roboto-Regular.ttf"),
     adminClient.storage.from("surveys").download("fonts/Roboto-Bold.ttf"),
+    loadPdfMapping(adminClient),
   ]);
+
   if (fontFile.error || !fontFile.data) throw new Error(`Font load failed: ${fontFile.error?.message}`);
   if (boldFontFile.error || !boldFontFile.data) throw new Error(`Bold font load failed: ${boldFontFile.error?.message}`);
+
   const fontBytes = new Uint8Array(await fontFile.data.arrayBuffer());
   const boldFontBytes = new Uint8Array(await boldFontFile.data.arrayBuffer());
   console.log(`Font loaded: regular=${fontBytes.length} bytes, bold=${boldFontBytes.length} bytes`);
 
   const pdfDoc = await PDFDocument.load(templateBytes);
   pdfDoc.registerFontkit(fontkit);
+
   const font = await pdfDoc.embedFont(fontBytes, { subset: true });
   const boldFont = await pdfDoc.embedFont(boldFontBytes, { subset: true });
 
   const pages = pdfDoc.getPages();
-  if (pages.length < 4) throw new Error("Το template PDF πρέπει να έχει 4 σελίδες");
-
-  // ─── Page 1: Στοιχεία Πελάτη / Διαχειριστή / Τεχν. Υπηρεσίας ───
-  const p1 = pages[0];
-  console.log(`Page 1 dimensions: ${p1.getWidth()} x ${p1.getHeight()}`);
-  
-  // Row positions - v6 fine-tuned from screenshot analysis (-30px Y shift)
-  drawText(p1, data.customer_name || "", 183, 698, font, 9);         // ΟΝΟΜΑΤΕΠΩΝΥΜΟ
-  drawText(p1, data.customer_father_name || "", 456, 698, font, 9);  // ΟΝΟΜΑ ΠΑΤΡΟΣ
-  // Mobile & landline as boxed text
-  drawBoxedText(p1, data.customer_mobile || "", 180, 664, font, 8, 13, 11);
-  drawBoxedText(p1, data.customer_phone || "", 180, 638, font, 8, 13, 11);
-  drawText(p1, data.customer_email || "", 86, 612, font, 9);         // EMAIL
-  drawText(p1, data.customer_street || "", 82, 585, font, 9);        // ΟΔΟΣ
-  drawText(p1, data.customer_number || "", 262, 585, font, 9);       // ΑΡΙΘ.
-  drawBoxedText(p1, data.customer_postal_code || "", 347, 585, font, 8, 12, 6); // Τ.Κ.
-  drawText(p1, data.customer_floor || "", 96, 559, font, 9);         // ΟΡΟΦΟΣ
-  drawText(p1, data.customer_apartment_code || "", 248, 559, font, 9); // ΚΩΔ. ΔΙΑΜ/ΤΟΣ
-  drawText(p1, data.customer_county || "", 402, 559, font, 9);       // ΝΟΜΟΣ
-  drawText(p1, data.customer_municipality || "", 520, 559, font, 9); // ΔΗΜΟΣ
-  drawWrappedText(p1, data.customer_notes || "", 52, 528, 286, 10, font, 8, 7); // Παρατηρήσεις
-
-  drawText(p1, data.manager_name || "", 420, 526, font, 9);          // Διαχειριστής ΟΝΟΜΑΤΕΠΩΝΥΜΟ
-  drawBoxedText(p1, data.manager_mobile || "", 486, 499, font, 8, 11, 11); // Τηλέφωνο Διαχειριστή
-  drawText(p1, data.manager_email || "", 420, 473, font, 9);         // Email Διαχειριστή
-
-  drawText(p1, data.service_address || "", 192, 388, font, 9);       // Αρμόδια Τεχνική Υπηρεσία
-  drawBoxedText(p1, data.service_phone || "", 250, 362, font, 8, 12, 11); // Τηλέφωνο Υπηρεσίας
-  drawText(p1, data.service_email || "", 78, 336, font, 9);          // Email Υπηρεσίας
-  drawText(p1, data.technician_name || "", 265, 308, font, 9);       // Τεχνικός
-
-  // ─── Page 2: Τεχνική Περιγραφή – Επιθεώρηση ───
-  const p2 = pages[1];
-  drawCheck(p2, !!data.routing_escalit, 164, 735, boldFont);
-  drawCheck(p2, !!data.routing_external_pipe, 379, 735, boldFont);
-  drawCheck(p2, !!data.routing_aerial, 558, 735, boldFont);
-  drawCheck(p2, !!data.routing_other, 719, 735, boldFont);
-
-  drawCheck(p2, data.excavation_to_pipe === true, 381, 674, boldFont);
-  drawCheck(p2, data.excavation_to_pipe === false, 421, 674, boldFont);
-  drawCheck(p2, data.excavation_to_rg === true, 381, 640, boldFont);
-  drawCheck(p2, data.excavation_to_rg === false, 422, 640, boldFont);
-  drawCheck(p2, !!data.wall_mount, 491, 584, boldFont);
-  drawCheck(p2, !!data.fence_building_mount, 492, 538, boldFont);
-
-  const bepCoords: Record<string, { x: number; y: number }> = {
-    internal: { x: 104, y: 432 },
-    external: { x: 104, y: 399 },
-    fence: { x: 104, y: 432 },
-    building: { x: 104, y: 399 },
-    pole: { x: 257, y: 432 },
-    pillar: { x: 257, y: 399 },
-    basement: { x: 403, y: 432 },
-    ground: { x: 403, y: 399 },
-    rooftop: { x: 588, y: 432 },
-    piloti: { x: 588, y: 399 },
-  };
-  const bep = bepCoords[data.bep_position || ""];
-  if (bep) drawCheck(p2, true, bep.x, bep.y, boldFont);
-
-  const vertCoords: Record<string, { x: number; y: number }> = {
-    shaft: { x: 115, y: 347 },
-    elevator: { x: 115, y: 313 },
-    staircase: { x: 321, y: 347 },
-    internal_external: { x: 321, y: 313 },
-    lightwell: { x: 483, y: 347 },
-    lantern: { x: 483, y: 313 },
-    other: { x: 615, y: 347 },
-  };
-  const vertical = vertCoords[data.vertical_routing || ""];
-  if (vertical) drawCheck(p2, true, vertical.x, vertical.y, boldFont);
-
-  drawWrappedText(p2, data.sketch_notes || "", 20, 58, 730, 10, font, 8, 6);
-  drawText(p2, data.optical_socket_position || "", 160, 34, font, 8);
-
-  if (data.engineer_signature) await embedSignature(pdfDoc, p2, data.engineer_signature, 445, 22, 120, 26);
-  if (data.customer_signature) await embedSignature(pdfDoc, p2, data.customer_signature, 580, 22, 160, 26);
-  if (data.manager_signature) await embedSignature(pdfDoc, p2, data.manager_signature, 580, 0, 160, 26);
-
-  // ─── Page 3: Υπεύθυνη Δήλωση Διαχειριστή ───
-  const p3 = pages[2];
-  drawText(p3, data.declarant_name || "", 282, 690, font, 9);
-  drawText(p3, data.declarant_id_number || "", 598, 690, font, 9);
-  drawText(p3, data.declarant_city || "", 125, 657, font, 9);
-  drawText(p3, data.declarant_street || "", 323, 657, font, 9);
-  drawText(p3, data.declarant_number || "", 523, 657, font, 9);
-  drawBoxedText(p3, data.declarant_postal_code || "", 603, 657, font, 8, 12, 6);
-
-  drawCheck(p3, data.cost_option === "ote_covers", 39, 460, boldFont);
-  drawCheck(p3, data.cost_option !== "ote_covers" && data.cost_option != null, 39, 429, boldFont);
-
-  drawText(p3, data.declaration_date || "", 439, 371, font, 9);
-  if (data.declaration_signature) await embedSignature(pdfDoc, p3, data.declaration_signature, 220, 155, 170, 45);
-
-  // ─── Page 4: Στοιχεία Κτιρίου / Εξοπλισμός ───
-  const p4 = pages[3];
-  drawText(p4, data.building_address || "", 109, 774, font, 9);
-  drawText(p4, data.building_id || "", 348, 748, font, 9);
-
-  const floorKey = normalizeFloor(data.customer_floor_select);
-  if (floorKey && FLOOR_CHECK_COORDS[floorKey]) {
-    const c = FLOOR_CHECK_COORDS[floorKey];
-    drawCheck(p4, true, c.x, c.y, boldFont);
+  if (pages.length < Object.keys(mapping.pages).length) {
+    throw new Error(`Το template PDF πρέπει να έχει ${Object.keys(mapping.pages).length} σελίδες`);
   }
 
-  drawText(p4, String(data.total_apartments ?? ""), 220, 239, font, 9);
-  drawText(p4, String(data.total_shops ?? ""), 228, 213, font, 9);
-  drawText(p4, String(data.total_spaces ?? ""), 175, 187, font, 9);
-  drawText(p4, String(data.total_floors ?? ""), 232, 160, font, 9);
+  if (pages[0]) {
+    console.log(`Page 1 dimensions: ${pages[0].getWidth()} x ${pages[0].getHeight()}`);
+  }
 
-  drawText(p4, data.sr_id || "", 554, 239, font, 9);
-  drawText(p4, data.cabinet || "", 575, 213, font, 9);
-  drawText(p4, data.pipe_code || "", 578, 187, font, 9);
+  const pageEntries = Object.entries(mapping.pages).sort((a, b) => Number(a[0]) - Number(b[0]));
 
-  const bcpRowY: Record<string, number> = { SMALL: 264, MEDIUM: 246 };
-  const bcpBrandX: Record<string, number> = { RAYCAP: 214, ZTT: 277 };
-  const bcpSize = (data.bcp_size || "").toUpperCase();
-  const bcpBrand = (data.bcp_brand || "").toUpperCase();
-  if (bcpRowY[bcpSize] && bcpBrandX[bcpBrand]) drawCheck(p4, true, bcpBrandX[bcpBrand], bcpRowY[bcpSize], boldFont);
+  for (const [pageNum, pageDef] of pageEntries) {
+    const pageIndex = Number(pageNum) - 1;
+    const page = pages[pageIndex];
+    if (!page) continue;
 
-  drawCheck(p4, !!data.bcp_floorbox, 385, 266, boldFont);
-  drawCheck(p4, !!data.bcp_drop_4, 436, 266, boldFont);
-  drawCheck(p4, !!data.bcp_drop_6, 486, 266, boldFont);
-  drawCheck(p4, !!data.bcp_drop_12, 536, 266, boldFont);
-
-  const bepRowY: Record<string, number> = { SMALL: 202, MEDIUM: 184, LARGE: 166, XLARGE: 148 };
-  const bepBrandX: Record<string, number> = { RAYCAP: 214, ZTT: 277 };
-  const bepSize = (data.bep_size || "").toUpperCase();
-  const bepBrand = (data.bep_brand || "").toUpperCase();
-  if (bepRowY[bepSize] && bepBrandX[bepBrand]) drawCheck(p4, true, bepBrandX[bepBrand], bepRowY[bepSize], boldFont);
-  if (bepRowY[bepSize]) drawText(p4, data.bep_capacity || "", 350, bepRowY[bepSize], font, 8);
-
-  const bmoRowY: Record<string, number> = { SMALL: 102, MEDIUM: 84, LARGE: 66 };
-  const bmoBrandX: Record<string, number> = { RAYCAP: 214, ZTT: 277 };
-  const bmoSize = (data.bmo_size || "").toUpperCase();
-  const bmoBrand = (data.bmo_brand || "").toUpperCase();
-  if (bmoRowY[bmoSize] && bmoBrandX[bmoBrand]) drawCheck(p4, true, bmoBrandX[bmoBrand], bmoRowY[bmoSize], boldFont);
-  if (bmoRowY[bmoSize]) drawText(p4, data.bmo_capacity || "", 350, bmoRowY[bmoSize], font, 8);
+    for (const field of pageDef.fields) {
+      await processField(field, data, page, pdfDoc, font, boldFont, mapping.defaults);
+    }
+  }
 
   return new Uint8Array(await pdfDoc.save());
 }
