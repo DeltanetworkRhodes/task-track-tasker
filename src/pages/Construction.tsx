@@ -270,8 +270,8 @@ const ConstructionPage = () => {
         </div>
 
         {/* Filters */}
-        <div className="flex flex-wrap gap-3">
-          <div className="relative flex-1 min-w-[200px] max-w-sm">
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+          <div className="relative flex-1 min-w-0">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Αναζήτηση SR, SES, CAB..."
@@ -280,21 +280,23 @@ const ConstructionPage = () => {
               className="pl-9"
             />
           </div>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[180px]">
-              <Filter className="h-4 w-4 mr-2 text-muted-foreground" />
-              <SelectValue placeholder="Κατάσταση" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Όλες</SelectItem>
-              <SelectItem value="in_progress">Σε Εξέλιξη</SelectItem>
-              <SelectItem value="completed">Ολοκληρωμένες</SelectItem>
-              <SelectItem value="invoiced">Τιμολογημένες</SelectItem>
-            </SelectContent>
-          </Select>
-          <span className="text-xs text-muted-foreground font-bold self-center bg-muted px-2.5 py-1.5 rounded-full">
-            {filtered.length} / {constructions.length}
-          </span>
+          <div className="flex gap-2">
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-[140px] sm:w-[180px] shrink-0">
+                <Filter className="h-4 w-4 mr-2 text-muted-foreground" />
+                <SelectValue placeholder="Κατάσταση" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Όλες</SelectItem>
+                <SelectItem value="in_progress">Σε Εξέλιξη</SelectItem>
+                <SelectItem value="completed">Ολοκληρωμένες</SelectItem>
+                <SelectItem value="invoiced">Τιμολογημένες</SelectItem>
+              </SelectContent>
+            </Select>
+            <span className="text-xs text-muted-foreground font-bold self-center bg-muted px-2.5 py-1.5 rounded-full whitespace-nowrap shrink-0">
+              {filtered.length} / {constructions.length}
+            </span>
+          </div>
         </div>
 
         {/* Table */}
