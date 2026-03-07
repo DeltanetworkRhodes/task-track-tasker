@@ -13,7 +13,7 @@ import { statusLabels } from "@/data/mockData";
 import { ClipboardCheck, Wrench, TrendingUp, Euro, FolderOpen, Activity, Wifi, PieChartIcon, CalendarDays, Timer, Zap } from "lucide-react";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { BarChart, Bar, XAxis, YAxis, Cell, PieChart, Pie, LineChart, Line, CartesianGrid, ResponsiveContainer } from "recharts";
-import { useMemo } from "react";
+
 
 function getTimeAgo(dateStr: string): string {
   const now = new Date();
