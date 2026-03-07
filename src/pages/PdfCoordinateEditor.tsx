@@ -289,7 +289,7 @@ const PdfCoordinateEditor = () => {
     <div className="flex h-screen bg-background">
       {/* Sidebar */}
       <div className="w-80 border-r bg-card overflow-y-auto p-4 space-y-4 flex-shrink-0">
-        <h1 className="text-lg font-bold text-foreground">PDF Coordinate Editor</h1>
+        <h1 className="text-lg font-bold text-foreground">Επεξεργαστής Συντεταγμένων PDF</h1>
         <p className="text-xs text-muted-foreground">Σύρε τα πεδία στη σωστή θέση πάνω στο template</p>
 
         {/* Page navigation */}
@@ -326,7 +326,7 @@ const PdfCoordinateEditor = () => {
         {/* Toggle labels */}
         <Button variant="outline" size="sm" className="w-full" onClick={() => setShowLabels((v) => !v)}>
           {showLabels ? <EyeOff className="h-4 w-4 mr-2" /> : <Eye className="h-4 w-4 mr-2" />}
-          {showLabels ? "Κρύψε labels" : "Δείξε labels"}
+          {showLabels ? "Κρύψε ετικέτες" : "Δείξε ετικέτες"}
         </Button>
 
         {/* Field list */}
