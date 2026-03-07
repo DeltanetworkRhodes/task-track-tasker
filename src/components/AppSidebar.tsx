@@ -28,6 +28,8 @@ const AppSidebar = ({ onClose }: AppSidebarProps) => {
   const location = useLocation();
   const { user, signOut } = useAuth();
   const { theme, setTheme } = useTheme();
+  const { data: constructions } = useConstructions();
+  const activeConstructions = constructions?.filter(c => c.status === 'in_progress').length || 0;
 
   return (
     <aside className="flex h-full w-64 flex-col bg-sidebar border-r border-sidebar-border overflow-hidden">
