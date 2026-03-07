@@ -213,7 +213,7 @@ const ConstructionPage = () => {
         </div>
 
         {/* Stat Cards */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-5">
           <StatCard title="Σύνολο Κατασκευών" value={constructions.length} subtitle={`${inProgressCount} σε εξέλιξη`} icon={Wrench} />
           <StatCard title="Ολοκληρωμένες" value={completedCount} subtitle={`${Math.round((completedCount / Math.max(constructions.length, 1)) * 100)}% επιτυχία`} icon={TrendingUp} trend="up" trendValue={`${constructions.length} σύνολο`} />
           <StatCard title="Συνολικά Έσοδα" value={`${totalRevenue.toLocaleString('el-GR')}€`} subtitle="Από κατασκευές" icon={Receipt} accent />
