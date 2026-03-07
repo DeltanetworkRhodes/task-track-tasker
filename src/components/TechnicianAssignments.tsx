@@ -409,6 +409,17 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
             <FileEdit className="h-4 w-4" />
             {existingSurvey ? "Συνέχεια Αυτοψίας" : "Έναρξη Αυτοψίας"}
           </Button>
+          {existingSurvey && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="w-full gap-2 border-primary/30 text-primary hover:bg-primary/10"
+              onClick={() => setShowInspectionReport(true)}
+            >
+              <FileText className="h-4 w-4" />
+              Δελτίο Αυτοψίας
+            </Button>
+          )}
           {existingSurvey && existingSurvey.status !== "ΕΛΛΙΠΗΣ ΑΥΤΟΨΙΑ" && (
             <>
               <input
