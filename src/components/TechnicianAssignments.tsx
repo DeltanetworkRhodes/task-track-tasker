@@ -712,6 +712,9 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
                 <div className="pt-2">
                   {renderStatusAction(selectedAssignment)}
                 </div>
+
+                {/* SR Comments / Chat */}
+                <SRComments assignmentId={selectedAssignment.id} />
               </div>
             )}
 
