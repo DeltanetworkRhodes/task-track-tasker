@@ -1131,8 +1131,6 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
           ))}
         </Tabs>
 
-        {deltanetMaterials.length > 0 && (
-        )}
       </Card>
 
       {/* Construction Photos - Categorized */}
