@@ -24,6 +24,7 @@ import TechnicianKPIs from "./pages/TechnicianKPIs";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
 import OrgSettings from "./pages/OrgSettings";
 import Calendar from "./pages/Calendar";
+import Kanban from "./pages/Kanban";
 import NotFound from "./pages/NotFound";
 import HelpChatBot from "./components/HelpChatBot";
 
