@@ -192,16 +192,16 @@
         {
           "key": "ext_pipe_sidewalk_excavation_yes",
           "type": "check_if",
-          "x": 293,
-          "y": 710,
+          "x": 297,
+          "y": 690,
           "sourceKey": "ext_pipe_sidewalk_excavation",
           "match": true
         },
         {
           "key": "ext_pipe_sidewalk_excavation_no",
           "type": "check_if",
-          "x": 326,
-          "y": 710,
+          "x": 325,
+          "y": 689,
           "sourceKey": "ext_pipe_sidewalk_excavation",
           "match": false
         },
@@ -236,8 +236,8 @@
         {
           "key": "excavation_to_rg_yes",
           "type": "check_if",
-          "x": 293,
-          "y": 667,
+          "x": 304,
+          "y": 665,
           "sourceKey": "excavation_to_rg",
           "match": true
         },
@@ -260,18 +260,6 @@
           "type": "check",
           "x": 312,
           "y": 607
-        },
-        {
-          "key": "pipe_placement",
-          "type": "check",
-          "x": 310,
-          "y": 590
-        },
-        {
-          "key": "excavation_to_building",
-          "type": "check",
-          "x": 312,
-          "y": 575
         },
         {
           "key": "bep_position",
@@ -376,16 +364,16 @@
         {
           "key": "sidewalk_excavation_yes",
           "type": "check_if",
-          "x": 455,
-          "y": 667,
+          "x": 126,
+          "y": 690,
           "sourceKey": "sidewalk_excavation",
           "match": true
         },
         {
           "key": "sidewalk_excavation_no",
           "type": "check_if",
-          "x": 490,
-          "y": 667,
+          "x": 158,
+          "y": 689,
           "sourceKey": "sidewalk_excavation",
           "match": false
         },
