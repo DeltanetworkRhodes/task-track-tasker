@@ -234,10 +234,6 @@ Deno.serve(async (req) => {
     // 2. Download photos from Supabase Storage (organized by category folders)
     if (photo_paths && photo_paths.length > 0) {
       for (let i = 0; i < photo_paths.length; i++) {
-        if (totalSize > MAX_ZIP_SIZE) {
-          console.log(`ZIP size limit reached, skipping remaining photos`);
-          break;
-        }
         try {
           const { data: fileData, error: dlErr } = await adminClient.storage
             .from("photos")
