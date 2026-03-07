@@ -342,6 +342,16 @@
           }
         },
         {
+          "key": "vertical_routing_other_notes",
+          "type": "wrapped",
+          "x": 470,
+          "y": 495,
+          "size": 7,
+          "maxWidth": 150,
+          "lineHeight": 9,
+          "maxLines": 2
+        },
+        {
           "key": "routing_aerial_notes",
           "type": "wrapped",
           "x": 422,

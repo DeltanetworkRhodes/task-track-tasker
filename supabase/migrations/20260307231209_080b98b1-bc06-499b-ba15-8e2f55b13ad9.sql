@@ -1,0 +1,1 @@
+ALTER TABLE public.inspection_reports ADD COLUMN IF NOT EXISTS vertical_routing_other_notes text;

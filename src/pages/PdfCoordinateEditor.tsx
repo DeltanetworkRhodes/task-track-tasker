@@ -128,6 +128,7 @@ const FIELD_LABELS: Record<string, string> = {
   "vertical_routing.lightwell": "Κατακ. Δρομ.: Φωταγωγός",
   "vertical_routing.lantern": "Κατακ. Δρομ.: Φανάρι",
   "vertical_routing.other": "Κατακ. Δρομ.: Άλλο",
+  vertical_routing_other_notes: "Σημ. Κατακ. Δρομ. Άλλο",
 
   // Page 3 - Υπεύθυνη Δήλωση
   declarant_name: "Όνομα Δηλούντος",
