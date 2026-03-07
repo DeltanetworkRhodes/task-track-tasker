@@ -773,9 +773,9 @@ const Surveys = () => {
                           {fileTypeLabels[type] || type} ({files.length})
                         </h3>
                         <div className="grid grid-cols-3 gap-2">
-                          {files.map((f: any) => (
-                            <a key={f.id} href={getFileUrl(f.file_path)} target="_blank" rel="noopener noreferrer" className="group relative block">
-                              <img src={getFileUrl(f.file_path)} alt={f.file_name} className="h-28 w-full object-cover rounded-lg border border-border group-hover:border-primary transition-colors" />
+                          {(files as any[]).map((f: any) => (
+                            <a key={f.id} href={f.signedUrl || "#"} target="_blank" rel="noopener noreferrer" className="group relative block">
+                              <img src={f.signedUrl || ""} alt={f.file_name} className="h-28 w-full object-cover rounded-lg border border-border group-hover:border-primary transition-colors" />
                               <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 rounded-lg flex items-center justify-center transition-colors">
                                 <Download className="h-5 w-5 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
                               </div>
