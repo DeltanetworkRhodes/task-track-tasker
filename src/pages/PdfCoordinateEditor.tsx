@@ -53,6 +53,7 @@ const FIELD_COLORS: Record<string, string> = {
   check_if: "#ef4444",
   check_if_not: "#ef4444",
   check_map: "#f97316",
+  check_map_multi: "#f97316",
   floor_check: "#f97316",
   equipment_grid: "#06b6d4",
   signature: "#10b981",
