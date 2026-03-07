@@ -118,45 +118,57 @@ async function uploadFileToDrive(
   return await uploadRes.json();
 }
 
-// ─── PDF Generation ──────────────────────────────────────────────────
+// ─── PDF Generation (OTE Template) ──────────────────────────────────
 
 const A4_W = 595.28;
 const A4_H = 841.89;
+const M = 40; // margin
+const MW = A4_W - 2 * M; // usable width
 
 interface InspectionData {
   [key: string]: any;
 }
 
-function drawText(
-  page: any, text: string, x: number, y: number, font: any,
-  size = 9, color = rgb(0.1, 0.14, 0.2)
-) {
+const BLUE = rgb(0, 0.325, 0.624); // OTE blue
+const BLACK = rgb(0, 0, 0);
+const WHITE = rgb(1, 1, 1);
+const LIGHT_BLUE = rgb(0.82, 0.88, 0.95);
+const GREY = rgb(0.5, 0.5, 0.5);
+
+function drawText(page: any, text: string, x: number, y: number, font: any, size = 9, color = BLACK) {
   page.drawText(text || "", { x, y, size, font, color });
 }
 
-function drawLabel(
-  page: any, label: string, x: number, y: number, font: any, boldFont: any, value: string
-) {
-  page.drawText(label, { x, y, size: 8, font: boldFont, color: rgb(0.3, 0.3, 0.3) });
-  page.drawText(value || "—", { x: x + 130, y, size: 9, font, color: rgb(0.1, 0.14, 0.2) });
+function drawLine(page: any, x1: number, y1: number, x2: number, y2: number, thickness = 0.5) {
+  page.drawLine({ start: { x: x1, y: y1 }, end: { x: x2, y: y2 }, thickness, color: BLACK });
 }
 
-function drawCheckbox(
-  page: any, checked: boolean, label: string, x: number, y: number, font: any
-) {
+function drawSectionHeader(page: any, text: string, x: number, y: number, w: number, font: any) {
+  page.drawRectangle({ x, y: y - 4, width: w, height: 16, color: BLUE });
+  page.drawText(text, { x: x + 5, y: y, size: 9, font, color: WHITE });
+  return y - 22;
+}
+
+function drawLabelValue(page: any, label: string, value: string, x: number, y: number, boldFont: any, font: any, labelW = 180) {
+  page.drawText(label, { x, y, size: 8.5, font: boldFont, color: BLACK });
+  page.drawText(value || "", { x: x + labelW, y, size: 9, font, color: BLACK });
+  drawLine(page, x + labelW, y - 2, x + MW, y - 2);
+}
+
+function drawCheckbox(page: any, checked: boolean, label: string, x: number, y: number, font: any, size = 8) {
   const boxSize = 10;
   page.drawRectangle({
     x, y: y - 2, width: boxSize, height: boxSize,
-    borderColor: rgb(0.5, 0.5, 0.5), borderWidth: 0.8,
-    color: checked ? rgb(0.1, 0.6, 0.54) : rgb(1, 1, 1),
+    borderColor: BLACK, borderWidth: 0.8,
+    color: WHITE,
   });
   if (checked) {
-    page.drawText("V", { x: x + 2, y: y, size: 7, font, color: rgb(1, 1, 1) });
+    page.drawText("X", { x: x + 2, y: y, size: 7, font, color: BLACK });
   }
-  page.drawText(label, { x: x + boxSize + 4, y, size: 8, font, color: rgb(0.1, 0.14, 0.2) });
+  page.drawText(label, { x: x + boxSize + 4, y, size, font, color: BLACK });
 }
 
-async function embedSignature(pdfDoc: any, page: any, dataUrl: string, x: number, y: number, maxW = 180, maxH = 60) {
+async function embedSignature(pdfDoc: any, page: any, dataUrl: string, x: number, y: number, maxW = 160, maxH = 50) {
   if (!dataUrl || !dataUrl.startsWith("data:image/png;base64,")) return;
   try {
     const base64 = dataUrl.split(",")[1];
@@ -183,279 +195,599 @@ async function generateInspectionPdf(data: InspectionData): Promise<Uint8Array> 
   const font = await pdfDoc.embedFont(fontBytes, { subset: true });
   const boldFont = await pdfDoc.embedFont(boldFontBytes, { subset: true });
 
-  const brandColor = rgb(0.1, 0.6, 0.54); // teal
-  const headerBg = rgb(0.1, 0.14, 0.2); // dark
-  const lightBg = rgb(0.94, 0.96, 0.97);
-
-  // ─── PAGE 1: Customer Info ───
+  // ══════════════════════════════════════════════════════════════════════
+  // PAGE 1: Στοιχεία Πελάτη (Customer Info)
+  // ══════════════════════════════════════════════════════════════════════
   const p1 = pdfDoc.addPage([A4_W, A4_H]);
-  let y = A4_H - 40;
+  let y = A4_H - 50;
 
-  // Header
-  p1.drawRectangle({ x: 0, y: y - 5, width: A4_W, height: 35, color: headerBg });
-  p1.drawText("ΕΚΘΕΣΗ ΤΕΧΝΙΚΗΣ ΕΠΙΘΕΩΡΗΣΗΣ ΚΤΙΡΙΟΥ", { x: 40, y: y + 5, size: 14, font: boldFont, color: rgb(1, 1, 1) });
-  p1.drawText("(Έντυπο για Διαχειριστή)", { x: 40, y: y - 10, size: 9, font, color: rgb(0.8, 0.8, 0.8) });
-  y -= 50;
+  // OTE Header
+  drawText(p1, "ΟΤΕ", M, y + 10, boldFont, 22, BLUE);
+  drawText(p1, "ΟΜΙΛΟΣ ΕΤΑΙΡΕΙΩΝ", M, y - 8, font, 7, BLUE);
 
-  // Customer info section
-  p1.drawRectangle({ x: 30, y: y - 5, width: A4_W - 60, height: 22, color: brandColor });
-  p1.drawText("ΣΤΟΙΧΕΙΑ ΠΕΛΑΤΗ", { x: 40, y: y + 2, size: 10, font: boldFont, color: rgb(1, 1, 1) });
-  y -= 30;
+  drawText(p1, "ΕΚΘΕΣΗ ΤΕΧΝΙΚΗΣ ΕΠΙΘΕΩΡΗΣΗΣ ΚΤΙΡΙΟΥ", M + 150, y + 8, boldFont, 14, BLACK);
+  drawText(p1, "(Έντυπο για Διαχειριστή)", M + 200, y - 8, font, 10, BLACK);
+  y -= 40;
 
-  const customerFields = [
-    ["Ονοματεπώνυμο:", data.customer_name],
-    ["Όνομα Πατρός:", data.customer_father_name],
-    ["Τηλ. (κινητό):", data.customer_mobile],
-    ["Τηλ. (σταθερό):", data.customer_phone],
-    ["Email:", data.customer_email],
-    ["Οδός:", `${data.customer_street || ""} ${data.customer_number || ""}`],
-    ["Τ.Κ.:", data.customer_postal_code],
-    ["Όροφος:", data.customer_floor],
-    ["Κωδ. Διαμ/τος:", data.customer_apartment_code],
-    ["Νομός:", data.customer_county],
-    ["Δήμος:", data.customer_municipality],
-  ];
+  // Border around the whole form
+  p1.drawRectangle({ x: M - 5, y: 30, width: MW + 10, height: y - 25, borderColor: BLACK, borderWidth: 0.5, color: undefined });
 
-  for (const [label, value] of customerFields) {
-    if (y % 2 === 0) p1.drawRectangle({ x: 30, y: y - 3, width: A4_W - 60, height: 16, color: lightBg });
-    drawLabel(p1, label, 40, y, font, boldFont, value || "");
-    y -= 18;
-  }
+  // Στοιχεία section header
+  y = drawSectionHeader(p1, "Στοιχεία", M, y, MW, boldFont);
 
-  // Notes
+  // Customer fields
+  drawText(p1, "ΟΝΟΜΑΤΕΠΩΝΥΜΟ / ΕΠΩΝΥΜΙΑ:", M + 5, y, boldFont, 8.5);
+  drawText(p1, data.customer_name || "", M + 190, y, font, 9);
+  drawText(p1, "ΟΝΟΜΑ ΠΑΤΡΟΣ:", M + 370, y, boldFont, 8.5);
+  drawText(p1, data.customer_father_name || "", M + 460, y, font, 9);
+  y -= 18;
+  drawLine(p1, M, y + 5, M + MW, y + 5);
+
+  // Blue separator
+  p1.drawRectangle({ x: M, y: y - 2, width: MW, height: 12, color: BLUE });
+  y -= 16;
+
+  drawText(p1, "ΤΗΛΕΦΩΝΟ (κινητό):", M + 5, y, boldFont, 8.5);
+  drawText(p1, data.customer_mobile || "", M + 140, y, font, 9);
+  y -= 16;
+  drawLine(p1, M, y + 5, M + MW, y + 5);
+
+  drawText(p1, "ΤΗΛΕΦΩΝΟ (σταθερό):", M + 5, y, boldFont, 8.5);
+  drawText(p1, data.customer_phone || "", M + 145, y, font, 9);
+  y -= 16;
+  drawLine(p1, M, y + 5, M + MW, y + 5);
+
+  drawText(p1, "EMAIL:", M + 5, y, boldFont, 8.5);
+  drawText(p1, data.customer_email || "", M + 50, y, font, 9);
+  y -= 16;
+  drawLine(p1, M, y + 5, M + MW, y + 5);
+
+  // Blue separator
+  p1.drawRectangle({ x: M, y: y - 2, width: MW, height: 12, color: BLUE });
+  y -= 16;
+
+  drawText(p1, "ΟΔΟΣ:", M + 5, y, boldFont, 8.5);
+  drawText(p1, data.customer_street || "", M + 50, y, font, 9);
+  drawText(p1, "ΑΡΙΘ.:", M + 250, y, boldFont, 8.5);
+  drawText(p1, data.customer_number || "", M + 290, y, font, 9);
+  drawText(p1, "Τ.Κ.:", M + 350, y, boldFont, 8.5);
+  drawText(p1, data.customer_postal_code || "", M + 380, y, font, 9);
+  y -= 16;
+  drawLine(p1, M, y + 5, M + MW, y + 5);
+
+  drawText(p1, "ΟΡΟΦΟΣ:", M + 5, y, boldFont, 8.5);
+  drawText(p1, data.customer_floor || "", M + 60, y, font, 9);
+  drawText(p1, "ΚΩΔ. ΔΙΑΜ/ΤΟΣ:", M + 150, y, boldFont, 8.5);
+  drawText(p1, data.customer_apartment_code || "", M + 250, y, font, 9);
+  drawText(p1, "ΝΟΜΟΣ:", M + 320, y, boldFont, 8.5);
+  drawText(p1, data.customer_county || "", M + 370, y, font, 9);
+  drawText(p1, "ΔΗΜΟΣ:", M + 430, y, boldFont, 8.5);
+  drawText(p1, data.customer_municipality || "", M + 470, y, font, 9);
+  y -= 18;
+  drawLine(p1, M, y + 5, M + MW, y + 5);
+
+  // Παρατηρήσεις
+  y -= 5;
+  y = drawSectionHeader(p1, "Παρατηρήσεις", M, y, MW, boldFont);
   if (data.customer_notes) {
-    y -= 10;
-    p1.drawRectangle({ x: 30, y: y - 5, width: A4_W - 60, height: 22, color: brandColor });
-    p1.drawText("ΠΑΡΑΤΗΡΗΣΕΙΣ", { x: 40, y: y + 2, size: 10, font: boldFont, color: rgb(1, 1, 1) });
-    y -= 28;
-    drawText(p1, data.customer_notes, 40, y, font, 9);
-    y -= 20;
+    // Wrap long notes
+    const noteLines = (data.customer_notes || "").match(/.{1,90}/g) || [data.customer_notes];
+    for (const line of noteLines) {
+      drawText(p1, line, M + 5, y, font, 8);
+      y -= 12;
+    }
+  }
+  // Dotted lines for notes area
+  for (let i = 0; i < 5; i++) {
+    drawLine(p1, M + 5, y, M + MW - 5, y, 0.3);
+    y -= 14;
   }
 
-  // Manager info
-  y -= 10;
-  p1.drawRectangle({ x: 30, y: y - 5, width: A4_W - 60, height: 22, color: brandColor });
-  p1.drawText("ΣΤΟΙΧΕΙΑ ΔΙΑΧΕΙΡΙΣΤΗ", { x: 40, y: y + 2, size: 10, font: boldFont, color: rgb(1, 1, 1) });
-  y -= 30;
+  // Στοιχεία διαχειριστή
+  y -= 5;
+  y = drawSectionHeader(p1, "Στοιχεία διαχειριστή", M, y, MW, boldFont);
 
-  for (const [label, value] of [
-    ["Ονοματεπώνυμο:", data.manager_name],
-    ["Τηλ. (κινητό):", data.manager_mobile],
-    ["Email:", data.manager_email],
-  ]) {
-    drawLabel(p1, label, 40, y, font, boldFont, value || "");
-    y -= 18;
-  }
+  drawText(p1, "ΟΝΟΜΑΤΕΠΩΝΥΜΟ:", M + 5, y, boldFont, 8.5);
+  drawText(p1, data.manager_name || "", M + 120, y, font, 9);
+  y -= 16;
+  drawLine(p1, M, y + 5, M + MW, y + 5);
 
-  // Technical service
-  y -= 10;
-  p1.drawRectangle({ x: 30, y: y - 5, width: A4_W - 60, height: 22, color: brandColor });
-  p1.drawText("ΑΡΜΟΔΙΑ ΤΕΧΝΙΚΗ ΥΠΗΡΕΣΙΑ", { x: 40, y: y + 2, size: 10, font: boldFont, color: rgb(1, 1, 1) });
-  y -= 30;
+  drawText(p1, "ΤΗΛΕΦΩΝΟ ΕΠΙΚΟΙΝΩΝΙΑΣ (κινητό):", M + 5, y, boldFont, 8.5);
+  drawText(p1, data.manager_mobile || "", M + 210, y, font, 9);
+  y -= 16;
+  drawLine(p1, M, y + 5, M + MW, y + 5);
 
-  for (const [label, value] of [
-    ["Διεύθυνση:", data.service_address],
-    ["Τηλέφωνο:", data.service_phone],
-    ["Email:", data.service_email],
-  ]) {
-    drawLabel(p1, label, 40, y, font, boldFont, value || "");
-    y -= 18;
-  }
+  drawText(p1, "EMAIL:", M + 5, y, boldFont, 8.5);
+  drawText(p1, data.manager_email || "", M + 50, y, font, 9);
+  y -= 18;
+  drawLine(p1, M, y + 5, M + MW, y + 5);
 
-  y -= 10;
-  drawText(p1, `Τεχνικός: ${data.technician_name || "—"}`, 40, y, boldFont, 10);
+  drawText(p1, "Ειδικό πεδίο που συμπληρώνεται διότι απαιτείται επικοινωνία με τον Διαχειριστή του κτιρίου.", M + 5, y, font, 7, GREY);
+  y -= 18;
 
-  // ─── PAGE 2: Technical Description ───
+  // Αρμόδια Τεχνική Υπηρεσία
+  drawText(p1, "ΑΡΜΟΔΙΑ ΤΕΧΝΙΚΗ ΥΠΗΡΕΣΙΑ:", M + 5, y, boldFont, 9);
+  y -= 16;
+
+  drawText(p1, "ΔΙΕΥΘΥΝΣΗ ΑΛΛΗΛΟΓΡΑΦΙΑΣ:", M + 5, y, boldFont, 8.5);
+  drawText(p1, data.service_address || "", M + 180, y, font, 9);
+  y -= 16;
+  drawLine(p1, M, y + 5, M + MW, y + 5);
+
+  drawText(p1, "ΤΗΛΕΦΩΝΟ ΕΠΙΚΟΙΝΩΝΙΑΣ (σταθερό):", M + 5, y, boldFont, 8.5);
+  drawText(p1, data.service_phone || "", M + 220, y, font, 9);
+  y -= 16;
+  drawLine(p1, M, y + 5, M + MW, y + 5);
+
+  drawText(p1, "EMAIL:", M + 5, y, boldFont, 8.5);
+  drawText(p1, data.service_email || "", M + 50, y, font, 9);
+  y -= 18;
+  drawLine(p1, M, y + 5, M + MW, y + 5);
+
+  drawText(p1, "ΟΝΟΜΑΤΕΠΩΝΥΜΟ ΤΕΧΝΙΚΟΥ ΠΟΥ ΕΠΙΤΕΛΕΣΕ ΤΗΝ ΑΥΤΟΨΙΑ:", M + 5, y, boldFont, 9);
+  drawText(p1, data.technician_name || "", M + 340, y, font, 9);
+  y -= 16;
+  drawLine(p1, M, y + 5, M + MW, y + 5);
+
+  drawText(p1, "Ώρες επικοινωνίας: Δευτέρα έως Παρασκευή 08:00-15:00", M + 5, y, font, 7, GREY);
+
+  // ══════════════════════════════════════════════════════════════════════
+  // PAGE 2: Τεχνική Περιγραφή – Επιθεώρηση
+  // ══════════════════════════════════════════════════════════════════════
   const p2 = pdfDoc.addPage([A4_W, A4_H]);
   y = A4_H - 40;
 
-  p2.drawRectangle({ x: 0, y: y - 5, width: A4_W, height: 30, color: headerBg });
-  p2.drawText("ΕΝΤΥΠΟ ΤΕΧΝΙΚΗΣ ΠΕΡΙΓΡΑΦΗΣ – ΕΠΙΘΕΩΡΗΣΗΣ", { x: 40, y: y + 2, size: 12, font: boldFont, color: rgb(1, 1, 1) });
-  y -= 45;
+  // OTE logo header
+  drawText(p2, "ΟΤΕ", M, y, boldFont, 16, BLUE);
 
-  // Section 1: Routing
-  p2.drawRectangle({ x: 30, y: y - 5, width: A4_W - 60, height: 22, color: brandColor });
-  p2.drawText("1. ΟΔΕΥΣΗ ΜΕΧΡΙ ΤΟΝ ΚΕΝΤΡΙΚΟ ΟΠΤΙΚΟ ΚΑΤΑΝΕΜΗΤΗ (Β.Ε.Ρ.)", { x: 40, y: y + 2, size: 9, font: boldFont, color: rgb(1, 1, 1) });
-  y -= 35;
-
-  drawCheckbox(p2, data.routing_escalit, "Εσκαλίτ (Εισαγωγή χαλκού)", 40, y, font);
-  drawCheckbox(p2, data.routing_external_pipe, "Εξωτ. με σιδηροσωλήνα", 250, y, font);
-  y -= 20;
-  drawCheckbox(p2, data.routing_aerial, "Εναέριο", 40, y, font);
-  if (data.routing_other) drawText(p2, `Άλλο: ${data.routing_other}`, 250, y, font, 8);
-  y -= 25;
-
-  drawCheckbox(p2, data.excavation_to_pipe === true, "Εκσκαφή πεζ. έως σωλήνα: ΝΑΙ", 40, y, font);
-  drawCheckbox(p2, data.excavation_to_pipe === false, "ΌΧΙ", 280, y, font);
-  y -= 20;
-  drawCheckbox(p2, data.excavation_to_rg === true, "Εκσκαφή πεζ. έως ΡΓ: ΝΑΙ", 40, y, font);
-  drawCheckbox(p2, data.excavation_to_rg === false, "ΌΧΙ", 280, y, font);
-  y -= 25;
-
-  drawCheckbox(p2, data.pipe_placement, "Τοποθέτηση Σιδηροσωλήνα", 40, y, font);
-  drawCheckbox(p2, data.wall_mount, "Στήριξη επί τοιχοποιίας", 250, y, font);
-  y -= 20;
-  drawCheckbox(p2, data.fence_building_mount, "Περίφραξης ή/και κτιρίου", 40, y, font);
-  drawCheckbox(p2, data.excavation_to_building, "Εκσκαφή έως κτίριο", 250, y, font);
-  y -= 35;
-
-  // Section 2: BEP position
-  const bepPositionLabels: Record<string, string> = {
-    internal: "Εσωτερικά", external: "Εξωτερικά", fence: "Στην περίφραξη",
-    building: "Στο κτίριο", pillar: "PILAR", pole: "Επί στύλου",
-    basement: "Υπόγειο", rooftop: "Ταράτσα", ground: "Ισόγειο", piloti: "Πυλωτή",
-  };
-
-  p2.drawRectangle({ x: 30, y: y - 5, width: A4_W - 60, height: 22, color: brandColor });
-  p2.drawText("2. ΘΕΣΗ Β.Ε.Ρ.", { x: 40, y: y + 2, size: 9, font: boldFont, color: rgb(1, 1, 1) });
+  drawText(p2, "ΕΝΤΥΠΟ ΤΕΧΝΙΚΗΣ ΠΕΡΙΓΡΑΦΗΣ – ΕΠΙΘΕΩΡΗΣΗΣ", M + 100, y, boldFont, 13, BLACK);
   y -= 30;
-  drawText(p2, `Θέση: ${bepPositionLabels[data.bep_position] || data.bep_position || "—"}`, 40, y, boldFont, 10);
-  y -= 35;
 
-  // Section 3: Vertical routing
-  const verticalLabels: Record<string, string> = {
-    shaft: "Φρεάτιο", staircase: "Κλιμακοστάσιο", lightwell: "Φωταγωγός",
-    elevator: "Ανελκυστήρα", lantern: "Φανάρι σκάλας", other: "Άλλο",
-  };
+  // Section 1
+  drawText(p2, "1. ΟΔΕΥΣΗ ΜΕΧΡΙ ΤΟΝ ΚΕΝΤΡΙΚΟ ΟΠΤΙΚΟ ΚΑΤΑΝΕΜΗΤΗ ΚΤΙΡΙΟΥ (Β.Ε.Ρ.)", M + 30, y, boldFont, 9);
+  y -= 22;
 
-  p2.drawRectangle({ x: 30, y: y - 5, width: A4_W - 60, height: 22, color: brandColor });
-  p2.drawText("3. ΚΑΤΑΚΟΡΥΦΗ ΟΔΕΥΣΗ", { x: 40, y: y + 2, size: 9, font: boldFont, color: rgb(1, 1, 1) });
-  y -= 30;
-  drawText(p2, `Τρόπος: ${verticalLabels[data.vertical_routing] || data.vertical_routing || "—"}`, 40, y, boldFont, 10);
-  y -= 35;
+  // Left column
+  drawText(p2, "ΜΕ ΧΡΗΣΗ ΕΣΚΑΛΙΤ", M, y, font, 8);
+  drawCheckbox(p2, data.routing_escalit, "", M + 120, y, font);
+  drawText(p2, "ΕΞΩΤΕΡΙΚΗ ΟΔΕΥΣΗ ΜΕ", M + 180, y, font, 8);
+  drawText(p2, "ΕΝΑΕΡΙΟ", M + 385, y, font, 8);
+  drawCheckbox(p2, data.routing_aerial, "", M + 425, y, font);
+  drawText(p2, "ΑΛΛΟΣ ΤΡΟΠΟΣ", M + 455, y, font, 8);
+  drawCheckbox(p2, !!data.routing_other, "", M + MW - 10, y, font);
+  y -= 14;
+  drawText(p2, "(Εισαγωγή χαλκού)", M, y, font, 7);
+  drawText(p2, "ΧΡΗΣΗ ΣΙΔΗΡΟΣΩΛΗΝΑ", M + 180, y, font, 8);
+  drawCheckbox(p2, data.routing_external_pipe, "", M + 310, y, font);
+  y -= 18;
 
-  // Notes & sketches
-  if (data.sketch_notes) {
-    p2.drawRectangle({ x: 30, y: y - 5, width: A4_W - 60, height: 22, color: brandColor });
-    p2.drawText("ΠΑΡΑΤΗΡΗΣΕΙΣ - ΠΕΡΙΓΡΑΦΗ", { x: 40, y: y + 2, size: 9, font: boldFont, color: rgb(1, 1, 1) });
-    y -= 30;
-    drawText(p2, data.sketch_notes, 40, y, font, 9);
-    y -= 20;
+  drawText(p2, "Εκσκαφή", M, y, font, 8);
+  drawText(p2, "Εκσκαφή πεζοδρομίου", M + 180, y, font, 8);
+  y -= 12;
+  drawText(p2, "πεζοδρομίου", M, y, font, 8);
+  y -= 12;
+  drawText(p2, "έως σωλήνα εισαγωγής", M, y, font, 8);
+  drawCheckbox(p2, data.excavation_to_pipe === true, "", M + 130, y, font);
+  drawText(p2, "ΝΑΙ", M + 145, y, font, 8);
+  drawCheckbox(p2, data.excavation_to_pipe === false, "", M + 170, y, font);
+  drawText(p2, "ΌΧΙ", M + 185, y, font, 8);
+
+  drawText(p2, "έως ΡΓ", M + 280, y, font, 8);
+  drawCheckbox(p2, data.excavation_to_rg === true, "", M + 330, y, font);
+  drawText(p2, "ΝΑΙ", M + 345, y, font, 8);
+  drawCheckbox(p2, data.excavation_to_rg === false, "", M + 375, y, font);
+  drawText(p2, "ΌΧΙ", M + 390, y, font, 8);
+  y -= 20;
+
+  // Dotted lines
+  for (let i = 0; i < 3; i++) {
+    drawLine(p2, M, y, M + MW, y, 0.3);
+    y -= 12;
   }
 
-  if (data.optical_socket_position) {
-    drawText(p2, `Θέση Οπτικής Πρίζας: ${data.optical_socket_position}`, 40, y, boldFont, 9);
-    y -= 30;
-  }
+  drawText(p2, "Τοποθέτηση", M + 180, y, font, 8);
+  y -= 12;
+  drawText(p2, "Σιδηροσωλήνα", M + 180, y, font, 8);
+  drawCheckbox(p2, data.pipe_placement, "", M + 270, y, font);
+  drawText(p2, "Στήριξη επί", M + 300, y, font, 8);
+  y -= 12;
+  drawText(p2, "τοιχοποιίας", M + 300, y, font, 8);
+  drawCheckbox(p2, data.wall_mount, "", M + 370, y, font);
+  y -= 12;
+  drawText(p2, "περίφραξης ή/και κτιρίου", M + 300, y, font, 8);
+  drawCheckbox(p2, data.fence_building_mount, "", M + 440, y, font);
+  y -= 14;
+  drawText(p2, "Εκσκαφή έως το κτίριο και", M + 180, y, font, 8);
+  y -= 12;
+  drawText(p2, "στήριξη επί του κτιρίου", M + 180, y, font, 8);
+  drawCheckbox(p2, data.excavation_to_building, "", M + 320, y, font);
+  y -= 25;
 
-  // Signatures
-  y -= 10;
-  p2.drawRectangle({ x: 30, y: y - 5, width: A4_W - 60, height: 22, color: brandColor });
-  p2.drawText("ΥΠΟΓΡΑΦΕΣ", { x: 40, y: y + 2, size: 9, font: boldFont, color: rgb(1, 1, 1) });
-  y -= 35;
-
-  drawText(p2, "Υπογραφή Μηχανικού:", 40, y, boldFont, 8);
-  if (data.engineer_signature) await embedSignature(pdfDoc, p2, data.engineer_signature, 40, y - 65);
-  y -= 80;
-
-  drawText(p2, "Υπογραφή Πελάτη:", 40, y, boldFont, 8);
-  if (data.customer_signature) await embedSignature(pdfDoc, p2, data.customer_signature, 40, y - 65);
-
-  drawText(p2, "Υπογραφή Διαχειριστή:", 310, y, boldFont, 8);
-  if (data.manager_signature) await embedSignature(pdfDoc, p2, data.manager_signature, 310, y - 65);
-
-  // ─── PAGE 3: Declaration ───
-  const p3 = pdfDoc.addPage([A4_W, A4_H]);
-  y = A4_H - 40;
-
-  p3.drawRectangle({ x: 0, y: y - 5, width: A4_W, height: 30, color: headerBg });
-  p3.drawText("ΥΠΕΥΘΥΝΗ ΔΗΛΩΣΗ ΔΙΑΧΕΙΡΙΣΤΗ / ΕΚΠΡΟΣΩΠΟΥ", { x: 40, y: y + 2, size: 12, font: boldFont, color: rgb(1, 1, 1) });
-  y -= 50;
-
-  const isApprove = data.declaration_type === "approve";
-  drawCheckbox(p3, isApprove, "ΕΠΙΛΟΓΗ (Α) – ΕΓΚΡΙΝΩ ΑΜΕΣΗ ΕΝΑΡΞΗ ΕΡΓΑΣΙΩΝ", 40, y, boldFont);
+  // Section 2: ΘΕΣΗ Β.Ε.Ρ
+  drawText(p2, "2. ΘΕΣΗ Β.Ε.Ρ", M + 180, y, boldFont, 10);
   y -= 20;
-  drawCheckbox(p3, !isApprove, "ΕΠΙΛΟΓΗ (Β) – ΔΕΝ ΕΓΚΡΙΝΩ", 40, y, boldFont);
-  y -= 35;
 
-  const declFields = [
-    ["Ονοματεπώνυμο:", data.declarant_name],
-    ["ΑΔΤ:", data.declarant_id_number],
-    ["Πόλη:", data.declarant_city],
-    ["Οδός:", `${data.declarant_street || ""} ${data.declarant_number || ""}`],
-    ["Τ.Κ.:", data.declarant_postal_code],
-    ["Ημερομηνία:", data.declaration_date],
-    ["Κόστος εργασιών:", data.cost_option === "ote_covers" ? "Επιβαρύνει αποκλειστικά την ΟΤΕ Α.Ε." : "Δεν επιβαρύνει την ΟΤΕ Α.Ε."],
+  const bepOptions = [
+    { key: "internal", label: "ΕΣΩΤΕΡΙΚΑ" },
+    { key: "external", label: "ΕΞΩΤΕΡΙΚΑ" },
+    { key: "fence", label: "ΣΤΗΝ ΠΕΡΙΦΡΑΞΗ" },
+    { key: "building", label: "ΣΤΟ ΚΤΙΡΙΟ" },
+    { key: "pole", label: "ΕΠΙ ΣΤΥΛΟΥ" },
+    { key: "pillar", label: "PILAR" },
+    { key: "basement", label: "ΥΠΟΓΕΙΟ" },
+    { key: "ground", label: "ΙΣΟΓΕΙΟ" },
+    { key: "rooftop", label: "ΤΑΡΑΤΣΑ" },
+    { key: "piloti", label: "ΠΥΛΩΤΗ" },
   ];
 
-  for (const [label, value] of declFields) {
-    drawLabel(p3, label, 40, y, font, boldFont, value || "");
-    y -= 20;
+  // Row 1
+  for (let i = 0; i < 5; i++) {
+    const opt = bepOptions[i];
+    const xPos = M + i * 103;
+    drawText(p2, opt.label, xPos, y, font, 8);
+    drawCheckbox(p2, data.bep_position === opt.key, "", xPos + 80, y, font);
+  }
+  y -= 16;
+  // Row 2
+  for (let i = 5; i < 10; i++) {
+    const opt = bepOptions[i];
+    const xPos = M + (i - 5) * 103;
+    drawText(p2, opt.label, xPos, y, font, 8);
+    drawCheckbox(p2, data.bep_position === opt.key, "", xPos + 80, y, font);
+  }
+  y -= 25;
+
+  // Section 3: Κατακόρυφη οδεύση
+  drawText(p2, "3. ΚΑΤΑΚΟΡΥΦΗ ΟΔΕΥΣΗ ΠΡΟΣ ΤΑ ΚΟΥΤΙΑ ΔΙΑΝΟΜΗΣ ΟΡΟΦΩΝ (F.B.)", M + 30, y, boldFont, 9);
+  y -= 18;
+
+  const vertOptions = [
+    { key: "shaft", label: "ΦΡΕΑΤΙΟ" },
+    { key: "staircase", label: "ΚΛΙΜΑΚΟΣΤΑΣΙΟ" },
+    { key: "lightwell", label: "ΦΩΤΑΓΩΓΟΣ" },
+    { key: "other", label: "ΑΛΛΟΣ ΤΡΟΠΟΣ" },
+    { key: "elevator", label: "ΑΝΕΛΚΥΣΤΗΡΑ" },
+    { key: "internal_external", label: "ΕΣΩΤ./ΕΞΩΤ." },
+    { key: "lantern", label: "ΦΑΝΑΡΙ ΣΚΑΛΑΣ" },
+  ];
+
+  // Row 1
+  for (let i = 0; i < 4; i++) {
+    const opt = vertOptions[i];
+    const xPos = M + i * 130;
+    drawText(p2, opt.label, xPos, y, font, 8);
+    drawCheckbox(p2, data.vertical_routing === opt.key, "", xPos + 90, y, font);
+  }
+  y -= 16;
+  // Row 2
+  for (let i = 4; i < 7; i++) {
+    const opt = vertOptions[i];
+    const xPos = M + (i - 4) * 130;
+    drawText(p2, opt.label, xPos, y, font, 8);
+    drawCheckbox(p2, data.vertical_routing === opt.key, "", xPos + 90, y, font);
+  }
+  y -= 25;
+
+  // ΣΚΑΡΙΦΗΜΑΤΑ
+  drawText(p2, "ΣΚΑΡΙΦΗΜΑΤΑ", M, y, boldFont, 10);
+  y -= 15;
+
+  // Draw sketch grid area
+  const sketchH = 150;
+  p2.drawRectangle({ x: M, y: y - sketchH, width: 200, height: sketchH, borderColor: BLACK, borderWidth: 0.5, color: undefined });
+  // Grid lines inside sketch
+  for (let gx = 1; gx < 10; gx++) {
+    const lx = M + gx * 20;
+    p2.drawLine({ start: { x: lx, y: y }, end: { x: lx, y: y - sketchH }, thickness: 0.2, color: rgb(0.8, 0.8, 0.8) });
+  }
+  for (let gy = 1; gy < 8; gy++) {
+    const ly = y - gy * (sketchH / 8);
+    p2.drawLine({ start: { x: M, y: ly }, end: { x: M + 200, y: ly }, thickness: 0.2, color: rgb(0.8, 0.8, 0.8) });
+  }
+  // Labels inside sketch
+  drawText(p2, "Ο.Γ.", M + 5, y - 30, font, 7, GREY);
+  drawText(p2, "Ρ.Γ", M + 5, y - sketchH + 30, font, 7, GREY);
+  drawText(p2, "Κράσπεδο", M + 5, y - sketchH + 10, font, 7, GREY);
+
+  // Signature area on the right
+  drawText(p2, "Υπογραφή Μηχανικού", M + 320, y - 10, font, 8);
+  drawLine(p2, M + 320, y - 20, M + MW, y - 20, 0.3);
+  if (data.engineer_signature) await embedSignature(pdfDoc, p2, data.engineer_signature, M + 320, y - 70);
+
+  y -= sketchH + 15;
+
+  // ΠΑΡΑΤΗΡΗΣΕΙΣ - ΠΕΡΙΓΡΑΦΗ
+  drawText(p2, "ΠΑΡΑΤΗΡΗΣΕΙΣ - ΠΕΡΙΓΡΑΦΗ", M, y, boldFont, 10);
+  y -= 14;
+  if (data.sketch_notes) {
+    const noteLines = (data.sketch_notes || "").match(/.{1,100}/g) || [data.sketch_notes];
+    for (const line of noteLines) {
+      drawText(p2, line, M + 5, y, font, 8);
+      y -= 12;
+    }
+  }
+  for (let i = 0; i < 4; i++) {
+    drawLine(p2, M, y, M + MW, y, 0.3);
+    y -= 14;
   }
 
-  y -= 20;
-  drawText(p3, "Υπογραφή:", 40, y, boldFont, 9);
-  if (data.declaration_signature) await embedSignature(pdfDoc, p3, data.declaration_signature, 40, y - 65);
+  drawText(p2, "Θέση Οπτικής Πρίζας", M, y, boldFont, 8);
+  drawText(p2, data.optical_socket_position || "", M + 120, y, font, 8);
+  drawLine(p2, M + 120, y - 2, M + 270, y - 2, 0.3);
 
-  // ─── PAGE 4: BCP / BEP / BMO ───
+  drawText(p2, "Υπογραφή Μηχανικού", M + 320, y, font, 8);
+  drawLine(p2, M + 420, y - 2, M + MW, y - 2, 0.3);
+  y -= 25;
+
+  // Materials info
+  drawText(p2, "ΥΛΙΚΑ ΠΟΥ ΧΡΗΣΙΜΟΠΟΙΟΥΝΤΑΙ ΣΕ ΤΥΠΙΚΗ ΚΑΤΑΣΚΕΥΗ:", M, y, boldFont, 7);
+  y -= 10;
+  drawText(p2, "- Γαλβανισμένος Σιδηροσωλήνας Φ20.", M, y, font, 7, GREY);
+  y -= 10;
+  drawText(p2, "- Σύστημα Πλαστικών Σωλήνων Βαρέως Τύπου Condur – Conflex Φ16 έως Φ25.", M, y, font, 7, GREY);
+  y -= 10;
+  drawText(p2, "- Από το F.B. έως την οπτική πρίζα του πελάτη: Πλαστικό Κανάλι Διανομής.", M, y, font, 7, GREY);
+  y -= 10;
+  drawText(p2, "*B.E.P.: Building Entry Point – F.B.: Floor Box", M + 100, y, font, 7, GREY);
+
+  // Customer & Manager signatures
+  drawText(p2, "Όνομα & Υπογραφή Πελάτη", M + 300, y + 20, font, 8);
+  drawLine(p2, M + 300, y + 8, M + MW, y + 8, 0.3);
+  if (data.customer_signature) await embedSignature(pdfDoc, p2, data.customer_signature, M + 300, y + 12, 150, 40);
+
+  drawText(p2, "Όνομα & Υπογραφή Διαχειριστή", M + 300, y, font, 8);
+  drawLine(p2, M + 300, y - 10, M + MW, y - 10, 0.3);
+  if (data.manager_signature) await embedSignature(pdfDoc, p2, data.manager_signature, M + 300, y - 8, 150, 40);
+
+  y -= 25;
+  // Disclaimer
+  drawText(p2, "Ηυποδομή που απαιτείται προκειμένου να διασυνδεθεί η πολυκατοικία με το δίκτυο οπτικών ινών θα βαρύνει αποκλειστικά τον", M, y, font, 6.5, BLACK);
+  y -= 9;
+  drawText(p2, "αιτούντα την υπηρεσία FTTH, ο οποίος έχει ενημερωθεί για τη χρέωση βάσει του συμβολαίου του με τον τηλεπικοινωνιακό πάροχο.", M, y, font, 6.5, BLACK);
+
+  // ══════════════════════════════════════════════════════════════════════
+  // PAGE 3: Υπεύθυνη Δήλωση
+  // ══════════════════════════════════════════════════════════════════════
+  const p3 = pdfDoc.addPage([A4_W, A4_H]);
+  y = A4_H - 50;
+
+  // OTE Header
+  drawText(p3, "ΟΤΕ", M, y + 10, boldFont, 20, BLUE);
+  drawText(p3, "ΟΜΙΛΟΣ ΕΤΑΙΡΕΙΩΝ", M, y - 6, font, 7, BLUE);
+
+  drawText(p3, "ΥΠΕΥΘΥΝΗ ΔΗΛΩΣΗ", M + 180, y + 15, boldFont, 14, BLACK);
+  drawText(p3, "ΔΙΑΧΕΙΡΙΣΤΗ/ ΕΚΠΡΟΣΩΠΟΥ ΓΕΝΙΚΗΣ ΣΥΝΕΛΕΥΣΗΣ", M + 120, y, boldFont, 11, BLACK);
+  drawText(p3, "ΠΡΩΤΟΤΥΠΟ", M + 230, y - 16, boldFont, 11, rgb(1, 0, 0));
+  drawText(p3, "(ΥΠΟΓΡΑΦΕΤΑΙ ΥΠΟΧΡΕΩΤΙΚΑ ΜΟΝΟ ΜΙΑ από τις ΔΥΟ ΕΠΙΛΟΓΕΣ)", M + 120, y - 30, font, 9, BLACK);
+  y -= 60;
+
+  // Border
+  p3.drawRectangle({ x: M - 5, y: 30, width: MW + 10, height: y - 25, borderColor: BLUE, borderWidth: 1, color: undefined });
+
+  y -= 10;
+  const isApprove = data.declaration_type === "approve";
+
+  drawText(p3, "ΕΠΙΛΟΓΗ (Α) – ΕΓΚΡΙΝΩ ΑΜΕΣΗ ΕΝΑΡΞΗ ΕΡΓΑΣΙΩΝ", M + 5, y, boldFont, 10);
+  y -= 25;
+
+  // Declaration text
+  drawText(p3, `Ο/Η κάτωθι υπογεγραμμένος/η ${data.declarant_name || "............................"},`, M + 5, y, font, 9);
+  drawText(p3, `με ΑΔΤ ${data.declarant_id_number || "..........."},`, M + 350, y, font, 9);
+  y -= 16;
+  drawText(p3, `κάτοικος ${data.declarant_city || "...................."},`, M + 5, y, font, 9);
+  drawText(p3, `Οδός ${data.declarant_street || "........................"}`, M + 200, y, font, 9);
+  drawText(p3, `Αρ. ${data.declarant_number || "......."},`, M + 370, y, font, 9);
+  drawText(p3, `Τ.Κ. ${data.declarant_postal_code || "........"}`, M + 430, y, font, 9);
+  y -= 20;
+
+  drawText(p3, "υπό την ιδιότητα μου ως Διαχειριστή, Εκπροσώπου Γενικής Συνέλευσης του κτιρίου", M + 5, y, font, 8.5);
+  y -= 12;
+  drawText(p3, 'που αναφέρεται στη Σελίδα 1 της παρούσας («ΣΤΟΙΧΕΙΑ ΚΤΙΡΙΟΥ») δηλώνω ότι έλαβα γνώση:', M + 5, y, font, 8.5);
+  y -= 20;
+
+  drawText(p3, "1) της ανωτέρω Έκθεσης και των απαιτούμενων εργασιών από την ΟΤΕ Α.Ε. στους κοινόκτητους/κοινόχρηστους", M + 5, y, font, 8);
+  y -= 11;
+  drawText(p3, "χώρους του κτιρίου, για την κατασκευή Οπτικού Κατανεμητή ή/και Οπτικής Ίνας για την παροχή υπηρεσίας FTTH.", M + 5, y, font, 8);
+  y -= 15;
+
+  drawText(p3, "2) ότι το κόστος των εργασιών και των υλικών κατασκευής για την παροχή της υπηρεσίας FTTH στους", M + 5, y, font, 8);
+  y -= 11;
+  drawText(p3, "κοινόκτητους/κοινόχρηστους χώρους του οικοπέδου (παρακαλώ να σηματοδοτηθεί μία από τις παρακάτω):", M + 5, y, font, 8);
+  y -= 18;
+
+  drawCheckbox(p3, data.cost_option === "ote_covers", "i) επιβαρύνουν αποκλειστικά την ΟΤΕ Α.Ε.", M + 10, y, font, 8);
+  y -= 14;
+  drawCheckbox(p3, data.cost_option !== "ote_covers", "ii) δεν επιβαρύνουν την ΟΤΕ Α.Ε.", M + 10, y, font, 8);
+  y -= 20;
+
+  drawText(p3, "και εγκρίνω την άμεση έναρξη των ανωτέρω εργασιών.", M + 5, y, boldFont, 9);
+  y -= 30;
+
+  drawText(p3, `Τόπος & Ημερομηνία: ${data.declaration_date || "....../....../..........."}`, M + 5, y, font, 9);
+  y -= 25;
+
+  drawText(p3, "Ονοματεπώνυμο & Υπογραφή:", M + 5, y, font, 9);
+  if (data.declaration_signature) await embedSignature(pdfDoc, p3, data.declaration_signature, M + 180, y - 55);
+
+  y -= 80;
+  // Dashed separator line
+  drawLine(p3, M, y, M + MW, y, 0.5);
+
+  // ══════════════════════════════════════════════════════════════════════
+  // PAGE 4: Στοιχεία Κτιρίου & Εξοπλισμός (BCP/BEP/BMO)
+  // ══════════════════════════════════════════════════════════════════════
   const p4 = pdfDoc.addPage([A4_W, A4_H]);
   y = A4_H - 40;
 
-  p4.drawRectangle({ x: 0, y: y - 5, width: A4_W, height: 30, color: headerBg });
-  p4.drawText("ΣΤΟΙΧΕΙΑ ΚΤΙΡΙΟΥ & ΕΞΟΠΛΙΣΜΟΣ", { x: 40, y: y + 2, size: 12, font: boldFont, color: rgb(1, 1, 1) });
-  y -= 50;
+  // Building info box
+  p4.drawRectangle({ x: M, y: y - 180, width: MW, height: 185, borderColor: BLACK, borderWidth: 0.5, color: undefined });
 
-  const buildingFields = [
-    ["Διεύθυνση:", data.building_address],
-    ["Building ID:", data.building_id],
-    ["Όροφος Πελάτη:", data.customer_floor_select],
-    ["SR ID:", data.sr_id],
-    ["Καμπίνα:", data.cabinet],
-    ["Σωληνίσκος:", data.pipe_code],
-    ["Σύν. Διαμερισμάτων:", String(data.total_apartments || 0)],
-    ["Σύν. Καταστημάτων:", String(data.total_shops || 0)],
-    ["Σύν. Χώρων:", String(data.total_spaces || 0)],
-    ["Σύν. Ορόφων:", String(data.total_floors || 0)],
+  drawText(p4, "ΔΙΕΥΘΥΝΣΗ:", M + 5, y, boldFont, 9);
+  drawText(p4, data.building_address || "", M + 80, y, font, 9);
+  y -= 16;
+
+  drawText(p4, "ΟΡΟΦΟΣ ΠΕΛΑΤΗ:", M + 5, y, boldFont, 8.5);
+  drawText(p4, data.customer_floor_select || "", M + 110, y, font, 9);
+  drawText(p4, "Building Id:", M + 280, y, boldFont, 8.5);
+  drawText(p4, data.building_id || "", M + 360, y, font, 9);
+  y -= 20;
+
+  // Floor grid - 2 columns x 5 rows
+  const floors = [
+    ["ΥΠΟΓΕΙΟ", "ΗΜΙΥΠΟΓΕΙΟ"],
+    ["ΙΣΟΓΕΙΟ", "ΗΜΙΟΡΟΦΟΣ"],
+    ["1ΟΣ ΟΡΟΦΟΣ", "2ΟΣ ΟΡΟΦΟΣ"],
+    ["3ΟΣ ΟΡΟΦΟΣ", "4ΟΣ ΟΡΟΦΟΣ"],
+    ["5ΟΣ ΟΡΟΦΟΣ", "6ΟΣ ΟΡΟΦΟΣ"],
+    ["7ΟΣ ΟΡΟΦΟΣ", "8ΟΣ ΟΡΟΦΟΣ"],
   ];
 
-  for (const [label, value] of buildingFields) {
-    drawLabel(p4, label, 40, y, font, boldFont, value || "");
-    y -= 18;
+  for (const [left, right] of floors) {
+    drawText(p4, left, M + 5, y, font, 8);
+    p4.drawRectangle({ x: M + 5, y: y - 20, width: 220, height: 18, borderColor: BLACK, borderWidth: 0.3, color: undefined });
+    drawText(p4, right, M + 270, y, font, 8);
+    p4.drawRectangle({ x: M + 270, y: y - 20, width: 220, height: 18, borderColor: BLACK, borderWidth: 0.3, color: undefined });
+    y -= 22;
   }
 
   y -= 15;
 
-  // BCP
-  p4.drawRectangle({ x: 30, y: y - 5, width: A4_W - 60, height: 22, color: brandColor });
-  p4.drawText("BCP", { x: 40, y: y + 2, size: 10, font: boldFont, color: rgb(1, 1, 1) });
-  y -= 30;
-  drawLabel(p4, "Κατασκευαστής:", 40, y, font, boldFont, (data.bcp_brand || "—").toUpperCase());
-  drawLabel(p4, "Μέγεθος:", 300, y, font, boldFont, (data.bcp_size || "—").toUpperCase());
-  y -= 20;
-  drawCheckbox(p4, data.bcp_floorbox, "Floorbox", 40, y, font);
-  drawCheckbox(p4, data.bcp_drop_4, "Drop 4", 140, y, font);
-  drawCheckbox(p4, data.bcp_drop_6, "Drop 6", 230, y, font);
-  drawCheckbox(p4, data.bcp_drop_12, "Drop 12", 320, y, font);
-  y -= 35;
+  // Totals
+  drawText(p4, "ΣΥΝΟΛΟ ΔΙΑΜΕΡΙΣΜΑΤΩΝ:", M + 5, y, boldFont, 8.5);
+  drawText(p4, String(data.total_apartments || ""), M + 155, y, font, 9);
+  drawText(p4, "SR ID:", M + 280, y, boldFont, 8.5);
+  drawText(p4, data.sr_id || "", M + 320, y, font, 9);
+  drawLine(p4, M + 320, y - 2, M + MW, y - 2, 0.3);
+  y -= 16;
 
-  // BEP
-  p4.drawRectangle({ x: 30, y: y - 5, width: A4_W - 60, height: 22, color: brandColor });
-  p4.drawText("BEP", { x: 40, y: y + 2, size: 10, font: boldFont, color: rgb(1, 1, 1) });
-  y -= 30;
-  drawLabel(p4, "Κατασκευαστής:", 40, y, font, boldFont, (data.bep_brand || "—").toUpperCase());
-  drawLabel(p4, "Μέγεθος:", 300, y, font, boldFont, (data.bep_size || "—").toUpperCase());
-  y -= 20;
-  drawLabel(p4, "Χωρητικότητα:", 40, y, font, boldFont, data.bep_capacity || "—");
-  y -= 35;
+  drawText(p4, "ΣΥΝΟΛΟ ΚΑΤΑΣΤΗΜΑΤΩΝ:", M + 5, y, boldFont, 8.5);
+  drawText(p4, String(data.total_shops || ""), M + 155, y, font, 9);
+  drawText(p4, "ΚΑΜΠΙΝΑ:", M + 280, y, boldFont, 8.5);
+  drawText(p4, data.cabinet || "", M + 340, y, font, 9);
+  drawLine(p4, M + 340, y - 2, M + MW, y - 2, 0.3);
+  y -= 16;
 
-  // BMO
-  p4.drawRectangle({ x: 30, y: y - 5, width: A4_W - 60, height: 22, color: brandColor });
-  p4.drawText("BMO", { x: 40, y: y + 2, size: 10, font: boldFont, color: rgb(1, 1, 1) });
+  drawText(p4, "ΣΥΝΟΛΟ ΧΩΡΩΝ:", M + 5, y, boldFont, 8.5);
+  drawText(p4, String(data.total_spaces || ""), M + 155, y, font, 9);
+  drawText(p4, "ΣΩΛΗΝΙΣΚΟΣ:", M + 280, y, boldFont, 8.5);
+  drawText(p4, data.pipe_code || "", M + 360, y, font, 9);
+  drawLine(p4, M + 360, y - 2, M + MW, y - 2, 0.3);
+  y -= 16;
+
+  drawText(p4, "ΣΥΝΟΛΟ ΟΡΟΦΩΝ/ΕΠΙΠΕΔΩΝ:", M + 5, y, boldFont, 8.5);
+  drawText(p4, String(data.total_floors || ""), M + 170, y, font, 9);
   y -= 30;
-  drawLabel(p4, "Κατασκευαστής:", 40, y, font, boldFont, (data.bmo_brand || "—").toUpperCase());
-  drawLabel(p4, "Μέγεθος:", 300, y, font, boldFont, (data.bmo_size || "—").toUpperCase());
-  y -= 20;
-  drawLabel(p4, "Χωρητικότητα:", 40, y, font, boldFont, data.bmo_capacity || "—");
+
+  // ── BCP Table ──
+  const tableX = M;
+  const colW = [80, 70, 60];
+  const tableW2 = colW[0] + colW[1] + colW[2];
+  const rowH = 18;
+
+  // BCP header
+  p4.drawRectangle({ x: tableX, y: y, width: colW[0], height: rowH, borderColor: BLACK, borderWidth: 0.5, color: undefined });
+  drawText(p4, "BCP", tableX + 15, y + 5, boldFont, 9);
+  p4.drawRectangle({ x: tableX + colW[0], y: y, width: colW[1], height: rowH, borderColor: BLACK, borderWidth: 0.5, color: undefined });
+  drawText(p4, "RAYCAP", tableX + colW[0] + 10, y + 5, boldFont, 8);
+  p4.drawRectangle({ x: tableX + colW[0] + colW[1], y: y, width: colW[2], height: rowH, borderColor: BLACK, borderWidth: 0.5, color: undefined });
+  drawText(p4, "ZTT", tableX + colW[0] + colW[1] + 15, y + 5, boldFont, 8);
+  y -= rowH;
+
+  for (const size of ["SMALL", "MEDIUM"]) {
+    p4.drawRectangle({ x: tableX, y: y, width: colW[0], height: rowH, borderColor: BLACK, borderWidth: 0.3, color: undefined });
+    drawText(p4, size, tableX + 10, y + 5, font, 8);
+    p4.drawRectangle({ x: tableX + colW[0], y: y, width: colW[1], height: rowH, borderColor: BLACK, borderWidth: 0.3, color: undefined });
+    if (data.bcp_brand?.toUpperCase() === "RAYCAP" && data.bcp_size?.toUpperCase() === size) drawText(p4, "X", tableX + colW[0] + 25, y + 5, boldFont, 9);
+    p4.drawRectangle({ x: tableX + colW[0] + colW[1], y: y, width: colW[2], height: rowH, borderColor: BLACK, borderWidth: 0.3, color: undefined });
+    if (data.bcp_brand?.toUpperCase() === "ZTT" && data.bcp_size?.toUpperCase() === size) drawText(p4, "X", tableX + colW[0] + colW[1] + 20, y + 5, boldFont, 9);
+    y -= rowH;
+  }
+
+  // Floorbox / Drop table on the right
+  const fTableX = M + 280;
+  const fColW = [70, 50, 50, 50];
+  const fY = y + 3 * rowH; // align with BCP table top
+  let fy = fY;
+
+  p4.drawRectangle({ x: fTableX, y: fy, width: fColW[0], height: rowH, borderColor: BLACK, borderWidth: 0.5, color: undefined });
+  drawText(p4, "FLOORBOX", fTableX + 5, fy + 5, boldFont, 7);
+  p4.drawRectangle({ x: fTableX + fColW[0], y: fy, width: fColW[1], height: rowH, borderColor: BLACK, borderWidth: 0.5, color: undefined });
+  drawText(p4, "4 Drop", fTableX + fColW[0] + 5, fy + 5, boldFont, 7);
+  p4.drawRectangle({ x: fTableX + fColW[0] + fColW[1], y: fy, width: fColW[2], height: rowH, borderColor: BLACK, borderWidth: 0.5, color: undefined });
+  drawText(p4, "6 Drop", fTableX + fColW[0] + fColW[1] + 5, fy + 5, boldFont, 7);
+  p4.drawRectangle({ x: fTableX + fColW[0] + fColW[1] + fColW[2], y: fy, width: fColW[3], height: rowH, borderColor: BLACK, borderWidth: 0.5, color: undefined });
+  drawText(p4, "12 Drop", fTableX + fColW[0] + fColW[1] + fColW[2] + 5, fy + 5, boldFont, 7);
+  fy -= rowH;
+
+  // Capacity row
+  p4.drawRectangle({ x: fTableX, y: fy, width: fColW[0], height: rowH, borderColor: BLACK, borderWidth: 0.3, color: undefined });
+  if (data.bcp_floorbox) drawText(p4, "X", fTableX + 25, fy + 5, boldFont, 9);
+  p4.drawRectangle({ x: fTableX + fColW[0], y: fy, width: fColW[1], height: rowH, borderColor: BLACK, borderWidth: 0.3, color: undefined });
+  if (data.bcp_drop_4) drawText(p4, "X", fTableX + fColW[0] + 15, fy + 5, boldFont, 9);
+  p4.drawRectangle({ x: fTableX + fColW[0] + fColW[1], y: fy, width: fColW[2], height: rowH, borderColor: BLACK, borderWidth: 0.3, color: undefined });
+  if (data.bcp_drop_6) drawText(p4, "X", fTableX + fColW[0] + fColW[1] + 15, fy + 5, boldFont, 9);
+  p4.drawRectangle({ x: fTableX + fColW[0] + fColW[1] + fColW[2], y: fy, width: fColW[3], height: rowH, borderColor: BLACK, borderWidth: 0.3, color: undefined });
+  if (data.bcp_drop_12) drawText(p4, "X", fTableX + fColW[0] + fColW[1] + fColW[2] + 15, fy + 5, boldFont, 9);
+
+  y -= 15;
+
+  // ── BEP Table ──
+  const bepColW = [80, 70, 60, 80];
+  const bepTableW = bepColW[0] + bepColW[1] + bepColW[2] + bepColW[3];
+
+  p4.drawRectangle({ x: tableX, y: y, width: bepColW[0], height: rowH, borderColor: BLACK, borderWidth: 0.5, color: undefined });
+  drawText(p4, "BEP", tableX + 15, y + 5, boldFont, 9);
+  p4.drawRectangle({ x: tableX + bepColW[0], y: y, width: bepColW[1], height: rowH, borderColor: BLACK, borderWidth: 0.5, color: undefined });
+  drawText(p4, "RAYCAP", tableX + bepColW[0] + 10, y + 5, boldFont, 8);
+  p4.drawRectangle({ x: tableX + bepColW[0] + bepColW[1], y: y, width: bepColW[2], height: rowH, borderColor: BLACK, borderWidth: 0.5, color: undefined });
+  drawText(p4, "ZTT", tableX + bepColW[0] + bepColW[1] + 15, y + 5, boldFont, 8);
+  p4.drawRectangle({ x: tableX + bepColW[0] + bepColW[1] + bepColW[2], y: y, width: bepColW[3], height: rowH, borderColor: BLACK, borderWidth: 0.5, color: undefined });
+  drawText(p4, "ΠΟΣΟΤΗΤΑ", tableX + bepColW[0] + bepColW[1] + bepColW[2] + 5, y + 5, boldFont, 7);
+  y -= rowH;
+
+  for (const size of ["SMALL", "MEDIUM", "LARGE", "XLARGE"]) {
+    p4.drawRectangle({ x: tableX, y: y, width: bepColW[0], height: rowH, borderColor: BLACK, borderWidth: 0.3, color: undefined });
+    drawText(p4, size, tableX + 10, y + 5, font, 8);
+    p4.drawRectangle({ x: tableX + bepColW[0], y: y, width: bepColW[1], height: rowH, borderColor: BLACK, borderWidth: 0.3, color: undefined });
+    if (data.bep_brand?.toUpperCase() === "RAYCAP" && data.bep_size?.toUpperCase() === size) drawText(p4, "X", tableX + bepColW[0] + 25, y + 5, boldFont, 9);
+    p4.drawRectangle({ x: tableX + bepColW[0] + bepColW[1], y: y, width: bepColW[2], height: rowH, borderColor: BLACK, borderWidth: 0.3, color: undefined });
+    if (data.bep_brand?.toUpperCase() === "ZTT" && data.bep_size?.toUpperCase() === size) drawText(p4, "X", tableX + bepColW[0] + bepColW[1] + 20, y + 5, boldFont, 9);
+    p4.drawRectangle({ x: tableX + bepColW[0] + bepColW[1] + bepColW[2], y: y, width: bepColW[3], height: rowH, borderColor: BLACK, borderWidth: 0.3, color: undefined });
+    if (data.bep_size?.toUpperCase() === size) drawText(p4, data.bep_capacity || "", tableX + bepColW[0] + bepColW[1] + bepColW[2] + 15, y + 5, font, 8);
+    y -= rowH;
+  }
+
+  y -= 15;
+
+  // ── BMO Table ──
+  p4.drawRectangle({ x: tableX, y: y, width: bepColW[0], height: rowH, borderColor: BLACK, borderWidth: 0.5, color: undefined });
+  drawText(p4, "BMO", tableX + 15, y + 5, boldFont, 9);
+  p4.drawRectangle({ x: tableX + bepColW[0], y: y, width: bepColW[1], height: rowH, borderColor: BLACK, borderWidth: 0.5, color: undefined });
+  drawText(p4, "RAYCAP", tableX + bepColW[0] + 10, y + 5, boldFont, 8);
+  p4.drawRectangle({ x: tableX + bepColW[0] + bepColW[1], y: y, width: bepColW[2], height: rowH, borderColor: BLACK, borderWidth: 0.5, color: undefined });
+  drawText(p4, "ZTT", tableX + bepColW[0] + bepColW[1] + 15, y + 5, boldFont, 8);
+  p4.drawRectangle({ x: tableX + bepColW[0] + bepColW[1] + bepColW[2], y: y, width: bepColW[3], height: rowH, borderColor: BLACK, borderWidth: 0.5, color: undefined });
+  drawText(p4, "ΠΟΣΟΤΗΤΑ", tableX + bepColW[0] + bepColW[1] + bepColW[2] + 5, y + 5, boldFont, 7);
+  y -= rowH;
+
+  for (const size of ["SMALL", "MEDIUM", "LARGE"]) {
+    p4.drawRectangle({ x: tableX, y: y, width: bepColW[0], height: rowH, borderColor: BLACK, borderWidth: 0.3, color: undefined });
+    drawText(p4, size, tableX + 10, y + 5, font, 8);
+    p4.drawRectangle({ x: tableX + bepColW[0], y: y, width: bepColW[1], height: rowH, borderColor: BLACK, borderWidth: 0.3, color: undefined });
+    if (data.bmo_brand?.toUpperCase() === "RAYCAP" && data.bmo_size?.toUpperCase() === size) drawText(p4, "X", tableX + bepColW[0] + 25, y + 5, boldFont, 9);
+    p4.drawRectangle({ x: tableX + bepColW[0] + bepColW[1], y: y, width: bepColW[2], height: rowH, borderColor: BLACK, borderWidth: 0.3, color: undefined });
+    if (data.bmo_brand?.toUpperCase() === "ZTT" && data.bmo_size?.toUpperCase() === size) drawText(p4, "X", tableX + bepColW[0] + bepColW[1] + 20, y + 5, boldFont, 9);
+    p4.drawRectangle({ x: tableX + bepColW[0] + bepColW[1] + bepColW[2], y: y, width: bepColW[3], height: rowH, borderColor: BLACK, borderWidth: 0.3, color: undefined });
+    if (data.bmo_size?.toUpperCase() === size) drawText(p4, data.bmo_capacity || "", tableX + bepColW[0] + bepColW[1] + bepColW[2] + 15, y + 5, font, 8);
+    y -= rowH;
+  }
 
   // Footer on all pages
   const pages = pdfDoc.getPages();
   for (let i = 0; i < pages.length; i++) {
     const page = pages[i];
-    page.drawText(`SR: ${data.sr_id} — Σελίδα ${i + 1}/${pages.length}`, {
-      x: 40, y: 20, size: 7, font, color: rgb(0.5, 0.5, 0.5),
-    });
-    page.drawText("Delta Network Inc. — Ηλεκτρονικό Δελτίο Αυτοψίας", {
-      x: A4_W - 250, y: 20, size: 7, font, color: rgb(0.5, 0.5, 0.5),
+    page.drawText(`SR: ${data.sr_id || ""} — Σελίδα ${i + 1}/${pages.length}`, {
+      x: 40, y: 15, size: 7, font, color: GREY,
     });
   }
 
