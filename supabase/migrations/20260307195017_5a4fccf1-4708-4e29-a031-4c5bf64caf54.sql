@@ -1,0 +1,1 @@
+ALTER TABLE public.inspection_reports ALTER COLUMN survey_id DROP NOT NULL;
