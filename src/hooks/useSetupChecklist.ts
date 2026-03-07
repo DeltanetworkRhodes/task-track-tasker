@@ -30,13 +30,7 @@ export function useSetupChecklist() {
         settingsMap[s.setting_key] = s.setting_value;
       });
 
-      // Fetch email_settings
-      const { data: emailSettings } = await supabase
-        .from("email_settings")
-        .select("setting_key")
-        .eq("organization_id", organizationId);
-
-      const hasEmailSettings = (emailSettings || []).length > 0;
+      const hasEmailSettings = !!settingsMap["email_from"] || !!settingsMap["report_to_emails"];
 
       // Check if there are technicians
       const { count: techCount } = await supabase
