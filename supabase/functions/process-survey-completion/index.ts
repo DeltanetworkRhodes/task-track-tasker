@@ -184,31 +184,9 @@ function crc32(data: Uint8Array): number {
   return (crc ^ 0xFFFFFFFF) >>> 0;
 }
 
-async function deflateRaw(data: Uint8Array): Promise<Uint8Array> {
-  // Use DecompressionStream/CompressionStream unavailable for raw deflate,
-  // so we use the "deflate" format and strip the 2-byte header and 4-byte trailer
-  const cs = new CompressionStream("deflate");
-  const writer = cs.writable.getWriter();
-  writer.write(data);
-  writer.close();
-  const reader = cs.readable.getReader();
-  const chunks: Uint8Array[] = [];
-  let totalLen = 0;
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    chunks.push(value);
-    totalLen += value.length;
-  }
-  const full = new Uint8Array(totalLen);
-  let pos = 0;
-  for (const c of chunks) { full.set(c, pos); pos += c.length; }
-  // Strip zlib header (2 bytes) and adler32 checksum (4 bytes) to get raw deflate
-  return full.subarray(2, full.length - 4);
-}
-
 async function buildZip(files: { name: string; data: Uint8Array }[]): Promise<Uint8Array> {
-  const entries: { name: Uint8Array; compressedData: Uint8Array; uncompressedSize: number; crc: number; offset: number; isCompressed: boolean }[] = [];
+  // STORE only (no compression) to minimize CPU usage
+  const entries: { name: Uint8Array; dataLen: number; crc: number; offset: number }[] = [];
   const parts: Uint8Array[] = [];
   let offset = 0;
 
@@ -217,40 +195,25 @@ async function buildZip(files: { name: string; data: Uint8Array }[]): Promise<Ui
   for (const file of files) {
     const nameBytes = encoder.encode(file.name);
     const crcVal = crc32(file.data);
-    
-    // Try to compress; only use if smaller
-    let compressedData: Uint8Array;
-    let isCompressed = false;
-    try {
-      const deflated = await deflateRaw(file.data);
-      if (deflated.length < file.data.length) {
-        compressedData = deflated;
-        isCompressed = true;
-      } else {
-        compressedData = file.data;
-      }
-    } catch {
-      compressedData = file.data;
-    }
 
     const localHeader = new Uint8Array(30 + nameBytes.length);
     const view = new DataView(localHeader.buffer);
     view.setUint32(0, 0x04034b50, true);
     view.setUint16(4, 20, true);
     view.setUint16(6, 0x0800, true); // bit 11 = UTF-8 filenames
-    view.setUint16(8, isCompressed ? 8 : 0, true); // 8 = deflate, 0 = store
+    view.setUint16(8, 0, true); // 0 = STORE (no compression)
     view.setUint16(10, 0, true);
     view.setUint16(12, 0, true);
     view.setUint32(14, crcVal, true);
-    view.setUint32(18, compressedData.length, true);
+    view.setUint32(18, file.data.length, true); // compressed = uncompressed
     view.setUint32(22, file.data.length, true);
     view.setUint16(26, nameBytes.length, true);
     view.setUint16(28, 0, true);
     localHeader.set(nameBytes, 30);
 
-    entries.push({ name: nameBytes, compressedData, uncompressedSize: file.data.length, crc: crcVal, offset, isCompressed });
-    parts.push(localHeader, compressedData);
-    offset += localHeader.length + compressedData.length;
+    entries.push({ name: nameBytes, dataLen: file.data.length, crc: crcVal, offset });
+    parts.push(localHeader, file.data);
+    offset += localHeader.length + file.data.length;
   }
 
   const centralDirStart = offset;
@@ -261,12 +224,12 @@ async function buildZip(files: { name: string; data: Uint8Array }[]): Promise<Ui
     cdView.setUint16(4, 20, true);
     cdView.setUint16(6, 20, true);
     cdView.setUint16(8, 0x0800, true); // bit 11 = UTF-8 filenames
-    cdView.setUint16(10, entry.isCompressed ? 8 : 0, true);
+    cdView.setUint16(10, 0, true); // STORE
     cdView.setUint16(12, 0, true);
     cdView.setUint16(14, 0, true);
     cdView.setUint32(16, entry.crc, true);
-    cdView.setUint32(20, entry.compressedData.length, true);
-    cdView.setUint32(24, entry.uncompressedSize, true);
+    cdView.setUint32(20, entry.dataLen, true); // compressed = uncompressed
+    cdView.setUint32(24, entry.dataLen, true);
     cdView.setUint16(28, entry.name.length, true);
     cdView.setUint16(30, 0, true);
     cdView.setUint16(32, 0, true);
@@ -326,33 +289,28 @@ function escapeHtml(str: string): string {
   return str.replace(/[<>&"']/g, (c: string) => `&#${c.charCodeAt(0)};`);
 }
 
-// ─── PDF builder from inspection photos ─────────────────────────────
+// ─── PDF builder from already-downloaded inspection photos ──────────
 
 async function buildInspectionPdf(
-  adminClient: any,
-  inspectionFiles: { file_path: string; file_name: string }[],
+  inspectionData: { fileName: string; data: Uint8Array }[],
   srId: string
 ): Promise<Uint8Array | null> {
-  if (inspectionFiles.length === 0) return null;
+  if (inspectionData.length === 0) return null;
   
   try {
     const pdfDoc = await PDFDocument.create();
     
-    for (const sf of inspectionFiles) {
-      const fileData = await downloadFile(adminClient, sf.file_path);
-      if (!fileData) continue;
-      
-      const ext = sf.file_name.split(".").pop()?.toLowerCase() || "";
+    for (const item of inspectionData) {
+      const ext = item.fileName.split(".").pop()?.toLowerCase() || "";
       let image;
       try {
         if (ext === "png") {
-          image = await pdfDoc.embedPng(fileData);
+          image = await pdfDoc.embedPng(item.data);
         } else {
-          // jpg/jpeg/webp — try as JPEG
-          image = await pdfDoc.embedJpg(fileData);
+          image = await pdfDoc.embedJpg(item.data);
         }
       } catch (embedErr) {
-        console.error(`Failed to embed image ${sf.file_name}:`, embedErr);
+        console.error(`Failed to embed image ${item.fileName}:`, embedErr);
         continue;
       }
       
@@ -650,10 +608,17 @@ Deno.serve(async (req) => {
           }
         }
 
-        // Generate PDF from inspection_form photos and add to ZIP
-        const inspectionForZip = surveyFiles.filter((f: any) => f.file_type === "inspection_form");
-        if (inspectionForZip.length > 0) {
-          const pdfData = await buildInspectionPdf(adminClient, inspectionForZip, sr_id);
+        // Generate PDF from inspection_form photos already in zipFiles (avoid re-downloading)
+        const inspectionInZip = zipFiles
+          .filter(f => f.name.startsWith("EGRAFA/") && !f.name.endsWith(".pdf"))
+          .filter(f => {
+            const matchingSf = surveyFiles.find((sf: any) => f.name === `EGRAFA/${sf.file_name}` && sf.file_type === "inspection_form");
+            return !!matchingSf;
+          })
+          .map(f => ({ fileName: f.name.replace("EGRAFA/", ""), data: f.data }));
+        
+        if (inspectionInZip.length > 0) {
+          const pdfData = await buildInspectionPdf(inspectionInZip, sr_id);
           if (pdfData) {
             zipFiles.push({ name: `EGRAFA/Deltio_Autopsias_${sr_id}.pdf`, data: pdfData });
             totalSize += pdfData.length;
