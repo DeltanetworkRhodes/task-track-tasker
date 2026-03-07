@@ -281,6 +281,18 @@ IMPORTANT: Return ONLY the JSON array, no markdown, no explanation.`
       extractedMaterials = parsed.materials || [];
     }
 
+    // Post-process: fix Greek number misreads (1.8 → 1800, 2.0 → 2000, etc.)
+    for (const item of extractedMaterials) {
+      const q = item.quantity;
+      if (q > 0 && q < 100 && !Number.isInteger(q)) {
+        const corrected = Math.round(q * 1000);
+        if (corrected % 100 === 0 || corrected % 50 === 0) {
+          console.log(`Correcting quantity: ${q} → ${corrected} (Greek number format fix)`);
+          item.quantity = corrected;
+        }
+      }
+    }
+
     // Return preview data — NO database changes
     return new Response(JSON.stringify({
       success: true,
