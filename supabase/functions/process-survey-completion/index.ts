@@ -436,33 +436,36 @@ Deno.serve(async (req) => {
                 try {
                   const uploaded = await uploadFileToDrive(accessToken, sf.file_name, getMime(sf.file_name), data, targetFolder.id);
                   filesUploadedCount++;
-                  // Track inspection form images for PDF
-                  if (sf.file_type === "inspection_form" && !sf.file_name.endsWith(".pdf")) {
-                    return { driveFileId: uploaded.id, fileName: sf.file_name };
-                  }
                 } catch (e: any) {
                   console.error(`Drive upload failed for ${sf.file_name}: ${e.message}`);
                 }
                 return null;
               })
             );
-            for (const r of results) {
-              if (r) uploadedInspectionIds.push(r);
-            }
           }
 
-          // Generate PDF via Google Slides from uploaded inspection images
-          if (uploadedInspectionIds.length > 0) {
-            console.log(`Generating PDF via Google Slides from ${uploadedInspectionIds.length} inspection images`);
-            const pdfResult = await buildPdfViaGoogleSlides(
-              accessToken,
-              uploadedInspectionIds,
-              `Deltio_Autopsias_${sr_id}.pdf`,
-              egrafaFolder.id
-            );
-            if (pdfResult) {
-              inspectionPdfBytes = pdfResult.pdfBytes;
-              console.log(`PDF generated via Slides: ${(inspectionPdfBytes.length / 1024).toFixed(0)}KB`);
+          // Generate PDF locally with pdf-lib from inspection images, then upload to Drive
+          const inspectionImages = downloadedFiles
+            .filter(({ sf }) => sf.file_type === "inspection_form" && !sf.file_name.endsWith(".pdf"))
+            .map(({ sf, data }) => ({ fileName: sf.file_name, data }));
+
+          if (inspectionImages.length > 0) {
+            // Guard: skip if total image data exceeds 8MB to prevent CPU timeout
+            const totalImageSize = inspectionImages.reduce((s, i) => s + i.data.length, 0);
+            if (totalImageSize <= 8 * 1024 * 1024) {
+              console.log(`Building inspection PDF from ${inspectionImages.length} images (${(totalImageSize / 1024 / 1024).toFixed(1)}MB)`);
+              inspectionPdfBytes = await buildInspectionPdf(inspectionImages);
+              if (inspectionPdfBytes) {
+                // Upload PDF to Drive ΕΓΓΡΑΦΑ folder
+                try {
+                  await uploadFileToDrive(accessToken, `Deltio_Autopsias_${sr_id}.pdf`, "application/pdf", inspectionPdfBytes, egrafaFolder.id);
+                  console.log(`Uploaded inspection PDF to Drive ΕΓΓΡΑΦΑ`);
+                } catch (e: any) {
+                  console.error(`PDF Drive upload failed: ${e.message}`);
+                }
+              }
+            } else {
+              console.log(`Skipping PDF: inspection images too large (${(totalImageSize / 1024 / 1024).toFixed(1)}MB > 8MB)`);
             }
           }
 
