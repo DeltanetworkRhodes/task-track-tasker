@@ -285,10 +285,12 @@ Deno.serve(async (req) => {
     // 1. Get assignment info
     const { data: assignment } = await adminClient
       .from("assignments")
-      .select("customer_name, address, phone")
+      .select("customer_name, address, phone, organization_id")
       .eq("sr_id", sr_id)
       .limit(1)
       .single();
+
+    const orgId = assignment?.organization_id || null;
 
     const customerName = assignment?.customer_name || "UNKNOWN";
     const address = assignment?.address || "";
