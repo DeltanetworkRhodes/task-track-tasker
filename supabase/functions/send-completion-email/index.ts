@@ -263,10 +263,6 @@ Deno.serve(async (req) => {
     // 2b. Download photos from Google Drive (compressed via thumbnail API)
     if (drive_photo_ids && drive_photo_ids.length > 0 && driveAccessToken) {
       for (let i = 0; i < drive_photo_ids.length; i++) {
-        if (totalSize > MAX_ZIP_SIZE) {
-          console.log(`ZIP size limit reached, skipping remaining Drive photos`);
-          break;
-        }
         try {
           const photoId = drive_photo_ids[i].id || drive_photo_ids[i];
           const photoName = drive_photo_ids[i].name || `photo_${i + 1}.jpg`;
