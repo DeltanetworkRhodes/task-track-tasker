@@ -214,32 +214,32 @@ async function generateInspectionPdf(data: InspectionData, templateBytes: Uint8A
 
   // ─── Page 1: Στοιχεία Πελάτη / Διαχειριστή / Τεχν. Υπηρεσίας ───
   const p1 = pages[0];
-  const pageHeight = p1.getHeight();
-  console.log(`Page 1 dimensions: ${p1.getWidth()} x ${pageHeight}`);
+  console.log(`Page 1 dimensions: ${p1.getWidth()} x ${p1.getHeight()}`);
   
-  // Row positions (Y from bottom) - calibrated v4
-  drawText(p1, data.customer_name || "", 185, 652, font);         // ΟΝΟΜΑΤΕΠΩΝΥΜΟ
-  drawText(p1, data.customer_father_name || "", 466, 652, font);  // ΟΝΟΜΑ ΠΑΤΡΟΣ
-  drawText(p1, data.customer_mobile || "", 172, 616, font);       // ΤΗΛΕΦΩΝΟ (κινητό)
-  drawText(p1, data.customer_phone || "", 176, 586, font);        // ΤΗΛΕΦΩΝΟ (σταθερό)
-  drawText(p1, data.customer_email || "", 82, 554, font);         // EMAIL
-  drawText(p1, data.customer_street || "", 72, 506, font);        // ΟΔΟΣ
-  drawText(p1, data.customer_number || "", 292, 506, font);       // ΑΡΙΘ.
-  drawText(p1, data.customer_postal_code || "", 385, 506, font);  // Τ.Κ.
-  drawText(p1, data.customer_floor || "", 92, 474, font);         // ΟΡΟΦΟΣ
-  drawText(p1, data.customer_apartment_code || "", 250, 474, font); // ΚΩΔ. ΔΙΑΜ/ΤΟΣ
-  drawText(p1, data.customer_county || "", 368, 474, font);       // ΝΟΜΟΣ
-  drawText(p1, data.customer_municipality || "", 470, 474, font); // ΔΗΜΟΣ
-  drawWrappedText(p1, data.customer_notes || "", 35, 424, 520, 12, font, 8, 6); // Παρατηρήσεις
+  // Row positions - v5 from user-provided coordinate mapping
+  drawText(p1, data.customer_name || "", 183, 728, font, 9);         // ΟΝΟΜΑΤΕΠΩΝΥΜΟ
+  drawText(p1, data.customer_father_name || "", 456, 728, font, 9);  // ΟΝΟΜΑ ΠΑΤΡΟΣ
+  // Mobile & landline as boxed text
+  drawBoxedText(p1, data.customer_mobile || "", 180, 694, font, 8, 13, 11);
+  drawBoxedText(p1, data.customer_phone || "", 180, 668, font, 8, 13, 11);
+  drawText(p1, data.customer_email || "", 86, 642, font, 9);         // EMAIL
+  drawText(p1, data.customer_street || "", 82, 615, font, 9);        // ΟΔΟΣ
+  drawText(p1, data.customer_number || "", 262, 615, font, 9);       // ΑΡΙΘ.
+  drawBoxedText(p1, data.customer_postal_code || "", 347, 615, font, 8, 12, 6); // Τ.Κ.
+  drawText(p1, data.customer_floor || "", 96, 589, font, 9);         // ΟΡΟΦΟΣ
+  drawText(p1, data.customer_apartment_code || "", 248, 589, font, 9); // ΚΩΔ. ΔΙΑΜ/ΤΟΣ
+  drawText(p1, data.customer_county || "", 402, 589, font, 9);       // ΝΟΜΟΣ
+  drawText(p1, data.customer_municipality || "", 520, 589, font, 9); // ΔΗΜΟΣ
+  drawWrappedText(p1, data.customer_notes || "", 52, 558, 286, 10, font, 8, 7); // Παρατηρήσεις
 
-  drawText(p1, data.manager_name || "", 170, 301, font);          // Διαχειριστής ΟΝΟΜΑΤΕΠΩΝΥΜΟ
-  drawText(p1, data.manager_mobile || "", 214, 269, font);        // Τηλέφωνο Διαχειριστή
-  drawText(p1, data.manager_email || "", 82, 236, font);          // Email Διαχειριστή
+  drawText(p1, data.manager_name || "", 420, 556, font, 9);          // Διαχειριστής ΟΝΟΜΑΤΕΠΩΝΥΜΟ
+  drawBoxedText(p1, data.manager_mobile || "", 486, 529, font, 8, 11, 11); // Τηλέφωνο Διαχειριστή
+  drawText(p1, data.manager_email || "", 420, 503, font, 9);         // Email Διαχειριστή
 
-  drawText(p1, data.service_address || "", 190, 176, font);       // Αρμόδια Τεχνική Υπηρεσία
-  drawText(p1, data.service_phone || "", 224, 146, font);         // Τηλέφωνο Υπηρεσίας
-  drawText(p1, data.service_email || "", 82, 114, font);          // Email Υπηρεσίας
-  drawText(p1, data.technician_name || "", 350, 74, font);        // Τεχνικός
+  drawText(p1, data.service_address || "", 192, 418, font, 9);       // Αρμόδια Τεχνική Υπηρεσία
+  drawBoxedText(p1, data.service_phone || "", 250, 392, font, 8, 12, 11); // Τηλέφωνο Υπηρεσίας
+  drawText(p1, data.service_email || "", 78, 366, font, 9);          // Email Υπηρεσίας
+  drawText(p1, data.technician_name || "", 265, 338, font, 9);       // Τεχνικός
 
   const p2 = pages[1];
   drawCheck(p2, !!data.routing_escalit, 123, 730, boldFont);
