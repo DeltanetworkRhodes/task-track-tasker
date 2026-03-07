@@ -79,6 +79,10 @@ const InspectionReportForm = ({ assignment, surveyId, onComplete, onCancel }: Pr
     routing_external_pipe: false,
     routing_aerial: false,
     routing_other: "",
+    routing_aerial_notes: "",
+    routing_other_notes: "",
+    sidewalk_excavation: null as boolean | null,
+    entry_pipe_notes: "",
     excavation_to_pipe: null as boolean | null,
     excavation_to_rg: null as boolean | null,
     pipe_placement: false,
@@ -484,12 +488,22 @@ const InspectionReportForm = ({ assignment, surveyId, onComplete, onCancel }: Pr
             </label>
           ))}
         </div>
+        <div className="grid grid-cols-2 gap-3 mt-3">
+          <div>
+            <Label className="text-xs">Σημειώσεις Εναέριας</Label>
+            <Input value={form.routing_aerial_notes} onChange={(e) => updateField("routing_aerial_notes", e.target.value)} placeholder="Σημειώσεις..." />
+          </div>
+          <div>
+            <Label className="text-xs">Σημειώσεις Άλλου τρόπου</Label>
+            <Input value={form.routing_other_notes} onChange={(e) => updateField("routing_other_notes", e.target.value)} placeholder="Σημειώσεις..." />
+          </div>
+        </div>
         <div className="mt-3">
           <Label className="text-xs">Άλλος τρόπος</Label>
           <Input value={form.routing_other} onChange={(e) => updateField("routing_other", e.target.value)} />
         </div>
         
-        <div className="grid grid-cols-2 gap-3 mt-4">
+        <div className="grid grid-cols-3 gap-3 mt-4">
           <div>
             <Label className="text-xs mb-2 block">Εκσκαφή πεζοδρομίου έως σωλήνα εισαγωγής</Label>
             <RadioGroup value={form.excavation_to_pipe === null ? "" : form.excavation_to_pipe ? "yes" : "no"} onValueChange={(v) => updateField("excavation_to_pipe", v === "yes")}>
@@ -508,6 +522,19 @@ const InspectionReportForm = ({ assignment, surveyId, onComplete, onCancel }: Pr
               </div>
             </RadioGroup>
           </div>
+          <div>
+            <Label className="text-xs mb-2 block">Εκσκαφή πεζοδρομίου</Label>
+            <RadioGroup value={form.sidewalk_excavation === null ? "" : form.sidewalk_excavation ? "yes" : "no"} onValueChange={(v) => updateField("sidewalk_excavation", v === "yes")}>
+              <div className="flex gap-4">
+                <label className="flex items-center gap-1.5"><RadioGroupItem value="yes" /><span className="text-xs">ΝΑΙ</span></label>
+                <label className="flex items-center gap-1.5"><RadioGroupItem value="no" /><span className="text-xs">ΌΧΙ</span></label>
+              </div>
+            </RadioGroup>
+          </div>
+        </div>
+        <div className="mt-3">
+          <Label className="text-xs">Σημειώσεις έως σωλήνα εισαγωγής</Label>
+          <Input value={form.entry_pipe_notes} onChange={(e) => updateField("entry_pipe_notes", e.target.value)} placeholder="Σημειώσεις..." />
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-3">

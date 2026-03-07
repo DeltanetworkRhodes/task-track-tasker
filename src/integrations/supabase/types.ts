@@ -579,6 +579,7 @@ export type Database = {
           declaration_signature: string | null
           declaration_type: string | null
           engineer_signature: string | null
+          entry_pipe_notes: string | null
           excavation_to_building: boolean | null
           excavation_to_pipe: boolean | null
           excavation_to_rg: boolean | null
@@ -595,12 +596,15 @@ export type Database = {
           pipe_code: string | null
           pipe_placement: boolean | null
           routing_aerial: boolean | null
+          routing_aerial_notes: string | null
           routing_escalit: boolean | null
           routing_external_pipe: boolean | null
           routing_other: string | null
+          routing_other_notes: string | null
           service_address: string | null
           service_email: string | null
           service_phone: string | null
+          sidewalk_excavation: boolean | null
           sketch_notes: string | null
           sr_id: string
           survey_id: string | null
@@ -659,6 +663,7 @@ export type Database = {
           declaration_signature?: string | null
           declaration_type?: string | null
           engineer_signature?: string | null
+          entry_pipe_notes?: string | null
           excavation_to_building?: boolean | null
           excavation_to_pipe?: boolean | null
           excavation_to_rg?: boolean | null
@@ -675,12 +680,15 @@ export type Database = {
           pipe_code?: string | null
           pipe_placement?: boolean | null
           routing_aerial?: boolean | null
+          routing_aerial_notes?: string | null
           routing_escalit?: boolean | null
           routing_external_pipe?: boolean | null
           routing_other?: string | null
+          routing_other_notes?: string | null
           service_address?: string | null
           service_email?: string | null
           service_phone?: string | null
+          sidewalk_excavation?: boolean | null
           sketch_notes?: string | null
           sr_id: string
           survey_id?: string | null
@@ -739,6 +747,7 @@ export type Database = {
           declaration_signature?: string | null
           declaration_type?: string | null
           engineer_signature?: string | null
+          entry_pipe_notes?: string | null
           excavation_to_building?: boolean | null
           excavation_to_pipe?: boolean | null
           excavation_to_rg?: boolean | null
@@ -755,12 +764,15 @@ export type Database = {
           pipe_code?: string | null
           pipe_placement?: boolean | null
           routing_aerial?: boolean | null
+          routing_aerial_notes?: string | null
           routing_escalit?: boolean | null
           routing_external_pipe?: boolean | null
           routing_other?: string | null
+          routing_other_notes?: string | null
           service_address?: string | null
           service_email?: string | null
           service_phone?: string | null
+          sidewalk_excavation?: boolean | null
           sketch_notes?: string | null
           sr_id?: string
           survey_id?: string | null
