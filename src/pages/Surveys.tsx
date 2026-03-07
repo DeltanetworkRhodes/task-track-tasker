@@ -452,7 +452,7 @@ const Surveys = () => {
           </div>
         </div>
 
-        {/* Table */}
+        {/* Table / Cards */}
         <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
           {isLoading ? (
             <div className="p-4 space-y-2">
@@ -466,81 +466,138 @@ const Surveys = () => {
               <p className="text-sm">Δεν βρέθηκαν αυτοψίες</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="bg-muted/50 text-muted-foreground text-xs uppercase tracking-wider">
-                    <th className="text-left px-4 py-3 font-medium">SR ID</th>
-                    <th className="text-left px-4 py-3 font-medium">Περιοχή</th>
-                    <th className="text-left px-4 py-3 font-medium">Τεχνικός</th>
-                    <th className="text-left px-4 py-3 font-medium">Κατάσταση</th>
-                    <th className="text-left px-4 py-3 font-medium">Σχόλια</th>
-                    <th className="text-left px-4 py-3 font-medium">Ημερομηνία</th>
-                    <th className="text-center px-4 py-3 font-medium">Email</th>
-                    <th className="text-center px-4 py-3 font-medium">Ενέργεια</th>
-                    <th className="text-center px-4 py-3 font-medium"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filtered.map((s) => {
-                    const tech = profileMap[s.technician_id];
-                    const sc = statusConfig[s.status] || statusConfig["submitted"];
-                    return (
-                      <tr
-                        key={s.id}
-                        className="border-t border-border/50 hover:bg-muted/30 cursor-pointer transition-colors"
-                        onClick={() => setSelectedSurvey(s)}
-                      >
-                        <td className="px-4 py-3 font-bold text-primary">{s.sr_id}</td>
-                        <td className="px-4 py-3">
-                          <Badge variant="outline" className="text-xs">{s.area}</Badge>
-                        </td>
-                        <td className="px-4 py-3 text-muted-foreground text-xs">{tech?.full_name || "—"}</td>
-                        <td className="px-4 py-3">
-                          <Badge variant="outline" className={`text-xs ${sc.color}`}>{sc.label}</Badge>
-                        </td>
-                        <td className="px-4 py-3 max-w-[200px]">
-                          {s.comments ? (
-                            <span className="text-xs text-muted-foreground line-clamp-1">{s.comments}</span>
-                          ) : (
-                            <span className="text-xs text-muted-foreground/40">—</span>
-                          )}
-                        </td>
-                        <td className="px-4 py-3 text-muted-foreground text-xs font-bold">
+            <>
+              {/* Mobile Card View */}
+              <div className="md:hidden divide-y divide-border">
+                {filtered.map((s) => {
+                  const tech = profileMap[s.technician_id];
+                  const sc = statusConfig[s.status] || statusConfig["submitted"];
+                  const StatusIcon = sc.icon;
+                  return (
+                    <div
+                      key={s.id}
+                      className="p-3.5 active:bg-muted/50 transition-colors cursor-pointer"
+                      onClick={() => setSelectedSurvey(s)}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="font-bold text-primary text-sm">SR {s.sr_id}</span>
+                        <Badge variant="outline" className={`text-[10px] ${sc.color}`}>
+                          <StatusIcon className="h-3 w-3 mr-1" />
+                          {sc.label}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                        <span className="flex items-center gap-1">
+                          <MapPin className="h-3 w-3" />
+                          {s.area}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <User className="h-3 w-3" />
+                          {tech?.full_name || "—"}
+                        </span>
+                        <span className="ml-auto flex items-center gap-1">
+                          <Calendar className="h-3 w-3" />
                           {new Date(s.created_at).toLocaleDateString("el-GR")}
-                        </td>
-                        <td className="px-4 py-3 text-center">
-                          {s.email_sent ? (
-                            <Mail className="h-3.5 w-3.5 text-green-600 mx-auto" />
-                          ) : (
-                            <span className="text-muted-foreground/30">—</span>
-                          )}
-                        </td>
-                        <td className="px-4 py-3 text-center" onClick={(e) => e.stopPropagation()}>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-7 w-7 p-0"
-                            onClick={() => setSelectedSurvey(s)}
-                          >
-                            <Eye className="h-4 w-4 text-primary" />
-                          </Button>
-                        </td>
-                        <td className="px-4 py-3 text-center" onClick={(e) => e.stopPropagation()}>
-                          <button
-                            onClick={() => setDeleteTarget(s)}
-                            className="text-muted-foreground/40 hover:text-destructive transition-colors p-1 rounded"
-                            title="Διαγραφή"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+                        </span>
+                      </div>
+                      {s.comments && (
+                        <p className="text-[11px] text-muted-foreground/70 mt-1.5 line-clamp-1">{s.comments}</p>
+                      )}
+                      <div className="flex items-center gap-2 mt-2">
+                        {s.email_sent && (
+                          <span className="flex items-center gap-1 text-[10px] text-green-600">
+                            <Mail className="h-3 w-3" /> Εστάλη
+                          </span>
+                        )}
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setDeleteTarget(s); }}
+                          className="ml-auto text-muted-foreground/40 hover:text-destructive transition-colors p-1 rounded"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Desktop Table View */}
+              <div className="hidden md:block overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-muted/50 text-muted-foreground text-xs uppercase tracking-wider">
+                      <th className="text-left px-4 py-3 font-medium">SR ID</th>
+                      <th className="text-left px-4 py-3 font-medium">Περιοχή</th>
+                      <th className="text-left px-4 py-3 font-medium">Τεχνικός</th>
+                      <th className="text-left px-4 py-3 font-medium">Κατάσταση</th>
+                      <th className="text-left px-4 py-3 font-medium">Σχόλια</th>
+                      <th className="text-left px-4 py-3 font-medium">Ημερομηνία</th>
+                      <th className="text-center px-4 py-3 font-medium">Email</th>
+                      <th className="text-center px-4 py-3 font-medium">Ενέργεια</th>
+                      <th className="text-center px-4 py-3 font-medium"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filtered.map((s) => {
+                      const tech = profileMap[s.technician_id];
+                      const sc = statusConfig[s.status] || statusConfig["submitted"];
+                      return (
+                        <tr
+                          key={s.id}
+                          className="border-t border-border/50 hover:bg-muted/30 cursor-pointer transition-colors"
+                          onClick={() => setSelectedSurvey(s)}
+                        >
+                          <td className="px-4 py-3 font-bold text-primary">{s.sr_id}</td>
+                          <td className="px-4 py-3">
+                            <Badge variant="outline" className="text-xs">{s.area}</Badge>
+                          </td>
+                          <td className="px-4 py-3 text-muted-foreground text-xs">{tech?.full_name || "—"}</td>
+                          <td className="px-4 py-3">
+                            <Badge variant="outline" className={`text-xs ${sc.color}`}>{sc.label}</Badge>
+                          </td>
+                          <td className="px-4 py-3 max-w-[200px]">
+                            {s.comments ? (
+                              <span className="text-xs text-muted-foreground line-clamp-1">{s.comments}</span>
+                            ) : (
+                              <span className="text-xs text-muted-foreground/40">—</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-muted-foreground text-xs font-bold">
+                            {new Date(s.created_at).toLocaleDateString("el-GR")}
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            {s.email_sent ? (
+                              <Mail className="h-3.5 w-3.5 text-green-600 mx-auto" />
+                            ) : (
+                              <span className="text-muted-foreground/30">—</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-center" onClick={(e) => e.stopPropagation()}>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 w-7 p-0"
+                              onClick={() => setSelectedSurvey(s)}
+                            >
+                              <Eye className="h-4 w-4 text-primary" />
+                            </Button>
+                          </td>
+                          <td className="px-4 py-3 text-center" onClick={(e) => e.stopPropagation()}>
+                            <button
+                              onClick={() => setDeleteTarget(s)}
+                              className="text-muted-foreground/40 hover:text-destructive transition-colors p-1 rounded"
+                              title="Διαγραφή"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
         </div>
       </div>
