@@ -338,7 +338,7 @@ Deno.serve(async (req) => {
       gisRecord = data;
     }
 
-    // Check if survey is complete (all required file types exist)
+    // Check if survey is complete → GIS + complete survey = construction
     const { data: survey } = await adminClient
       .from("surveys")
       .select("id, status")
@@ -347,9 +347,9 @@ Deno.serve(async (req) => {
       .limit(1)
       .maybeSingle();
 
-    let newStatus = "pre_committed"; // Default: incomplete survey
+    // GIS uploaded: if survey complete (not ΕΛΛΙΠΗΣ) → construction, otherwise pre_committed
+    let newStatus = "pre_committed";
     if (survey && survey.status !== "ΕΛΛΙΠΗΣ ΑΥΤΟΨΙΑ") {
-      // Survey is complete → go directly to construction
       newStatus = "construction";
     }
 
