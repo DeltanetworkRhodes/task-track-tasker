@@ -530,15 +530,29 @@ Deno.serve(async (req) => {
 
         if (!parentFolderId && sr_id) {
           const safeSrId = String(sr_id).replace(/'/g, "\\'");
-          const srFolders = await driveSearch(
-            accessToken,
-            `name = '${safeSrId}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`
-          );
+          const searchFolderIds = [
+            "1JvcSG3tiOplSujXhb3yj_ELQLjfrgOzO", // ΡΟΔΟΣ
+            "1X1mtK4tV_sgGM9IdizNSK7AS19qX1nYl", // ΚΩΣ
+            "1dal55zb0uv5__e1pDk2fLFMB0ogi1OnZ", // ΡΟΔΟΣ/ΜΑΡΤΙΟΣ/ΠΡΟΔΕΣΜΕΥΣΗ ΓΙΑ ΚΑΤΑΣΚΕΥΗ
+            "16Dr_1g6AkaypkyoePwcfZ8IanPX5TXeZ", // ΡΟΔΟΣ/ΜΑΡΤΙΟΣ/ΟΛΟΚΛΗΡΩΜΕΝΕΣ ΑΥΤΟΨΙΕΣ
+            "1azAHjT8LS8R3JOq0jYNh1UdBx4SYn-iM", // ΡΟΔΟΣ/ΜΑΡΤΙΟΣ/ΠΑΡΑΔΩΤΕΑ
+            "1pIRjzexYG_JVFkoqfaG2_o_YfziGoFy_", // ΡΟΔΟΣ/ΜΑΡΤΙΟΣ
+            "1C2E70l0PkCETaMPqywysYNMrDUcKMO5k", // ΠΑΡΑΔΕΙΓΜΑΤΑ
+          ];
+
+          let srFolders: any[] = [];
+          for (const folderId of searchFolderIds) {
+            srFolders = await driveSearch(
+              accessToken,
+              `name contains '${safeSrId}' and '${folderId}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`
+            );
+            if (srFolders.length > 0) break;
+          }
 
           if (srFolders.length > 0) {
             parentFolderId = srFolders[0].id;
             parentFolderUrl = srFolders[0].webViewLink || "";
-            console.log(`Resolved SR folder by name fallback: ${srFolders[0].name}`);
+            console.log(`Resolved SR folder by fallback search: ${srFolders[0].name}`);
 
             await adminClient
               .from("assignments")
