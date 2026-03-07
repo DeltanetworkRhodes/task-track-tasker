@@ -180,21 +180,31 @@ const InspectionReportForm = ({ assignment, surveyId, onComplete, onCancel }: Pr
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
-  const getSignatureData = () => {
-    const sigs: Record<string, string> = {};
+  // Capture signatures from canvas refs into form state (called before leaving a step)
+  const captureSignaturesFromCanvas = () => {
+    const updates: Record<string, string> = {};
     if (engineerSigRef.current && !engineerSigRef.current.isEmpty()) {
-      sigs.engineer_signature = engineerSigRef.current.toDataURL("image/png");
+      updates.engineer_signature = engineerSigRef.current.toDataURL("image/png");
     }
     if (customerSigRef.current && !customerSigRef.current.isEmpty()) {
-      sigs.customer_signature = customerSigRef.current.toDataURL("image/png");
+      updates.customer_signature = customerSigRef.current.toDataURL("image/png");
     }
     if (managerSigRef.current && !managerSigRef.current.isEmpty()) {
-      sigs.manager_signature = managerSigRef.current.toDataURL("image/png");
+      updates.manager_signature = managerSigRef.current.toDataURL("image/png");
     }
     if (declarationSigRef.current && !declarationSigRef.current.isEmpty()) {
-      sigs.declaration_signature = declarationSigRef.current.toDataURL("image/png");
+      updates.declaration_signature = declarationSigRef.current.toDataURL("image/png");
     }
-    return sigs;
+    if (Object.keys(updates).length > 0) {
+      setForm((prev) => ({ ...prev, ...updates }));
+    }
+    return updates;
+  };
+
+  // Navigate between steps, capturing signatures before leaving
+  const navigateToStep = (targetStep: number) => {
+    captureSignaturesFromCanvas();
+    setStep(targetStep);
   };
 
   const handleSave = async (final = false) => {
