@@ -168,7 +168,7 @@ Deno.serve(async (req) => {
     // ─── Build ZIP incrementally ────────────────────────────────────
     const zipFiles: Record<string, Uint8Array> = {};
     let totalSize = 0;
-    const MAX_ZIP_SIZE = 30 * 1024 * 1024; // 30MB limit for memory safety
+    // No size limit — ZIP is uploaded to storage and only a signed URL link is sent
 
     // Get Drive access token once (needed for spreadsheet + drive photos)
     let driveAccessToken = "";
@@ -234,10 +234,6 @@ Deno.serve(async (req) => {
     // 2. Download photos from Supabase Storage (organized by category folders)
     if (photo_paths && photo_paths.length > 0) {
       for (let i = 0; i < photo_paths.length; i++) {
-        if (totalSize > MAX_ZIP_SIZE) {
-          console.log(`ZIP size limit reached, skipping remaining photos`);
-          break;
-        }
         try {
           const { data: fileData, error: dlErr } = await adminClient.storage
             .from("photos")
@@ -267,10 +263,6 @@ Deno.serve(async (req) => {
     // 2b. Download photos from Google Drive (compressed via thumbnail API)
     if (drive_photo_ids && drive_photo_ids.length > 0 && driveAccessToken) {
       for (let i = 0; i < drive_photo_ids.length; i++) {
-        if (totalSize > MAX_ZIP_SIZE) {
-          console.log(`ZIP size limit reached, skipping remaining Drive photos`);
-          break;
-        }
         try {
           const photoId = drive_photo_ids[i].id || drive_photo_ids[i];
           const photoName = drive_photo_ids[i].name || `photo_${i + 1}.jpg`;
@@ -309,7 +301,6 @@ Deno.serve(async (req) => {
     }
     if (otdr_paths && otdr_paths.length > 0) {
       for (let i = 0; i < otdr_paths.length; i++) {
-        if (totalSize > MAX_ZIP_SIZE) { console.log(`ZIP size limit reached`); break; }
         try {
           const { data: fileData, error: dlErr } = await adminClient.storage
             .from("photos")
