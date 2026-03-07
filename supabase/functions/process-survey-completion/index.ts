@@ -497,7 +497,7 @@ Deno.serve(async (req) => {
     
     console.log(`Assignment ${sr_id} status → ${newAssignmentStatus}, Survey → ${newSurveyStatus}`);
 
-    // 5. Build ZIP from already-downloaded files + PDF from Drive, then send email
+    // 5. Send email with Google Drive folder link (no ZIP)
     let emailSent = false;
     const resendApiKey = Deno.env.get("RESEND_API_KEY");
 
@@ -516,55 +516,11 @@ Deno.serve(async (req) => {
     const recipients = toEmails.split(",").map((e: string) => e.trim()).filter(Boolean);
     const ccRecipients = ccEmails.split(",").map((e: string) => e.trim()).filter(Boolean);
 
+    // Free memory - no longer needed
+    downloadedFiles.length = 0;
+
     if (resendApiKey && recipients.length > 0) {
       try {
-        // Build ZIP entries from already-downloaded data (NO re-download!)
-        const zipFiles: { name: string; data: Uint8Array }[] = [];
-        let totalSize = 0;
-
-        for (const { sf, data } of downloadedFiles) {
-          const prefix = sf.file_type === "building_photo" ? "PROMELETI/" 
-            : sf.file_type === "screenshot" ? "EGRAFA/"
-            : sf.file_type === "inspection_form" ? "EGRAFA/"
-            : "";
-          zipFiles.push({ name: `${prefix}${sf.file_name}`, data });
-          totalSize += data.length;
-        }
-
-        // Add the PDF generated via Google Slides (if available)
-        if (inspectionPdfBytes) {
-          zipFiles.push({ name: `EGRAFA/Deltio_Autopsias_${sr_id}.pdf`, data: inspectionPdfBytes });
-          totalSize += inspectionPdfBytes.length;
-          console.log(`Added Slides-generated PDF to ZIP: ${(inspectionPdfBytes.length / 1024).toFixed(0)}KB`);
-        }
-
-        console.log(`ZIP: ${zipFiles.length} files, ${(totalSize / 1024 / 1024).toFixed(1)}MB`);
-
-        const zipData = await buildZip(zipFiles);
-        // Free memory
-        zipFiles.length = 0;
-        downloadedFiles.length = 0;
-
-        // Upload ZIP to storage
-        const zipFileName = `${sr_id}_survey_${Date.now()}.zip`;
-        const zipStoragePath = `zips/${zipFileName}`;
-        const { error: uploadErr } = await adminClient.storage
-          .from("surveys")
-          .upload(zipStoragePath, zipData, {
-            contentType: "application/zip",
-            upsert: true,
-          });
-
-        if (uploadErr) {
-          console.error("ZIP upload error:", uploadErr);
-        }
-
-        const { data: signedUrlData } = await adminClient.storage
-          .from("surveys")
-          .createSignedUrl(zipStoragePath, 60 * 60 * 24 * 7);
-
-        const zipUrl = signedUrlData?.signedUrl || "";
-
         const statusLabel = isComplete ? "ΠΡΟΔΕΣΜΕΥΣΗ ΥΛΙΚΩΝ" : "ΕΛΛΙΠΗΣ ΑΥΤΟΨΙΑ";
         const headerIcon = isComplete ? "📋" : "⚠️";
         const brandTeal = "#1a9a8a";
@@ -639,12 +595,12 @@ Deno.serve(async (req) => {
                 <p style="color: #dc2626; font-size: 14px; margin: 0;">${missingTypes.map(t => t === "building_photo" ? "Φωτογραφίες κτιρίου" : t === "screenshot" ? "Screenshots" : t === "inspection_form" ? "Έντυπο αυτοψίας" : t).join(", ")}</p>
               </div>` : ""}
 
-              ${zipUrl ? `
+              ${driveFolderUrl ? `
               <div style="text-align: center; margin: 24px 0;">
-                <a href="${zipUrl}" style="background: ${brandDark}; color: white; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-size: 14px; font-weight: 700; display: inline-block; letter-spacing: 0.3px;">📥 Λήψη Αρχείων (ZIP)</a>
+                <a href="${driveFolderUrl}" style="background: ${brandDark}; color: white; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-size: 14px; font-weight: 700; display: inline-block; letter-spacing: 0.3px;">📂 Άνοιγμα Φακέλου Google Drive</a>
               </div>
               <p style="color: ${textMuted}; font-size: 11px; text-align: center; margin-top: 4px;">
-                ${surveyFiles.length} αρχεία · Ισχύει για 7 ημέρες
+                ${surveyFiles.length} αρχεία στο φάκελο
               </p>` : ""}
 
               <p style="color: ${textSecondary}; font-size: 14px; line-height: 1.6; margin-top: 28px;">Με εκτίμηση,</p>
