@@ -588,10 +588,10 @@ Deno.serve(async (req) => {
               console.log(`Skipping ${sf.file_name} (ZIP size limit)`);
               continue;
             }
-            // Prefix with folder name based on type
-            const prefix = sf.file_type === "building_photo" ? "ΠΡΟΜΕΛΕΤΗ/" 
-              : sf.file_type === "screenshot" ? "ΕΓΓΡΑΦΑ/"
-              : sf.file_type === "inspection_form" ? "ΕΓΓΡΑΦΑ/"
+            // Prefix with folder name based on type (ASCII-safe for ZIP compatibility)
+            const prefix = sf.file_type === "building_photo" ? "PROMELETI/" 
+              : sf.file_type === "screenshot" ? "EGRAFA/"
+              : sf.file_type === "inspection_form" ? "EGRAFA/"
               : "";
             zipFiles.push({ name: `${prefix}${sf.file_name}`, data: fileData });
             totalSize += fileData.length;
