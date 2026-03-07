@@ -670,7 +670,7 @@ Deno.serve(async (req) => {
                 </tr>
                 <tr>
                   <td style="padding: 8px 12px; background: #f9fafb; border: 1px solid #e5e7eb; font-size: 13px; color: #374151;">CAB</td>
-                  <td style="padding: 8px 12px; border: 1px solid #e5e7eb; font-size: 14px;">—</td>
+                  <td style="padding: 8px 12px; border: 1px solid #e5e7eb; font-size: 14px;">${escapeHtml(cab)}</td>
                 </tr>
                 <tr>
                   <td style="padding: 8px 12px; background: #f9fafb; border: 1px solid #e5e7eb; font-size: 13px; color: #374151;">Τεχνικός</td>
