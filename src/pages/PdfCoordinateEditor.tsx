@@ -5,8 +5,10 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Download, ZoomIn, ZoomOut, RotateCcw, Eye, EyeOff, Copy, ChevronLeft, ChevronRight } from "lucide-react";
-import { PDFDocument } from "pdf-lib";
+import * as pdfjsLib from "pdfjs-dist";
 import { toast } from "sonner";
+
+pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
 
 interface FieldDef {
   key: string;
@@ -76,29 +78,32 @@ const PdfCoordinateEditor = () => {
       .catch(() => toast.error("Δεν βρέθηκε το pdf-mapping.json"));
   }, []);
 
-  // Render PDF pages as images
+  // Render PDF pages as images using pdf.js
   useEffect(() => {
     (async () => {
       try {
-        const resp = await fetch("/templates/inspection_template.pdf");
-        if (!resp.ok) throw new Error();
-        const bytes = await resp.arrayBuffer();
-        const pdf = await PDFDocument.load(bytes);
-        const pages = pdf.getPages();
-        if (pages.length > 0) {
-          const p = pages[0];
-          setPdfDims({ width: p.getWidth(), height: p.getHeight() });
+        const loadingTask = pdfjsLib.getDocument("/templates/inspection_template.pdf");
+        const pdf = await loadingTask.promise;
+        const totalPagesCount = pdf.numPages;
+        const rendered: string[] = [];
+
+        for (let i = 1; i <= totalPagesCount; i++) {
+          const page = await pdf.getPage(i);
+          const viewport = page.getViewport({ scale: 2 }); // render at 2x for sharpness
+          if (i === 1) {
+            setPdfDims({ width: viewport.width / 2, height: viewport.height / 2 });
+          }
+          const canvas = document.createElement("canvas");
+          canvas.width = viewport.width;
+          canvas.height = viewport.height;
+          const ctx = canvas.getContext("2d")!;
+          await page.render({ canvasContext: ctx, viewport }).promise;
+          rendered.push(canvas.toDataURL("image/png"));
         }
 
-        // Render each page as image using canvas
-        const images: string[] = [];
-        // We'll use pdf.js-like approach via an offscreen canvas
-        // Since we don't have pdf.js, we'll render page outlines and use the PDF as background via object tag
-        for (let i = 0; i < pages.length; i++) {
-          images.push(`/templates/inspection_template.pdf#page=${i + 1}`);
-        }
-        setPageImages(images);
-      } catch {
+        setPageImages(rendered);
+      } catch (err) {
+        console.error("PDF render error:", err);
         toast.error("Δεν φορτώθηκε το PDF template");
       }
     })();
@@ -407,13 +412,19 @@ const PdfCoordinateEditor = () => {
             background: "#fff",
           }}
         >
-          {/* PDF background */}
-          <iframe
-            src={`/templates/inspection_template.pdf#page=${currentPage}&toolbar=0&navpanes=0`}
-            className="absolute inset-0 w-full h-full pointer-events-none"
-            style={{ border: "none" }}
-            title="PDF Template"
-          />
+          {/* PDF background rendered as image */}
+          {pageImages[currentPage - 1] ? (
+            <img
+              src={pageImages[currentPage - 1]}
+              className="absolute inset-0 w-full h-full pointer-events-none"
+              alt={`PDF Page ${currentPage}`}
+              draggable={false}
+            />
+          ) : (
+            <div className="absolute inset-0 flex items-center justify-center text-muted-foreground text-sm">
+              Φόρτωση σελίδας...
+            </div>
+          )}
 
           {/* Field markers */}
           {items.map((item) => {
