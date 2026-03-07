@@ -399,8 +399,9 @@ async function generateInspectionPdf(data: InspectionData): Promise<Uint8Array> 
   drawLabel(p4, "Μέγεθος:", 300, y, font, boldFont, (data.bcp_size || "—").toUpperCase());
   y -= 20;
   drawCheckbox(p4, data.bcp_floorbox, "Floorbox", 40, y, font);
-  drawCheckbox(p4, data.bcp_drop_6, "Drop 6", 150, y, font);
-  drawCheckbox(p4, data.bcp_drop_12, "Drop 12", 250, y, font);
+  drawCheckbox(p4, data.bcp_drop_4, "Drop 4", 140, y, font);
+  drawCheckbox(p4, data.bcp_drop_6, "Drop 6", 230, y, font);
+  drawCheckbox(p4, data.bcp_drop_12, "Drop 12", 320, y, font);
   y -= 35;
 
   // BEP
