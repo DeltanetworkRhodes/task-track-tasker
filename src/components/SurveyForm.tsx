@@ -172,7 +172,7 @@ const SurveyForm = ({ assignments, prefillSrId, prefillArea, onComplete }: Props
       }
 
       // Cleanup previews
-      [...buildingPhotos, ...screenshots, ...inspectionPhotos].forEach((f) =>
+      [...buildingPhotos, ...screenshots].forEach((f) =>
         URL.revokeObjectURL(f.preview)
       );
 
