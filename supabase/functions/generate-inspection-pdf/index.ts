@@ -200,6 +200,17 @@ function drawBoxedText(
   }
 }
 
+function drawCircleAround(page: any, x: number, y: number, radius = 7) {
+  page.drawEllipse({
+    x: x + radius / 2,
+    y: y + radius / 2,
+    xScale: radius,
+    yScale: radius,
+    borderColor: BLACK,
+    borderWidth: 1.5,
+  });
+}
+
 function drawWrappedText(
   page: any,
   text: string,
