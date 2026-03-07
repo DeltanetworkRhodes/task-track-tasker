@@ -302,19 +302,6 @@ const Surveys = () => {
               Προβολή, διαχείριση & αναφορές αυτοψιών
             </p>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-1.5"
-            onClick={() => {
-              setToEmails(emailSettings?.report_to_emails || "");
-              setCcEmails(emailSettings?.report_cc_emails || "");
-              setShowSettings(true);
-            }}
-          >
-            <Settings className="h-4 w-4" />
-            Ρυθμίσεις Email
-          </Button>
         </div>
 
         {/* Stat Cards */}
