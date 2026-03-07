@@ -52,7 +52,7 @@ Deno.serve(async (req) => {
       const { data: callerProfile } = await supabaseAdmin
         .from("profiles")
         .select("organization_id")
-        .eq("user_id", caller.id)
+        .eq("user_id", callerId)
         .single();
       
       if (!callerProfile?.organization_id) throw new Error("Admin has no organization");

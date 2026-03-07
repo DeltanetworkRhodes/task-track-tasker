@@ -73,7 +73,7 @@ Deno.serve(async (req) => {
       .eq("user_id", userId)
       .single();
 
-    const techName = profile?.full_name || user.email || "Τεχνικός";
+    const techName = profile?.full_name || "Τεχνικός";
     const techPhone = profile?.phone || "";
     const orgId = profile?.organization_id;
 
