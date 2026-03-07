@@ -228,7 +228,8 @@ const AppointmentsCalendar = ({ viewMode }: AppointmentsCalendarProps) => {
       if (!assignment) return;
 
       try {
-        const appointmentAt = `${dateKey}T09:00:00`;
+        const localDate = new Date(`${dateKey}T09:00:00`);
+        const appointmentAt = localDate.toISOString();
         const { error } = await supabase.from("appointments").insert({
           sr_id: assignment.sr_id,
           appointment_at: appointmentAt,
