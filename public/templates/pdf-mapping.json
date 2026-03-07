@@ -190,6 +190,22 @@
           "y": 726
         },
         {
+          "key": "ext_pipe_sidewalk_excavation_yes",
+          "type": "check_if",
+          "x": 293,
+          "y": 710,
+          "sourceKey": "ext_pipe_sidewalk_excavation",
+          "match": true
+        },
+        {
+          "key": "ext_pipe_sidewalk_excavation_no",
+          "type": "check_if",
+          "x": 326,
+          "y": 710,
+          "sourceKey": "ext_pipe_sidewalk_excavation",
+          "match": false
+        },
+        {
           "key": "routing_aerial",
           "type": "check",
           "x": 422,

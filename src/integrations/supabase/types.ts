@@ -583,6 +583,7 @@ export type Database = {
           excavation_to_building: boolean | null
           excavation_to_pipe: boolean | null
           excavation_to_rg: boolean | null
+          ext_pipe_sidewalk_excavation: boolean | null
           fence_building_mount: boolean | null
           id: string
           manager_email: string | null
@@ -667,6 +668,7 @@ export type Database = {
           excavation_to_building?: boolean | null
           excavation_to_pipe?: boolean | null
           excavation_to_rg?: boolean | null
+          ext_pipe_sidewalk_excavation?: boolean | null
           fence_building_mount?: boolean | null
           id?: string
           manager_email?: string | null
@@ -751,6 +753,7 @@ export type Database = {
           excavation_to_building?: boolean | null
           excavation_to_pipe?: boolean | null
           excavation_to_rg?: boolean | null
+          ext_pipe_sidewalk_excavation?: boolean | null
           fence_building_mount?: boolean | null
           id?: string
           manager_email?: string | null

@@ -83,6 +83,7 @@ const InspectionReportForm = ({ assignment, surveyId, onComplete, onCancel }: Pr
     routing_other_notes: "",
     sidewalk_excavation: null as boolean | null,
     entry_pipe_notes: "",
+    ext_pipe_sidewalk_excavation: null as boolean | null,
     excavation_to_pipe: null as boolean | null,
     excavation_to_rg: null as boolean | null,
     pipe_placement: false,
@@ -503,9 +504,9 @@ const InspectionReportForm = ({ assignment, surveyId, onComplete, onCancel }: Pr
           <Input value={form.routing_other} onChange={(e) => updateField("routing_other", e.target.value)} />
         </div>
         
-        <div className="grid grid-cols-3 gap-3 mt-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4">
           <div>
-            <Label className="text-xs mb-2 block">Εκσκαφή πεζοδρομίου έως σωλήνα εισαγωγής</Label>
+            <Label className="text-xs mb-2 block">Εκσκαφή πεζοδρ. έως σωλήνα εισαγωγής</Label>
             <RadioGroup value={form.excavation_to_pipe === null ? "" : form.excavation_to_pipe ? "yes" : "no"} onValueChange={(v) => updateField("excavation_to_pipe", v === "yes")}>
               <div className="flex gap-4">
                 <label className="flex items-center gap-1.5"><RadioGroupItem value="yes" /><span className="text-xs">ΝΑΙ</span></label>
@@ -514,7 +515,7 @@ const InspectionReportForm = ({ assignment, surveyId, onComplete, onCancel }: Pr
             </RadioGroup>
           </div>
           <div>
-            <Label className="text-xs mb-2 block">Εκσκαφή πεζοδρομίου έως ΡΓ</Label>
+            <Label className="text-xs mb-2 block">Εκσκαφή πεζοδρ. έως ΡΓ</Label>
             <RadioGroup value={form.excavation_to_rg === null ? "" : form.excavation_to_rg ? "yes" : "no"} onValueChange={(v) => updateField("excavation_to_rg", v === "yes")}>
               <div className="flex gap-4">
                 <label className="flex items-center gap-1.5"><RadioGroupItem value="yes" /><span className="text-xs">ΝΑΙ</span></label>
@@ -523,8 +524,17 @@ const InspectionReportForm = ({ assignment, surveyId, onComplete, onCancel }: Pr
             </RadioGroup>
           </div>
           <div>
-            <Label className="text-xs mb-2 block">Εκσκαφή πεζοδρομίου</Label>
+            <Label className="text-xs mb-2 block">Εκσκαφή πεζοδρ. (γενική)</Label>
             <RadioGroup value={form.sidewalk_excavation === null ? "" : form.sidewalk_excavation ? "yes" : "no"} onValueChange={(v) => updateField("sidewalk_excavation", v === "yes")}>
+              <div className="flex gap-4">
+                <label className="flex items-center gap-1.5"><RadioGroupItem value="yes" /><span className="text-xs">ΝΑΙ</span></label>
+                <label className="flex items-center gap-1.5"><RadioGroupItem value="no" /><span className="text-xs">ΌΧΙ</span></label>
+              </div>
+            </RadioGroup>
+          </div>
+          <div>
+            <Label className="text-xs mb-2 block">Εκσκαφή πεζοδρ. (εξωτ. σιδηροσωλήνα)</Label>
+            <RadioGroup value={form.ext_pipe_sidewalk_excavation === null ? "" : form.ext_pipe_sidewalk_excavation ? "yes" : "no"} onValueChange={(v) => updateField("ext_pipe_sidewalk_excavation", v === "yes")}>
               <div className="flex gap-4">
                 <label className="flex items-center gap-1.5"><RadioGroupItem value="yes" /><span className="text-xs">ΝΑΙ</span></label>
                 <label className="flex items-center gap-1.5"><RadioGroupItem value="no" /><span className="text-xs">ΌΧΙ</span></label>
