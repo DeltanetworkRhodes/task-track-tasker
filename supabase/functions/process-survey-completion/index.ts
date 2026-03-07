@@ -403,8 +403,6 @@ Deno.serve(async (req) => {
           ]);
 
           // Upload files using already-downloaded data (2 concurrent uploads)
-          // Track uploaded inspection_form IDs for PDF generation
-          const uploadedInspectionIds: { driveFileId: string; fileName: string }[] = [];
           const UPLOAD_BATCH = 2;
           const uploadQueue = downloadedFiles.map(({ sf, data }) => {
             const targetFolder = sf.file_type === "building_photo" ? promelethFolder : egrafaFolder;
