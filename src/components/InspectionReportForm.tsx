@@ -878,7 +878,7 @@ const InspectionReportForm = ({ assignment, surveyId, onComplete, onCancel }: Pr
           Αποθήκευση
         </Button>
         {step < STEPS.length - 1 ? (
-          <Button size="sm" onClick={() => setStep(step + 1)} className="gap-1">
+          <Button size="sm" onClick={() => navigateToStep(step + 1)} className="gap-1">
             Επόμενο <ChevronRight className="h-4 w-4" />
           </Button>
         ) : (
