@@ -719,7 +719,7 @@ Deno.serve(async (req) => {
           from: `DeltaNet FTTH <${emailFrom}>`,
           to: recipients,
           reply_to: emailReplyTo,
-          subject: `[${escapeHtml(statusLabel)}] Αυτοψία SR: ${sr_id} — ${area}`,
+          subject: `[ΑΥΤΟΨΙΑ] SR: ${sr_id} — ${area}`,
           html: emailHtml,
         };
 
