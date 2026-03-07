@@ -224,7 +224,7 @@ const PdfCoordinateEditor = () => {
                 items.push({
                   key: field.key,
                   subKey: `${brand}_${size}`,
-                  label: `${field.key}.${brand}.${size}`,
+                  label: FIELD_LABELS[`${field.key}.${brand}.${size}`] || `${field.key}.${brand}.${size}`,
                   x: bx,
                   y: sy,
                   type: field.type,
