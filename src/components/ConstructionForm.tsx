@@ -1132,11 +1132,6 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
         </Tabs>
 
         {deltanetMaterials.length > 0 && (
-          <div className="flex justify-end pt-1">
-            <Badge variant="outline" className="text-xs font-semibold border-orange-500/30 text-orange-600">
-              Κόστος υλικών ΔΝ: {totalMaterialCost.toFixed(2)}€
-            </Badge>
-          </div>
         )}
       </Card>
 
