@@ -57,16 +57,106 @@ Deno.serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
+    const contentType = req.headers.get("content-type") || "";
+    
+    // === JSON mode: confirm & save previously extracted materials ===
+    if (contentType.includes("application/json")) {
+      const body = await req.json();
+      const { materials: confirmedMaterials, source } = body;
+      if (!confirmedMaterials || !source) throw new Error("Missing materials or source");
+      if (source !== "OTE" && source !== "DELTANETWORK") throw new Error("Invalid source");
+
+      let updated = 0;
+      let created = 0;
+      const notFound: string[] = [];
+
+      for (const item of confirmedMaterials) {
+        const { data: existing } = await supabase
+          .from("materials")
+          .select("id, code, stock, source")
+          .eq("source", source)
+          .ilike("code", `%${item.code}%`)
+          .limit(1);
+
+        if (existing && existing.length > 0) {
+          const newStock = Number(existing[0].stock) + item.quantity;
+          const { error } = await supabase
+            .from("materials")
+            .update({ stock: newStock })
+            .eq("id", existing[0].id);
+          if (!error) updated++;
+        } else {
+          const { error } = await supabase.from("materials").insert({
+            code: item.code,
+            name: item.name || item.code,
+            stock: item.quantity,
+            source: source,
+            price: 0,
+            unit: item.unit || "τεμ.",
+          });
+          if (!error) created++;
+          else notFound.push(item.code);
+        }
+      }
+
+      // Write back to Google Sheet
+      let sheetUpdated = 0;
+      let sheetError: string | null = null;
+      try {
+        const serviceAccountKey = JSON.parse(Deno.env.get("GOOGLE_SERVICE_ACCOUNT_KEY") || "{}");
+        const accessToken = await getAccessToken(serviceAccountKey);
+        const sheetRes = await fetch(
+          `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent("ΑΠΟΘΗΚΗ")}!A1:H500`,
+          { headers: { Authorization: `Bearer ${accessToken}` } }
+        );
+        const sheetData = await sheetRes.json();
+        const rows = sheetData.values || [];
+        const { data: allMaterials } = await supabase.from("materials").select("code, stock");
+        const stockMap = new Map((allMaterials || []).map((m: any) => [m.code.trim(), Number(m.stock)]));
+        const updates: { range: string; values: any[][] }[] = [];
+        for (let i = 1; i < rows.length; i++) {
+          const rowCode = (rows[i]?.[1] || "").toString().trim();
+          if (rowCode && stockMap.has(rowCode)) {
+            updates.push({ range: `ΑΠΟΘΗΚΗ!G${i + 1}`, values: [[stockMap.get(rowCode)]] });
+          }
+        }
+        if (updates.length > 0) {
+          const batchRes = await fetch(
+            `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values:batchUpdate`,
+            {
+              method: "POST",
+              headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+              body: JSON.stringify({ valueInputOption: "RAW", data: updates }),
+            }
+          );
+          if (!batchRes.ok) {
+            const t = await batchRes.text();
+            throw new Error(`Sheet write failed: ${t}`);
+          }
+          const r = await batchRes.json();
+          sheetUpdated = Number(r.totalUpdatedCells || 0);
+        }
+      } catch (e: any) {
+        sheetError = e?.message || String(e);
+        console.error("Sheet write-back error:", sheetError);
+      }
+
+      return new Response(JSON.stringify({
+        success: true, source, updated, created, not_found: notFound,
+        sheet_updated: sheetUpdated, sheet_error: sheetError,
+      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    // === FormData mode: extract from PDF (preview only, no DB save) ===
     const formData = await req.formData();
     const file = formData.get("file") as File;
     if (!file) throw new Error("No file uploaded");
 
-    // Get source from form data — REQUIRED to avoid mixing OTE/DELTANETWORK
     const source = (formData.get("source") as string) || "OTE";
     if (source !== "OTE" && source !== "DELTANETWORK") {
       throw new Error("Invalid source. Must be OTE or DELTANETWORK");
     }
-    console.log(`Processing delivery note for source: ${source}`);
+    console.log(`Extracting delivery note for source: ${source} (preview only)`);
 
     // Convert PDF to base64 (chunked to avoid stack overflow)
     const arrayBuffer = await file.arrayBuffer();
@@ -191,143 +281,24 @@ IMPORTANT: Return ONLY the JSON array, no markdown, no explanation.`
       extractedMaterials = parsed.materials || [];
     }
 
-    // Update stock — ONLY match materials within the SAME source
-    let updated = 0;
-    let created = 0;
-    const notFound: string[] = [];
-
     // Post-process: fix Greek number misreads (1.8 → 1800, 2.0 → 2000, etc.)
     for (const item of extractedMaterials) {
       const q = item.quantity;
-      // If quantity has a decimal and multiplying by 1000 gives a round number,
-      // it was likely a Greek thousands separator misread
       if (q > 0 && q < 100 && !Number.isInteger(q)) {
         const corrected = Math.round(q * 1000);
-        // Check if the corrected value looks reasonable (e.g. 1.8 → 1800, 2.5 → 2500)
         if (corrected % 100 === 0 || corrected % 50 === 0) {
           console.log(`Correcting quantity: ${q} → ${corrected} (Greek number format fix)`);
           item.quantity = corrected;
         }
       }
-      // Also fix cases like 2.0 which JS treats as integer 2
-      // Delivery notes rarely have qty=1,2,3 for bulk materials
     }
 
-    for (const item of extractedMaterials) {
-      // Search ONLY within the specified source — prevents mixing OTE/DELTANETWORK
-      const { data: existing } = await supabase
-        .from("materials")
-        .select("id, code, stock, source")
-        .eq("source", source)
-        .ilike("code", `%${item.code}%`)
-        .limit(1);
-
-      if (existing && existing.length > 0) {
-        const newStock = Number(existing[0].stock) + item.quantity;
-        const { error } = await supabase
-          .from("materials")
-          .update({ stock: newStock })
-          .eq("id", existing[0].id);
-        
-        if (!error) updated++;
-      } else {
-        // Auto-create with the CORRECT source from the request
-        const { error } = await supabase.from("materials").insert({
-          code: item.code,
-          name: item.name || item.code,
-          stock: item.quantity,
-          source: source,
-          price: 0,
-          unit: item.unit || "τεμ.",
-        });
-        if (!error) {
-          created++;
-        } else {
-          notFound.push(item.code);
-        }
-      }
-    }
-
-    // ===== Write back to Google Sheet ΑΠΟΘΗΚΗ =====
-    let sheetUpdated = 0;
-    let sheetUpdatesRequested = 0;
-    let sheetError: string | null = null;
-    try {
-      const serviceAccountKey = JSON.parse(Deno.env.get("GOOGLE_SERVICE_ACCOUNT_KEY") || "{}");
-      const accessToken = await getAccessToken(serviceAccountKey);
-
-      const sheetRes = await fetch(
-        `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent("ΑΠΟΘΗΚΗ")}!A1:H500`,
-        { headers: { Authorization: `Bearer ${accessToken}` } }
-      );
-      const sheetData = await sheetRes.json();
-      const rows = sheetData.values || [];
-      console.log(`Sheet ΑΠΟΘΗΚΗ: ${rows.length} rows found`);
-
-      const { data: allMaterials } = await supabase
-        .from("materials")
-        .select("code, stock");
-
-      const stockMap = new Map((allMaterials || []).map(m => [m.code.trim(), Number(m.stock)]));
-
-      const updates: { range: string; values: any[][] }[] = [];
-      for (let i = 1; i < rows.length; i++) {
-        const rowCode = (rows[i]?.[1] || "").toString().trim();
-        if (rowCode && stockMap.has(rowCode)) {
-          updates.push({
-            range: `ΑΠΟΘΗΚΗ!G${i + 1}`,
-            values: [[stockMap.get(rowCode)]],
-          });
-        }
-      }
-
-      sheetUpdatesRequested = updates.length;
-
-      if (updates.length > 0) {
-        const batchRes = await fetch(
-          `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values:batchUpdate`,
-          {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${accessToken}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              valueInputOption: "RAW",
-              data: updates,
-            }),
-          }
-        );
-
-        const batchText = await batchRes.text();
-        if (!batchRes.ok) {
-          throw new Error(`Google Sheets write failed [${batchRes.status}]: ${batchText}`);
-        }
-
-        let batchResult: any = {};
-        try {
-          batchResult = batchText ? JSON.parse(batchText) : {};
-        } catch {
-          batchResult = {};
-        }
-
-        sheetUpdated = Number(batchResult.totalUpdatedCells || 0);
-      }
-    } catch (sheetErr: any) {
-      sheetError = sheetErr?.message || String(sheetErr);
-      console.error("Sheet write-back error:", sheetError);
-    }
-
+    // Return preview data — NO database changes
     return new Response(JSON.stringify({
       success: true,
+      preview: true,
       source,
       extracted: extractedMaterials,
-      updated,
-      created,
-      not_found: notFound,
-      sheet_updated: sheetUpdated,
-      sheet_updates_requested: sheetUpdatesRequested,
-      sheet_error: sheetError,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
