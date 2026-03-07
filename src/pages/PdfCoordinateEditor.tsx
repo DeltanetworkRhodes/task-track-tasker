@@ -243,6 +243,9 @@ const PdfCoordinateEditor = () => {
   const [pdfDims, setPdfDims] = useState<{ width: number; height: number }>({ width: 595, height: 842 });
   
   const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewImages, setPreviewImages] = useState<string[]>([]);
+  const [showPreview, setShowPreview] = useState(false);
+  const [previewPage, setPreviewPage] = useState(1);
   const canvasRef = useRef<HTMLDivElement>(null);
 
   // Load mapping
