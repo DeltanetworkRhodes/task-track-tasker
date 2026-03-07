@@ -251,73 +251,73 @@ async function generateInspectionPdf(data: InspectionData, templateBytes: Uint8A
   drawText(p1, data.service_email || "", 78, 366, font, 9);          // Email Υπηρεσίας
   drawText(p1, data.technician_name || "", 265, 338, font, 9);       // Τεχνικός
 
+  // ─── Page 2: Τεχνική Περιγραφή – Επιθεώρηση ───
   const p2 = pages[1];
-  drawCheck(p2, !!data.routing_escalit, 123, 730, boldFont);
-  drawCheck(p2, !!data.routing_external_pipe, 311, 730, boldFont);
-  drawCheck(p2, !!data.routing_aerial, 427, 730, boldFont);
-  drawCheck(p2, !!data.routing_other, 542, 730, boldFont);
-  drawText(p2, data.routing_other || "", 468, 707, font, 7);
+  drawCheck(p2, !!data.routing_escalit, 164, 735, boldFont);
+  drawCheck(p2, !!data.routing_external_pipe, 379, 735, boldFont);
+  drawCheck(p2, !!data.routing_aerial, 558, 735, boldFont);
+  drawCheck(p2, !!data.routing_other, 719, 735, boldFont);
 
-  drawCheck(p2, data.excavation_to_pipe === true, 132, 657, boldFont);
-  drawCheck(p2, data.excavation_to_pipe === false, 172, 657, boldFont);
-  drawCheck(p2, data.excavation_to_rg === true, 332, 657, boldFont);
-  drawCheck(p2, data.excavation_to_rg === false, 374, 657, boldFont);
-  drawCheck(p2, !!data.pipe_placement, 322, 592, boldFont);
-  drawCheck(p2, !!data.wall_mount, 542, 592, boldFont);
-  drawCheck(p2, !!data.fence_building_mount, 542, 578, boldFont);
-  drawCheck(p2, !!data.excavation_to_building, 542, 550, boldFont);
+  drawCheck(p2, data.excavation_to_pipe === true, 381, 674, boldFont);
+  drawCheck(p2, data.excavation_to_pipe === false, 421, 674, boldFont);
+  drawCheck(p2, data.excavation_to_rg === true, 381, 640, boldFont);
+  drawCheck(p2, data.excavation_to_rg === false, 422, 640, boldFont);
+  drawCheck(p2, !!data.wall_mount, 491, 584, boldFont);
+  drawCheck(p2, !!data.fence_building_mount, 492, 538, boldFont);
 
   const bepCoords: Record<string, { x: number; y: number }> = {
-    internal: { x: 106, y: 580 },
-    external: { x: 106, y: 564 },
-    fence: { x: 219, y: 580 },
-    building: { x: 219, y: 564 },
-    pole: { x: 327, y: 580 },
-    pillar: { x: 327, y: 564 },
-    basement: { x: 439, y: 580 },
-    ground: { x: 439, y: 564 },
-    rooftop: { x: 525, y: 580 },
-    piloti: { x: 525, y: 564 },
+    internal: { x: 104, y: 432 },
+    external: { x: 104, y: 399 },
+    fence: { x: 104, y: 432 },
+    building: { x: 104, y: 399 },
+    pole: { x: 257, y: 432 },
+    pillar: { x: 257, y: 399 },
+    basement: { x: 403, y: 432 },
+    ground: { x: 403, y: 399 },
+    rooftop: { x: 588, y: 432 },
+    piloti: { x: 588, y: 399 },
   };
   const bep = bepCoords[data.bep_position || ""];
   if (bep) drawCheck(p2, true, bep.x, bep.y, boldFont);
 
   const vertCoords: Record<string, { x: number; y: number }> = {
-    shaft: { x: 100, y: 528 },
-    staircase: { x: 258, y: 528 },
-    lightwell: { x: 376, y: 528 },
-    other: { x: 477, y: 528 },
-    elevator: { x: 100, y: 512 },
-    internal_external: { x: 258, y: 512 },
-    lantern: { x: 376, y: 512 },
+    shaft: { x: 115, y: 347 },
+    elevator: { x: 115, y: 313 },
+    staircase: { x: 321, y: 347 },
+    internal_external: { x: 321, y: 313 },
+    lightwell: { x: 483, y: 347 },
+    lantern: { x: 483, y: 313 },
+    other: { x: 615, y: 347 },
   };
   const vertical = vertCoords[data.vertical_routing || ""];
   if (vertical) drawCheck(p2, true, vertical.x, vertical.y, boldFont);
 
-  drawWrappedText(p2, data.sketch_notes || "", 35, 168, 525, 12, font, 8, 4);
-  drawText(p2, data.optical_socket_position || "", 125, 133, font, 8);
+  drawWrappedText(p2, data.sketch_notes || "", 20, 58, 730, 10, font, 8, 6);
+  drawText(p2, data.optical_socket_position || "", 160, 34, font, 8);
 
-  if (data.engineer_signature) await embedSignature(pdfDoc, p2, data.engineer_signature, 420, 122);
-  if (data.customer_signature) await embedSignature(pdfDoc, p2, data.customer_signature, 420, 93);
-  if (data.manager_signature) await embedSignature(pdfDoc, p2, data.manager_signature, 420, 64);
+  if (data.engineer_signature) await embedSignature(pdfDoc, p2, data.engineer_signature, 445, 22, 120, 26);
+  if (data.customer_signature) await embedSignature(pdfDoc, p2, data.customer_signature, 580, 22, 160, 26);
+  if (data.manager_signature) await embedSignature(pdfDoc, p2, data.manager_signature, 580, 0, 160, 26);
 
+  // ─── Page 3: Υπεύθυνη Δήλωση Διαχειριστή ───
   const p3 = pages[2];
-  drawText(p3, data.declarant_name || "", 180, 678, font);
-  drawText(p3, data.declarant_id_number || "", 456, 678, font);
-  drawText(p3, data.declarant_city || "", 92, 648, font);
-  drawText(p3, data.declarant_street || "", 246, 648, font);
-  drawText(p3, data.declarant_number || "", 394, 648, font);
-  drawText(p3, data.declarant_postal_code || "", 467, 648, font);
+  drawText(p3, data.declarant_name || "", 282, 690, font, 9);
+  drawText(p3, data.declarant_id_number || "", 598, 690, font, 9);
+  drawText(p3, data.declarant_city || "", 125, 657, font, 9);
+  drawText(p3, data.declarant_street || "", 323, 657, font, 9);
+  drawText(p3, data.declarant_number || "", 523, 657, font, 9);
+  drawBoxedText(p3, data.declarant_postal_code || "", 603, 657, font, 8, 12, 6);
 
-  drawCheck(p3, data.cost_option === "ote_covers", 47, 522, boldFont);
-  drawCheck(p3, data.cost_option !== "ote_covers", 47, 500, boldFont);
+  drawCheck(p3, data.cost_option === "ote_covers", 39, 460, boldFont);
+  drawCheck(p3, data.cost_option !== "ote_covers" && data.cost_option != null, 39, 429, boldFont);
 
-  drawText(p3, data.declaration_date || "", 170, 450, font);
-  if (data.declaration_signature) await embedSignature(pdfDoc, p3, data.declaration_signature, 125, 365, 210, 45);
+  drawText(p3, data.declaration_date || "", 439, 371, font, 9);
+  if (data.declaration_signature) await embedSignature(pdfDoc, p3, data.declaration_signature, 220, 155, 170, 45);
 
+  // ─── Page 4: Στοιχεία Κτιρίου / Εξοπλισμός ───
   const p4 = pages[3];
-  drawText(p4, data.building_address || "", 102, 790, font);
-  drawText(p4, data.building_id || "", 367, 766, font);
+  drawText(p4, data.building_address || "", 109, 774, font, 9);
+  drawText(p4, data.building_id || "", 348, 748, font, 9);
 
   const floorKey = normalizeFloor(data.customer_floor_select);
   if (floorKey && FLOOR_CHECK_COORDS[floorKey]) {
@@ -325,14 +325,14 @@ async function generateInspectionPdf(data: InspectionData, templateBytes: Uint8A
     drawCheck(p4, true, c.x, c.y, boldFont);
   }
 
-  drawText(p4, String(data.total_apartments ?? ""), 188, 360, font);
-  drawText(p4, String(data.total_shops ?? ""), 188, 327, font);
-  drawText(p4, String(data.total_spaces ?? ""), 188, 294, font);
-  drawText(p4, String(data.total_floors ?? ""), 188, 261, font);
+  drawText(p4, String(data.total_apartments ?? ""), 220, 239, font, 9);
+  drawText(p4, String(data.total_shops ?? ""), 228, 213, font, 9);
+  drawText(p4, String(data.total_spaces ?? ""), 175, 187, font, 9);
+  drawText(p4, String(data.total_floors ?? ""), 232, 160, font, 9);
 
-  drawText(p4, data.sr_id || "", 395, 360, font);
-  drawText(p4, data.cabinet || "", 395, 327, font);
-  drawText(p4, data.pipe_code || "", 395, 294, font);
+  drawText(p4, data.sr_id || "", 554, 239, font, 9);
+  drawText(p4, data.cabinet || "", 575, 213, font, 9);
+  drawText(p4, data.pipe_code || "", 578, 187, font, 9);
 
   const bcpRowY: Record<string, number> = { SMALL: 264, MEDIUM: 246 };
   const bcpBrandX: Record<string, number> = { RAYCAP: 214, ZTT: 277 };
