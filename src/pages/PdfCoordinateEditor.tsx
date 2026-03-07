@@ -203,10 +203,11 @@ const PdfCoordinateEditor = () => {
       if (field.type === "check_map" || field.type === "floor_check") {
         if (field.map) {
           for (const [mapKey, coords] of Object.entries(field.map)) {
+            const fullKey = `${field.key}.${mapKey}`;
             items.push({
               key: field.key,
               subKey: mapKey,
-              label: `${field.key}.${mapKey}`,
+              label: FIELD_LABELS[fullKey] || fullKey,
               x: coords.x,
               y: coords.y,
               type: field.type,
