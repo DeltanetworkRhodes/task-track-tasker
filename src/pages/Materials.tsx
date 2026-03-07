@@ -806,6 +806,7 @@ const Materials = () => {
           </DialogContent>
         </Dialog>
 
+        <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>Διαγραφή Υλικού</AlertDialogTitle>
