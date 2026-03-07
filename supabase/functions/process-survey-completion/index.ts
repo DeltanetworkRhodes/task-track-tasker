@@ -1,6 +1,4 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { zipSync } from "https://esm.sh/fflate@0.8.2";
-import { PDFDocument, StandardFonts, rgb } from "https://esm.sh/pdf-lib@1.17.1";
 
 function uint8ToBase64(bytes: Uint8Array): string {
   let binary = "";
@@ -32,7 +30,6 @@ const areaRootFolders: Record<string, string> = {
   "ΚΩΣ": "1X1mtK4tV_sgGM9IdizNSK7AS19qX1nYl",
 };
 
-// Required file types for a complete survey
 const REQUIRED_FILE_TYPES = ["building_photo", "screenshot", "inspection_form"];
 
 // ─── Google Drive helpers ────────────────────────────────────────────
@@ -108,7 +105,6 @@ async function uploadFileToDrive(
   accessToken: string, fileName: string, mimeType: string,
   fileData: Uint8Array, parentId: string
 ): Promise<any> {
-  // Step 1: Initiate resumable upload session
   const metadata = { name: fileName, parents: [parentId] };
   const initRes = await fetch(
     "https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&fields=id,name,webViewLink&supportsAllDrives=true",
@@ -128,7 +124,6 @@ async function uploadFileToDrive(
   const uploadUrl = initRes.headers.get("Location");
   if (!uploadUrl) throw new Error("No upload URL returned");
 
-  // Step 2: Upload file content
   const uploadRes = await fetch(uploadUrl, {
     method: "PUT",
     headers: {
@@ -152,7 +147,6 @@ async function moveDriveFile(accessToken: string, fileId: string, fromParentId: 
   if (!res.ok) throw new Error(`Move failed: ${await res.text()}`);
 }
 
-// Find or create a subfolder inside a parent
 async function findOrCreateFolder(accessToken: string, name: string, parentId: string): Promise<any> {
   const existing = await driveSearch(
     accessToken,
@@ -162,7 +156,6 @@ async function findOrCreateFolder(accessToken: string, name: string, parentId: s
   return await createDriveFolder(accessToken, name, parentId);
 }
 
-// Get the target parent folder (ΑΝΑΜΟΝΗ or ΟΛΟΚΛΗΡΩΜΕΝΕΣ ΑΥΤΟΨΙΕΣ) under area → month
 async function getTargetParentFolder(
   accessToken: string, area: string, isComplete: boolean
 ): Promise<{ folderId: string; folderType: string } | null> {
@@ -170,74 +163,38 @@ async function getTargetParentFolder(
   if (!rootId) return null;
 
   const currentMonth = greekMonths[new Date().getMonth()];
-  console.log(`Looking for month folder: ${currentMonth} under root ${rootId}`);
-
-  // Find month folder
   const monthFolder = await findOrCreateFolder(accessToken, currentMonth, rootId);
-  console.log(`Month folder: ${monthFolder.name} (${monthFolder.id})`);
-
-  // Determine target subfolder
   const targetName = isComplete ? "ΟΛΟΚΛΗΡΩΜΕΝΕΣ ΑΥΤΟΨΙΕΣ" : "ΑΝΑΜΟΝΗ";
   const targetFolder = await findOrCreateFolder(accessToken, targetName, monthFolder.id);
-  console.log(`Target folder: ${targetFolder.name} (${targetFolder.id})`);
 
   return { folderId: targetFolder.id, folderType: targetName };
 }
 
-// ─── PDF Generation (from inspection form photos) ───────────────────
+// ─── Lightweight PDF Generation (no pdf-lib, just images in Drive) ──
 
-async function generateInspectionPDF(
-  inspectionImages: { fileName: string; data: Uint8Array }[]
-): Promise<Uint8Array> {
-  const pdfDoc = await PDFDocument.create();
-
-  for (const img of inspectionImages) {
-    const ext = img.fileName.split(".").pop()?.toLowerCase() || "";
-    let embeddedImage;
-    try {
-      if (ext === "png") {
-        embeddedImage = await pdfDoc.embedPng(img.data);
-      } else {
-        // Try JPEG for jpg/jpeg/webp and any other format
-        embeddedImage = await pdfDoc.embedJpg(img.data);
-      }
-    } catch (embedErr) {
-      console.error(`Failed to embed image ${img.fileName}:`, embedErr);
-      continue;
-    }
-
-    // Create A4 page and fit image inside with aspect ratio
-    const pageWidth = 595;
-    const pageHeight = 842;
-    const margin = 30;
-    const maxW = pageWidth - margin * 2;
-    const maxH = pageHeight - margin * 2;
-
-    const imgAspect = embeddedImage.width / embeddedImage.height;
-    let drawW = maxW;
-    let drawH = drawW / imgAspect;
-    if (drawH > maxH) {
-      drawH = maxH;
-      drawW = drawH * imgAspect;
-    }
-
-    const page = pdfDoc.addPage([pageWidth, pageHeight]);
-    page.drawImage(embeddedImage, {
-      x: (pageWidth - drawW) / 2,
-      y: (pageHeight - drawH) / 2,
-      width: drawW,
-      height: drawH,
-    });
+// Download a single file from storage
+async function downloadFile(
+  adminClient: any, filePath: string
+): Promise<Uint8Array | null> {
+  const { data, error } = await adminClient.storage
+    .from("surveys")
+    .download(filePath);
+  if (error || !data) {
+    console.error(`Failed to download ${filePath}:`, error);
+    return null;
   }
+  const buf = await data.arrayBuffer();
+  return new Uint8Array(buf);
+}
 
-  // If no images were embedded, create a blank page with a note
-  if (pdfDoc.getPageCount() === 0) {
-    const page = pdfDoc.addPage([595, 842]);
-    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-    page.drawText("No inspection form images available", { x: 50, y: 400, font, size: 14 });
-  }
+const mimeMap: Record<string, string> = {
+  jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png",
+  gif: "image/gif", webp: "image/webp", pdf: "application/pdf",
+};
 
-  return await pdfDoc.save();
+function getMime(fileName: string): string {
+  const ext = fileName.split(".").pop()?.toLowerCase() || "";
+  return mimeMap[ext] || "application/octet-stream";
 }
 
 // ─── Main handler ────────────────────────────────────────────────────
@@ -291,12 +248,11 @@ Deno.serve(async (req) => {
       .single();
 
     const orgId = assignment?.organization_id || null;
-
     const customerName = assignment?.customer_name || "UNKNOWN";
     const address = assignment?.address || "";
     const phone = assignment?.phone || "";
 
-    // 2. Get survey info (for technician name)
+    // 2. Get survey info
     const { data: survey } = await adminClient
       .from("surveys")
       .select("technician_id, comments")
@@ -313,7 +269,7 @@ Deno.serve(async (req) => {
       technicianName = profile?.full_name || "Technician";
     }
 
-    // 3. Get survey files & check completeness
+    // 3. Get survey files metadata (no download yet)
     const { data: surveyFiles } = await adminClient
       .from("survey_files")
       .select("*")
@@ -332,45 +288,11 @@ Deno.serve(async (req) => {
 
     console.log(`File check: present=${presentTypes.join(",")}, missing=${missingTypes.join(",")}, complete=${isComplete}`);
 
-    // 4. Download all files from storage
-    const fileEntries: Record<string, Uint8Array> = {};
-    for (const sf of surveyFiles) {
-      const { data: fileData, error: dlError } = await adminClient.storage
-        .from("surveys")
-        .download(sf.file_path);
-      if (dlError || !fileData) {
-        console.error(`Failed to download ${sf.file_path}:`, dlError);
-        continue;
-      }
-      const arrayBuf = await fileData.arrayBuffer();
-      fileEntries[sf.file_name] = new Uint8Array(arrayBuf);
-    }
-
-    if (Object.keys(fileEntries).length === 0) {
-      return new Response(JSON.stringify({ error: "Failed to download files" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // 5. Generate PDF from inspection form photos
-    const inspectionFiles = surveyFiles.filter((f: any) => f.file_type === "inspection_form");
-    const inspectionImages: { fileName: string; data: Uint8Array }[] = [];
-    for (const sf of inspectionFiles) {
-      if (fileEntries[sf.file_name]) {
-        inspectionImages.push({ fileName: sf.file_name, data: fileEntries[sf.file_name] });
-      }
-    }
-
-    const pdfBytes = await generateInspectionPDF(inspectionImages);
-    const pdfFileName = `Deltio_Autopsias_${sr_id}.pdf`;
-    fileEntries[pdfFileName] = pdfBytes;
-    console.log(`Generated PDF from ${inspectionImages.length} inspection photos: ${pdfFileName} (${pdfBytes.length} bytes)`);
-
-    // 6. Google Drive: create folder in correct location
+    // 4. Google Drive: create folder structure & upload files ONE BY ONE
     const folderName = `${sr_id} - ${customerName}`;
     let driveFolderUrl = "";
     let driveTargetType = "";
+    let filesUploadedCount = 0;
 
     const serviceAccountKeyStr = Deno.env.get("GOOGLE_SERVICE_ACCOUNT_KEY");
     if (serviceAccountKeyStr) {
@@ -382,7 +304,7 @@ Deno.serve(async (req) => {
         if (target) {
           driveTargetType = target.folderType;
 
-          // Check if folder already exists (e.g. was in ΑΝΑΜΟΝΗ, now moving to ΟΛΟΚΛΗΡΩΜΕΝΕΣ)
+          // Find or create SR folder
           const existingInTarget = await driveSearch(
             accessToken,
             `name = '${folderName}' and '${target.folderId}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`
@@ -391,9 +313,8 @@ Deno.serve(async (req) => {
           let folder: any;
           if (existingInTarget.length > 0) {
             folder = existingInTarget[0];
-            console.log(`Found existing folder in ${target.folderType}: ${folder.id}`);
           } else {
-            // Check if it exists in the OTHER folder (needs moving)
+            // Check other folder for moving
             const otherTargetName = isComplete ? "ΑΝΑΜΟΝΗ" : "ΟΛΟΚΛΗΡΩΜΕΝΕΣ ΑΥΤΟΨΙΕΣ";
             const rootId = areaRootFolders[area];
             const currentMonth = greekMonths[new Date().getMonth()];
@@ -402,7 +323,6 @@ Deno.serve(async (req) => {
               `name = '${currentMonth}' and '${rootId}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`
             );
 
-            let movedFromOther = false;
             if (monthFolders.length > 0) {
               const otherFolders = await driveSearch(
                 accessToken,
@@ -414,10 +334,8 @@ Deno.serve(async (req) => {
                   `name = '${folderName}' and '${otherFolders[0].id}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`
                 );
                 if (existingInOther.length > 0) {
-                  // Move from other folder to target
                   await moveDriveFile(accessToken, existingInOther[0].id, otherFolders[0].id, target.folderId);
                   folder = existingInOther[0];
-                  movedFromOther = true;
                   console.log(`Moved folder from ${otherTargetName} to ${target.folderType}`);
                 }
               }
@@ -431,63 +349,46 @@ Deno.serve(async (req) => {
 
           driveFolderUrl = folder.webViewLink || `https://drive.google.com/drive/folders/${folder.id}`;
 
-          // Create subfolders: ΕΓΓΡΑΦΑ and ΠΡΟΜΕΛΕΤΗ
+          // Create subfolders
           const egrafaFolder = await findOrCreateFolder(accessToken, "ΕΓΓΡΑΦΑ", folder.id);
           const promelethFolder = await findOrCreateFolder(accessToken, "ΠΡΟΜΕΛΕΤΗ", folder.id);
-          console.log(`Created subfolders: ΕΓΓΡΑΦΑ (${egrafaFolder.id}), ΠΡΟΜΕΛΕΤΗ (${promelethFolder.id})`);
 
-          // Build a map of file_name → file_type from surveyFiles
-          const fileTypeMap: Record<string, string> = {};
-          for (const sf of surveyFiles) {
-            fileTypeMap[sf.file_name] = sf.file_type;
-          }
-
-          const mimeMap: Record<string, string> = {
-            jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png",
-            gif: "image/gif", webp: "image/webp", pdf: "application/pdf",
-          };
-
-          // Generate PDF from building photos (all building_photo images → single PDF)
+          // Upload files ONE BY ONE to save memory
+          // Building photos → ΠΡΟΜΕΛΕΤΗ
           const buildingFiles = surveyFiles.filter((f: any) => f.file_type === "building_photo");
-          const buildingImages: { fileName: string; data: Uint8Array }[] = [];
           for (const sf of buildingFiles) {
-            if (fileEntries[sf.file_name]) {
-              buildingImages.push({ fileName: sf.file_name, data: fileEntries[sf.file_name] });
-            }
-          }
-          if (buildingImages.length > 0) {
-            const buildingPdfBytes = await generateInspectionPDF(buildingImages);
-            const buildingPdfName = `Photos_Ktiriou_${sr_id}.pdf`;
-            await uploadFileToDrive(accessToken, buildingPdfName, "application/pdf", buildingPdfBytes, promelethFolder.id);
-            console.log(`Uploaded building photos PDF to ΠΡΟΜΕΛΕΤΗ: ${buildingPdfName}`);
-          }
-
-          // Also upload individual building photos to ΠΡΟΜΕΛΕΤΗ
-          for (const sf of buildingFiles) {
-            if (fileEntries[sf.file_name]) {
-              const ext = sf.file_name.split(".").pop()?.toLowerCase() || "";
-              const mimeType = mimeMap[ext] || "application/octet-stream";
-              await uploadFileToDrive(accessToken, sf.file_name, mimeType, fileEntries[sf.file_name], promelethFolder.id);
+            const fileData = await downloadFile(adminClient, sf.file_path);
+            if (fileData) {
+              await uploadFileToDrive(accessToken, sf.file_name, getMime(sf.file_name), fileData, promelethFolder.id);
+              filesUploadedCount++;
               console.log(`Uploaded to ΠΡΟΜΕΛΕΤΗ: ${sf.file_name}`);
             }
+            // fileData goes out of scope → GC can reclaim
           }
 
-          // Upload screenshots (ΧΕΜΔ & AutoCAD) to ΕΓΓΡΑΦΑ
+          // Screenshots → ΕΓΓΡΑΦΑ
           const screenshotFiles = surveyFiles.filter((f: any) => f.file_type === "screenshot");
           for (const sf of screenshotFiles) {
-            if (fileEntries[sf.file_name]) {
-              const ext = sf.file_name.split(".").pop()?.toLowerCase() || "";
-              const mimeType = mimeMap[ext] || "application/octet-stream";
-              await uploadFileToDrive(accessToken, sf.file_name, mimeType, fileEntries[sf.file_name], egrafaFolder.id);
+            const fileData = await downloadFile(adminClient, sf.file_path);
+            if (fileData) {
+              await uploadFileToDrive(accessToken, sf.file_name, getMime(sf.file_name), fileData, egrafaFolder.id);
+              filesUploadedCount++;
               console.log(`Uploaded to ΕΓΓΡΑΦΑ: ${sf.file_name}`);
             }
           }
 
-          // Upload inspection PDF (Δελτίο Αυτοψίας) to ΕΓΓΡΑΦΑ
-          await uploadFileToDrive(accessToken, pdfFileName, "application/pdf", pdfBytes, egrafaFolder.id);
-          console.log(`Uploaded inspection PDF to ΕΓΓΡΑΦΑ: ${pdfFileName}`);
+          // Inspection form photos → ΕΓΓΡΑΦΑ (as individual images)
+          const inspectionFiles = surveyFiles.filter((f: any) => f.file_type === "inspection_form");
+          for (const sf of inspectionFiles) {
+            const fileData = await downloadFile(adminClient, sf.file_path);
+            if (fileData) {
+              await uploadFileToDrive(accessToken, sf.file_name, getMime(sf.file_name), fileData, egrafaFolder.id);
+              filesUploadedCount++;
+              console.log(`Uploaded to ΕΓΓΡΑΦΑ: ${sf.file_name}`);
+            }
+          }
 
-          // Update assignment with Drive folder URLs (main + subfolders)
+          // Update assignment with Drive folder URLs
           const egrafaUrl = egrafaFolder.webViewLink || `https://drive.google.com/drive/folders/${egrafaFolder.id}`;
           const promeletiUrl = promelethFolder.webViewLink || `https://drive.google.com/drive/folders/${promelethFolder.id}`;
           await adminClient
@@ -504,11 +405,10 @@ Deno.serve(async (req) => {
       }
     }
 
-    // 7. Update status based on completeness
+    // 5. Update status based on completeness
     let newAssignmentStatus = isComplete ? "construction" : "pending";
     const newSurveyStatus = isComplete ? "ΠΡΟΔΕΣΜΕΥΣΗ ΥΛΙΚΩΝ" : "ΕΛΛΙΠΗΣ ΑΥΤΟΨΙΑ";
 
-    // If survey still incomplete, check if GIS was already uploaded → keep pre_committed
     if (!isComplete) {
       const { data: gisExists } = await adminClient
         .from("gis_data")
@@ -532,12 +432,11 @@ Deno.serve(async (req) => {
     
     console.log(`Assignment ${sr_id} status → ${newAssignmentStatus}, Survey → ${newSurveyStatus}`);
 
-    // 8. Send email only if COMPLETE
+    // 6. Send email only if COMPLETE (lightweight: no ZIP, just link to Drive)
     let emailSent = false;
     if (isComplete) {
       const resendApiKey = Deno.env.get("RESEND_API_KEY");
       
-      // Get org settings for email recipients
       const { data: orgEmailSettings } = await adminClient
         .from("org_settings")
         .select("setting_key, setting_value")
@@ -555,10 +454,6 @@ Deno.serve(async (req) => {
 
       if (resendApiKey && recipients.length > 0) {
         try {
-          const zipData = zipSync(fileEntries);
-          const zipBase64 = uint8ToBase64(zipData);
-          const zipFileName = `${folderName}.zip`;
-
           const escapedSrId = sr_id.replace(/[<>&"']/g, (c: string) => `&#${c.charCodeAt(0)};`);
           const escapedName = customerName.replace(/[<>&"']/g, (c: string) => `&#${c.charCodeAt(0)};`);
           const escapedAddress = address.replace(/[<>&"']/g, (c: string) => `&#${c.charCodeAt(0)};`);
@@ -574,10 +469,10 @@ Deno.serve(async (req) => {
                 <tr><td style="padding:4px 12px 4px 0;font-weight:bold;">Τηλέφωνο:</td><td>${escapedPhone || "—"}</td></tr>
                 <tr><td style="padding:4px 12px 4px 0;font-weight:bold;">Περιοχή:</td><td>${area}</td></tr>
                 <tr><td style="padding:4px 12px 4px 0;font-weight:bold;">Τεχνικός:</td><td>${technicianName}</td></tr>
-                <tr><td style="padding:4px 12px 4px 0;font-weight:bold;">Αρχεία:</td><td>${surveyFiles.length} αρχεία + PDF δελτίο</td></tr>
+                <tr><td style="padding:4px 12px 4px 0;font-weight:bold;">Αρχεία:</td><td>${surveyFiles.length} αρχεία</td></tr>
                 ${driveFolderUrl ? `<tr><td style="padding:4px 12px 4px 0;font-weight:bold;">Drive:</td><td><a href="${driveFolderUrl}">Άνοιγμα φακέλου</a></td></tr>` : ""}
               </table>
-              <p style="color:#666;font-size:13px;">Το συνημμένο ZIP περιέχει όλα τα αρχεία αυτοψίας και το PDF δελτίο.</p>
+              <p style="color:#666;font-size:13px;">Τα αρχεία αυτοψίας είναι διαθέσιμα στον φάκελο Google Drive.</p>
             </div>
           `;
 
@@ -586,7 +481,6 @@ Deno.serve(async (req) => {
             to: recipients,
             subject: `Αυτοψία ${sr_id} - ${customerName} - ΠΡΟΔΕΣΜΕΥΣΗ ΥΛΙΚΩΝ`,
             html: emailHtml,
-            attachments: [{ filename: zipFileName, content: zipBase64 }],
           };
 
           if (ccRecipients.length > 0) {
@@ -627,8 +521,7 @@ Deno.serve(async (req) => {
         drive_folder_url: driveFolderUrl || null,
         drive_target: driveTargetType,
         email_sent: emailSent,
-        files_count: Object.keys(fileEntries).length,
-        pdf_generated: true,
+        files_count: filesUploadedCount,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
