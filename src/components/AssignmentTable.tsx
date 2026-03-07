@@ -298,14 +298,23 @@ const AssignmentTable = ({ assignments }: AssignmentTableProps) => {
                   </span>
                 )}
                 {(a as any).driveUrl && (
-                  <a
-                    href={(a as any).driveUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <FolderOpen className="h-3.5 w-3.5 text-primary" />
-                  </a>
+                  <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                    <a href={(a as any).driveUrl} target="_blank" rel="noopener noreferrer" title="Φάκελος">
+                      <FolderOpen className="h-3.5 w-3.5 text-primary" />
+                    </a>
+                    {(a as any).driveEgrafaUrl && (
+                      <a href={(a as any).driveEgrafaUrl} target="_blank" rel="noopener noreferrer"
+                        className="text-[9px] font-medium text-primary/70 hover:text-primary">
+                        ΕΓΓ
+                      </a>
+                    )}
+                    {(a as any).drivePromeletiUrl && (
+                      <a href={(a as any).drivePromeletiUrl} target="_blank" rel="noopener noreferrer"
+                        className="text-[9px] font-medium text-primary/70 hover:text-primary">
+                        ΠΡΜ
+                      </a>
+                    )}
+                  </div>
                 )}
                 <button
                   onClick={(e) => { e.stopPropagation(); setDeleteTarget(a); }}
@@ -397,15 +406,23 @@ const AssignmentTable = ({ assignments }: AssignmentTableProps) => {
                 </td>
                 <td className="py-3 px-4 text-center">
                   {(a as any).driveUrl ? (
-                    <a
-                      href={(a as any).driveUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={(e) => e.stopPropagation()}
-                      className="inline-flex"
-                    >
-                      <FolderOpen className="h-3.5 w-3.5 text-primary mx-auto hover:text-primary/70 transition-colors" />
-                    </a>
+                    <div className="flex items-center justify-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                      <a href={(a as any).driveUrl} target="_blank" rel="noopener noreferrer" className="inline-flex" title="Φάκελος">
+                        <FolderOpen className="h-3.5 w-3.5 text-primary hover:text-primary/70 transition-colors" />
+                      </a>
+                      {(a as any).driveEgrafaUrl && (
+                        <a href={(a as any).driveEgrafaUrl} target="_blank" rel="noopener noreferrer"
+                          className="text-[10px] font-semibold text-primary/60 hover:text-primary transition-colors" title="ΕΓΓΡΑΦΑ">
+                          ΕΓΓ
+                        </a>
+                      )}
+                      {(a as any).drivePromeletiUrl && (
+                        <a href={(a as any).drivePromeletiUrl} target="_blank" rel="noopener noreferrer"
+                          className="text-[10px] font-semibold text-primary/60 hover:text-primary transition-colors" title="ΠΡΟΜΕΛΕΤΗ">
+                          ΠΡΜ
+                        </a>
+                      )}
+                    </div>
                   ) : (
                     <FolderOpen className="h-3.5 w-3.5 text-muted-foreground/30 mx-auto" />
                   )}

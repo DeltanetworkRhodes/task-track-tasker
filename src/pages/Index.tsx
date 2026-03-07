@@ -82,6 +82,8 @@ const Index = () => {
       comments: a.comments || '',
       photos: a.photos_count || 0,
       driveUrl: a.drive_folder_url || '',
+      driveEgrafaUrl: (a as any).drive_egrafa_url || '',
+      drivePromeletiUrl: (a as any).drive_promeleti_url || '',
     }));
   }, [dbAssignments]);
 

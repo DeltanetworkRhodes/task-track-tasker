@@ -501,10 +501,22 @@ const ConstructionPage = () => {
                         <div className="text-xs text-muted-foreground">Περιοχή: {assignment.area}</div>
                       )}
                       {assignment.drive_folder_url && (
-                        <a href={assignment.drive_folder_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-primary text-xs hover:underline">
-                          <ExternalLink className="h-3.5 w-3.5" />
-                          Google Drive
-                        </a>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <a href={assignment.drive_folder_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-primary text-xs hover:underline">
+                            <ExternalLink className="h-3.5 w-3.5" />
+                            Φάκελος Drive
+                          </a>
+                          {(assignment as any).drive_egrafa_url && (
+                            <a href={(assignment as any).drive_egrafa_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-primary/70 text-xs hover:underline">
+                              ΕΓΓΡΑΦΑ
+                            </a>
+                          )}
+                          {(assignment as any).drive_promeleti_url && (
+                            <a href={(assignment as any).drive_promeleti_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-primary/70 text-xs hover:underline">
+                              ΠΡΟΜΕΛΕΤΗ
+                            </a>
+                          )}
+                        </div>
                       )}
                     </Card>
                   )}
