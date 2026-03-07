@@ -229,6 +229,19 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
   };
 
   const handleStatusChange = async (assignmentId: string, newStatus: string) => {
+    // Guard: block construction without GIS
+    if (newStatus === "construction") {
+      const { data: gisCheck } = await supabase
+        .from("gis_data")
+        .select("id")
+        .eq("assignment_id", assignmentId)
+        .maybeSingle();
+      if (!gisCheck) {
+        toast.error("Δεν μπορεί να γίνει μετάβαση σε Κατασκευή χωρίς GIS αρχείο.");
+        return;
+      }
+    }
+
     // Optimistic update
     queryClient.setQueryData(["assignments"], (old: any) =>
       old?.map((a: any) => a.id === assignmentId ? { ...a, status: newStatus, updated_at: new Date().toISOString() } : a)
