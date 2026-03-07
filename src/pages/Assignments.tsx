@@ -24,6 +24,7 @@ const Assignments = () => {
   const [activeTab, setActiveTab] = useState<string>("active");
   const [search, setSearch] = useState("");
   const [showCreate, setShowCreate] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
   const assignments = dbAssignments
     ? dbAssignments.map((a) => ({
