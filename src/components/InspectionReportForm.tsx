@@ -217,10 +217,11 @@ const InspectionReportForm = ({ assignment, surveyId, onComplete, onCancel }: Pr
     }
 
     try {
-      const signatures = getSignatureData();
+      // Capture any signatures still on screen before saving
+      const freshSigs = captureSignaturesFromCanvas();
       const payload: any = {
         ...form,
-        ...signatures,
+        ...freshSigs,
         survey_id: surveyId || null,
         assignment_id: assignment.id,
         organization_id: organizationId || null,
