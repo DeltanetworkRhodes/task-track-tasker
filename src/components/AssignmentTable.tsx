@@ -251,7 +251,76 @@ const AssignmentTable = ({ assignments }: AssignmentTableProps) => {
 
   return (
     <>
-      <div className="overflow-x-auto">
+      {/* Mobile Card View */}
+      <div className="block md:hidden space-y-2 p-2">
+        {assignments.map((a) => (
+          <div
+            key={a.id}
+            className="rounded-xl border border-border bg-card p-3.5 active:bg-secondary/50 transition-colors"
+            onClick={() => setSelected(a)}
+          >
+            <div className="flex items-center justify-between mb-2">
+              <span className="font-bold text-primary text-sm">{a.srId}</span>
+              <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-medium ${statusColors[a.status] || statusColors.pending}`}>
+                {statusLabels[a.status] || a.status}
+              </span>
+            </div>
+            <div className="grid grid-cols-2 gap-y-1.5 gap-x-3 text-xs">
+              <div className="flex items-center gap-1.5 text-muted-foreground">
+                <MapPin className="h-3 w-3 shrink-0" />
+                <span className="truncate">{a.area}</span>
+              </div>
+              {(a as any).customerName && (
+                <div className="flex items-center gap-1.5 text-muted-foreground">
+                  <User className="h-3 w-3 shrink-0" />
+                  <span className="truncate">{(a as any).customerName}</span>
+                </div>
+              )}
+              {(a as any).cab && (
+                <div className="flex items-center gap-1.5 text-muted-foreground">
+                  <Hash className="h-3 w-3 shrink-0" />
+                  <span className="font-bold">{(a as any).cab}</span>
+                </div>
+              )}
+              {(a as any).technicianId && techMap[(a as any).technicianId] && (
+                <div className="flex items-center gap-1.5 text-muted-foreground">
+                  <User className="h-3 w-3 shrink-0" />
+                  <span className="truncate">{techMap[(a as any).technicianId]}</span>
+                </div>
+              )}
+            </div>
+            <div className="flex items-center justify-between mt-2 pt-2 border-t border-border/30">
+              <span className="text-[10px] text-muted-foreground font-bold">{a.date}</span>
+              <div className="flex items-center gap-3">
+                {a.photos > 0 && (
+                  <span className="flex items-center gap-1 text-muted-foreground text-[10px]">
+                    <Camera className="h-3 w-3" /> {a.photos}
+                  </span>
+                )}
+                {(a as any).driveUrl && (
+                  <a
+                    href={(a as any).driveUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <FolderOpen className="h-3.5 w-3.5 text-primary" />
+                  </a>
+                )}
+                <button
+                  onClick={(e) => { e.stopPropagation(); setDeleteTarget(a); }}
+                  className="text-muted-foreground/40 active:text-destructive p-1.5 -m-1.5 rounded-lg"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Desktop Table View */}
+      <div className="hidden md:block overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border/50">
