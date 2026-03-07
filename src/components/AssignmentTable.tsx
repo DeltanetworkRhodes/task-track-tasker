@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Assignment, statusLabels } from "@/data/mockData";
 import { Camera, MessageSquare, ExternalLink, User, MapPin, Phone, Hash, FolderOpen, FileText, Image, Loader2, Clock, ArrowRight, Trash2 } from "lucide-react";
+import SRComments from "@/components/SRComments";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
