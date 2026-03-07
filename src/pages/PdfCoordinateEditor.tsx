@@ -209,7 +209,7 @@ const PdfCoordinateEditor = () => {
 
   // Get all positionable items (including sub-items from maps)
   const getPositionableItems = useCallback(() => {
-    const items: { key: string; subKey?: string; label: string; x: number; y: number; type: string; color: string }[] = [];
+    const items: { key: string; subKey?: string; label: string; x: number; y: number; type: string; color: string; mark?: string }[] = [];
     for (const field of currentFields) {
       if (field.type === "check_map" || field.type === "check_map_multi" || field.type === "floor_check") {
         if (field.map) {
