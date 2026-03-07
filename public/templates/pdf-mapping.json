@@ -32,8 +32,8 @@
       "fields": [
         { "key": "routing_escalit", "type": "check", "x": 129, "y": 725 },
         { "key": "routing_external_pipe", "type": "check", "x": 291, "y": 725 },
-        { "key": "ext_pipe_sidewalk_excavation_yes", "type": "check_if", "x": 295, "y": 691, "sourceKey": "ext_pipe_sidewalk_excavation", "match": true },
-        { "key": "ext_pipe_sidewalk_excavation_no", "type": "check_if", "x": 321, "y": 691, "sourceKey": "ext_pipe_sidewalk_excavation", "match": false },
+        { "key": "ext_pipe_sidewalk_excavation_yes", "type": "check_if", "x": 295, "y": 691, "sourceKey": "ext_pipe_sidewalk_excavation", "match": true, "mark": "x" },
+        { "key": "ext_pipe_sidewalk_excavation_no", "type": "check_if", "x": 321, "y": 691, "sourceKey": "ext_pipe_sidewalk_excavation", "match": false, "mark": "x" },
         { "key": "routing_aerial", "type": "check", "x": 422, "y": 725 },
         { "key": "routing_other", "type": "check", "x": 549, "y": 725 },
         { "key": "excavation_to_pipe_yes", "type": "check_if", "x": 129, "y": 667, "sourceKey": "excavation_to_pipe", "match": true },
