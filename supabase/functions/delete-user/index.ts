@@ -16,17 +16,23 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Verify the caller is an admin
+    // Verify caller via getClaims
     const authHeader = req.headers.get("authorization");
-    if (!authHeader) throw new Error("Unauthorized");
+    if (!authHeader?.startsWith("Bearer ")) throw new Error("Unauthorized");
     const token = authHeader.replace("Bearer ", "");
-    const { data: { user: caller } } = await supabaseAdmin.auth.getUser(token);
-    if (!caller) throw new Error("Unauthorized");
+    const supabaseAuth = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: authHeader } } }
+    );
+    const { data: claimsData, error: claimsError } = await supabaseAuth.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) throw new Error("Unauthorized");
+    const callerId = claimsData.claims.sub;
 
     const { data: callerRole } = await supabaseAdmin
       .from("user_roles")
       .select("role")
-      .eq("user_id", caller.id)
+      .eq("user_id", callerId)
       .single();
 
     if (callerRole?.role !== "admin" && callerRole?.role !== "super_admin") {
