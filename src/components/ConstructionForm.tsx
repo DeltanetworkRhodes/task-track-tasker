@@ -781,9 +781,6 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
       <div className="flex flex-col items-center justify-center py-20 text-center">
         <CheckCircle className="h-16 w-16 text-green-500 mb-4" />
         <h2 className="text-lg font-bold text-foreground">Η κατασκευή καταχωρήθηκε!</h2>
-        <p className="text-sm text-muted-foreground mt-1">
-          Έσοδα: {totalRevenue.toFixed(2)}€ · Κόστος υλικών: {totalMaterialCost.toFixed(2)}€
-        </p>
         <p className="text-xs text-muted-foreground mt-1">
           Τα έγγραφα δημιουργούνται και ανεβαίνουν στο Drive...
         </p>
@@ -905,7 +902,7 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
           </Label>
           {workItems.length > 0 && (
             <Badge variant="secondary" className="text-xs">
-              {workItems.length} επιλεγμένες · {totalRevenue.toFixed(2)}€
+              {workItems.length} επιλεγμένες
             </Badge>
           )}
         </div>
@@ -966,7 +963,6 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
                           <div className="flex-1 min-w-0" onClick={() => toggleWork(w)}>
                             <div className="flex items-center gap-1.5">
                               <span className="text-xs text-primary font-bold">{w.code}</span>
-                              <span className="text-xs font-semibold text-foreground">{w.unit_price}€</span>
                             </div>
                             <p className="text-[11px] text-muted-foreground leading-tight">{w.description}</p>
                           </div>
@@ -1134,13 +1130,6 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
           ))}
         </Tabs>
 
-        {deltanetMaterials.length > 0 && (
-          <div className="flex justify-end pt-1">
-            <Badge variant="outline" className="text-xs font-semibold border-orange-500/30 text-orange-600">
-              Κόστος υλικών ΔΝ: {totalMaterialCost.toFixed(2)}€
-            </Badge>
-          </div>
-        )}
       </Card>
 
       {/* Construction Photos - Categorized */}
@@ -1285,37 +1274,6 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
         </div>
       </Card>
 
-      {(workItems.length > 0 || materialItems.length > 0) && (
-        <Card className="p-4 space-y-2 border-primary/20">
-          <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Σύνοψη</Label>
-          <div className="grid grid-cols-3 gap-2 text-center">
-            <div>
-              <p className="text-lg font-bold text-primary">{totalRevenue.toFixed(2)}€</p>
-              <p className="text-[10px] text-muted-foreground">Έσοδα</p>
-            </div>
-            <div>
-              <p className="text-lg font-bold text-orange-600">{totalMaterialCost.toFixed(2)}€</p>
-              <p className="text-[10px] text-muted-foreground">Κόστος Υλικών</p>
-            </div>
-            <div>
-              <p className="text-lg font-bold text-green-600">{(totalRevenue - totalMaterialCost).toFixed(2)}€</p>
-              <p className="text-[10px] text-muted-foreground">Κέρδος</p>
-            </div>
-          </div>
-
-          {/* Selected items summary */}
-          <div className="space-y-1 pt-2 border-t border-border">
-            {workItems.map((w) => (
-              <div key={w.work_pricing_id} className="flex items-center justify-between text-xs">
-                <span className="text-muted-foreground truncate flex-1">
-                  <span className="font-mono text-primary">{w.code}</span> ×{w.quantity}
-                </span>
-                <span className="font-semibold">{(w.unit_price * w.quantity).toFixed(2)}€</span>
-              </div>
-            ))}
-          </div>
-        </Card>
-      )}
 
       {/* Submit */}
       <Button onClick={handleSubmit} disabled={submitting} className="w-full py-6 text-sm font-bold gap-2">
