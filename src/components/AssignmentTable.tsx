@@ -22,6 +22,8 @@ const statusColors: Record<string, string> = {
 
 interface AssignmentTableProps {
   assignments: Assignment[];
+  selectedIds?: string[];
+  onSelectionChange?: (ids: string[]) => void;
 }
 
 const DetailRow = ({ icon: Icon, label, value }: { icon: any; label: string; value: string | null | undefined }) => {
