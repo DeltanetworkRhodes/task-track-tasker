@@ -556,7 +556,7 @@ const PdfCoordinateEditor = () => {
                   >
                     <span style={{ fontSize: 9, fontWeight: 700, color: item.color, lineHeight: 1 }}>○</span>
                   </div>
-                ) : (item.type === "check" || item.type === "check_map" || item.type === "check_map_multi") ? (
+                ) : (item.type === "check" || item.type === "check_map" || item.type === "check_map_multi" || ((item.type === "check_if" || item.type === "check_if_not") && item.mark === "x")) ? (
                   <div
                     className="flex items-center justify-center transition-transform"
                     style={{
