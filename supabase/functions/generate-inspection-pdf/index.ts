@@ -64,6 +64,30 @@ async function driveSearch(accessToken: string, query: string): Promise<any[]> {
   return (await res.json()).files || [];
 }
 
+async function findOrCreateDriveFolder(accessToken: string, name: string, parentId: string): Promise<any> {
+  const existing = await driveSearch(
+    accessToken,
+    `name = '${name.replace(/'/g, "\\'")}' and '${parentId}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`
+  );
+  if (existing.length > 0) return existing[0];
+
+  const createRes = await fetch(
+    "https://www.googleapis.com/drive/v3/files?fields=id,name,webViewLink&supportsAllDrives=true",
+    {
+      method: "POST",
+      headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name,
+        mimeType: "application/vnd.google-apps.folder",
+        parents: [parentId],
+      }),
+    }
+  );
+
+  if (!createRes.ok) throw new Error(`Create folder failed: ${await createRes.text()}`);
+  return await createRes.json();
+}
+
 async function uploadFileToDrive(
   accessToken: string, fileName: string, mimeType: string,
   fileData: Uint8Array, parentId: string
