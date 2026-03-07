@@ -216,8 +216,9 @@ async function generateInspectionPdf(data: InspectionData, templateBytes: Uint8A
   ]);
   if (fontFile.error || !fontFile.data) throw new Error(`Font load failed: ${fontFile.error?.message}`);
   if (boldFontFile.error || !boldFontFile.data) throw new Error(`Bold font load failed: ${boldFontFile.error?.message}`);
-  const fontBytes = await fontFile.data.arrayBuffer();
-  const boldFontBytes = await boldFontFile.data.arrayBuffer();
+  const fontBytes = new Uint8Array(await fontFile.data.arrayBuffer());
+  const boldFontBytes = new Uint8Array(await boldFontFile.data.arrayBuffer());
+  console.log(`Font loaded: regular=${fontBytes.length} bytes, bold=${boldFontBytes.length} bytes`);
 
   const pdfDoc = await PDFDocument.load(templateBytes);
   pdfDoc.registerFontkit(fontkit);
