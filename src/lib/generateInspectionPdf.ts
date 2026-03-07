@@ -24,6 +24,7 @@ interface FieldDef {
   sizes?: Record<string, number>;
   capacityX?: number;
   format?: string;
+  mark?: string;
 }
 
 interface PageDef {
