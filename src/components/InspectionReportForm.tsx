@@ -256,6 +256,10 @@ const InspectionReportForm = ({ assignment, surveyId, onComplete, onCancel }: Pr
         technician_id: user.id,
         sr_id: assignment.sr_id,
       };
+      // Convert bep_position array to comma-separated string for DB
+      if (Array.isArray(payload.bep_position)) {
+        payload.bep_position = payload.bep_position.join(",");
+      }
       // Remove fields not in DB
       delete payload.declaration_type;
 
