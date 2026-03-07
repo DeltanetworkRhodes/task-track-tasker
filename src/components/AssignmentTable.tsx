@@ -230,6 +230,8 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
         }
       }
     } catch (err: any) {
+      // Rollback on error
+      queryClient.invalidateQueries({ queryKey: ["assignments"] });
       toast.error(err.message);
     }
   };
