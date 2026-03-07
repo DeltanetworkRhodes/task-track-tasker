@@ -112,22 +112,43 @@ const Index = () => {
   // Monthly completions trend
   const monthlyTrend = useMemo(() => {
     const now = new Date();
-    const months: { month: string; label: string; completed: number; revenue: number; profit: number }[] = [];
+    const months: { month: string; label: string; completed: number; revenue: number; profit: number; prevCompleted: number; prevRevenue: number }[] = [];
     for (let i = 5; i >= 0; i--) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
       const label = GREEK_MONTHS[d.getMonth()];
       const monthAssignments = assignments.filter(a => a.date.startsWith(key) && a.status === 'completed');
       const monthConstructions = constructions.filter(c => c.date.startsWith(key));
+
+      // Previous month for comparison
+      const pd = new Date(d.getFullYear(), d.getMonth() - 1, 1);
+      const prevKey = `${pd.getFullYear()}-${String(pd.getMonth() + 1).padStart(2, '0')}`;
+      const prevCompleted = assignments.filter(a => a.date.startsWith(prevKey) && a.status === 'completed').length;
+      const prevRevenue = constructions.filter(c => c.date.startsWith(prevKey)).reduce((s, c) => s + c.revenue, 0);
+
       months.push({
         month: key, label,
         completed: monthAssignments.length,
         revenue: monthConstructions.reduce((s, c) => s + c.revenue, 0),
         profit: monthConstructions.reduce((s, c) => s + c.profit, 0),
+        prevCompleted, prevRevenue,
       });
     }
     return months;
   }, [assignments, constructions]);
+
+  // Month-over-month changes for current month
+  const momChanges = useMemo(() => {
+    if (monthlyTrend.length < 2) return null;
+    const curr = monthlyTrend[monthlyTrend.length - 1];
+    const prev = monthlyTrend[monthlyTrend.length - 2];
+    const pctChange = (c: number, p: number) => p === 0 ? (c > 0 ? 100 : 0) : Math.round(((c - p) / p) * 100);
+    return {
+      completedPct: pctChange(curr.completed, prev.completed),
+      revenuePct: pctChange(curr.revenue, prev.revenue),
+      profitPct: pctChange(curr.profit, prev.profit),
+    };
+  }, [monthlyTrend]);
 
   const trendConfig = {
     completed: { label: "Ολοκληρωμένα", color: "hsl(152 60% 42%)" },
@@ -250,10 +271,17 @@ const Index = () => {
 
           {/* Monthly Trend */}
           <div className="rounded-xl border border-border bg-card p-4 sm:p-5 shadow-sm">
-            <h2 className="font-bold text-sm mb-4 flex items-center gap-2 text-foreground">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-bold text-sm flex items-center gap-2 text-foreground">
               <CalendarDays className="h-4 w-4 text-accent shrink-0" />
               Μηνιαία Ολοκλήρωση
             </h2>
+            {momChanges && (
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${momChanges.completedPct >= 0 ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive'}`}>
+                {momChanges.completedPct >= 0 ? '↑' : '↓'} {Math.abs(momChanges.completedPct)}% vs προηγ.
+              </span>
+            )}
+          </div>
             <ChartContainer config={trendConfig} className="h-[200px] sm:h-[220px] w-full">
               <BarChart data={monthlyTrend} margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
@@ -340,10 +368,17 @@ const Index = () => {
 
           {/* Revenue Line Chart */}
           <div className="rounded-xl border border-border bg-card p-4 sm:p-5 shadow-sm">
-            <h2 className="font-bold text-sm mb-4 flex items-center gap-2 text-foreground">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-bold text-sm flex items-center gap-2 text-foreground">
               <TrendingUp className="h-4 w-4 text-primary shrink-0" />
               Τάση Εσόδων / Κέρδους
             </h2>
+            {momChanges && (
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${momChanges.revenuePct >= 0 ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive'}`}>
+                {momChanges.revenuePct >= 0 ? '↑' : '↓'} {Math.abs(momChanges.revenuePct)}% έσοδα
+              </span>
+            )}
+          </div>
             <ChartContainer config={trendConfig} className="h-[200px] sm:h-[220px] w-full">
               <LineChart data={monthlyTrend} margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
