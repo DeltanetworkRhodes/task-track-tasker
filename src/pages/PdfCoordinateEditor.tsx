@@ -681,29 +681,44 @@ const PdfCoordinateEditor = () => {
                     <div
                       className="flex items-center justify-center transition-transform"
                       style={{
-                        width: 22,
-                        height: 22,
+                        width: 28,
+                        height: 28,
                         borderRadius: "50%",
-                        border: `2px solid ${item.color}`,
+                        border: `2.5px solid ${item.color}`,
                         backgroundColor: isSelected ? `${item.color}30` : "transparent",
                         transform: isSelected ? "scale(1.4)" : "scale(1)",
                         boxShadow: isSelected ? `0 0 0 3px ${item.color}40, 0 2px 8px rgba(0,0,0,0.3)` : "0 1px 3px rgba(0,0,0,0.3)",
                       }}
                     >
-                      <span style={{ fontSize: 9, fontWeight: 700, color: item.color, lineHeight: 1 }}>○</span>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: item.color, lineHeight: 1 }}>○</span>
                     </div>
-                  ) : (item.type === "check" || item.type === "check_map" || item.type === "check_map_multi" || ((item.type === "check_if" || item.type === "check_if_not") && item.mark === "x")) ? (
+                  ) : (item.type === "check" || item.type === "check_map" || item.type === "check_map_multi" || item.type === "floor_check" || ((item.type === "check_if" || item.type === "check_if_not") && item.mark === "x")) ? (
                     <div
                       className="flex items-center justify-center transition-transform"
                       style={{
-                        width: 14,
-                        height: 14,
+                        width: 18,
+                        height: 18,
                         backgroundColor: isSelected ? item.color : `${item.color}cc`,
                         transform: isSelected ? "scale(1.4)" : "scale(1)",
                         boxShadow: isSelected ? `0 0 0 3px ${item.color}40, 0 2px 8px rgba(0,0,0,0.3)` : "0 1px 3px rgba(0,0,0,0.3)",
                       }}
                     >
-                      <span style={{ fontSize: 10, fontWeight: 900, color: "#fff", lineHeight: 1 }}>✕</span>
+                      <span style={{ fontSize: 13, fontWeight: 900, color: "#fff", lineHeight: 1 }}>✕</span>
+                    </div>
+                  ) : item.type === "signature" ? (
+                    <div
+                      className="flex items-center justify-center transition-transform"
+                      style={{
+                        width: 24,
+                        height: 24,
+                        borderRadius: 4,
+                        border: `2px dashed ${item.color}`,
+                        backgroundColor: isSelected ? `${item.color}30` : `${item.color}15`,
+                        transform: isSelected ? "scale(1.4)" : "scale(1)",
+                        boxShadow: isSelected ? `0 0 0 3px ${item.color}40, 0 2px 8px rgba(0,0,0,0.3)` : "0 1px 3px rgba(0,0,0,0.3)",
+                      }}
+                    >
+                      <span style={{ fontSize: 11, color: item.color, lineHeight: 1 }}>✎</span>
                     </div>
                   ) : (
                     <div
