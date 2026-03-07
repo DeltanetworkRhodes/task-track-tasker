@@ -146,16 +146,22 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
 
   const handleAssign = async (assignmentId: string, technicianId: string) => {
     setAssigning(assignmentId);
+    const newValue = technicianId === "__none__" ? null : technicianId;
+
+    // Optimistic update
+    queryClient.setQueryData(["assignments"], (old: any) =>
+      old?.map((a: any) => a.id === assignmentId ? { ...a, technician_id: newValue } : a)
+    );
+
     try {
-      const newValue = technicianId === "__none__" ? null : technicianId;
       const { error } = await supabase
         .from("assignments")
         .update({ technician_id: newValue })
         .eq("id", assignmentId);
       if (error) throw error;
       toast.success(newValue ? `Ανατέθηκε σε ${techMap[newValue] || "τεχνικό"}` : "Αφαιρέθηκε η ανάθεση");
-      queryClient.invalidateQueries({ queryKey: ["assignments"] });
     } catch (err: any) {
+      queryClient.invalidateQueries({ queryKey: ["assignments"] });
       toast.error(err.message);
     } finally {
       setAssigning(null);
