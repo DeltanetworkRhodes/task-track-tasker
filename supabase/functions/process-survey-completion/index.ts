@@ -485,10 +485,16 @@ Deno.serve(async (req) => {
           await uploadFileToDrive(accessToken, pdfFileName, "application/pdf", pdfBytes, egrafaFolder.id);
           console.log(`Uploaded inspection PDF to ΕΓΓΡΑΦΑ: ${pdfFileName}`);
 
-          // Update assignment with Drive folder URL
+          // Update assignment with Drive folder URLs (main + subfolders)
+          const egrafaUrl = egrafaFolder.webViewLink || `https://drive.google.com/drive/folders/${egrafaFolder.id}`;
+          const promeletiUrl = promelethFolder.webViewLink || `https://drive.google.com/drive/folders/${promelethFolder.id}`;
           await adminClient
             .from("assignments")
-            .update({ drive_folder_url: driveFolderUrl })
+            .update({ 
+              drive_folder_url: driveFolderUrl,
+              drive_egrafa_url: egrafaUrl,
+              drive_promeleti_url: promeletiUrl,
+            })
             .eq("sr_id", sr_id);
         }
       } catch (driveErr) {
