@@ -155,6 +155,15 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
   };
 
   const handleStatusChange = async (assignmentId: string, newStatus: string, oldStatus: string) => {
+    // Client-side guard: block construction without GIS
+    if (newStatus === "construction") {
+      const hasGis = gisAssignmentIds?.includes(assignmentId);
+      if (!hasGis) {
+        toast.error("Απαιτείται GIS αρχείο πριν τη μετάβαση σε Κατασκευή. Ανεβάστε πρώτα το GIS Excel.");
+        return;
+      }
+    }
+
     setUpdating(assignmentId);
 
     // Optimistic update
