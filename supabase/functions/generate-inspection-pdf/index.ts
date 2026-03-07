@@ -402,11 +402,19 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Generate PDF
-    const pdfBytes = await generateInspectionPdf(report);
-    console.log(`PDF generated: ${(pdfBytes.length / 1024).toFixed(0)}KB`);
+    // Load PDF template from storage + generate PDF
+    const { data: templateFile, error: templateErr } = await adminClient
+      .storage
+      .from("surveys")
+      .download("templates/inspection_template.pdf");
 
-    // Upload to Google Drive
+    if (templateErr || !templateFile) {
+      throw new Error(`Template load failed: ${templateErr?.message || "not found"}`);
+    }
+
+    const templateBytes = new Uint8Array(await templateFile.arrayBuffer());
+    const pdfBytes = await generateInspectionPdf(report, templateBytes);
+    console.log(`PDF generated: ${(pdfBytes.length / 1024).toFixed(0)}KB`);
     let driveUrl = "";
     const serviceAccountKeyStr = Deno.env.get("GOOGLE_SERVICE_ACCOUNT_KEY");
 
