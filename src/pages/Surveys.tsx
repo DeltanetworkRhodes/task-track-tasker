@@ -297,15 +297,15 @@ const Surveys = () => {
         {/* Header */}
         <div className="flex items-start justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Αυτοψίες Τεχνικών</h1>
-            <p className="text-sm text-muted-foreground mt-1">
+            <h1 className="text-xl sm:text-2xl font-bold text-foreground">Αυτοψίες Τεχνικών</h1>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-1">
               Προβολή, διαχείριση & αναφορές αυτοψιών
             </p>
           </div>
         </div>
 
         {/* Stat Cards */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-5">
           <StatCard title="Σύνολο Αυτοψιών" value={totalSurveys} subtitle={`${filtered.length} εμφανίζονται`} icon={ClipboardCheck} />
           <StatCard title="Ολοκληρωμένες" value={totalComplete} subtitle={`${totalSurveys > 0 ? Math.round((totalComplete / totalSurveys) * 100) : 0}% επιτυχία`} icon={FileCheck} trend="up" trendValue={`${totalComplete} πλήρεις`} />
           <StatCard title="Ελλιπείς" value={totalIncomplete} subtitle="αναμονή αρχείων" icon={FileWarning} accent />
@@ -392,16 +392,18 @@ const Surveys = () => {
             </h3>
             <div className="space-y-2">
               {upcomingAppointments.slice(0, 5).map((a) => (
-                <div key={a.id} className="flex items-center gap-3 text-sm rounded-lg px-3 py-2.5 bg-muted/50 hover:bg-muted transition-colors">
-                  <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
-                  <span className="font-bold text-foreground text-xs">
-                    {new Date(a.appointment_at).toLocaleDateString("el-GR")}{" "}
-                    {new Date(a.appointment_at).toLocaleTimeString("el-GR", { hour: "2-digit", minute: "2-digit" })}
-                  </span>
-                  <span className="font-bold text-xs text-foreground">SR {a.sr_id}</span>
-                  <Badge variant="outline" className="text-xs">{a.area}</Badge>
+                <div key={a.id} className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-3 text-sm rounded-lg px-3 py-2.5 bg-muted/50 hover:bg-muted transition-colors">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                    <span className="font-bold text-foreground text-xs">
+                      {new Date(a.appointment_at).toLocaleDateString("el-GR")}{" "}
+                      {new Date(a.appointment_at).toLocaleTimeString("el-GR", { hour: "2-digit", minute: "2-digit" })}
+                    </span>
+                    <span className="font-bold text-xs text-foreground">SR {a.sr_id}</span>
+                    <Badge variant="outline" className="text-xs">{a.area}</Badge>
+                  </div>
                   {a.description && (
-                    <span className="text-xs text-muted-foreground truncate flex-1">{a.description}</span>
+                    <span className="text-xs text-muted-foreground truncate sm:flex-1 pl-5 sm:pl-0">{a.description}</span>
                   )}
                 </div>
               ))}
@@ -410,8 +412,8 @@ const Surveys = () => {
         )}
 
         {/* Filters */}
-        <div className="flex flex-wrap gap-3">
-          <div className="relative flex-1 min-w-[200px] max-w-sm">
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+          <div className="relative flex-1 min-w-0">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Αναζήτηση SR ID..."
@@ -420,37 +422,39 @@ const Surveys = () => {
               className="pl-9"
             />
           </div>
-          <Select value={areaFilter} onValueChange={setAreaFilter}>
-            <SelectTrigger className="w-[160px]">
-              <Filter className="h-4 w-4 mr-2 text-muted-foreground" />
-              <SelectValue placeholder="Περιοχή" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Όλες</SelectItem>
-              <SelectItem value="ΡΟΔΟΣ">ΡΟΔΟΣ</SelectItem>
-              <SelectItem value="ΚΩΣ">ΚΩΣ</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[220px]">
-              <SelectValue placeholder="Κατάσταση" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Όλες οι καταστάσεις</SelectItem>
-              <SelectItem value="ΠΡΟΔΕΣΜΕΥΣΗ ΥΛΙΚΩΝ">Προδέσμευση Υλικών</SelectItem>
-              <SelectItem value="ΕΛΛΙΠΗΣ ΑΥΤΟΨΙΑ">Ελλιπής Αυτοψία</SelectItem>
-              <SelectItem value="ΑΠΑΙΤΕΙΤΑΙ ΕΝΕΡΓΕΙΑ">Απαιτείται Ενέργεια</SelectItem>
-              <SelectItem value="BLOCKER">Blocker</SelectItem>
-              <SelectItem value="ΡΑΝΤΕΒΟΥ">Ραντεβού</SelectItem>
-              <SelectItem value="submitted">Υποβλήθηκε</SelectItem>
-            </SelectContent>
-          </Select>
-          <span className="text-xs text-muted-foreground font-bold self-center bg-muted px-2.5 py-1.5 rounded-full">
-            {filtered.length} / {totalSurveys}
-          </span>
+          <div className="flex gap-2 overflow-x-auto">
+            <Select value={areaFilter} onValueChange={setAreaFilter}>
+              <SelectTrigger className="w-[130px] sm:w-[160px] shrink-0">
+                <Filter className="h-4 w-4 mr-2 text-muted-foreground" />
+                <SelectValue placeholder="Περιοχή" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Όλες</SelectItem>
+                <SelectItem value="ΡΟΔΟΣ">ΡΟΔΟΣ</SelectItem>
+                <SelectItem value="ΚΩΣ">ΚΩΣ</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-[160px] sm:w-[220px] shrink-0">
+                <SelectValue placeholder="Κατάσταση" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Όλες οι καταστάσεις</SelectItem>
+                <SelectItem value="ΠΡΟΔΕΣΜΕΥΣΗ ΥΛΙΚΩΝ">Προδέσμευση Υλικών</SelectItem>
+                <SelectItem value="ΕΛΛΙΠΗΣ ΑΥΤΟΨΙΑ">Ελλιπής Αυτοψία</SelectItem>
+                <SelectItem value="ΑΠΑΙΤΕΙΤΑΙ ΕΝΕΡΓΕΙΑ">Απαιτείται Ενέργεια</SelectItem>
+                <SelectItem value="BLOCKER">Blocker</SelectItem>
+                <SelectItem value="ΡΑΝΤΕΒΟΥ">Ραντεβού</SelectItem>
+                <SelectItem value="submitted">Υποβλήθηκε</SelectItem>
+              </SelectContent>
+            </Select>
+            <span className="text-xs text-muted-foreground font-bold self-center bg-muted px-2.5 py-1.5 rounded-full whitespace-nowrap shrink-0">
+              {filtered.length} / {totalSurveys}
+            </span>
+          </div>
         </div>
 
-        {/* Table */}
+        {/* Table / Cards */}
         <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
           {isLoading ? (
             <div className="p-4 space-y-2">
@@ -464,88 +468,145 @@ const Surveys = () => {
               <p className="text-sm">Δεν βρέθηκαν αυτοψίες</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="bg-muted/50 text-muted-foreground text-xs uppercase tracking-wider">
-                    <th className="text-left px-4 py-3 font-medium">SR ID</th>
-                    <th className="text-left px-4 py-3 font-medium">Περιοχή</th>
-                    <th className="text-left px-4 py-3 font-medium">Τεχνικός</th>
-                    <th className="text-left px-4 py-3 font-medium">Κατάσταση</th>
-                    <th className="text-left px-4 py-3 font-medium">Σχόλια</th>
-                    <th className="text-left px-4 py-3 font-medium">Ημερομηνία</th>
-                    <th className="text-center px-4 py-3 font-medium">Email</th>
-                    <th className="text-center px-4 py-3 font-medium">Ενέργεια</th>
-                    <th className="text-center px-4 py-3 font-medium"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filtered.map((s) => {
-                    const tech = profileMap[s.technician_id];
-                    const sc = statusConfig[s.status] || statusConfig["submitted"];
-                    return (
-                      <tr
-                        key={s.id}
-                        className="border-t border-border/50 hover:bg-muted/30 cursor-pointer transition-colors"
-                        onClick={() => setSelectedSurvey(s)}
-                      >
-                        <td className="px-4 py-3 font-bold text-primary">{s.sr_id}</td>
-                        <td className="px-4 py-3">
-                          <Badge variant="outline" className="text-xs">{s.area}</Badge>
-                        </td>
-                        <td className="px-4 py-3 text-muted-foreground text-xs">{tech?.full_name || "—"}</td>
-                        <td className="px-4 py-3">
-                          <Badge variant="outline" className={`text-xs ${sc.color}`}>{sc.label}</Badge>
-                        </td>
-                        <td className="px-4 py-3 max-w-[200px]">
-                          {s.comments ? (
-                            <span className="text-xs text-muted-foreground line-clamp-1">{s.comments}</span>
-                          ) : (
-                            <span className="text-xs text-muted-foreground/40">—</span>
-                          )}
-                        </td>
-                        <td className="px-4 py-3 text-muted-foreground text-xs font-bold">
+            <>
+              {/* Mobile Card View */}
+              <div className="md:hidden divide-y divide-border">
+                {filtered.map((s) => {
+                  const tech = profileMap[s.technician_id];
+                  const sc = statusConfig[s.status] || statusConfig["submitted"];
+                  const StatusIcon = sc.icon;
+                  return (
+                    <div
+                      key={s.id}
+                      className="p-3.5 active:bg-muted/50 transition-colors cursor-pointer"
+                      onClick={() => setSelectedSurvey(s)}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="font-bold text-primary text-sm">SR {s.sr_id}</span>
+                        <Badge variant="outline" className={`text-[10px] ${sc.color}`}>
+                          <StatusIcon className="h-3 w-3 mr-1" />
+                          {sc.label}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                        <span className="flex items-center gap-1">
+                          <MapPin className="h-3 w-3" />
+                          {s.area}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <User className="h-3 w-3" />
+                          {tech?.full_name || "—"}
+                        </span>
+                        <span className="ml-auto flex items-center gap-1">
+                          <Calendar className="h-3 w-3" />
                           {new Date(s.created_at).toLocaleDateString("el-GR")}
-                        </td>
-                        <td className="px-4 py-3 text-center">
-                          {s.email_sent ? (
-                            <Mail className="h-3.5 w-3.5 text-green-600 mx-auto" />
-                          ) : (
-                            <span className="text-muted-foreground/30">—</span>
-                          )}
-                        </td>
-                        <td className="px-4 py-3 text-center" onClick={(e) => e.stopPropagation()}>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-7 w-7 p-0"
-                            onClick={() => setSelectedSurvey(s)}
-                          >
-                            <Eye className="h-4 w-4 text-primary" />
-                          </Button>
-                        </td>
-                        <td className="px-4 py-3 text-center" onClick={(e) => e.stopPropagation()}>
-                          <button
-                            onClick={() => setDeleteTarget(s)}
-                            className="text-muted-foreground/40 hover:text-destructive transition-colors p-1 rounded"
-                            title="Διαγραφή"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+                        </span>
+                      </div>
+                      {s.comments && (
+                        <p className="text-[11px] text-muted-foreground/70 mt-1.5 line-clamp-1">{s.comments}</p>
+                      )}
+                      <div className="flex items-center gap-2 mt-2">
+                        {s.email_sent && (
+                          <span className="flex items-center gap-1 text-[10px] text-green-600">
+                            <Mail className="h-3 w-3" /> Εστάλη
+                          </span>
+                        )}
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setDeleteTarget(s); }}
+                          className="ml-auto text-muted-foreground/40 hover:text-destructive transition-colors p-1 rounded"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Desktop Table View */}
+              <div className="hidden md:block overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-muted/50 text-muted-foreground text-xs uppercase tracking-wider">
+                      <th className="text-left px-4 py-3 font-medium">SR ID</th>
+                      <th className="text-left px-4 py-3 font-medium">Περιοχή</th>
+                      <th className="text-left px-4 py-3 font-medium">Τεχνικός</th>
+                      <th className="text-left px-4 py-3 font-medium">Κατάσταση</th>
+                      <th className="text-left px-4 py-3 font-medium">Σχόλια</th>
+                      <th className="text-left px-4 py-3 font-medium">Ημερομηνία</th>
+                      <th className="text-center px-4 py-3 font-medium">Email</th>
+                      <th className="text-center px-4 py-3 font-medium">Ενέργεια</th>
+                      <th className="text-center px-4 py-3 font-medium"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filtered.map((s) => {
+                      const tech = profileMap[s.technician_id];
+                      const sc = statusConfig[s.status] || statusConfig["submitted"];
+                      return (
+                        <tr
+                          key={s.id}
+                          className="border-t border-border/50 hover:bg-muted/30 cursor-pointer transition-colors"
+                          onClick={() => setSelectedSurvey(s)}
+                        >
+                          <td className="px-4 py-3 font-bold text-primary">{s.sr_id}</td>
+                          <td className="px-4 py-3">
+                            <Badge variant="outline" className="text-xs">{s.area}</Badge>
+                          </td>
+                          <td className="px-4 py-3 text-muted-foreground text-xs">{tech?.full_name || "—"}</td>
+                          <td className="px-4 py-3">
+                            <Badge variant="outline" className={`text-xs ${sc.color}`}>{sc.label}</Badge>
+                          </td>
+                          <td className="px-4 py-3 max-w-[200px]">
+                            {s.comments ? (
+                              <span className="text-xs text-muted-foreground line-clamp-1">{s.comments}</span>
+                            ) : (
+                              <span className="text-xs text-muted-foreground/40">—</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-muted-foreground text-xs font-bold">
+                            {new Date(s.created_at).toLocaleDateString("el-GR")}
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            {s.email_sent ? (
+                              <Mail className="h-3.5 w-3.5 text-green-600 mx-auto" />
+                            ) : (
+                              <span className="text-muted-foreground/30">—</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-center" onClick={(e) => e.stopPropagation()}>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 w-7 p-0"
+                              onClick={() => setSelectedSurvey(s)}
+                            >
+                              <Eye className="h-4 w-4 text-primary" />
+                            </Button>
+                          </td>
+                          <td className="px-4 py-3 text-center" onClick={(e) => e.stopPropagation()}>
+                            <button
+                              onClick={() => setDeleteTarget(s)}
+                              className="text-muted-foreground/40 hover:text-destructive transition-colors p-1 rounded"
+                              title="Διαγραφή"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
         </div>
       </div>
 
       {/* Survey Detail Modal */}
       <Dialog open={!!selectedSurvey} onOpenChange={() => setSelectedSurvey(null)}>
-        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto sm:max-h-[85vh]">
           {selectedSurvey && (() => {
             const sc = statusConfig[selectedSurvey.status] || statusConfig["submitted"];
             const StatusIcon = sc.icon;
