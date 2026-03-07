@@ -63,9 +63,16 @@ Deno.serve(async (req) => {
     }
     console.log(`Processing delivery note for source: ${source}`);
 
-    // Convert PDF to base64
+    // Convert PDF to base64 (chunked to avoid stack overflow)
     const arrayBuffer = await file.arrayBuffer();
-    const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+    const bytes = new Uint8Array(arrayBuffer);
+    let binary = "";
+    const chunkSize = 8192;
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+      const chunk = bytes.subarray(i, i + chunkSize);
+      binary += String.fromCharCode(...chunk);
+    }
+    const base64 = btoa(binary);
 
     // Use Gemini to extract materials from PDF
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
