@@ -64,6 +64,30 @@ async function driveSearch(accessToken: string, query: string): Promise<any[]> {
   return (await res.json()).files || [];
 }
 
+async function findOrCreateDriveFolder(accessToken: string, name: string, parentId: string): Promise<any> {
+  const existing = await driveSearch(
+    accessToken,
+    `name = '${name.replace(/'/g, "\\'")}' and '${parentId}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`
+  );
+  if (existing.length > 0) return existing[0];
+
+  const createRes = await fetch(
+    "https://www.googleapis.com/drive/v3/files?fields=id,name,webViewLink&supportsAllDrives=true",
+    {
+      method: "POST",
+      headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name,
+        mimeType: "application/vnd.google-apps.folder",
+        parents: [parentId],
+      }),
+    }
+  );
+
+  if (!createRes.ok) throw new Error(`Create folder failed: ${await createRes.text()}`);
+  return await createRes.json();
+}
+
 async function uploadFileToDrive(
   accessToken: string, fileName: string, mimeType: string,
   fileData: Uint8Array, parentId: string
@@ -515,26 +539,105 @@ Deno.serve(async (req) => {
 
         let targetFolderId = "";
 
-        // Try to find ΕΓΓΡΑΦΑ folder from the existing Drive folder
-        if (assignment?.drive_egrafa_url) {
-          const match = assignment.drive_egrafa_url.match(/\/folders\/([a-zA-Z0-9_-]+)/);
-          if (match) targetFolderId = match[1];
+        const extractFolderId = (url?: string | null) => {
+          if (!url) return "";
+          const match = url.match(/\/folders\/([a-zA-Z0-9_-]+)/);
+          return match?.[1] || "";
+        };
+
+        // 1) Prefer explicit ΕΓΓΡΑΦΑ URL from assignment
+        targetFolderId = extractFolderId(assignment?.drive_egrafa_url);
+
+        // 2) Resolve SR parent folder from assignment or fallback by SR name search
+        let parentFolderId = extractFolderId(assignment?.drive_folder_url);
+        let parentFolderUrl = assignment?.drive_folder_url || "";
+
+        if (!parentFolderId && sr_id) {
+          const safeSrId = String(sr_id).replace(/'/g, "\\'");
+          const searchFolderIds = [
+            "1JvcSG3tiOplSujXhb3yj_ELQLjfrgOzO", // ΡΟΔΟΣ
+            "1X1mtK4tV_sgGM9IdizNSK7AS19qX1nYl", // ΚΩΣ
+            "1dal55zb0uv5__e1pDk2fLFMB0ogi1OnZ", // ΡΟΔΟΣ/ΜΑΡΤΙΟΣ/ΠΡΟΔΕΣΜΕΥΣΗ ΓΙΑ ΚΑΤΑΣΚΕΥΗ
+            "16Dr_1g6AkaypkyoePwcfZ8IanPX5TXeZ", // ΡΟΔΟΣ/ΜΑΡΤΙΟΣ/ΟΛΟΚΛΗΡΩΜΕΝΕΣ ΑΥΤΟΨΙΕΣ
+            "1azAHjT8LS8R3JOq0jYNh1UdBx4SYn-iM", // ΡΟΔΟΣ/ΜΑΡΤΙΟΣ/ΠΑΡΑΔΩΤΕΑ
+            "1pIRjzexYG_JVFkoqfaG2_o_YfziGoFy_", // ΡΟΔΟΣ/ΜΑΡΤΙΟΣ
+            "1C2E70l0PkCETaMPqywysYNMrDUcKMO5k", // ΠΑΡΑΔΕΙΓΜΑΤΑ
+          ];
+
+          let srFolders: any[] = [];
+          for (const folderId of searchFolderIds) {
+            srFolders = await driveSearch(
+              accessToken,
+              `name contains '${safeSrId}' and '${folderId}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`
+            );
+            if (srFolders.length > 0) break;
+          }
+
+          if (srFolders.length > 0) {
+            parentFolderId = srFolders[0].id;
+            parentFolderUrl = srFolders[0].webViewLink || "";
+            console.log(`Resolved SR folder by fallback search: ${srFolders[0].name}`);
+
+            await adminClient
+              .from("assignments")
+              .update({ drive_folder_url: parentFolderUrl || null })
+              .eq("id", assignment_id);
+          }
         }
 
-        if (!targetFolderId && assignment?.drive_folder_url) {
-          const folderMatch = assignment.drive_folder_url.match(/\/folders\/([a-zA-Z0-9_-]+)/);
-          if (folderMatch) {
-            // Search for ΕΓΓΡΑΦΑ inside the SR folder
-            const egrafaFolders = await driveSearch(
-              accessToken,
-              `name = 'ΕΓΓΡΑΦΑ' and '${folderMatch[1]}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`
-            );
-            if (egrafaFolders.length > 0) {
-              targetFolderId = egrafaFolders[0].id;
-            } else {
-              targetFolderId = folderMatch[1]; // Use parent folder as fallback
-            }
+        // 3) Find/create ΕΓΓΡΑΦΑ inside SR folder
+        if (!targetFolderId && parentFolderId) {
+          const egrafaFolders = await driveSearch(
+            accessToken,
+            `name = 'ΕΓΓΡΑΦΑ' and '${parentFolderId}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`
+          );
+
+          if (egrafaFolders.length > 0) {
+            targetFolderId = egrafaFolders[0].id;
+
+            await adminClient
+              .from("assignments")
+              .update({ drive_egrafa_url: egrafaFolders[0].webViewLink || null })
+              .eq("id", assignment_id);
+          } else {
+            // If SR folder exists but ΕΓΓΡΑΦΑ does not, create it
+            const createdEgrafa = await findOrCreateDriveFolder(accessToken, "ΕΓΓΡΑΦΑ", parentFolderId);
+            targetFolderId = createdEgrafa.id;
+
+            await adminClient
+              .from("assignments")
+              .update({ drive_egrafa_url: createdEgrafa.webViewLink || null })
+              .eq("id", assignment_id);
           }
+        }
+
+        // 4) Absolute fallback: create SR + ΕΓΓΡΑΦΑ folders by area root
+        if (!targetFolderId && sr_id) {
+          const areaText = String(area || "").toUpperCase();
+          const areaRootId = areaText.includes("ΚΩ")
+            ? "1X1mtK4tV_sgGM9IdizNSK7AS19qX1nYl" // ΚΩΣ
+            : "1JvcSG3tiOplSujXhb3yj_ELQLjfrgOzO"; // ΡΟΔΟΣ (default)
+
+          const createdSrFolder = await findOrCreateDriveFolder(accessToken, String(sr_id), areaRootId);
+          const createdEgrafa = await findOrCreateDriveFolder(accessToken, "ΕΓΓΡΑΦΑ", createdSrFolder.id);
+
+          parentFolderId = createdSrFolder.id;
+          parentFolderUrl = createdSrFolder.webViewLink || "";
+          targetFolderId = createdEgrafa.id;
+
+          await adminClient
+            .from("assignments")
+            .update({
+              drive_folder_url: parentFolderUrl || null,
+              drive_egrafa_url: createdEgrafa.webViewLink || null,
+            })
+            .eq("id", assignment_id);
+
+          console.log(`Created fallback Drive folders for SR ${sr_id}`);
+        }
+
+        if (!targetFolderId) {
+          console.warn(`No Drive folder resolved for SR ${sr_id}; skipping Drive upload`);
         }
 
         if (targetFolderId) {

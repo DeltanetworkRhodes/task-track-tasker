@@ -252,7 +252,11 @@ const InspectionReportForm = ({ assignment, surveyId, onComplete, onCancel }: Pr
           );
           const result = await response.json();
           if (response.ok && result.success) {
-            toast.success("Το δελτίο αυτοψίας δημιουργήθηκε και ανέβηκε στο Drive! ✅");
+            if (result.drive_url) {
+              toast.success("Το δελτίο αυτοψίας δημιουργήθηκε και ανέβηκε στο Drive! ✅");
+            } else {
+              toast.warning("Το δελτίο δημιουργήθηκε, αλλά δεν βρέθηκε φάκελος Drive για ανέβασμα");
+            }
           } else {
             toast.warning("Το δελτίο αποθηκεύτηκε αλλά η δημιουργία PDF απέτυχε");
           }
