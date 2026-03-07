@@ -308,7 +308,8 @@ async function buildPdfViaGoogleSlides(
     if (!batchRes.ok) {
       const errText = await batchRes.text();
       console.error(`Slides batchUpdate failed: ${errText}`);
-      // Cleanup: delete the presentation
+      // Cleanup: delete the presentation and revoke permissions
+      await cleanupPermissions(accessToken, permissionIds);
       await fetch(`https://www.googleapis.com/drive/v3/files/${presentationId}?supportsAllDrives=true`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${accessToken}` },
