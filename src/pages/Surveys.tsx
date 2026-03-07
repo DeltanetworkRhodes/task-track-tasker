@@ -87,16 +87,6 @@ const Surveys = () => {
     },
   });
 
-  const { data: emailSettings } = useQuery({
-    queryKey: ["email-settings"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("email_settings").select("*");
-      if (error) throw error;
-      const map: Record<string, string> = {};
-      (data || []).forEach((s: any) => { map[s.setting_key] = s.setting_value; });
-      return map;
-    },
-  });
 
   const { data: appointments } = useQuery({
     queryKey: ["appointments"],
