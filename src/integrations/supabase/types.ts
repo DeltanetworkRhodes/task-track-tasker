@@ -617,6 +617,7 @@ export type Database = {
           total_spaces: number | null
           updated_at: string
           vertical_routing: string | null
+          vertical_routing_other_notes: string | null
           wall_mount: boolean | null
         }
         Insert: {
@@ -702,6 +703,7 @@ export type Database = {
           total_spaces?: number | null
           updated_at?: string
           vertical_routing?: string | null
+          vertical_routing_other_notes?: string | null
           wall_mount?: boolean | null
         }
         Update: {
@@ -787,6 +789,7 @@ export type Database = {
           total_spaces?: number | null
           updated_at?: string
           vertical_routing?: string | null
+          vertical_routing_other_notes?: string | null
           wall_mount?: boolean | null
         }
         Relationships: [

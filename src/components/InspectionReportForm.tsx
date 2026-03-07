@@ -643,6 +643,12 @@ const InspectionReportForm = ({ assignment, surveyId, onComplete, onCancel }: Pr
             </label>
           ))}
         </div>
+        {form.vertical_routing === "other" && (
+          <div className="mt-3">
+            <Label className="text-xs">Σημειώσεις (Άλλο)</Label>
+            <Input value={form.vertical_routing_other_notes} onChange={(e) => updateField("vertical_routing_other_notes", e.target.value)} placeholder="Περιγράψτε..." />
+          </div>
+        )}
       </div>
 
       <Separator />
