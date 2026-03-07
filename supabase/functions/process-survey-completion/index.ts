@@ -596,29 +596,8 @@ Deno.serve(async (req) => {
     // Complete survey → pre_committed (waiting for GIS upload to move to construction)
     // If GIS already exists → construction
     const newSurveyStatus = isComplete ? "ΠΡΟΔΕΣΜΕΥΣΗ ΥΛΙΚΩΝ" : "ΕΛΛΙΠΗΣ ΑΥΤΟΨΙΑ";
-    let newAssignmentStatus = isComplete ? "pre_committed" : "pending";
-
-    if (isComplete) {
-      // Check if GIS data already uploaded → go directly to construction
-      const { data: gisExists } = await adminClient
-        .from("gis_data")
-        .select("id")
-        .eq("sr_id", sr_id)
-        .maybeSingle();
-      if (gisExists) {
-        newAssignmentStatus = "construction";
-      }
-    } else {
-      // Incomplete survey but GIS exists → pre_committed
-      const { data: gisExists } = await adminClient
-        .from("gis_data")
-        .select("id")
-        .eq("sr_id", sr_id)
-        .maybeSingle();
-      if (gisExists) {
-        newAssignmentStatus = "pre_committed";
-      }
-    }
+    // Always set pre_committed for complete surveys — construction requires GIS + manual transition
+    const newAssignmentStatus = isComplete ? "pre_committed" : "pending";
     
     await adminClient
       .from("assignments")
