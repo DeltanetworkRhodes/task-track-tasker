@@ -234,37 +234,47 @@ async function buildPdfViaGoogleSlides(
 
     // 3. Build batch update requests: one slide per image
     const requests: any[] = [];
+    const permissionIds: string[] = [];
 
-    // Make each Drive file publicly readable temporarily via a direct content URL
-    // We'll use the Drive thumbnail/content URL approach
+    // Make each image temporarily public so Slides can access them
+    for (const img of imageFiles) {
+      try {
+        const permRes = await fetch(
+          `https://www.googleapis.com/drive/v3/files/${img.driveFileId}/permissions?supportsAllDrives=true`,
+          {
+            method: "POST",
+            headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+            body: JSON.stringify({ role: "reader", type: "anyone" }),
+          }
+        );
+        if (permRes.ok) {
+          const perm = await permRes.json();
+          permissionIds.push(`${img.driveFileId}:${perm.id}`);
+        } else {
+          await permRes.text();
+        }
+      } catch { /* ignore */ }
+    }
+
     for (let i = 0; i < imageFiles.length; i++) {
       const img = imageFiles[i];
       const slideObjectId = `slide_${i}`;
       const imageObjectId = `image_${i}`;
+      const imageUrl = `https://lh3.googleusercontent.com/d/${img.driveFileId}`;
 
-      // Create a new slide (except for first one if we reuse the default)
       if (i === 0 && defaultSlideId) {
-        // Use the existing default slide
         requests.push({
           createImage: {
             objectId: imageObjectId,
             elementProperties: {
               pageObjectId: defaultSlideId,
-              size: {
-                width: { magnitude: 720, unit: "PT" },
-                height: { magnitude: 540, unit: "PT" },
-              },
-              transform: {
-                scaleX: 1, scaleY: 1,
-                translateX: 0, translateY: 0,
-                unit: "PT",
-              },
+              size: { width: { magnitude: 720, unit: "PT" }, height: { magnitude: 540, unit: "PT" } },
+              transform: { scaleX: 1, scaleY: 1, translateX: 0, translateY: 0, unit: "PT" },
             },
-            url: `https://drive.google.com/uc?id=${img.driveFileId}&export=download`,
+            url: imageUrl,
           },
         });
       } else {
-        // Create new slide
         requests.push({
           createSlide: {
             objectId: slideObjectId,
@@ -277,17 +287,10 @@ async function buildPdfViaGoogleSlides(
             objectId: imageObjectId,
             elementProperties: {
               pageObjectId: slideObjectId,
-              size: {
-                width: { magnitude: 720, unit: "PT" },
-                height: { magnitude: 540, unit: "PT" },
-              },
-              transform: {
-                scaleX: 1, scaleY: 1,
-                translateX: 0, translateY: 0,
-                unit: "PT",
-              },
+              size: { width: { magnitude: 720, unit: "PT" }, height: { magnitude: 540, unit: "PT" } },
+              transform: { scaleX: 1, scaleY: 1, translateX: 0, translateY: 0, unit: "PT" },
             },
-            url: `https://drive.google.com/uc?id=${img.driveFileId}&export=download`,
+            url: imageUrl,
           },
         });
       }
