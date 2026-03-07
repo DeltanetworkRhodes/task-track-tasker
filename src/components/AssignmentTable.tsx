@@ -298,14 +298,23 @@ const AssignmentTable = ({ assignments }: AssignmentTableProps) => {
                   </span>
                 )}
                 {(a as any).driveUrl && (
-                  <a
-                    href={(a as any).driveUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <FolderOpen className="h-3.5 w-3.5 text-primary" />
-                  </a>
+                  <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                    <a href={(a as any).driveUrl} target="_blank" rel="noopener noreferrer" title="Φάκελος">
+                      <FolderOpen className="h-3.5 w-3.5 text-primary" />
+                    </a>
+                    {(a as any).driveEgrafaUrl && (
+                      <a href={(a as any).driveEgrafaUrl} target="_blank" rel="noopener noreferrer"
+                        className="text-[9px] font-medium text-primary/70 hover:text-primary">
+                        ΕΓΓ
+                      </a>
+                    )}
+                    {(a as any).drivePromeletiUrl && (
+                      <a href={(a as any).drivePromeletiUrl} target="_blank" rel="noopener noreferrer"
+                        className="text-[9px] font-medium text-primary/70 hover:text-primary">
+                        ΠΡΜ
+                      </a>
+                    )}
+                  </div>
                 )}
                 <button
                   onClick={(e) => { e.stopPropagation(); setDeleteTarget(a); }}
