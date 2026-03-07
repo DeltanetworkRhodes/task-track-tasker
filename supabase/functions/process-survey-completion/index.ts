@@ -326,6 +326,69 @@ function escapeHtml(str: string): string {
   return str.replace(/[<>&"']/g, (c: string) => `&#${c.charCodeAt(0)};`);
 }
 
+// ─── PDF builder from inspection photos ─────────────────────────────
+
+async function buildInspectionPdf(
+  adminClient: any,
+  inspectionFiles: { file_path: string; file_name: string }[],
+  srId: string
+): Promise<Uint8Array | null> {
+  if (inspectionFiles.length === 0) return null;
+  
+  try {
+    const pdfDoc = await PDFDocument.create();
+    
+    for (const sf of inspectionFiles) {
+      const fileData = await downloadFile(adminClient, sf.file_path);
+      if (!fileData) continue;
+      
+      const ext = sf.file_name.split(".").pop()?.toLowerCase() || "";
+      let image;
+      try {
+        if (ext === "png") {
+          image = await pdfDoc.embedPng(fileData);
+        } else {
+          // jpg/jpeg/webp — try as JPEG
+          image = await pdfDoc.embedJpg(fileData);
+        }
+      } catch (embedErr) {
+        console.error(`Failed to embed image ${sf.file_name}:`, embedErr);
+        continue;
+      }
+      
+      // A4 dimensions in points (595.28 x 841.89)
+      const A4_W = 595.28;
+      const A4_H = 841.89;
+      const margin = 40;
+      const availW = A4_W - margin * 2;
+      const availH = A4_H - margin * 2;
+      
+      const imgW = image.width;
+      const imgH = image.height;
+      const scale = Math.min(availW / imgW, availH / imgH, 1);
+      const drawW = imgW * scale;
+      const drawH = imgH * scale;
+      
+      const page = pdfDoc.addPage([A4_W, A4_H]);
+      page.drawImage(image, {
+        x: margin + (availW - drawW) / 2,
+        y: A4_H - margin - drawH + (availH - drawH) / 2,
+        width: drawW,
+        height: drawH,
+      });
+    }
+    
+    if (pdfDoc.getPageCount() === 0) return null;
+    
+    const pdfBytes = await pdfDoc.save();
+    console.log(`Built inspection PDF: ${pdfDoc.getPageCount()} pages, ${(pdfBytes.length / 1024).toFixed(0)}KB`);
+    return new Uint8Array(pdfBytes);
+  } catch (pdfErr) {
+    console.error("PDF generation error:", pdfErr);
+    return null;
+  }
+}
+
 // ─── Main handler ────────────────────────────────────────────────────
 
 Deno.serve(async (req) => {
