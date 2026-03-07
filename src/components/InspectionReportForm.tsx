@@ -207,6 +207,29 @@ const InspectionReportForm = ({ assignment, surveyId, onComplete, onCancel }: Pr
     setStep(targetStep);
   };
 
+  // Restore saved signatures to canvases when returning to a step
+  useEffect(() => {
+    const restoreSignature = (ref: React.RefObject<SignatureCanvas>, dataUrl: string) => {
+      if (ref.current && dataUrl && dataUrl.startsWith("data:image/png;base64,")) {
+        // Small delay to ensure canvas is mounted
+        setTimeout(() => {
+          if (ref.current) {
+            ref.current.clear();
+            ref.current.fromDataURL(dataUrl, { ratio: 1 });
+          }
+        }, 100);
+      }
+    };
+    if (step === 1) {
+      restoreSignature(engineerSigRef, form.engineer_signature);
+      restoreSignature(customerSigRef, form.customer_signature);
+      restoreSignature(managerSigRef, form.manager_signature);
+    }
+    if (step === 2) {
+      restoreSignature(declarationSigRef, form.declaration_signature);
+    }
+  }, [step]);
+
   const handleSave = async (final = false) => {
     if (!user || !assignment) return;
     
