@@ -541,7 +541,7 @@ const PdfCoordinateEditor = () => {
                 onMouseDown={(e) => handleMouseDown(e, item.key, item.subKey)}
               >
                 {/* Marker: X for checks, ○ for check_if/check_if_not */}
-                {(item.type === "check_if" || item.type === "check_if_not") ? (
+                {(item.type === "check_if" || item.type === "check_if_not") && item.mark !== "x" ? (
                   <div
                     className="flex items-center justify-center transition-transform"
                     style={{
