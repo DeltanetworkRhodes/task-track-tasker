@@ -433,7 +433,7 @@ Deno.serve(async (req) => {
     }
 
     const templateBytes = new Uint8Array(await templateFile.arrayBuffer());
-    const pdfBytes = await generateInspectionPdf(report, templateBytes);
+    const pdfBytes = await generateInspectionPdf(report, templateBytes, adminClient);
     console.log(`PDF generated: ${(pdfBytes.length / 1024).toFixed(0)}KB`);
     let driveUrl = "";
     const serviceAccountKeyStr = Deno.env.get("GOOGLE_SERVICE_ACCOUNT_KEY");
