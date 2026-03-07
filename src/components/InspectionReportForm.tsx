@@ -251,6 +251,8 @@ const InspectionReportForm = ({ assignment, surveyId, onComplete, onCancel }: Pr
         technician_id: user.id,
         sr_id: assignment.sr_id,
       };
+      // Remove fields not in DB
+      delete payload.declaration_type;
 
       if (existingReport) {
         const { error } = await supabase
