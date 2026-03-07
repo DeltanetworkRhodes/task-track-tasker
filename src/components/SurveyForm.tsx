@@ -183,7 +183,6 @@ const SurveyForm = ({ assignments, prefillSrId, prefillArea, onComplete }: Props
         setComments("");
         setBuildingPhotos([]);
         setScreenshots([]);
-        setInspectionPhotos([]);
         setSubmitted(false);
       }, 3000);
 
