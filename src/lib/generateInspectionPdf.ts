@@ -235,8 +235,8 @@ async function loadMapping(): Promise<PdfMapping> {
   return cachedMapping!;
 }
 
-export async function generateInspectionPdfBytes(data: Record<string, any>): Promise<Uint8Array> {
-  const mapping = await loadMapping();
+export async function generateInspectionPdfBytes(data: Record<string, any>, overrideMapping?: any): Promise<Uint8Array> {
+  const mapping: PdfMapping = overrideMapping || await loadMapping();
 
   const [templateBytes, fontBytes, boldFontBytes] = await Promise.all([
     fetch("/templates/inspection_template.pdf").then(async (r) => {
