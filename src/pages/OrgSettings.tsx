@@ -28,11 +28,13 @@ const SETTING_DEFINITIONS = [
     section: "Email",
     icon: Mail,
     fields: [
-      { key: "email_from", label: "Email Αποστολέα", placeholder: "noreply@company.gr", description: "Το email από το οποίο αποστέλλονται οι ειδοποιήσεις" },
-      { key: "email_reply_to", label: "Reply-To Email", placeholder: "info@company.gr", description: "Το email απάντησης" },
-      { key: "completion_to_emails", label: "Emails Ολοκλήρωσης (TO)", placeholder: "email1@example.com, email2@example.com", description: "Παραλήπτες email ολοκλήρωσης (χωρισμένοι με κόμμα)" },
-      { key: "completion_cc_emails", label: "Emails Ολοκλήρωσης (CC)", placeholder: "cc@example.com", description: "CC παραλήπτες email ολοκλήρωσης" },
-      { key: "low_stock_alert_email", label: "Email Ειδοποίησης Αποθήκης", placeholder: "warehouse@company.gr", description: "Email για ειδοποιήσεις χαμηλού αποθέματος" },
+      { key: "email_from", label: "Email Αποστολέα", placeholder: "noreply@company.gr", description: "Το email που εμφανίζεται ως «Από:» στα emails (πρέπει να είναι verified στο Resend)" },
+      { key: "email_reply_to", label: "Reply-To Email", placeholder: "info@company.gr", description: "Το email στο οποίο θα απαντήσει ο παραλήπτης" },
+      { key: "report_to_emails", label: "Παραλήπτες Αυτοψιών / Ακυρώσεων (TO)", placeholder: "supervisor@company.gr, manager@company.gr", description: "Emails που λαμβάνουν αναφορές αυτοψιών, ακυρώσεων και blockers (χωρισμένα με κόμμα)" },
+      { key: "report_cc_emails", label: "Παραλήπτες Αυτοψιών / Ακυρώσεων (CC)", placeholder: "cc@company.gr", description: "CC παραλήπτες για τα ίδια emails" },
+      { key: "completion_to_emails", label: "Παραλήπτες Ολοκλήρωσης Κατασκευής (TO)", placeholder: "ote@example.com, billing@company.gr", description: "Emails που λαμβάνουν το ZIP ολοκλήρωσης κατασκευής (χωρισμένα με κόμμα)" },
+      { key: "completion_cc_emails", label: "Παραλήπτες Ολοκλήρωσης Κατασκευής (CC)", placeholder: "cc@company.gr", description: "CC παραλήπτες για emails ολοκλήρωσης" },
+      { key: "low_stock_alert_email", label: "Email Ειδοποίησης Αποθήκης", placeholder: "warehouse@company.gr", description: "Email για ειδοποιήσεις χαμηλού αποθέματος υλικών OTE" },
     ],
   },
 ];

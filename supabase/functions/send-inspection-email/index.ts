@@ -74,13 +74,7 @@ Deno.serve(async (req) => {
     const techPhone = profile?.phone || "";
     const orgId = profile?.organization_id;
 
-    // Get org-specific settings
-    let settingsQuery = adminClient.from("email_settings").select("*");
-    if (orgId) settingsQuery = settingsQuery.eq("organization_id", orgId);
-    const { data: settings } = await settingsQuery;
-    const settingsMap: Record<string, string> = {};
-    (settings || []).forEach((s: any) => { settingsMap[s.setting_key] = s.setting_value; });
-
+    // Get org-specific settings for all email config
     let orgSettingsQuery = adminClient.from("org_settings").select("setting_key, setting_value");
     if (orgId) orgSettingsQuery = orgSettingsQuery.eq("organization_id", orgId);
     const { data: orgSettings } = await orgSettingsQuery;
@@ -90,8 +84,8 @@ Deno.serve(async (req) => {
     const emailFrom = orgSettingsMap["email_from"] || "noreply@deltanetwork.gr";
     const emailReplyTo = orgSettingsMap["email_reply_to"] || "info@deltanetwork.gr";
 
-    const toEmails = settingsMap["report_to_emails"] || emailReplyTo;
-    const ccEmails = settingsMap["report_cc_emails"] || "";
+    const toEmails = orgSettingsMap["report_to_emails"] || emailReplyTo;
+    const ccEmails = orgSettingsMap["report_cc_emails"] || "";
 
     const subject = `[ΑΥΤΟΨΙΑ] SR: ${sr_id} — ${area || ""}`;
 

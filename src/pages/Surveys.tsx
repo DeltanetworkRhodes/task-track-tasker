@@ -49,9 +49,6 @@ const Surveys = () => {
   const [selectedSurvey, setSelectedSurvey] = useState<any>(null);
   const [sendingEmail, setSendingEmail] = useState(false);
   const [sendingReminder, setSendingReminder] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
-  const [toEmails, setToEmails] = useState("");
-  const [ccEmails, setCcEmails] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<any>(null);
   const [deleting, setDeleting] = useState(false);
 
@@ -90,16 +87,6 @@ const Surveys = () => {
     },
   });
 
-  const { data: emailSettings } = useQuery({
-    queryKey: ["email-settings"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("email_settings").select("*");
-      if (error) throw error;
-      const map: Record<string, string> = {};
-      (data || []).forEach((s: any) => { map[s.setting_key] = s.setting_value; });
-      return map;
-    },
-  });
 
   const { data: appointments } = useQuery({
     queryKey: ["appointments"],
@@ -195,18 +182,6 @@ const Surveys = () => {
     queryClient.invalidateQueries({ queryKey: ["appointments"] });
   };
 
-  const handleSaveSettings = async () => {
-    const updates = [
-      { setting_key: "report_to_emails", setting_value: toEmails },
-      { setting_key: "report_cc_emails", setting_value: ccEmails },
-    ];
-    for (const u of updates) {
-      await supabase.from("email_settings").upsert(u, { onConflict: "setting_key" });
-    }
-    toast.success("Ρυθμίσεις αποθηκεύτηκαν");
-    queryClient.invalidateQueries({ queryKey: ["email-settings"] });
-    setShowSettings(false);
-  };
 
   const handleSendReminder = async (survey: any) => {
     setSendingReminder(true);
@@ -327,19 +302,6 @@ const Surveys = () => {
               Προβολή, διαχείριση & αναφορές αυτοψιών
             </p>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-1.5"
-            onClick={() => {
-              setToEmails(emailSettings?.report_to_emails || "");
-              setCcEmails(emailSettings?.report_cc_emails || "");
-              setShowSettings(true);
-            }}
-          >
-            <Settings className="h-4 w-4" />
-            Ρυθμίσεις Email
-          </Button>
         </div>
 
         {/* Stat Cards */}
@@ -727,38 +689,6 @@ const Surveys = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Email Settings Dialog */}
-      <Dialog open={showSettings} onOpenChange={setShowSettings}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Ρυθμίσεις Email Αναφορών</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 mt-2">
-            <div className="space-y-2">
-              <Label className="text-xs">Παραλήπτες (To)</Label>
-              <Input
-                value={toEmails}
-                onChange={(e) => setToEmails(e.target.value)}
-                placeholder="email1@example.com, email2@example.com"
-                className="text-sm"
-              />
-              <p className="text-xs text-muted-foreground">Χωρίστε πολλαπλά emails με κόμμα</p>
-            </div>
-            <div className="space-y-2">
-              <Label className="text-xs">Κοινοποίηση (CC)</Label>
-              <Input
-                value={ccEmails}
-                onChange={(e) => setCcEmails(e.target.value)}
-                placeholder="cc@example.com"
-                className="text-sm"
-              />
-            </div>
-            <Button onClick={handleSaveSettings} className="w-full">
-              Αποθήκευση
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
 
       {/* Delete Confirmation */}
       <AlertDialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}>
