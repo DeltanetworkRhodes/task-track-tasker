@@ -75,7 +75,16 @@ const Surveys = () => {
         .select("*")
         .eq("survey_id", selectedSurvey.id);
       if (error) throw error;
-      return data;
+      // Generate signed URLs for each file
+      const filesWithUrls = await Promise.all(
+        (data || []).map(async (f: any) => {
+          const { data: signedData } = await supabase.storage
+            .from("surveys")
+            .createSignedUrl(f.file_path, 3600); // 1 hour
+          return { ...f, signedUrl: signedData?.signedUrl || "" };
+        })
+      );
+      return filesWithUrls;
     },
     enabled: !!selectedSurvey,
   });
