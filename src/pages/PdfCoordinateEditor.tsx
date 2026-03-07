@@ -243,6 +243,9 @@ const PdfCoordinateEditor = () => {
   const [pdfDims, setPdfDims] = useState<{ width: number; height: number }>({ width: 595, height: 842 });
   
   const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewImages, setPreviewImages] = useState<string[]>([]);
+  const [showPreview, setShowPreview] = useState(false);
+  const [previewPage, setPreviewPage] = useState(1);
   const canvasRef = useRef<HTMLDivElement>(null);
 
   // Load mapping
@@ -442,40 +445,36 @@ const PdfCoordinateEditor = () => {
 
   const handlePreviewPdf = async () => {
     if (!mapping) return;
-
-    // Open immediately to keep browser "user gesture" and avoid popup/client blocking
-    const previewTab = window.open("", "_blank");
-    if (previewTab) {
-      previewTab.document.write("<html><head><title>PDF Preview</title></head><body style='font-family: sans-serif; padding: 16px;'>Generating preview PDF...</body></html>");
-      previewTab.document.close();
-    }
-
     setPreviewLoading(true);
     try {
       const { generateInspectionPdfBytes: genPdf, clearMappingCache } = await import("@/lib/generateInspectionPdf");
       clearMappingCache();
 
       const pdfBytes = await genPdf(PREVIEW_SAMPLE_DATA, mapping);
-      const blob = new Blob([new Uint8Array(pdfBytes)], { type: "application/pdf" });
-      const url = URL.createObjectURL(blob);
 
-      if (previewTab && !previewTab.closed) {
-        previewTab.location.href = url;
-        toast.success("Preview PDF άνοιξε σε νέα καρτέλα!");
-      } else {
-        const a = document.createElement("a");
-        a.href = url;
-        a.target = "_blank";
-        a.rel = "noopener noreferrer";
-        a.click();
-        toast.success("Preview PDF δημιουργήθηκε (fallback άνοιγμα). ");
+      // Render PDF pages as images using pdf.js
+      const loadingTask = pdfjsLib.getDocument({ data: pdfBytes });
+      const pdf = await loadingTask.promise;
+      const rendered: string[] = [];
+
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const viewport = page.getViewport({ scale: 2 });
+        const canvas = document.createElement("canvas");
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+        const ctx = canvas.getContext("2d")!;
+        await page.render({ canvasContext: ctx, viewport }).promise;
+        rendered.push(canvas.toDataURL("image/png"));
       }
 
-      window.setTimeout(() => URL.revokeObjectURL(url), 60000);
+      setPreviewImages(rendered);
+      setPreviewPage(currentPage);
+      setShowPreview(true);
+      toast.success("Preview δημιουργήθηκε!");
     } catch (err) {
-      if (previewTab && !previewTab.closed) previewTab.close();
       console.error("Preview error:", err);
-      toast.error("Σφάλμα δημιουργίας preview: " + (err as Error).message);
+      toast.error("Σφάλμα preview: " + (err as Error).message);
     } finally {
       setPreviewLoading(false);
     }
@@ -629,103 +628,132 @@ const PdfCoordinateEditor = () => {
         </div>
       </div>
 
-      {/* Canvas */}
-      <div className="flex-1 overflow-auto bg-muted/50 p-8">
-        <div
-          ref={canvasRef}
-          className="relative mx-auto shadow-2xl"
-          style={{
-            width: pdfDims.width * zoom,
-            height: pdfDims.height * zoom,
-            background: "#fff",
-          }}
-        >
-          {/* PDF background rendered as image */}
-          {pageImages[currentPage - 1] ? (
-            <img
-              src={pageImages[currentPage - 1]}
-              className="absolute inset-0 w-full h-full pointer-events-none"
-              alt={`PDF Page ${currentPage}`}
-              draggable={false}
-            />
-          ) : (
-            <div className="absolute inset-0 flex items-center justify-center text-muted-foreground text-sm">
-              Φόρτωση σελίδας...
-            </div>
-          )}
-
-          {/* Field markers */}
-          {items.map((item) => {
-            const fullKey = item.subKey ? `${item.key}.${item.subKey}` : item.key;
-            const isSelected = selectedField === fullKey;
-            const screen = pdfToScreen(item.x, item.y);
-            return (
-              <div
-                key={fullKey}
-                className="absolute cursor-grab active:cursor-grabbing group"
-                style={{
-                  left: screen.left - 6,
-                  top: screen.top - 6,
-                  zIndex: isSelected ? 100 : 10,
-                }}
-                onMouseDown={(e) => handleMouseDown(e, item.key, item.subKey)}
-              >
-                {/* Marker: X for checks, ○ for check_if/check_if_not */}
-                {(item.type === "check_if" || item.type === "check_if_not") && item.mark !== "x" ? (
-                  <div
-                    className="flex items-center justify-center transition-transform"
-                    style={{
-                      width: 22,
-                      height: 22,
-                      borderRadius: "50%",
-                      border: `2px solid ${item.color}`,
-                      backgroundColor: isSelected ? `${item.color}30` : "transparent",
-                      transform: isSelected ? "scale(1.4)" : "scale(1)",
-                      boxShadow: isSelected ? `0 0 0 3px ${item.color}40, 0 2px 8px rgba(0,0,0,0.3)` : "0 1px 3px rgba(0,0,0,0.3)",
-                    }}
-                  >
-                    <span style={{ fontSize: 9, fontWeight: 700, color: item.color, lineHeight: 1 }}>○</span>
-                  </div>
-                ) : (item.type === "check" || item.type === "check_map" || item.type === "check_map_multi" || ((item.type === "check_if" || item.type === "check_if_not") && item.mark === "x")) ? (
-                  <div
-                    className="flex items-center justify-center transition-transform"
-                    style={{
-                      width: 14,
-                      height: 14,
-                      backgroundColor: isSelected ? item.color : `${item.color}cc`,
-                      transform: isSelected ? "scale(1.4)" : "scale(1)",
-                      boxShadow: isSelected ? `0 0 0 3px ${item.color}40, 0 2px 8px rgba(0,0,0,0.3)` : "0 1px 3px rgba(0,0,0,0.3)",
-                    }}
-                  >
-                    <span style={{ fontSize: 10, fontWeight: 900, color: "#fff", lineHeight: 1 }}>✕</span>
-                  </div>
-                ) : (
-                  <div
-                    className="w-3 h-3 rounded-full border-2 border-white shadow-md transition-transform"
-                    style={{
-                      backgroundColor: item.color,
-                      transform: isSelected ? "scale(1.5)" : "scale(1)",
-                      boxShadow: isSelected ? `0 0 0 3px ${item.color}40, 0 2px 8px rgba(0,0,0,0.3)` : "0 1px 3px rgba(0,0,0,0.3)",
-                    }}
-                  />
-                )}
-                {/* Label */}
-                {showLabels && (
-                  <div
-                    className="absolute left-4 top-[-4px] whitespace-nowrap text-[9px] font-mono px-1 py-0.5 rounded shadow-sm pointer-events-none"
-                    style={{
-                      backgroundColor: item.color,
-                      color: "#fff",
-                      opacity: isSelected ? 1 : 0.8,
-                    }}
-                  >
-                    {item.label}
-                  </div>
-                )}
+      {/* Canvas + Preview side by side */}
+      <div className={`flex-1 flex ${showPreview ? "gap-0" : ""} overflow-hidden`}>
+        {/* Editor Canvas */}
+        <div className={`${showPreview ? "w-1/2 border-r" : "flex-1"} overflow-auto bg-muted/50 p-4`}>
+          <div className="text-xs text-muted-foreground text-center mb-2 font-medium">📐 Editor — Σελίδα {currentPage}</div>
+          <div
+            ref={canvasRef}
+            className="relative mx-auto shadow-2xl"
+            style={{
+              width: pdfDims.width * zoom,
+              height: pdfDims.height * zoom,
+              background: "#fff",
+            }}
+          >
+            {pageImages[currentPage - 1] ? (
+              <img
+                src={pageImages[currentPage - 1]}
+                className="absolute inset-0 w-full h-full pointer-events-none"
+                alt={`PDF Page ${currentPage}`}
+                draggable={false}
+              />
+            ) : (
+              <div className="absolute inset-0 flex items-center justify-center text-muted-foreground text-sm">
+                Φόρτωση σελίδας...
               </div>
-            );
-          })}
+            )}
+
+            {items.map((item) => {
+              const fullKey = item.subKey ? `${item.key}.${item.subKey}` : item.key;
+              const isSelected = selectedField === fullKey;
+              const screen = pdfToScreen(item.x, item.y);
+              return (
+                <div
+                  key={fullKey}
+                  className="absolute cursor-grab active:cursor-grabbing group"
+                  style={{
+                    left: screen.left - 6,
+                    top: screen.top - 6,
+                    zIndex: isSelected ? 100 : 10,
+                  }}
+                  onMouseDown={(e) => handleMouseDown(e, item.key, item.subKey)}
+                >
+                  {(item.type === "check_if" || item.type === "check_if_not") && item.mark !== "x" ? (
+                    <div
+                      className="flex items-center justify-center transition-transform"
+                      style={{
+                        width: 22,
+                        height: 22,
+                        borderRadius: "50%",
+                        border: `2px solid ${item.color}`,
+                        backgroundColor: isSelected ? `${item.color}30` : "transparent",
+                        transform: isSelected ? "scale(1.4)" : "scale(1)",
+                        boxShadow: isSelected ? `0 0 0 3px ${item.color}40, 0 2px 8px rgba(0,0,0,0.3)` : "0 1px 3px rgba(0,0,0,0.3)",
+                      }}
+                    >
+                      <span style={{ fontSize: 9, fontWeight: 700, color: item.color, lineHeight: 1 }}>○</span>
+                    </div>
+                  ) : (item.type === "check" || item.type === "check_map" || item.type === "check_map_multi" || ((item.type === "check_if" || item.type === "check_if_not") && item.mark === "x")) ? (
+                    <div
+                      className="flex items-center justify-center transition-transform"
+                      style={{
+                        width: 14,
+                        height: 14,
+                        backgroundColor: isSelected ? item.color : `${item.color}cc`,
+                        transform: isSelected ? "scale(1.4)" : "scale(1)",
+                        boxShadow: isSelected ? `0 0 0 3px ${item.color}40, 0 2px 8px rgba(0,0,0,0.3)` : "0 1px 3px rgba(0,0,0,0.3)",
+                      }}
+                    >
+                      <span style={{ fontSize: 10, fontWeight: 900, color: "#fff", lineHeight: 1 }}>✕</span>
+                    </div>
+                  ) : (
+                    <div
+                      className="w-3 h-3 rounded-full border-2 border-white shadow-md transition-transform"
+                      style={{
+                        backgroundColor: item.color,
+                        transform: isSelected ? "scale(1.5)" : "scale(1)",
+                        boxShadow: isSelected ? `0 0 0 3px ${item.color}40, 0 2px 8px rgba(0,0,0,0.3)` : "0 1px 3px rgba(0,0,0,0.3)",
+                      }}
+                    />
+                  )}
+                  {showLabels && (
+                    <div
+                      className="absolute left-4 top-[-4px] whitespace-nowrap text-[9px] font-mono px-1 py-0.5 rounded shadow-sm pointer-events-none"
+                      style={{
+                        backgroundColor: item.color,
+                        color: "#fff",
+                        opacity: isSelected ? 1 : 0.8,
+                      }}
+                    >
+                      {item.label}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </div>
+
+        {/* Preview Panel */}
+        {showPreview && previewImages.length > 0 && (
+          <div className="w-1/2 overflow-auto bg-muted/30 p-4 flex flex-col">
+            <div className="flex items-center justify-between mb-2">
+              <div className="text-xs font-medium text-muted-foreground">👁 Preview — Σελίδα {previewPage}</div>
+              <div className="flex items-center gap-1">
+                <Button variant="ghost" size="icon" className="h-6 w-6" disabled={previewPage <= 1} onClick={() => setPreviewPage(p => p - 1)}>
+                  <ChevronLeft className="h-3 w-3" />
+                </Button>
+                <span className="text-xs text-muted-foreground">{previewPage}/{previewImages.length}</span>
+                <Button variant="ghost" size="icon" className="h-6 w-6" disabled={previewPage >= previewImages.length} onClick={() => setPreviewPage(p => p + 1)}>
+                  <ChevronRight className="h-3 w-3" />
+                </Button>
+                <Button variant="ghost" size="icon" className="h-6 w-6 ml-2" onClick={() => setShowPreview(false)}>
+                  <span className="text-xs font-bold">✕</span>
+                </Button>
+              </div>
+            </div>
+            <div className="flex-1 overflow-auto flex justify-center">
+              <img
+                src={previewImages[previewPage - 1]}
+                className="shadow-lg max-w-full h-auto"
+                alt={`Preview Page ${previewPage}`}
+                draggable={false}
+              />
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
