@@ -770,7 +770,7 @@ const Surveys = () => {
                       <div key={type} className="space-y-2">
                         <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
                           <Icon className="h-3.5 w-3.5" />
-                          {fileTypeLabels[type] || type} ({files.length})
+                          {fileTypeLabels[type] || type} ({(files as any[]).length})
                         </h3>
                         <div className="grid grid-cols-3 gap-2">
                           {(files as any[]).map((f: any) => (
