@@ -82,7 +82,7 @@ const PdfCoordinateEditor = () => {
   useEffect(() => {
     (async () => {
       try {
-        const loadingTask = pdfjsLib.getDocument("/templates/inspection_template.pdf");
+        const loadingTask = pdfjsLib.getDocument(`/templates/inspection_template.pdf?v=${Date.now()}`);
         const pdf = await loadingTask.promise;
         const totalPagesCount = pdf.numPages;
         const rendered: string[] = [];
