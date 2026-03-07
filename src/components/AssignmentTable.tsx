@@ -245,22 +245,67 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
         .eq("id", assignmentId);
       if (error) throw error;
 
-      // If cancelled, move the SR folder in Drive to ΑΚΥΡΩΜΕΝΕΣ ΚΑΤΑΣΚΕΥΕΣ
-      if (newStatus === "cancelled") {
-        const assignment = assignments.find((a: any) => a.id === assignmentId) as any;
-        if (assignment) {
-          try {
-            await supabase.functions.invoke("move-cancelled-folder", {
-              body: {
-                sr_id: assignment.sr_id || assignment.srId,
-                area: assignment.area,
-                assignment_id: assignmentId,
-              },
-            });
-            toast.success("Ο φάκελος μεταφέρθηκε στις ΑΚΥΡΩΜΕΝΕΣ ΚΑΤΑΣΚΕΥΕΣ");
-          } catch (moveErr) {
-            console.error("Move folder error:", moveErr);
+      const assignment = assignments.find((a: any) => a.id === assignmentId) as any;
+
+      // If pre_committed, auto-fetch Drive folder URLs
+      if (newStatus === "pre_committed" && assignment) {
+        const srId = assignment.sr_id || assignment.srId;
+        try {
+          const { data: driveResult, error: driveErr } = await supabase.functions.invoke("google-drive-files", {
+            body: { action: "sr_folder", sr_id: srId },
+          });
+          if (!driveErr && driveResult?.found) {
+            const folderUrl = driveResult.folder?.webViewLink || null;
+            const egrafaUrl = driveResult.subfolders?.["ΕΓΓΡΑΦΑ"]?.webViewLink || null;
+            const promeletiUrl = driveResult.subfolders?.["ΠΡΟΜΕΛΕΤΗ"]?.webViewLink || null;
+
+            await supabase
+              .from("assignments")
+              .update({
+                drive_folder_url: folderUrl,
+                drive_egrafa_url: egrafaUrl,
+                drive_promeleti_url: promeletiUrl,
+              })
+              .eq("id", assignmentId);
+
+            queryClient.setQueryData(["assignments"], (old: any) =>
+              old?.map((a: any) => a.id === assignmentId ? {
+                ...a,
+                drive_folder_url: folderUrl,
+                drive_egrafa_url: egrafaUrl,
+                drive_promeleti_url: promeletiUrl,
+              } : a)
+            );
+            if (selected?.id === assignmentId) {
+              setSelected((prev: any) => prev ? {
+                ...prev,
+                driveUrl: folderUrl,
+                driveEgrafaUrl: egrafaUrl,
+                drivePromeletiUrl: promeletiUrl,
+              } : prev);
+            }
+            toast.success("Αρχεία Drive βρέθηκαν και συνδέθηκαν αυτόματα");
+          } else {
+            toast.info("Δεν βρέθηκε φάκελος Drive για " + srId);
           }
+        } catch (driveFetchErr) {
+          console.error("Drive auto-fetch error:", driveFetchErr);
+        }
+      }
+
+      // If cancelled, move the SR folder in Drive to ΑΚΥΡΩΜΕΝΕΣ ΚΑΤΑΣΚΕΥΕΣ
+      if (newStatus === "cancelled" && assignment) {
+        try {
+          await supabase.functions.invoke("move-cancelled-folder", {
+            body: {
+              sr_id: assignment.sr_id || assignment.srId,
+              area: assignment.area,
+              assignment_id: assignmentId,
+            },
+          });
+          toast.success("Ο φάκελος μεταφέρθηκε στις ΑΚΥΡΩΜΕΝΕΣ ΚΑΤΑΣΚΕΥΕΣ");
+        } catch (moveErr) {
+          console.error("Move folder error:", moveErr);
         }
       }
     } catch (err: any) {

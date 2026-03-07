@@ -171,9 +171,10 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
 
       toast.success(`Κατάσταση → ${statusLabels[newStatus]}`);
 
+      const assignment = assignments.find((a) => a.id === assignmentId);
+
       if (newStatus === "inspection" && oldStatus !== "inspection") {
         try {
-          const assignment = assignments.find((a) => a.id === assignmentId);
           await supabase.functions.invoke("send-inspection-email", {
             body: {
               assignment_id: assignmentId,
@@ -188,6 +189,41 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
           toast.success("Αυτόματο email αυτοψίας εστάλη");
         } catch (emailErr) {
           console.error("Email error:", emailErr);
+        }
+      }
+
+      // Auto-fetch Drive folder URLs on pre_committed
+      if (newStatus === "pre_committed" && assignment) {
+        try {
+          const { data: driveResult, error: driveErr } = await supabase.functions.invoke("google-drive-files", {
+            body: { action: "sr_folder", sr_id: assignment.sr_id },
+          });
+          if (!driveErr && driveResult?.found) {
+            const folderUrl = driveResult.folder?.webViewLink || null;
+            const egrafaUrl = driveResult.subfolders?.["ΕΓΓΡΑΦΑ"]?.webViewLink || null;
+            const promeletiUrl = driveResult.subfolders?.["ΠΡΟΜΕΛΕΤΗ"]?.webViewLink || null;
+
+            await supabase
+              .from("assignments")
+              .update({
+                drive_folder_url: folderUrl,
+                drive_egrafa_url: egrafaUrl,
+                drive_promeleti_url: promeletiUrl,
+              })
+              .eq("id", assignmentId);
+
+            queryClient.setQueryData(["technician-assignments"], (old: any) =>
+              old?.map((a: any) => a.id === assignmentId ? {
+                ...a,
+                drive_folder_url: folderUrl,
+                drive_egrafa_url: egrafaUrl,
+                drive_promeleti_url: promeletiUrl,
+              } : a)
+            );
+            toast.success("Αρχεία Drive συνδέθηκαν αυτόματα");
+          }
+        } catch (driveFetchErr) {
+          console.error("Drive auto-fetch error:", driveFetchErr);
         }
       }
     } catch (err: any) {
