@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, ClipboardCheck, Wrench, Package, LogOut, FileText, TrendingUp, Search, UserCog, X, BarChart3, Settings, Sun, Moon, CalendarDays, GripVertical, Check, Columns3 } from "lucide-react";
+import { LayoutDashboard, ClipboardCheck, Wrench, Package, LogOut, FileText, TrendingUp, Search, UserCog, X, BarChart3, Settings, Sun, Moon, CalendarDays, GripVertical, Check } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import NotificationBell from "@/components/NotificationBell";
 import deltaLogoIcon from "@/assets/delta-logo-icon.png";
@@ -15,7 +15,7 @@ const DEFAULT_NAV_ITEMS = [
   { to: '/materials', label: 'Αποθήκη', icon: Package },
   { to: '/work-pricing', label: 'Τιμοκατάλογος', icon: FileText },
   { to: '/profit', label: 'Κέρδος/SR', icon: TrendingUp },
-  { to: '/kanban', label: 'Kanban', icon: Columns3 },
+  
   { to: '/kpis', label: 'KPIs Τεχνικών', icon: BarChart3 },
   { to: '/calendar', label: 'Ημερολόγιο', icon: CalendarDays },
   { to: '/users', label: 'Χρήστες', icon: UserCog },
@@ -30,7 +30,7 @@ const ICON_MAP: Record<string, React.ElementType> = {
   '/materials': Package,
   '/work-pricing': FileText,
   '/profit': TrendingUp,
-  '/kanban': Columns3,
+  
   '/kpis': BarChart3,
   '/calendar': CalendarDays,
   '/users': UserCog,
