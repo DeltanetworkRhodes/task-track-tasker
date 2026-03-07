@@ -94,8 +94,8 @@
         { "key": "declarant_street", "type": "text", "x": 323, "y": 657, "size": 9, "maxWidth": 160 },
         { "key": "declarant_number", "type": "text", "x": 523, "y": 657, "size": 9, "maxWidth": 24 },
         { "key": "declarant_postal_code", "type": "boxed", "x": 603, "y": 657, "size": 8, "boxWidth": 12, "boxCount": 6 },
-        { "key": "cost_option_ote", "type": "check_if", "x": 39, "y": 460, "sourceKey": "cost_option", "match": "ote_covers" },
-        { "key": "cost_option_other", "type": "check_if_not", "x": 39, "y": 429, "sourceKey": "cost_option", "match": "ote_covers" },
+        { "key": "cost_option_ote", "type": "check_if", "x": 39, "y": 460, "sourceKey": "cost_option", "match": "ote_covers", "mark": "x" },
+        { "key": "cost_option_other", "type": "check_if_not", "x": 39, "y": 429, "sourceKey": "cost_option", "match": "ote_covers", "mark": "x" },
         { "key": "declaration_date", "type": "text", "x": 439, "y": 371, "size": 9, "maxWidth": 200 },
         { "key": "declaration_signature", "type": "signature", "x": 220, "y": 155, "maxW": 170, "maxH": 45 }
       ]
