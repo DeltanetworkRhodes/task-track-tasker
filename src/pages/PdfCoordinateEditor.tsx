@@ -93,6 +93,8 @@ const FIELD_LABELS: Record<string, string> = {
   sidewalk_excavation_yes: "Εκσκαφή Πεζοδρομίου: ΝΑΙ",
   sidewalk_excavation_no: "Εκσκαφή Πεζοδρομίου: ΟΧΙ",
   entry_pipe_notes: "Σημ. Σωλήνα Εισαγωγής",
+  ext_pipe_sidewalk_excavation_yes: "Εκσκαφή Πεζοδρ. Σιδηροσωλ.: ΝΑΙ",
+  ext_pipe_sidewalk_excavation_no: "Εκσκαφή Πεζοδρ. Σιδηροσωλ.: ΟΧΙ",
   excavation_to_pipe_yes: "Εκσκαφή→Σωλήνα: ΝΑΙ",
   excavation_to_pipe_no: "Εκσκαφή→Σωλήνα: ΟΧΙ",
   excavation_to_rg_yes: "Εκσκαφή→RG: ΝΑΙ",
