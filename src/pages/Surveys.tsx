@@ -17,7 +17,8 @@ import { BarChart, Bar, XAxis, YAxis, Cell, PieChart, Pie } from "recharts";
 import {
   Eye, Calendar, MapPin, User, MessageSquare, FileImage, Image, FileText,
   Download, CheckCircle, AlertTriangle, Clock, Mail, Send, Settings, XCircle,
-  CalendarPlus, Bell, Search, Filter, ClipboardCheck, FileCheck, FileWarning, ShieldAlert, Trash2
+  CalendarPlus, Bell, Search, Filter, ClipboardCheck, FileCheck, FileWarning, ShieldAlert, Trash2,
+  RefreshCw, Loader2
 } from "lucide-react";
 
 const fileTypeLabels: Record<string, string> = {
