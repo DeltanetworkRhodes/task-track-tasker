@@ -117,7 +117,6 @@ const SurveyForm = ({ assignments, prefillSrId, prefillArea, onComplete }: Props
       const allFiles = [
         ...(await uploadFiles(buildingPhotos, survey.id, "building_photo")),
         ...(await uploadFiles(screenshots, survey.id, "screenshot")),
-        ...(await uploadFiles(inspectionPhotos, survey.id, "inspection_form")),
       ];
 
       // Save file records
