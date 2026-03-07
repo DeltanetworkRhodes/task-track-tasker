@@ -156,6 +156,16 @@ function drawText(page: any, text: string, x: number, y: number, font: any, size
   page.drawText(text, { x, y, size, font, color: BLACK });
 }
 
+function drawBoxedText(page: any, text: string, x: number, y: number, font: any, size: number, boxWidth: number, boxCount: number) {
+  if (!text) return;
+  const chars = text.replace(/\s/g, "").split("");
+  for (let i = 0; i < Math.min(chars.length, boxCount); i++) {
+    const charW = font.widthOfTextAtSize(chars[i], size);
+    const cx = x + i * boxWidth + (boxWidth - charW) / 2;
+    page.drawText(chars[i], { x: cx, y, size, font, color: BLACK });
+  }
+}
+
 function drawCheck(page: any, checked: boolean, x: number, y: number, font: any) {
   if (!checked) return;
   page.drawText("X", { x, y, size: 9, font, color: BLACK });
@@ -214,100 +224,100 @@ async function generateInspectionPdf(data: InspectionData, templateBytes: Uint8A
 
   // ─── Page 1: Στοιχεία Πελάτη / Διαχειριστή / Τεχν. Υπηρεσίας ───
   const p1 = pages[0];
-  const pageHeight = p1.getHeight();
-  console.log(`Page 1 dimensions: ${p1.getWidth()} x ${pageHeight}`);
+  console.log(`Page 1 dimensions: ${p1.getWidth()} x ${p1.getHeight()}`);
   
-  // Row positions (Y from bottom) - calibrated v4
-  drawText(p1, data.customer_name || "", 185, 652, font);         // ΟΝΟΜΑΤΕΠΩΝΥΜΟ
-  drawText(p1, data.customer_father_name || "", 466, 652, font);  // ΟΝΟΜΑ ΠΑΤΡΟΣ
-  drawText(p1, data.customer_mobile || "", 172, 616, font);       // ΤΗΛΕΦΩΝΟ (κινητό)
-  drawText(p1, data.customer_phone || "", 176, 586, font);        // ΤΗΛΕΦΩΝΟ (σταθερό)
-  drawText(p1, data.customer_email || "", 82, 554, font);         // EMAIL
-  drawText(p1, data.customer_street || "", 72, 506, font);        // ΟΔΟΣ
-  drawText(p1, data.customer_number || "", 292, 506, font);       // ΑΡΙΘ.
-  drawText(p1, data.customer_postal_code || "", 385, 506, font);  // Τ.Κ.
-  drawText(p1, data.customer_floor || "", 92, 474, font);         // ΟΡΟΦΟΣ
-  drawText(p1, data.customer_apartment_code || "", 250, 474, font); // ΚΩΔ. ΔΙΑΜ/ΤΟΣ
-  drawText(p1, data.customer_county || "", 368, 474, font);       // ΝΟΜΟΣ
-  drawText(p1, data.customer_municipality || "", 470, 474, font); // ΔΗΜΟΣ
-  drawWrappedText(p1, data.customer_notes || "", 35, 424, 520, 12, font, 8, 6); // Παρατηρήσεις
+  // Row positions - v5 from user-provided coordinate mapping
+  drawText(p1, data.customer_name || "", 183, 728, font, 9);         // ΟΝΟΜΑΤΕΠΩΝΥΜΟ
+  drawText(p1, data.customer_father_name || "", 456, 728, font, 9);  // ΟΝΟΜΑ ΠΑΤΡΟΣ
+  // Mobile & landline as boxed text
+  drawBoxedText(p1, data.customer_mobile || "", 180, 694, font, 8, 13, 11);
+  drawBoxedText(p1, data.customer_phone || "", 180, 668, font, 8, 13, 11);
+  drawText(p1, data.customer_email || "", 86, 642, font, 9);         // EMAIL
+  drawText(p1, data.customer_street || "", 82, 615, font, 9);        // ΟΔΟΣ
+  drawText(p1, data.customer_number || "", 262, 615, font, 9);       // ΑΡΙΘ.
+  drawBoxedText(p1, data.customer_postal_code || "", 347, 615, font, 8, 12, 6); // Τ.Κ.
+  drawText(p1, data.customer_floor || "", 96, 589, font, 9);         // ΟΡΟΦΟΣ
+  drawText(p1, data.customer_apartment_code || "", 248, 589, font, 9); // ΚΩΔ. ΔΙΑΜ/ΤΟΣ
+  drawText(p1, data.customer_county || "", 402, 589, font, 9);       // ΝΟΜΟΣ
+  drawText(p1, data.customer_municipality || "", 520, 589, font, 9); // ΔΗΜΟΣ
+  drawWrappedText(p1, data.customer_notes || "", 52, 558, 286, 10, font, 8, 7); // Παρατηρήσεις
 
-  drawText(p1, data.manager_name || "", 170, 301, font);          // Διαχειριστής ΟΝΟΜΑΤΕΠΩΝΥΜΟ
-  drawText(p1, data.manager_mobile || "", 214, 269, font);        // Τηλέφωνο Διαχειριστή
-  drawText(p1, data.manager_email || "", 82, 236, font);          // Email Διαχειριστή
+  drawText(p1, data.manager_name || "", 420, 556, font, 9);          // Διαχειριστής ΟΝΟΜΑΤΕΠΩΝΥΜΟ
+  drawBoxedText(p1, data.manager_mobile || "", 486, 529, font, 8, 11, 11); // Τηλέφωνο Διαχειριστή
+  drawText(p1, data.manager_email || "", 420, 503, font, 9);         // Email Διαχειριστή
 
-  drawText(p1, data.service_address || "", 190, 176, font);       // Αρμόδια Τεχνική Υπηρεσία
-  drawText(p1, data.service_phone || "", 224, 146, font);         // Τηλέφωνο Υπηρεσίας
-  drawText(p1, data.service_email || "", 82, 114, font);          // Email Υπηρεσίας
-  drawText(p1, data.technician_name || "", 350, 74, font);        // Τεχνικός
+  drawText(p1, data.service_address || "", 192, 418, font, 9);       // Αρμόδια Τεχνική Υπηρεσία
+  drawBoxedText(p1, data.service_phone || "", 250, 392, font, 8, 12, 11); // Τηλέφωνο Υπηρεσίας
+  drawText(p1, data.service_email || "", 78, 366, font, 9);          // Email Υπηρεσίας
+  drawText(p1, data.technician_name || "", 265, 338, font, 9);       // Τεχνικός
 
+  // ─── Page 2: Τεχνική Περιγραφή – Επιθεώρηση ───
   const p2 = pages[1];
-  drawCheck(p2, !!data.routing_escalit, 123, 730, boldFont);
-  drawCheck(p2, !!data.routing_external_pipe, 311, 730, boldFont);
-  drawCheck(p2, !!data.routing_aerial, 427, 730, boldFont);
-  drawCheck(p2, !!data.routing_other, 542, 730, boldFont);
-  drawText(p2, data.routing_other || "", 468, 707, font, 7);
+  drawCheck(p2, !!data.routing_escalit, 164, 735, boldFont);
+  drawCheck(p2, !!data.routing_external_pipe, 379, 735, boldFont);
+  drawCheck(p2, !!data.routing_aerial, 558, 735, boldFont);
+  drawCheck(p2, !!data.routing_other, 719, 735, boldFont);
 
-  drawCheck(p2, data.excavation_to_pipe === true, 132, 657, boldFont);
-  drawCheck(p2, data.excavation_to_pipe === false, 172, 657, boldFont);
-  drawCheck(p2, data.excavation_to_rg === true, 332, 657, boldFont);
-  drawCheck(p2, data.excavation_to_rg === false, 374, 657, boldFont);
-  drawCheck(p2, !!data.pipe_placement, 322, 592, boldFont);
-  drawCheck(p2, !!data.wall_mount, 542, 592, boldFont);
-  drawCheck(p2, !!data.fence_building_mount, 542, 578, boldFont);
-  drawCheck(p2, !!data.excavation_to_building, 542, 550, boldFont);
+  drawCheck(p2, data.excavation_to_pipe === true, 381, 674, boldFont);
+  drawCheck(p2, data.excavation_to_pipe === false, 421, 674, boldFont);
+  drawCheck(p2, data.excavation_to_rg === true, 381, 640, boldFont);
+  drawCheck(p2, data.excavation_to_rg === false, 422, 640, boldFont);
+  drawCheck(p2, !!data.wall_mount, 491, 584, boldFont);
+  drawCheck(p2, !!data.fence_building_mount, 492, 538, boldFont);
 
   const bepCoords: Record<string, { x: number; y: number }> = {
-    internal: { x: 106, y: 580 },
-    external: { x: 106, y: 564 },
-    fence: { x: 219, y: 580 },
-    building: { x: 219, y: 564 },
-    pole: { x: 327, y: 580 },
-    pillar: { x: 327, y: 564 },
-    basement: { x: 439, y: 580 },
-    ground: { x: 439, y: 564 },
-    rooftop: { x: 525, y: 580 },
-    piloti: { x: 525, y: 564 },
+    internal: { x: 104, y: 432 },
+    external: { x: 104, y: 399 },
+    fence: { x: 104, y: 432 },
+    building: { x: 104, y: 399 },
+    pole: { x: 257, y: 432 },
+    pillar: { x: 257, y: 399 },
+    basement: { x: 403, y: 432 },
+    ground: { x: 403, y: 399 },
+    rooftop: { x: 588, y: 432 },
+    piloti: { x: 588, y: 399 },
   };
   const bep = bepCoords[data.bep_position || ""];
   if (bep) drawCheck(p2, true, bep.x, bep.y, boldFont);
 
   const vertCoords: Record<string, { x: number; y: number }> = {
-    shaft: { x: 100, y: 528 },
-    staircase: { x: 258, y: 528 },
-    lightwell: { x: 376, y: 528 },
-    other: { x: 477, y: 528 },
-    elevator: { x: 100, y: 512 },
-    internal_external: { x: 258, y: 512 },
-    lantern: { x: 376, y: 512 },
+    shaft: { x: 115, y: 347 },
+    elevator: { x: 115, y: 313 },
+    staircase: { x: 321, y: 347 },
+    internal_external: { x: 321, y: 313 },
+    lightwell: { x: 483, y: 347 },
+    lantern: { x: 483, y: 313 },
+    other: { x: 615, y: 347 },
   };
   const vertical = vertCoords[data.vertical_routing || ""];
   if (vertical) drawCheck(p2, true, vertical.x, vertical.y, boldFont);
 
-  drawWrappedText(p2, data.sketch_notes || "", 35, 168, 525, 12, font, 8, 4);
-  drawText(p2, data.optical_socket_position || "", 125, 133, font, 8);
+  drawWrappedText(p2, data.sketch_notes || "", 20, 58, 730, 10, font, 8, 6);
+  drawText(p2, data.optical_socket_position || "", 160, 34, font, 8);
 
-  if (data.engineer_signature) await embedSignature(pdfDoc, p2, data.engineer_signature, 420, 122);
-  if (data.customer_signature) await embedSignature(pdfDoc, p2, data.customer_signature, 420, 93);
-  if (data.manager_signature) await embedSignature(pdfDoc, p2, data.manager_signature, 420, 64);
+  if (data.engineer_signature) await embedSignature(pdfDoc, p2, data.engineer_signature, 445, 22, 120, 26);
+  if (data.customer_signature) await embedSignature(pdfDoc, p2, data.customer_signature, 580, 22, 160, 26);
+  if (data.manager_signature) await embedSignature(pdfDoc, p2, data.manager_signature, 580, 0, 160, 26);
 
+  // ─── Page 3: Υπεύθυνη Δήλωση Διαχειριστή ───
   const p3 = pages[2];
-  drawText(p3, data.declarant_name || "", 180, 678, font);
-  drawText(p3, data.declarant_id_number || "", 456, 678, font);
-  drawText(p3, data.declarant_city || "", 92, 648, font);
-  drawText(p3, data.declarant_street || "", 246, 648, font);
-  drawText(p3, data.declarant_number || "", 394, 648, font);
-  drawText(p3, data.declarant_postal_code || "", 467, 648, font);
+  drawText(p3, data.declarant_name || "", 282, 690, font, 9);
+  drawText(p3, data.declarant_id_number || "", 598, 690, font, 9);
+  drawText(p3, data.declarant_city || "", 125, 657, font, 9);
+  drawText(p3, data.declarant_street || "", 323, 657, font, 9);
+  drawText(p3, data.declarant_number || "", 523, 657, font, 9);
+  drawBoxedText(p3, data.declarant_postal_code || "", 603, 657, font, 8, 12, 6);
 
-  drawCheck(p3, data.cost_option === "ote_covers", 47, 522, boldFont);
-  drawCheck(p3, data.cost_option !== "ote_covers", 47, 500, boldFont);
+  drawCheck(p3, data.cost_option === "ote_covers", 39, 460, boldFont);
+  drawCheck(p3, data.cost_option !== "ote_covers" && data.cost_option != null, 39, 429, boldFont);
 
-  drawText(p3, data.declaration_date || "", 170, 450, font);
-  if (data.declaration_signature) await embedSignature(pdfDoc, p3, data.declaration_signature, 125, 365, 210, 45);
+  drawText(p3, data.declaration_date || "", 439, 371, font, 9);
+  if (data.declaration_signature) await embedSignature(pdfDoc, p3, data.declaration_signature, 220, 155, 170, 45);
 
+  // ─── Page 4: Στοιχεία Κτιρίου / Εξοπλισμός ───
   const p4 = pages[3];
-  drawText(p4, data.building_address || "", 102, 790, font);
-  drawText(p4, data.building_id || "", 367, 766, font);
+  drawText(p4, data.building_address || "", 109, 774, font, 9);
+  drawText(p4, data.building_id || "", 348, 748, font, 9);
 
   const floorKey = normalizeFloor(data.customer_floor_select);
   if (floorKey && FLOOR_CHECK_COORDS[floorKey]) {
@@ -315,14 +325,14 @@ async function generateInspectionPdf(data: InspectionData, templateBytes: Uint8A
     drawCheck(p4, true, c.x, c.y, boldFont);
   }
 
-  drawText(p4, String(data.total_apartments ?? ""), 188, 360, font);
-  drawText(p4, String(data.total_shops ?? ""), 188, 327, font);
-  drawText(p4, String(data.total_spaces ?? ""), 188, 294, font);
-  drawText(p4, String(data.total_floors ?? ""), 188, 261, font);
+  drawText(p4, String(data.total_apartments ?? ""), 220, 239, font, 9);
+  drawText(p4, String(data.total_shops ?? ""), 228, 213, font, 9);
+  drawText(p4, String(data.total_spaces ?? ""), 175, 187, font, 9);
+  drawText(p4, String(data.total_floors ?? ""), 232, 160, font, 9);
 
-  drawText(p4, data.sr_id || "", 395, 360, font);
-  drawText(p4, data.cabinet || "", 395, 327, font);
-  drawText(p4, data.pipe_code || "", 395, 294, font);
+  drawText(p4, data.sr_id || "", 554, 239, font, 9);
+  drawText(p4, data.cabinet || "", 575, 213, font, 9);
+  drawText(p4, data.pipe_code || "", 578, 187, font, 9);
 
   const bcpRowY: Record<string, number> = { SMALL: 264, MEDIUM: 246 };
   const bcpBrandX: Record<string, number> = { RAYCAP: 214, ZTT: 277 };

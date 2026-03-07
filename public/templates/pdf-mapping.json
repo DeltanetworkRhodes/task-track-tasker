@@ -1,106 +1,103 @@
 {
   "template": "inspection_template.pdf",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "pages": {
     "1": {
       "title": "Στοιχεία Πελάτη / Διαχειριστή / Τεχν. Υπηρεσίας",
       "fields": [
-        { "key": "customer_name",           "type": "text",  "x": 185, "y": 652, "size": 8.5, "maxWidth": 250 },
-        { "key": "customer_father_name",    "type": "text",  "x": 466, "y": 652, "size": 8.5, "maxWidth": 100 },
-        { "key": "customer_mobile",         "type": "text",  "x": 172, "y": 616, "size": 8.5, "maxWidth": 200 },
-        { "key": "customer_phone",          "type": "text",  "x": 176, "y": 586, "size": 8.5, "maxWidth": 200 },
-        { "key": "customer_email",          "type": "text",  "x": 82,  "y": 554, "size": 8.5, "maxWidth": 400 },
-        { "key": "customer_street",         "type": "text",  "x": 72,  "y": 506, "size": 8.5, "maxWidth": 200 },
-        { "key": "customer_number",         "type": "text",  "x": 292, "y": 506, "size": 8.5, "maxWidth": 60 },
-        { "key": "customer_postal_code",    "type": "boxed", "x": 385, "y": 506, "size": 8, "boxWidth": 13.5, "boxCount": 5 },
-        { "key": "customer_floor",          "type": "text",  "x": 92,  "y": 474, "size": 8.5, "maxWidth": 120 },
-        { "key": "customer_apartment_code", "type": "text",  "x": 250, "y": 474, "size": 8.5, "maxWidth": 100 },
-        { "key": "customer_county",         "type": "text",  "x": 368, "y": 474, "size": 8.5, "maxWidth": 90 },
-        { "key": "customer_municipality",   "type": "text",  "x": 470, "y": 474, "size": 8.5, "maxWidth": 100 },
-        { "key": "customer_notes",          "type": "wrapped", "x": 35, "y": 424, "size": 8, "maxWidth": 520, "lineHeight": 12, "maxLines": 6 },
-        { "key": "manager_name",            "type": "text",  "x": 170, "y": 301, "size": 8.5, "maxWidth": 300 },
-        { "key": "manager_mobile",          "type": "text",  "x": 214, "y": 269, "size": 8.5, "maxWidth": 200 },
-        { "key": "manager_email",           "type": "text",  "x": 82,  "y": 236, "size": 8.5, "maxWidth": 400 },
-        { "key": "service_address",         "type": "text",  "x": 190, "y": 176, "size": 8.5, "maxWidth": 350 },
-        { "key": "service_phone",           "type": "text",  "x": 224, "y": 146, "size": 8.5, "maxWidth": 200 },
-        { "key": "service_email",           "type": "text",  "x": 82,  "y": 114, "size": 8.5, "maxWidth": 400 },
-        { "key": "technician_name",         "type": "text",  "x": 350, "y": 74,  "size": 8.5, "maxWidth": 200 }
+        { "key": "customer_name",           "type": "text",  "x": 183, "y": 728, "size": 9, "maxWidth": 200 },
+        { "key": "customer_father_name",    "type": "text",  "x": 456, "y": 728, "size": 9, "maxWidth": 95 },
+        { "key": "customer_mobile",         "type": "boxed", "x": 180, "y": 694, "size": 8, "boxWidth": 13, "boxCount": 11 },
+        { "key": "customer_phone",          "type": "boxed", "x": 180, "y": 668, "size": 8, "boxWidth": 13, "boxCount": 11 },
+        { "key": "customer_email",          "type": "text",  "x": 86,  "y": 642, "size": 9, "maxWidth": 280 },
+        { "key": "customer_street",         "type": "text",  "x": 82,  "y": 615, "size": 9, "maxWidth": 130 },
+        { "key": "customer_number",         "type": "text",  "x": 262, "y": 615, "size": 9, "maxWidth": 28 },
+        { "key": "customer_postal_code",    "type": "boxed", "x": 347, "y": 615, "size": 8, "boxWidth": 12, "boxCount": 6 },
+        { "key": "customer_floor",          "type": "text",  "x": 96,  "y": 589, "size": 9, "maxWidth": 42 },
+        { "key": "customer_apartment_code", "type": "text",  "x": 248, "y": 589, "size": 9, "maxWidth": 60 },
+        { "key": "customer_county",         "type": "text",  "x": 402, "y": 589, "size": 9, "maxWidth": 70 },
+        { "key": "customer_municipality",   "type": "text",  "x": 520, "y": 589, "size": 9, "maxWidth": 70 },
+        { "key": "customer_notes",          "type": "wrapped", "x": 52, "y": 558, "size": 8, "maxWidth": 286, "lineHeight": 10, "maxLines": 7 },
+        { "key": "manager_name",            "type": "text",  "x": 420, "y": 556, "size": 9, "maxWidth": 145 },
+        { "key": "manager_mobile",          "type": "boxed", "x": 486, "y": 529, "size": 8, "boxWidth": 11, "boxCount": 11 },
+        { "key": "manager_email",           "type": "text",  "x": 420, "y": 503, "size": 9, "maxWidth": 150 },
+        { "key": "service_address",         "type": "text",  "x": 192, "y": 418, "size": 9, "maxWidth": 210 },
+        { "key": "service_phone",           "type": "boxed", "x": 250, "y": 392, "size": 8, "boxWidth": 12, "boxCount": 11 },
+        { "key": "service_email",           "type": "text",  "x": 78,  "y": 366, "size": 9, "maxWidth": 220 },
+        { "key": "technician_name",         "type": "text",  "x": 265, "y": 338, "size": 9, "maxWidth": 230 }
       ]
     },
     "2": {
       "title": "Τεχνική Περιγραφή – Επιθεώρηση",
       "fields": [
-        { "key": "routing_escalit",       "type": "check", "x": 123, "y": 730 },
-        { "key": "routing_external_pipe", "type": "check", "x": 311, "y": 730 },
-        { "key": "routing_aerial",        "type": "check", "x": 427, "y": 730 },
-        { "key": "routing_other",         "type": "check", "x": 542, "y": 730 },
-        { "key": "routing_other_text",    "type": "text",  "x": 468, "y": 707, "size": 7, "maxWidth": 90, "sourceKey": "routing_other" },
+        { "key": "routing_escalit",       "type": "check", "x": 164, "y": 735 },
+        { "key": "routing_external_pipe", "type": "check", "x": 379, "y": 735 },
+        { "key": "routing_aerial",        "type": "check", "x": 558, "y": 735 },
+        { "key": "routing_other",         "type": "check", "x": 719, "y": 735 },
 
-        { "key": "excavation_to_pipe_yes", "type": "check_if", "x": 132, "y": 657, "sourceKey": "excavation_to_pipe", "match": true },
-        { "key": "excavation_to_pipe_no",  "type": "check_if", "x": 172, "y": 657, "sourceKey": "excavation_to_pipe", "match": false },
-        { "key": "excavation_to_rg_yes",   "type": "check_if", "x": 332, "y": 657, "sourceKey": "excavation_to_rg",   "match": true },
-        { "key": "excavation_to_rg_no",    "type": "check_if", "x": 374, "y": 657, "sourceKey": "excavation_to_rg",   "match": false },
+        { "key": "excavation_to_pipe_yes", "type": "check_if", "x": 381, "y": 674, "sourceKey": "excavation_to_pipe", "match": true },
+        { "key": "excavation_to_pipe_no",  "type": "check_if", "x": 421, "y": 674, "sourceKey": "excavation_to_pipe", "match": false },
+        { "key": "excavation_to_rg_yes",   "type": "check_if", "x": 381, "y": 640, "sourceKey": "excavation_to_rg",   "match": true },
+        { "key": "excavation_to_rg_no",    "type": "check_if", "x": 422, "y": 640, "sourceKey": "excavation_to_rg",   "match": false },
 
-        { "key": "pipe_placement",         "type": "check", "x": 322, "y": 592 },
-        { "key": "wall_mount",             "type": "check", "x": 542, "y": 592 },
-        { "key": "fence_building_mount",   "type": "check", "x": 542, "y": 578 },
-        { "key": "excavation_to_building", "type": "check", "x": 542, "y": 550 },
+        { "key": "wall_mount",             "type": "check", "x": 491, "y": 584 },
+        { "key": "fence_building_mount",   "type": "check", "x": 492, "y": 538 },
 
         { "key": "bep_position", "type": "check_map", "map": {
-          "internal":  { "x": 106, "y": 580 },
-          "external":  { "x": 106, "y": 564 },
-          "fence":     { "x": 219, "y": 580 },
-          "building":  { "x": 219, "y": 564 },
-          "pole":      { "x": 327, "y": 580 },
-          "pillar":    { "x": 327, "y": 564 },
-          "basement":  { "x": 439, "y": 580 },
-          "ground":    { "x": 439, "y": 564 },
-          "rooftop":   { "x": 525, "y": 580 },
-          "piloti":    { "x": 525, "y": 564 }
+          "internal":  { "x": 104, "y": 432 },
+          "external":  { "x": 104, "y": 399 },
+          "fence":     { "x": 104, "y": 432 },
+          "building":  { "x": 104, "y": 399 },
+          "pole":      { "x": 257, "y": 432 },
+          "pillar":    { "x": 257, "y": 399 },
+          "basement":  { "x": 403, "y": 432 },
+          "ground":    { "x": 403, "y": 399 },
+          "rooftop":   { "x": 588, "y": 432 },
+          "piloti":    { "x": 588, "y": 399 }
         }},
 
         { "key": "vertical_routing", "type": "check_map", "map": {
-          "shaft":             { "x": 100, "y": 528 },
-          "staircase":         { "x": 258, "y": 528 },
-          "lightwell":         { "x": 376, "y": 528 },
-          "other":             { "x": 477, "y": 528 },
-          "elevator":          { "x": 100, "y": 512 },
-          "internal_external": { "x": 258, "y": 512 },
-          "lantern":           { "x": 376, "y": 512 }
+          "shaft":             { "x": 115, "y": 347 },
+          "elevator":          { "x": 115, "y": 313 },
+          "staircase":         { "x": 321, "y": 347 },
+          "internal_external": { "x": 321, "y": 313 },
+          "lightwell":         { "x": 483, "y": 347 },
+          "lantern":           { "x": 483, "y": 313 },
+          "other":             { "x": 615, "y": 347 }
         }},
 
-        { "key": "sketch_notes",            "type": "wrapped", "x": 35,  "y": 168, "size": 8, "maxWidth": 525, "lineHeight": 12, "maxLines": 4 },
-        { "key": "optical_socket_position", "type": "text",    "x": 125, "y": 133, "size": 8, "maxWidth": 300 },
+        { "key": "sketch_notes",            "type": "wrapped", "x": 20,  "y": 58, "size": 8, "maxWidth": 730, "lineHeight": 10, "maxLines": 6 },
+        { "key": "optical_socket_position", "type": "text",    "x": 160, "y": 34, "size": 8, "maxWidth": 120 },
 
-        { "key": "sketch_image", "type": "image", "x": 40, "y": 200, "maxW": 520, "maxH": 280, "format": "auto" },
+        { "key": "sketch_image", "type": "image", "x": 160, "y": 123, "maxW": 275, "maxH": 185 },
 
-        { "key": "engineer_signature",  "type": "signature", "x": 420, "y": 122, "maxW": 130, "maxH": 32 },
-        { "key": "customer_signature",  "type": "signature", "x": 420, "y": 93,  "maxW": 130, "maxH": 32 },
-        { "key": "manager_signature",   "type": "signature", "x": 420, "y": 64,  "maxW": 130, "maxH": 32 }
+        { "key": "engineer_signature",  "type": "signature", "x": 445, "y": 22, "maxW": 120, "maxH": 26 },
+        { "key": "customer_signature",  "type": "signature", "x": 580, "y": 22, "maxW": 160, "maxH": 26 },
+        { "key": "manager_signature",   "type": "signature", "x": 580, "y": 0,  "maxW": 160, "maxH": 26 }
       ]
     },
     "3": {
       "title": "Υπεύθυνη Δήλωση Διαχειριστή",
       "fields": [
-        { "key": "declarant_name",        "type": "text",  "x": 180, "y": 678, "size": 8.5, "maxWidth": 250 },
-        { "key": "declarant_id_number",   "type": "text",  "x": 456, "y": 678, "size": 8.5, "maxWidth": 100 },
-        { "key": "declarant_city",        "type": "text",  "x": 92,  "y": 648, "size": 8.5, "maxWidth": 130 },
-        { "key": "declarant_street",      "type": "text",  "x": 246, "y": 648, "size": 8.5, "maxWidth": 130 },
-        { "key": "declarant_number",      "type": "text",  "x": 394, "y": 648, "size": 8.5, "maxWidth": 50 },
-        { "key": "declarant_postal_code", "type": "boxed", "x": 467, "y": 648, "size": 8, "boxWidth": 13.5, "boxCount": 5 },
+        { "key": "declarant_name",        "type": "text",  "x": 282, "y": 690, "size": 9, "maxWidth": 245 },
+        { "key": "declarant_id_number",   "type": "text",  "x": 598, "y": 690, "size": 9, "maxWidth": 70 },
+        { "key": "declarant_city",        "type": "text",  "x": 125, "y": 657, "size": 9, "maxWidth": 115 },
+        { "key": "declarant_street",      "type": "text",  "x": 323, "y": 657, "size": 9, "maxWidth": 160 },
+        { "key": "declarant_number",      "type": "text",  "x": 523, "y": 657, "size": 9, "maxWidth": 24 },
+        { "key": "declarant_postal_code", "type": "boxed", "x": 603, "y": 657, "size": 8, "boxWidth": 12, "boxCount": 6 },
 
-        { "key": "cost_option_ote",     "type": "check_if", "x": 47, "y": 522, "sourceKey": "cost_option", "match": "ote_covers" },
-        { "key": "cost_option_other",   "type": "check_if_not", "x": 47, "y": 500, "sourceKey": "cost_option", "match": "ote_covers" },
+        { "key": "cost_option_ote",     "type": "check_if", "x": 39, "y": 460, "sourceKey": "cost_option", "match": "ote_covers" },
+        { "key": "cost_option_other",   "type": "check_if_not", "x": 39, "y": 429, "sourceKey": "cost_option", "match": "ote_covers" },
 
-        { "key": "declaration_date",      "type": "text",  "x": 170, "y": 450, "size": 8.5, "maxWidth": 200 },
-        { "key": "declaration_signature", "type": "signature", "x": 125, "y": 365, "maxW": 210, "maxH": 45 }
+        { "key": "declaration_date",      "type": "text",  "x": 439, "y": 371, "size": 9, "maxWidth": 200 },
+        { "key": "declaration_signature", "type": "signature", "x": 220, "y": 155, "maxW": 170, "maxH": 45 }
       ]
     },
     "4": {
       "title": "Στοιχεία Κτιρίου / Εξοπλισμός",
       "fields": [
-        { "key": "building_address", "type": "text", "x": 102, "y": 790, "size": 8.5, "maxWidth": 300 },
-        { "key": "building_id",      "type": "text", "x": 367, "y": 766, "size": 8.5, "maxWidth": 180 },
+        { "key": "building_address", "type": "text", "x": 109, "y": 774, "size": 9, "maxWidth": 420 },
+        { "key": "building_id",      "type": "text", "x": 348, "y": 748, "size": 9, "maxWidth": 120 },
 
         { "key": "customer_floor_select", "type": "floor_check", "map": {
           "basement":       { "x": 95,  "y": 714 },
@@ -117,14 +114,14 @@
           "8":              { "x": 365, "y": 349 }
         }},
 
-        { "key": "total_apartments", "type": "text", "x": 188, "y": 360, "size": 8.5, "maxWidth": 60 },
-        { "key": "total_shops",      "type": "text", "x": 188, "y": 327, "size": 8.5, "maxWidth": 60 },
-        { "key": "total_spaces",     "type": "text", "x": 188, "y": 294, "size": 8.5, "maxWidth": 60 },
-        { "key": "total_floors",     "type": "text", "x": 188, "y": 261, "size": 8.5, "maxWidth": 60 },
+        { "key": "total_apartments", "type": "text", "x": 220, "y": 239, "size": 9, "maxWidth": 40 },
+        { "key": "total_shops",      "type": "text", "x": 228, "y": 213, "size": 9, "maxWidth": 40 },
+        { "key": "total_spaces",     "type": "text", "x": 175, "y": 187, "size": 9, "maxWidth": 40 },
+        { "key": "total_floors",     "type": "text", "x": 232, "y": 160, "size": 9, "maxWidth": 40 },
 
-        { "key": "sr_id",     "type": "text", "x": 395, "y": 360, "size": 8.5, "maxWidth": 130 },
-        { "key": "cabinet",   "type": "text", "x": 395, "y": 327, "size": 8.5, "maxWidth": 130 },
-        { "key": "pipe_code", "type": "text", "x": 395, "y": 294, "size": 8.5, "maxWidth": 130 },
+        { "key": "sr_id",     "type": "text", "x": 554, "y": 239, "size": 9, "maxWidth": 110 },
+        { "key": "cabinet",   "type": "text", "x": 575, "y": 213, "size": 9, "maxWidth": 115 },
+        { "key": "pipe_code", "type": "text", "x": 578, "y": 187, "size": 9, "maxWidth": 110 },
 
         { "key": "bcp", "type": "equipment_grid", "brands": {
           "RAYCAP": 214, "ZTT": 277
@@ -155,7 +152,7 @@
     "bold": "https://cdn.jsdelivr.net/fontsource/fonts/roboto@latest/greek-700-normal.woff"
   },
   "defaults": {
-    "fontSize": 8.5,
+    "fontSize": 9,
     "checkSize": 9,
     "signatureMaxW": 130,
     "signatureMaxH": 32
