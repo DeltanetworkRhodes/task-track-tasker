@@ -451,7 +451,7 @@ const PdfCoordinateEditor = () => {
       
       if (previewUrl) URL.revokeObjectURL(previewUrl);
       
-      const blob = new Blob([pdfBytes.buffer], { type: "application/pdf" });
+      const blob = new Blob([new Uint8Array(pdfBytes)], { type: "application/pdf" });
       setPreviewUrl(URL.createObjectURL(blob));
       toast.success("Preview PDF δημιουργήθηκε!");
     } catch (err) {
