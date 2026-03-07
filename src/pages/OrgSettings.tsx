@@ -56,6 +56,9 @@ const OrgSettings = () => {
   const [saKeySaving, setSaKeySaving] = useState(false);
   const [saKeyStatus, setSaKeyStatus] = useState<"none" | "valid" | "invalid" | "saved">("none");
 
+  // Test email state
+  const [sendingTestEmail, setSendingTestEmail] = useState(false);
+
   const { data: settings, isLoading } = useQuery({
     queryKey: ["org-settings", organizationId],
     queryFn: async () => {
