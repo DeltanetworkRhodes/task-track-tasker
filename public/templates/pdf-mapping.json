@@ -180,114 +180,114 @@
         {
           "key": "routing_escalit",
           "type": "check",
-          "x": 164,
-          "y": 735
+          "x": 129,
+          "y": 727
         },
         {
           "key": "routing_external_pipe",
           "type": "check",
-          "x": 379,
-          "y": 735
+          "x": 293,
+          "y": 726
         },
         {
           "key": "routing_aerial",
           "type": "check",
-          "x": 558,
-          "y": 735
+          "x": 422,
+          "y": 725
         },
         {
           "key": "routing_other",
           "type": "check",
-          "x": 719,
-          "y": 735
+          "x": 549,
+          "y": 725
         },
         {
           "key": "excavation_to_pipe_yes",
           "type": "check_if",
-          "x": 381,
-          "y": 674,
+          "x": 130,
+          "y": 667,
           "sourceKey": "excavation_to_pipe",
           "match": true
         },
         {
           "key": "excavation_to_pipe_no",
           "type": "check_if",
-          "x": 421,
-          "y": 674,
+          "x": 164,
+          "y": 664,
           "sourceKey": "excavation_to_pipe",
           "match": false
         },
         {
           "key": "excavation_to_rg_yes",
           "type": "check_if",
-          "x": 381,
-          "y": 640,
+          "x": 293,
+          "y": 667,
           "sourceKey": "excavation_to_rg",
           "match": true
         },
         {
           "key": "excavation_to_rg_no",
           "type": "check_if",
-          "x": 422,
-          "y": 640,
+          "x": 326,
+          "y": 666,
           "sourceKey": "excavation_to_rg",
           "match": false
         },
         {
           "key": "wall_mount",
           "type": "check",
-          "x": 491,
-          "y": 584
+          "x": 310,
+          "y": 636
         },
         {
           "key": "fence_building_mount",
           "type": "check",
-          "x": 492,
-          "y": 538
+          "x": 312,
+          "y": 607
         },
         {
           "key": "bep_position",
           "type": "check_map",
           "map": {
             "internal": {
-              "x": 104,
-              "y": 432
+              "x": 88,
+              "y": 566
             },
             "external": {
-              "x": 104,
-              "y": 399
+              "x": 91,
+              "y": 549
             },
             "fence": {
-              "x": 104,
-              "y": 432
+              "x": 205,
+              "y": 566
             },
             "building": {
-              "x": 104,
-              "y": 399
+              "x": 205,
+              "y": 550
             },
             "pole": {
-              "x": 257,
-              "y": 432
+              "x": 317,
+              "y": 566
             },
             "pillar": {
-              "x": 257,
-              "y": 399
+              "x": 318,
+              "y": 549
             },
             "basement": {
-              "x": 403,
-              "y": 432
+              "x": 392,
+              "y": 565
             },
             "ground": {
-              "x": 403,
-              "y": 399
+              "x": 392,
+              "y": 549
             },
             "rooftop": {
-              "x": 588,
-              "y": 432
+              "x": 451,
+              "y": 565
             },
             "piloti": {
-              "x": 588,
-              "y": 399
+              "x": 450,
+              "y": 548
             }
           }
         },
@@ -296,40 +296,40 @@
           "type": "check_map",
           "map": {
             "shaft": {
-              "x": 115,
-              "y": 347
+              "x": 100,
+              "y": 513
             },
             "elevator": {
-              "x": 115,
-              "y": 313
+              "x": 101,
+              "y": 494
             },
             "staircase": {
-              "x": 321,
-              "y": 347
+              "x": 263,
+              "y": 508
             },
             "internal_external": {
-              "x": 321,
-              "y": 313
+              "x": 258,
+              "y": 494
             },
             "lightwell": {
-              "x": 483,
-              "y": 347
+              "x": 368,
+              "y": 511
             },
             "lantern": {
-              "x": 483,
-              "y": 313
+              "x": 369,
+              "y": 493
             },
             "other": {
-              "x": 615,
-              "y": 347
+              "x": 470,
+              "y": 511
             }
           }
         },
         {
           "key": "sketch_notes",
           "type": "wrapped",
-          "x": 20,
-          "y": 58,
+          "x": 205,
+          "y": 188,
           "size": 8,
           "maxWidth": 730,
           "lineHeight": 10,
@@ -338,40 +338,40 @@
         {
           "key": "optical_socket_position",
           "type": "text",
-          "x": 160,
-          "y": 34,
+          "x": 150,
+          "y": 137,
           "size": 8,
           "maxWidth": 120
         },
         {
           "key": "sketch_image",
           "type": "image",
-          "x": 160,
-          "y": 123,
+          "x": 419,
+          "y": 368,
           "maxW": 275,
           "maxH": 185
         },
         {
           "key": "engineer_signature",
           "type": "signature",
-          "x": 445,
-          "y": 22,
+          "x": 455,
+          "y": 138,
           "maxW": 120,
           "maxH": 26
         },
         {
           "key": "customer_signature",
           "type": "signature",
-          "x": 580,
-          "y": 22,
+          "x": 478,
+          "y": 112,
           "maxW": 160,
           "maxH": 26
         },
         {
           "key": "manager_signature",
           "type": "signature",
-          "x": 580,
-          "y": 0,
+          "x": 497,
+          "y": 86,
           "maxW": 160,
           "maxH": 26
         }
