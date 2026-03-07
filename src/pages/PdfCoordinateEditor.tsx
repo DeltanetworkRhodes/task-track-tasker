@@ -59,6 +59,91 @@ const FIELD_COLORS: Record<string, string> = {
   image: "#ec4899",
 };
 
+// Greek labels for the PDF editor
+const FIELD_LABELS: Record<string, string> = {
+  // Page 1 - Στοιχεία Πελάτη
+  customer_name: "Ονοματεπώνυμο Πελάτη",
+  customer_father_name: "Πατρώνυμο",
+  customer_mobile: "Κινητό Πελάτη",
+  customer_phone: "Σταθερό Πελάτη",
+  customer_email: "Email Πελάτη",
+  customer_street: "Οδός Πελάτη",
+  customer_number: "Αριθμός",
+  customer_postal_code: "Τ.Κ. Πελάτη",
+  customer_floor: "Όροφος Πελάτη",
+  customer_apartment_code: "Κωδ. Διαμερίσματος",
+  customer_county: "Νομός",
+  customer_municipality: "Δήμος",
+  customer_notes: "Παρατηρήσεις Πελάτη",
+  manager_name: "Όνομα Διαχειριστή",
+  manager_mobile: "Κινητό Διαχειριστή",
+  manager_email: "Email Διαχειριστή",
+  service_address: "Διεύθυνση Υπηρεσίας",
+  service_phone: "Τηλ. Υπηρεσίας",
+  service_email: "Email Υπηρεσίας",
+  technician_name: "Όνομα Τεχνικού",
+
+  // Page 2 - Τεχνική Περιγραφή
+  routing_escalit: "Δρομολόγηση: Εσκαλίτ",
+  routing_external_pipe: "Δρομολόγηση: Εξωτ. Σωλήνα",
+  routing_aerial: "Δρομολόγηση: Εναέρια",
+  routing_other: "Δρομολόγηση: Άλλο",
+  excavation_to_pipe_yes: "Εκσκαφή→Σωλήνα: ΝΑΙ",
+  excavation_to_pipe_no: "Εκσκαφή→Σωλήνα: ΟΧΙ",
+  excavation_to_rg_yes: "Εκσκαφή→RG: ΝΑΙ",
+  excavation_to_rg_no: "Εκσκαφή→RG: ΟΧΙ",
+  wall_mount: "Επίτοιχη Στήριξη",
+  fence_building_mount: "Στήριξη Περίφραξη/Κτίριο",
+  sketch_notes: "Σημειώσεις Σκαριφήματος",
+  optical_socket_position: "Θέση Οπτικής Πρίζας",
+  sketch_image: "Εικόνα Σκαριφήματος",
+  engineer_signature: "Υπογραφή Μηχανικού",
+  customer_signature: "Υπογραφή Πελάτη",
+  manager_signature: "Υπογραφή Διαχειριστή",
+
+  // Page 2 - check_map sub-keys
+  "bep_position.internal": "BEP: Εσωτερικό",
+  "bep_position.external": "BEP: Εξωτερικό",
+  "bep_position.fence": "BEP: Περίφραξη",
+  "bep_position.building": "BEP: Κτίριο",
+  "bep_position.pole": "BEP: Στύλος",
+  "bep_position.pillar": "BEP: Πυλώνας",
+  "bep_position.basement": "BEP: Υπόγειο",
+  "bep_position.ground": "BEP: Ισόγειο",
+  "bep_position.rooftop": "BEP: Ταράτσα",
+  "bep_position.piloti": "BEP: Πιλοτή",
+  "vertical_routing.shaft": "Κατακ. Δρομ.: Φρεάτιο",
+  "vertical_routing.elevator": "Κατακ. Δρομ.: Ασανσέρ",
+  "vertical_routing.staircase": "Κατακ. Δρομ.: Κλιμ/σιο",
+  "vertical_routing.internal_external": "Κατακ. Δρομ.: Εσωτ/Εξωτ",
+  "vertical_routing.lightwell": "Κατακ. Δρομ.: Φωταγωγός",
+  "vertical_routing.lantern": "Κατακ. Δρομ.: Φανάρι",
+  "vertical_routing.other": "Κατακ. Δρομ.: Άλλο",
+
+  // Page 3 - Υπεύθυνη Δήλωση
+  declarant_name: "Όνομα Δηλούντος",
+  declarant_id_number: "Αρ. Ταυτότητας",
+  declarant_city: "Πόλη Δηλούντος",
+  declarant_street: "Οδός Δηλούντος",
+  declarant_number: "Αριθμός Δηλούντος",
+  declarant_postal_code: "Τ.Κ. Δηλούντος",
+  cost_option_ote: "Κόστος: Καλύπτει ΟΤΕ",
+  cost_option_other: "Κόστος: Άλλο",
+  declaration_date: "Ημερομηνία Δήλωσης",
+  declaration_signature: "Υπογραφή Δηλούντος",
+
+  // Page 4 - Στοιχεία Κτιρίου / Εξοπλισμός
+  building_address: "Διεύθυνση Κτιρίου",
+  building_id: "Κωδ. Κτιρίου",
+  total_floors: "Σύνολο Ορόφων",
+  total_apartments: "Σύνολο Διαμερισμάτων",
+  total_shops: "Σύνολο Καταστημάτων",
+  total_spaces: "Σύνολο Χώρων",
+  cabinet: "Καμπίνα",
+  pipe_code: "Κωδ. Σωλήνα",
+  pipe_placement: "Τοποθέτηση Σωλήνα",
+};
+
 const PdfCoordinateEditor = () => {
   const [mapping, setMapping] = useState<PdfMapping | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -118,10 +203,11 @@ const PdfCoordinateEditor = () => {
       if (field.type === "check_map" || field.type === "floor_check") {
         if (field.map) {
           for (const [mapKey, coords] of Object.entries(field.map)) {
+            const fullKey = `${field.key}.${mapKey}`;
             items.push({
               key: field.key,
               subKey: mapKey,
-              label: `${field.key}.${mapKey}`,
+              label: FIELD_LABELS[fullKey] || fullKey,
               x: coords.x,
               y: coords.y,
               type: field.type,
@@ -138,7 +224,7 @@ const PdfCoordinateEditor = () => {
                 items.push({
                   key: field.key,
                   subKey: `${brand}_${size}`,
-                  label: `${field.key}.${brand}.${size}`,
+                  label: FIELD_LABELS[`${field.key}.${brand}.${size}`] || `${field.key}.${brand}.${size}`,
                   x: bx,
                   y: sy,
                   type: field.type,
@@ -151,7 +237,7 @@ const PdfCoordinateEditor = () => {
       } else if (field.x != null && field.y != null) {
         items.push({
           key: field.key,
-          label: field.key,
+          label: FIELD_LABELS[field.key] || field.key,
           x: field.x,
           y: field.y,
           type: field.type,
