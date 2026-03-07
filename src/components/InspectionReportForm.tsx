@@ -568,7 +568,7 @@ const InspectionReportForm = ({ assignment, surveyId, onComplete, onCancel }: Pr
       <Separator />
 
       <div>
-        <h3 className="text-base font-bold text-foreground mb-4">2. Θέση Β.Ε.Ρ.</h3>
+        <h3 className="text-base font-bold text-foreground mb-4">2. Θέση Β.Ε.Ρ. (πολλαπλή επιλογή)</h3>
         <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
           {[
             { value: "internal", label: "Εσωτερικά" },
@@ -581,19 +581,32 @@ const InspectionReportForm = ({ assignment, surveyId, onComplete, onCancel }: Pr
             { value: "rooftop", label: "Ταράτσα" },
             { value: "ground", label: "Ισόγειο" },
             { value: "piloti", label: "Πυλωτή" },
-          ].map(({ value, label }) => (
-            <label
-              key={value}
-              className={`flex items-center justify-center p-2.5 rounded-lg border cursor-pointer text-xs font-medium text-center transition-colors ${
-                form.bep_position === value
-                  ? "border-primary bg-primary/10 text-primary"
-                  : "border-border bg-card hover:border-primary/40"
-              }`}
-            >
-              <input type="radio" className="sr-only" checked={form.bep_position === value} onChange={() => updateField("bep_position", value)} />
-              {label}
-            </label>
-          ))}
+          ].map(({ value, label }) => {
+            const selected = Array.isArray(form.bep_position) ? form.bep_position.includes(value) : form.bep_position === value;
+            return (
+              <label
+                key={value}
+                className={`flex items-center gap-2 p-2.5 rounded-lg border cursor-pointer text-xs font-medium transition-colors ${
+                  selected
+                    ? "border-primary bg-primary/10 text-primary"
+                    : "border-border bg-card hover:border-primary/40"
+                }`}
+              >
+                <Checkbox
+                  checked={selected}
+                  onCheckedChange={(checked) => {
+                    const current = Array.isArray(form.bep_position) ? form.bep_position : (form.bep_position ? [form.bep_position] : []);
+                    if (checked) {
+                      updateField("bep_position", [...current, value]);
+                    } else {
+                      updateField("bep_position", current.filter((v: string) => v !== value));
+                    }
+                  }}
+                />
+                {label}
+              </label>
+            );
+          })}
         </div>
       </div>
 
