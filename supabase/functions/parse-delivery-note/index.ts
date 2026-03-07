@@ -28,7 +28,12 @@ async function getAccessToken(serviceAccountKey: any): Promise<string> {
   );
   const signatureInput = new TextEncoder().encode(`${header}.${payload}`);
   const signature = await crypto.subtle.sign("RSASSA-PKCS1-v1_5", cryptoKey, signatureInput);
-  const signatureB64 = btoa(String.fromCharCode(...new Uint8Array(signature)))
+  const sigBytes = new Uint8Array(signature);
+  let sigBinary = "";
+  for (let i = 0; i < sigBytes.length; i += 8192) {
+    sigBinary += String.fromCharCode(...sigBytes.subarray(i, i + 8192));
+  }
+  const signatureB64 = btoa(sigBinary)
     .replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
   const jwt = `${header}.${payload}.${signatureB64}`;
   const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
@@ -63,9 +68,16 @@ Deno.serve(async (req) => {
     }
     console.log(`Processing delivery note for source: ${source}`);
 
-    // Convert PDF to base64
+    // Convert PDF to base64 (chunked to avoid stack overflow)
     const arrayBuffer = await file.arrayBuffer();
-    const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+    const bytes = new Uint8Array(arrayBuffer);
+    let binary = "";
+    const chunkSize = 8192;
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+      const chunk = bytes.subarray(i, i + chunkSize);
+      binary += String.fromCharCode(...chunk);
+    }
+    const base64 = btoa(binary);
 
     // Use Gemini to extract materials from PDF
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
