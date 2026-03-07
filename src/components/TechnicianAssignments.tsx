@@ -156,6 +156,12 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
 
   const handleStatusChange = async (assignmentId: string, newStatus: string, oldStatus: string) => {
     setUpdating(assignmentId);
+
+    // Optimistic update
+    queryClient.setQueryData(["technician-assignments"], (old: any) =>
+      old?.map((a: any) => a.id === assignmentId ? { ...a, status: newStatus, updated_at: new Date().toISOString() } : a)
+    );
+
     try {
       const { error } = await supabase
         .from("assignments")
@@ -164,7 +170,6 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
       if (error) throw error;
 
       toast.success(`Κατάσταση → ${statusLabels[newStatus]}`);
-      queryClient.invalidateQueries({ queryKey: ["technician-assignments"] });
 
       if (newStatus === "inspection" && oldStatus !== "inspection") {
         try {
