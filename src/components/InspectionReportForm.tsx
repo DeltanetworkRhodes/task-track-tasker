@@ -869,7 +869,7 @@ const InspectionReportForm = ({ assignment, surveyId, onComplete, onCancel }: Pr
       {/* Navigation */}
       <div className="flex items-center gap-2 pt-4 border-t border-border">
         {step > 0 && (
-          <Button variant="outline" size="sm" onClick={() => setStep(step - 1)} className="gap-1">
+          <Button variant="outline" size="sm" onClick={() => navigateToStep(step - 1)} className="gap-1">
             <ChevronLeft className="h-4 w-4" /> Πίσω
           </Button>
         )}
