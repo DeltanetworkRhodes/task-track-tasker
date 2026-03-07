@@ -55,6 +55,7 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
   const [selectedAssignment, setSelectedAssignment] = useState<any | null>(null);
   const [showSurveyForm, setShowSurveyForm] = useState(false);
   const [showConstructionForm, setShowConstructionForm] = useState(false);
+  const [showInspectionReport, setShowInspectionReport] = useState(false);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
   const [cancelling, setCancelling] = useState(false);
