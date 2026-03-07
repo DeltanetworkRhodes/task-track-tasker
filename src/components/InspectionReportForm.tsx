@@ -112,6 +112,7 @@ const InspectionReportForm = ({ assignment, surveyId, onComplete, onCancel }: Pr
     bcp_brand: "",
     bcp_size: "",
     bcp_floorbox: false,
+    bcp_drop_4: false,
     bcp_drop_6: false,
     bcp_drop_12: false,
     bep_brand: "",
