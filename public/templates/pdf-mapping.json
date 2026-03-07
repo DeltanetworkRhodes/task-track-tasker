@@ -30,16 +30,16 @@
     "2": {
       "title": "Τεχνική Περιγραφή – Επιθεώρηση",
       "fields": [
-        { "key": "routing_escalit", "type": "check", "x": 129, "y": 725 },
+        { "key": "routing_escalit", "type": "check", "x": 125, "y": 721 },
         { "key": "routing_external_pipe", "type": "check", "x": 291, "y": 725 },
         { "key": "ext_pipe_sidewalk_excavation_yes", "type": "check_if", "x": 295, "y": 691, "sourceKey": "ext_pipe_sidewalk_excavation", "match": true, "mark": "x" },
         { "key": "ext_pipe_sidewalk_excavation_no", "type": "check_if", "x": 321, "y": 691, "sourceKey": "ext_pipe_sidewalk_excavation", "match": false, "mark": "x" },
         { "key": "routing_aerial", "type": "check", "x": 422, "y": 725 },
-        { "key": "routing_other", "type": "check", "x": 549, "y": 725 },
-        { "key": "excavation_to_pipe_yes", "type": "check_if", "x": 129, "y": 667, "sourceKey": "excavation_to_pipe", "match": true },
-        { "key": "excavation_to_pipe_no", "type": "check_if", "x": 159, "y": 667, "sourceKey": "excavation_to_pipe", "match": false },
+        { "key": "routing_other", "type": "check", "x": 544, "y": 723 },
+        { "key": "excavation_to_pipe_yes", "type": "check_if", "x": 130, "y": 660, "sourceKey": "excavation_to_pipe", "match": true },
+        { "key": "excavation_to_pipe_no", "type": "check_if", "x": 159, "y": 660, "sourceKey": "excavation_to_pipe", "match": false },
         { "key": "excavation_to_rg_yes", "type": "check_if", "x": 292, "y": 667, "sourceKey": "excavation_to_rg", "match": true },
-        { "key": "excavation_to_rg_no", "type": "check_if", "x": 322, "y": 668, "sourceKey": "excavation_to_rg", "match": false },
+        { "key": "excavation_to_rg_no", "type": "check_if", "x": 321, "y": 660, "sourceKey": "excavation_to_rg", "match": false },
         { "key": "wall_mount", "type": "check", "x": 310, "y": 636 },
         { "key": "fence_building_mount", "type": "check", "x": 312, "y": 607 },
         {
@@ -50,7 +50,7 @@
             "external": { "x": 91, "y": 549 },
             "fence": { "x": 205, "y": 566 },
             "building": { "x": 205, "y": 550 },
-            "pole": { "x": 317, "y": 566 },
+            "pole": { "x": 317, "y": 563 },
             "pillar": { "x": 318, "y": 549 },
             "basement": { "x": 392, "y": 565 },
             "ground": { "x": 392, "y": 549 },
@@ -62,7 +62,7 @@
           "key": "vertical_routing",
           "type": "check_map",
           "map": {
-            "shaft": { "x": 100, "y": 513 },
+            "shaft": { "x": 97, "y": 506 },
             "elevator": { "x": 101, "y": 494 },
             "staircase": { "x": 255, "y": 511 },
             "internal_external": { "x": 254, "y": 496 },
@@ -74,15 +74,15 @@
         { "key": "vertical_routing_other_notes", "type": "wrapped", "x": 395, "y": 494, "size": 7, "maxWidth": 150, "lineHeight": 9, "maxLines": 2 },
         { "key": "routing_aerial_notes", "type": "wrapped", "x": 359, "y": 704, "size": 7, "maxWidth": 200, "lineHeight": 9, "maxLines": 2 },
         { "key": "routing_other_notes", "type": "wrapped", "x": 480, "y": 703, "size": 7, "maxWidth": 200, "lineHeight": 9, "maxLines": 2 },
-        { "key": "sidewalk_excavation_yes", "type": "check_if", "x": 129, "y": 692, "sourceKey": "sidewalk_excavation", "match": true, "mark": "x" },
+        { "key": "sidewalk_excavation_yes", "type": "check_if", "x": 130, "y": 686, "sourceKey": "sidewalk_excavation", "match": true, "mark": "x" },
         { "key": "sidewalk_excavation_no", "type": "check_if", "x": 161, "y": 692, "sourceKey": "sidewalk_excavation", "match": false, "mark": "x" },
         { "key": "entry_pipe_notes", "type": "wrapped", "x": 130, "y": 650, "size": 7, "maxWidth": 400, "lineHeight": 9, "maxLines": 2 },
         { "key": "sketch_notes", "type": "wrapped", "x": 43, "y": 193, "size": 8, "maxWidth": 730, "lineHeight": 10, "maxLines": 6 },
-        { "key": "optical_socket_position", "type": "text", "x": 134, "y": 144, "size": 8, "maxWidth": 120 },
+        { "key": "optical_socket_position", "type": "text", "x": 133, "y": 136, "size": 8, "maxWidth": 120 },
         { "key": "sketch_image", "type": "image", "x": 419, "y": 368, "maxW": 275, "maxH": 185 },
-        { "key": "engineer_signature", "type": "signature", "x": 496, "y": 140, "maxW": 120, "maxH": 26 },
-        { "key": "customer_signature", "type": "signature", "x": 506, "y": 115, "maxW": 160, "maxH": 26 },
-        { "key": "manager_signature", "type": "signature", "x": 513, "y": 87, "maxW": 160, "maxH": 26 }
+        { "key": "engineer_signature", "type": "signature", "x": 442, "y": 149, "maxW": 120, "maxH": 26 },
+        { "key": "customer_signature", "type": "signature", "x": 472, "y": 117, "maxW": 160, "maxH": 26 },
+        { "key": "manager_signature", "type": "signature", "x": 467, "y": 91, "maxW": 160, "maxH": 26 }
       ]
     },
     "3": {
