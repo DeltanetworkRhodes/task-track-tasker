@@ -573,8 +573,8 @@ Deno.serve(async (req) => {
     if (resendApiKey && recipients.length > 0) {
       try {
         // Download files for ZIP (one by one, keep in array)
-        // Limit total ZIP size to ~8MB to stay within memory limits
-        const MAX_ZIP_SIZE = 12 * 1024 * 1024;
+        // Limit total ZIP size to 30MB
+        const MAX_ZIP_SIZE = 30 * 1024 * 1024;
         const zipFiles: { name: string; data: Uint8Array }[] = [];
         let totalSize = 0;
         let skippedFiles = 0;
