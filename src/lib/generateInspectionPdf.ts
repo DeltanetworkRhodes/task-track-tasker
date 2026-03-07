@@ -212,8 +212,8 @@ export async function generateInspectionPdfBytes(data: Record<string, any>): Pro
       if (!r.ok) throw new Error("Δεν βρέθηκε το inspection_template.pdf");
       return r.arrayBuffer();
     }),
-    fetch(mapping.fonts.regular).then((r) => r.arrayBuffer()),
-    fetch(mapping.fonts.bold).then((r) => r.arrayBuffer()),
+    fetch("/fonts/Roboto-Regular.ttf").then((r) => r.arrayBuffer()),
+    fetch("/fonts/Roboto-Bold.ttf").then((r) => r.arrayBuffer()),
   ]);
 
   const pdfDoc = await PDFDocument.load(templateBytes);
