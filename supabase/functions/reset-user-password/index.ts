@@ -58,7 +58,7 @@ Deno.serve(async (req) => {
     }
 
     // Prevent self-reset (they should use normal flow)
-    if (user_id === caller.id) {
+    if (user_id === callerId) {
       throw new Error("Use the normal password reset flow for your own account");
     }
 
