@@ -91,12 +91,29 @@ Deno.serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: `You are extracting material delivery data from delivery note PDFs (Δελτίο Αποστολής).
+            content: `You are extracting material delivery data from Greek delivery note PDFs (Δελτίο Αποστολής).
 Extract each material line item with its code, name, quantity, and unit.
 The codes are typically alphanumeric (e.g. "ΚΩΔ.123", "ABC-456", "01-10250160", etc).
 Return ONLY a JSON array with objects having "code" (string), "name" (string - material description), "quantity" (number), and "unit" (string - e.g. "τεμ.", "μ.", "kg", "Μέτρα").
-IMPORTANT: For quantities, "1.000" means 1000 (Greek thousands separator). Convert to actual numbers.
-Example: [{"code": "ABC-001", "name": "Καλώδιο UTP", "quantity": 1000, "unit": "μ."}]
+
+CRITICAL - GREEK NUMBER FORMAT RULES:
+- In Greek documents, dots are THOUSANDS separators, NOT decimal points.
+- "1.000" = ONE THOUSAND (1000), NOT 1.0
+- "2.000" = TWO THOUSAND (2000), NOT 2.0  
+- "1.800" = ONE THOUSAND EIGHT HUNDRED (1800), NOT 1.8
+- "10.500" = TEN THOUSAND FIVE HUNDRED (10500), NOT 10.5
+- "500" = FIVE HUNDRED (500)
+- Commas are decimal separators: "1.000,50" = 1000.50
+- Delivery notes typically have quantities in whole numbers (50, 100, 500, 1000, 2000, etc.)
+- If a quantity seems very small (like 1.8 or 2.0) for construction materials, it's likely a misread Greek number
+
+Examples:
+- "1.000" → quantity: 1000
+- "1.800" → quantity: 1800
+- "2.000" → quantity: 2000
+- "500" → quantity: 500
+- "10.000" → quantity: 10000
+
 If you cannot find any materials, return an empty array [].
 IMPORTANT: Return ONLY the JSON array, no markdown, no explanation.`
           },
@@ -178,6 +195,23 @@ IMPORTANT: Return ONLY the JSON array, no markdown, no explanation.`
     let updated = 0;
     let created = 0;
     const notFound: string[] = [];
+
+    // Post-process: fix Greek number misreads (1.8 → 1800, 2.0 → 2000, etc.)
+    for (const item of extractedMaterials) {
+      const q = item.quantity;
+      // If quantity has a decimal and multiplying by 1000 gives a round number,
+      // it was likely a Greek thousands separator misread
+      if (q > 0 && q < 100 && !Number.isInteger(q)) {
+        const corrected = Math.round(q * 1000);
+        // Check if the corrected value looks reasonable (e.g. 1.8 → 1800, 2.5 → 2500)
+        if (corrected % 100 === 0 || corrected % 50 === 0) {
+          console.log(`Correcting quantity: ${q} → ${corrected} (Greek number format fix)`);
+          item.quantity = corrected;
+        }
+      }
+      // Also fix cases like 2.0 which JS treats as integer 2
+      // Delivery notes rarely have qty=1,2,3 for bulk materials
+    }
 
     for (const item of extractedMaterials) {
       // Search ONLY within the specified source — prevents mixing OTE/DELTANETWORK
