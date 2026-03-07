@@ -640,11 +640,20 @@ Deno.serve(async (req) => {
         const zipUrl = signedUrlData?.signedUrl || "";
 
         const statusLabel = isComplete ? "ΠΡΟΔΕΣΜΕΥΣΗ ΥΛΙΚΩΝ" : "ΕΛΛΙΠΗΣ ΑΥΤΟΨΙΑ";
-        const headerColor = isComplete ? "#2563eb" : "#ea580c";
         const headerIcon = isComplete ? "📋" : "⚠️";
-        const labelBgColor = isComplete ? "#f0f9ff" : "#fff7ed";
-        const labelBorderColor = isComplete ? "#bfdbfe" : "#fed7aa";
-        const labelTextColor = isComplete ? "#1e40af" : "#9a3412";
+
+        // Brand colors matching the app's Dark Industrial identity
+        const brandDark = "#1a2332";       // Σκούρο ανθρακί (--background)
+        const brandTeal = "#1a9a8a";       // Teal primary
+        const brandGreen = "#2d8a4e";      // Green accent
+        const brandGradient = "linear-gradient(135deg, #1a9a8a, #2d8a4e)";
+        const headerBg = isComplete ? brandGradient : "linear-gradient(135deg, #ea580c, #dc2626)";
+        const accentColor = isComplete ? brandTeal : "#ea580c";
+        const tableLabelBg = "#f0f4f8";
+        const tableBorder = "#d1d9e0";
+        const textPrimary = "#1a2332";
+        const textSecondary = "#4a5568";
+        const textMuted = "#718096";
 
         const emailFrom = emailSettingsMap["email_from"] || "noreply@deltanetwork.gr";
         const emailReplyTo = emailSettingsMap["email_reply_to"] || "info@deltanetwork.gr";
@@ -652,77 +661,87 @@ Deno.serve(async (req) => {
         const surveyComments = survey?.comments || "";
 
         const emailHtml = `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-            <div style="background: ${headerColor}; color: white; padding: 16px 24px; border-radius: 8px 8px 0 0;">
-              <h2 style="margin: 0; font-size: 18px;">${headerIcon} ${escapeHtml(statusLabel)} — SR: ${escapeHtml(sr_id)}</h2>
-              <p style="margin: 4px 0 0; font-size: 13px; opacity: 0.9;">Περιοχή: ${escapeHtml(area)}</p>
+          <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f5f7fa;">
+            <!-- Header with brand gradient -->
+            <div style="background: ${headerBg}; color: white; padding: 24px 28px; border-radius: 12px 12px 0 0;">
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="font-size: 24px;">${headerIcon}</span>
+                <div>
+                  <h2 style="margin: 0; font-size: 18px; font-weight: 700; letter-spacing: 0.3px;">${escapeHtml(statusLabel)}</h2>
+                  <p style="margin: 4px 0 0; font-size: 13px; opacity: 0.85;">SR: ${escapeHtml(sr_id)} · ${escapeHtml(area)}</p>
+                </div>
+              </div>
             </div>
             
-            <div style="border: 1px solid #e5e7eb; border-top: none; padding: 24px; border-radius: 0 0 8px 8px;">
-              <p style="color: #374151; font-size: 14px; line-height: 1.6;">Αξιότιμοι συνεργάτες,</p>
-              <p style="color: #374151; font-size: 14px; line-height: 1.6;">
-                Σας ενημερώνουμε ότι ο τεχνικός <strong>${escapeHtml(technicianName)}</strong> μετέβη για αυτοψία στο <strong>SR: ${escapeHtml(sr_id)}</strong>.${isComplete ? " Σας αποστέλλουμε τα αρχεία για προδέσμευση υλικών." : " Η αυτοψία είναι ελλιπής."}
+            <div style="background: white; border: 1px solid ${tableBorder}; border-top: none; padding: 28px; border-radius: 0 0 12px 12px;">
+              <p style="color: ${textSecondary}; font-size: 14px; line-height: 1.7; margin: 0 0 8px;">Αξιότιμοι συνεργάτες,</p>
+              <p style="color: ${textSecondary}; font-size: 14px; line-height: 1.7; margin: 0 0 20px;">
+                Ο τεχνικός <strong style="color: ${textPrimary};">${escapeHtml(technicianName)}</strong> μετέβη για αυτοψία στο <strong style="color: ${textPrimary};">SR: ${escapeHtml(sr_id)}</strong>.${isComplete ? " Σας αποστέλλουμε τα αρχεία για προδέσμευση υλικών." : " Η αυτοψία είναι ελλιπής."}
               </p>
               
-              <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
-                <tr>
-                  <td style="padding: 8px 12px; background: #f9fafb; border: 1px solid #e5e7eb; font-size: 13px; color: #374151; width: 120px;">SR ID</td>
-                  <td style="padding: 8px 12px; border: 1px solid #e5e7eb; font-size: 14px; font-weight: bold;">${escapeHtml(sr_id)}</td>
-                </tr>
-                <tr>
-                  <td style="padding: 8px 12px; background: #f9fafb; border: 1px solid #e5e7eb; font-size: 13px; color: #374151;">Περιοχή</td>
-                  <td style="padding: 8px 12px; border: 1px solid #e5e7eb; font-size: 14px;">${escapeHtml(area)}</td>
-                </tr>
-                <tr>
-                  <td style="padding: 8px 12px; background: #f9fafb; border: 1px solid #e5e7eb; font-size: 13px; color: #374151;">Πελάτης</td>
-                  <td style="padding: 8px 12px; border: 1px solid #e5e7eb; font-size: 14px;">${escapeHtml(customerName || "—")}</td>
-                </tr>
-                <tr>
-                  <td style="padding: 8px 12px; background: #f9fafb; border: 1px solid #e5e7eb; font-size: 13px; color: #374151;">Διεύθυνση</td>
-                  <td style="padding: 8px 12px; border: 1px solid #e5e7eb; font-size: 14px;">${escapeHtml(address || "—")}</td>
-                </tr>
-                <tr>
-                  <td style="padding: 8px 12px; background: #f9fafb; border: 1px solid #e5e7eb; font-size: 13px; color: #374151;">CAB</td>
-                  <td style="padding: 8px 12px; border: 1px solid #e5e7eb; font-size: 14px;">${escapeHtml(cab)}</td>
-                </tr>
-                <tr>
-                  <td style="padding: 8px 12px; background: #f9fafb; border: 1px solid #e5e7eb; font-size: 13px; color: #374151;">Τεχνικός</td>
-                  <td style="padding: 8px 12px; border: 1px solid #e5e7eb; font-size: 14px;">${escapeHtml(technicianName)}</td>
-                </tr>
-              </table>
+              <!-- Info table -->
+              <div style="border-radius: 8px; overflow: hidden; border: 1px solid ${tableBorder}; margin: 20px 0;">
+                <table style="width: 100%; border-collapse: collapse;">
+                  <tr>
+                    <td style="padding: 10px 14px; background: ${tableLabelBg}; border-bottom: 1px solid ${tableBorder}; font-size: 12px; color: ${textMuted}; width: 110px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">SR ID</td>
+                    <td style="padding: 10px 14px; border-bottom: 1px solid ${tableBorder}; font-size: 14px; font-weight: 700; color: ${textPrimary};">${escapeHtml(sr_id)}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 10px 14px; background: ${tableLabelBg}; border-bottom: 1px solid ${tableBorder}; font-size: 12px; color: ${textMuted}; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">Περιοχή</td>
+                    <td style="padding: 10px 14px; border-bottom: 1px solid ${tableBorder}; font-size: 14px; color: ${textPrimary};">${escapeHtml(area)}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 10px 14px; background: ${tableLabelBg}; border-bottom: 1px solid ${tableBorder}; font-size: 12px; color: ${textMuted}; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">Πελάτης</td>
+                    <td style="padding: 10px 14px; border-bottom: 1px solid ${tableBorder}; font-size: 14px; color: ${textPrimary};">${escapeHtml(customerName || "—")}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 10px 14px; background: ${tableLabelBg}; border-bottom: 1px solid ${tableBorder}; font-size: 12px; color: ${textMuted}; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">Διεύθυνση</td>
+                    <td style="padding: 10px 14px; border-bottom: 1px solid ${tableBorder}; font-size: 14px; color: ${textPrimary};">${escapeHtml(address || "—")}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 10px 14px; background: ${tableLabelBg}; border-bottom: 1px solid ${tableBorder}; font-size: 12px; color: ${textMuted}; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">CAB</td>
+                    <td style="padding: 10px 14px; border-bottom: 1px solid ${tableBorder}; font-size: 14px; color: ${textPrimary};">${escapeHtml(cab)}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 10px 14px; background: ${tableLabelBg}; font-size: 12px; color: ${textMuted}; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">Τεχνικός</td>
+                    <td style="padding: 10px 14px; font-size: 14px; color: ${textPrimary};">${escapeHtml(technicianName)}</td>
+                  </tr>
+                </table>
+              </div>
 
               ${surveyComments ? `
-              <div style="background: #f0f9ff; border-left: 4px solid #2563eb; padding: 12px 16px; margin: 16px 0; border-radius: 0 8px 8px 0;">
-                <p style="font-weight: bold; color: #1f2937; font-size: 13px; margin: 0 0 6px;">📝 Σχόλια:</p>
-                <p style="color: #374151; font-size: 14px; margin: 0;">${escapeHtml(surveyComments)}</p>
+              <div style="background: #f0faf8; border-left: 4px solid ${brandTeal}; padding: 14px 18px; margin: 20px 0; border-radius: 0 8px 8px 0;">
+                <p style="font-weight: 700; color: ${textPrimary}; font-size: 13px; margin: 0 0 6px;">📝 Σχόλια Τεχνικού</p>
+                <p style="color: ${textSecondary}; font-size: 14px; margin: 0; line-height: 1.6;">${escapeHtml(surveyComments)}</p>
               </div>` : ""}
 
               ${!isComplete ? `
-              <div style="background: #fef2f2; border-left: 4px solid #dc2626; padding: 12px 16px; margin: 16px 0; border-radius: 0 8px 8px 0;">
-                <p style="font-weight: bold; color: #991b1b; font-size: 13px; margin: 0 0 6px;">⚠️ Ελλιπή αρχεία:</p>
+              <div style="background: #fef2f2; border-left: 4px solid #dc2626; padding: 14px 18px; margin: 20px 0; border-radius: 0 8px 8px 0;">
+                <p style="font-weight: 700; color: #991b1b; font-size: 13px; margin: 0 0 6px;">⚠️ Ελλιπή Αρχεία</p>
                 <p style="color: #dc2626; font-size: 14px; margin: 0;">${missingTypes.map(t => t === "building_photo" ? "Φωτογραφίες κτιρίου" : t === "screenshot" ? "Screenshots" : t === "inspection_form" ? "Έντυπο αυτοψίας" : t).join(", ")}</p>
               </div>` : ""}
 
               ${zipUrl ? `
-              <div style="text-align: center; margin: 20px 0;">
-                <a href="${zipUrl}" style="background: #2563eb; color: white; padding: 12px 28px; border-radius: 6px; text-decoration: none; font-size: 14px; font-weight: bold; display: inline-block;">📥 Κατέβασε τα αρχεία (ZIP)</a>
+              <div style="text-align: center; margin: 24px 0;">
+                <a href="${zipUrl}" style="background: ${brandDark}; color: white; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-size: 14px; font-weight: 700; display: inline-block; letter-spacing: 0.3px;">📥 Λήψη Αρχείων (ZIP)</a>
               </div>
-              <p style="color: #9ca3af; font-size: 11px; text-align: center; margin-top: 4px;">
+              <p style="color: ${textMuted}; font-size: 11px; text-align: center; margin-top: 4px;">
                 ${surveyFiles.length} αρχεία · Ισχύει για 7 ημέρες
               </p>` : ""}
 
               ${skippedFiles > 0 ? `
               <p style="color: #ea580c; font-size: 12px; margin-top: 8px;">⚠️ ${skippedFiles} αρχεία παραλείφθηκαν λόγω μεγέθους.</p>` : ""}
               
-              <p style="color: #374151; font-size: 14px; line-height: 1.6; margin-top: 24px;">Με εκτίμηση,</p>
+              <p style="color: ${textSecondary}; font-size: 14px; line-height: 1.6; margin-top: 28px;">Με εκτίμηση,</p>
               
-              <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;" />
+              <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 24px 0;" />
               
-              <div style="font-size: 12px; color: #6b7280;">
-                <img src="https://task-track-tasker.lovable.app/assets/delta-network-logo.png" alt="Delta Network Inc." style="width: 200px; margin-bottom: 12px; display: block;" />
-                <p style="margin: 0;"><strong>Κούλλαρος Μιχαήλ Άγγελος</strong></p>
-                <p style="margin: 2px 0;">Technical Operations Manager | FTTx Projects | South Aegean</p>
-                <p style="margin: 2px 0;">M: +30 690 710 5282 | E: info@deltanetwork.gr</p>
+              <!-- Footer with brand styling -->
+              <div style="font-size: 12px; color: ${textMuted};">
+                <img src="https://task-track-tasker.lovable.app/assets/delta-network-logo.png" alt="Delta Network Inc." style="width: 180px; margin-bottom: 12px; display: block;" />
+                <p style="margin: 0; font-weight: 700; color: ${textPrimary};">Κούλλαρος Μιχαήλ Άγγελος</p>
+                <p style="margin: 2px 0; color: ${textSecondary};">Technical Operations Manager | FTTx Projects | South Aegean</p>
+                <p style="margin: 2px 0;">M: +30 690 710 5282 | E: <a href="mailto:info@deltanetwork.gr" style="color: ${brandTeal}; text-decoration: none;">info@deltanetwork.gr</a></p>
               </div>
             </div>
           </div>
