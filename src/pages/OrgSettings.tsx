@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Settings, HardDrive, Mail, Save, Plus, Trash2, FolderOpen, KeyRound, Eye, EyeOff, CheckCircle2, AlertCircle, Shield } from "lucide-react";
+import { Settings, HardDrive, Mail, Save, Plus, Trash2, FolderOpen, KeyRound, Eye, EyeOff, CheckCircle2, AlertCircle, Shield, Send } from "lucide-react";
 
 interface SettingRow {
   setting_key: string;
@@ -55,6 +55,9 @@ const OrgSettings = () => {
   const [saKeyVisible, setSaKeyVisible] = useState(false);
   const [saKeySaving, setSaKeySaving] = useState(false);
   const [saKeyStatus, setSaKeyStatus] = useState<"none" | "valid" | "invalid" | "saved">("none");
+
+  // Test email state
+  const [sendingTestEmail, setSendingTestEmail] = useState(false);
 
   const { data: settings, isLoading } = useQuery({
     queryKey: ["org-settings", organizationId],
@@ -179,6 +182,23 @@ const OrgSettings = () => {
       toast.error(err.message);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleSendTestEmail = async () => {
+    if (!organizationId) return;
+    setSendingTestEmail(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("send-test-email", {
+        body: { organization_id: organizationId },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast.success(`Δοκιμαστικό email στάλθηκε στο ${data.to}`);
+    } catch (err: any) {
+      toast.error(err.message || "Αποτυχία αποστολής δοκιμαστικού email");
+    } finally {
+      setSendingTestEmail(false);
     }
   };
 
@@ -358,6 +378,25 @@ const OrgSettings = () => {
                     </div>
                   ))}
                 </div>
+
+                {/* Test email button for Email section */}
+                {section.section === "Email" && (
+                  <div className="pt-2 border-t border-border">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleSendTestEmail}
+                      disabled={sendingTestEmail || !values["email_from"]}
+                      className="gap-2"
+                    >
+                      <Send className="h-3.5 w-3.5" />
+                      {sendingTestEmail ? "Αποστολή..." : "Αποστολή Δοκιμαστικού Email"}
+                    </Button>
+                    <p className="text-[11px] text-muted-foreground mt-1.5">
+                      Στέλνει ένα test email στο Email Αποστολέα για να επιβεβαιώσετε ότι η ρύθμιση λειτουργεί
+                    </p>
+                  </div>
+                )}
               </Card>
             ))}
 
