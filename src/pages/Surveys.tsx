@@ -305,7 +305,7 @@ const Surveys = () => {
         </div>
 
         {/* Stat Cards */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-5">
           <StatCard title="Σύνολο Αυτοψιών" value={totalSurveys} subtitle={`${filtered.length} εμφανίζονται`} icon={ClipboardCheck} />
           <StatCard title="Ολοκληρωμένες" value={totalComplete} subtitle={`${totalSurveys > 0 ? Math.round((totalComplete / totalSurveys) * 100) : 0}% επιτυχία`} icon={FileCheck} trend="up" trendValue={`${totalComplete} πλήρεις`} />
           <StatCard title="Ελλιπείς" value={totalIncomplete} subtitle="αναμονή αρχείων" icon={FileWarning} accent />
