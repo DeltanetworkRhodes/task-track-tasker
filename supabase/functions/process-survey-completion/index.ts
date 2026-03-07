@@ -600,7 +600,7 @@ Deno.serve(async (req) => {
         console.log(`ZIP: ${zipFiles.length} files, ${(totalSize / 1024 / 1024).toFixed(1)}MB, skipped ${skippedFiles}`);
 
         // Build ZIP
-        const zipData = buildZip(zipFiles);
+        const zipData = await buildZip(zipFiles);
         // Free file references
         zipFiles.length = 0;
 
