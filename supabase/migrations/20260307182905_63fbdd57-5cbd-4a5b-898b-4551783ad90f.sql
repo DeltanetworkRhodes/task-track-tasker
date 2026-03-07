@@ -1,0 +1,1 @@
+DELETE FROM public.constructions WHERE sr_id = '2-339914978471' AND assignment_id = '03e53b40-53c4-4417-acd6-f38c303a4bd8';
