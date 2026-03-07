@@ -208,7 +208,8 @@ async function deflateRaw(data: Uint8Array): Promise<Uint8Array> {
 }
 
 async function buildZip(files: { name: string; data: Uint8Array }[]): Promise<Uint8Array> {
-  const entries: { name: Uint8Array; compressedData: Uint8Array; uncompressedSize: number; crc: number; offset: number; isCompressed: boolean }[] = [];
+  // STORE only (no compression) to minimize CPU usage
+  const entries: { name: Uint8Array; dataLen: number; crc: number; offset: number }[] = [];
   const parts: Uint8Array[] = [];
   let offset = 0;
 
@@ -217,40 +218,25 @@ async function buildZip(files: { name: string; data: Uint8Array }[]): Promise<Ui
   for (const file of files) {
     const nameBytes = encoder.encode(file.name);
     const crcVal = crc32(file.data);
-    
-    // Try to compress; only use if smaller
-    let compressedData: Uint8Array;
-    let isCompressed = false;
-    try {
-      const deflated = await deflateRaw(file.data);
-      if (deflated.length < file.data.length) {
-        compressedData = deflated;
-        isCompressed = true;
-      } else {
-        compressedData = file.data;
-      }
-    } catch {
-      compressedData = file.data;
-    }
 
     const localHeader = new Uint8Array(30 + nameBytes.length);
     const view = new DataView(localHeader.buffer);
     view.setUint32(0, 0x04034b50, true);
     view.setUint16(4, 20, true);
     view.setUint16(6, 0x0800, true); // bit 11 = UTF-8 filenames
-    view.setUint16(8, isCompressed ? 8 : 0, true); // 8 = deflate, 0 = store
+    view.setUint16(8, 0, true); // 0 = STORE (no compression)
     view.setUint16(10, 0, true);
     view.setUint16(12, 0, true);
     view.setUint32(14, crcVal, true);
-    view.setUint32(18, compressedData.length, true);
+    view.setUint32(18, file.data.length, true); // compressed = uncompressed
     view.setUint32(22, file.data.length, true);
     view.setUint16(26, nameBytes.length, true);
     view.setUint16(28, 0, true);
     localHeader.set(nameBytes, 30);
 
-    entries.push({ name: nameBytes, compressedData, uncompressedSize: file.data.length, crc: crcVal, offset, isCompressed });
-    parts.push(localHeader, compressedData);
-    offset += localHeader.length + compressedData.length;
+    entries.push({ name: nameBytes, dataLen: file.data.length, crc: crcVal, offset });
+    parts.push(localHeader, file.data);
+    offset += localHeader.length + file.data.length;
   }
 
   const centralDirStart = offset;
