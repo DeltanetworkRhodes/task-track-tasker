@@ -530,7 +530,7 @@ Deno.serve(async (req) => {
           `;
 
           const emailPayload: any = {
-            from: "DeltaNet FTTH <onboarding@resend.dev>",
+            from: `DeltaNet FTTH <${emailSettingsMap["email_from"] || "onboarding@resend.dev"}>`,
             to: recipients,
             subject: `Αυτοψία ${sr_id} - ${customerName} - ΠΡΟΔΕΣΜΕΥΣΗ ΥΛΙΚΩΝ`,
             html: emailHtml,
