@@ -347,11 +347,8 @@ Deno.serve(async (req) => {
       .limit(1)
       .maybeSingle();
 
-    // GIS uploaded: if survey complete (not ΕΛΛΙΠΗΣ) → construction, otherwise pre_committed
-    let newStatus = "pre_committed";
-    if (survey && survey.status !== "ΕΛΛΙΠΗΣ ΑΥΤΟΨΙΑ") {
-      newStatus = "construction";
-    }
+    // GIS uploaded → always set pre_committed (construction transition is manual)
+    const newStatus = "pre_committed";
 
     // Update assignment status
     await supabase
