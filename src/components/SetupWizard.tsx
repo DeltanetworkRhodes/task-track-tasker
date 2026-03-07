@@ -251,7 +251,97 @@ const SetupWizard = ({ onDismiss, demoMode = false }: SetupWizardProps) => {
   const { data: realSteps, isLoading } = useSetupChecklist();
   const [demoSteps, setDemoSteps] = useState<SetupStep[]>(DEMO_STEPS);
   const [activeStepIndex, setActiveStepIndex] = useState(0);
+  const [validating, setValidating] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const navigate = useNavigate();
+  const { organizationId } = useOrganization();
+  const queryClient = useQueryClient();
+
+  const handleFinalValidation = async () => {
+    if (demoMode) {
+      onDismiss?.();
+      return;
+    }
+    setValidating(true);
+    setValidationErrors([]);
+    try {
+      // Re-fetch fresh data to validate
+      const errors: string[] = [];
+
+      const { data: settings } = await supabase
+        .from("org_settings")
+        .select("setting_key, setting_value")
+        .eq("organization_id", organizationId!);
+
+      const settingsMap: Record<string, string> = {};
+      (settings || []).forEach((s) => {
+        settingsMap[s.setting_key] = s.setting_value;
+      });
+
+      if (!settingsMap["shared_drive_id"]) {
+        errors.push("Google Drive: Δεν έχει οριστεί Shared Drive ID");
+      }
+
+      let hasAreaFolders = false;
+      try {
+        const folders = JSON.parse(settingsMap["area_root_folders"] || "[]");
+        hasAreaFolders = Array.isArray(folders) && folders.length > 0;
+      } catch { hasAreaFolders = false; }
+      if (!hasAreaFolders) {
+        errors.push("Περιοχές: Δεν έχουν οριστεί φάκελοι περιοχών");
+      }
+
+      if (!settingsMap["email_from"] && !settingsMap["report_to_emails"]) {
+        errors.push("Email: Δεν έχουν ρυθμιστεί οι παραλήπτες email");
+      }
+
+      const { count: techCount } = await supabase
+        .from("profiles")
+        .select("id", { count: "exact", head: true })
+        .eq("organization_id", organizationId!);
+      if ((techCount || 0) <= 1) {
+        errors.push("Τεχνικοί: Δεν έχετε προσθέσει τεχνικούς");
+      }
+
+      const { count: materialCount } = await supabase
+        .from("materials")
+        .select("id", { count: "exact", head: true })
+        .eq("organization_id", organizationId!);
+      if ((materialCount || 0) === 0) {
+        errors.push("Αποθήκη: Δεν υπάρχουν υλικά");
+      }
+
+      const { count: pricingCount } = await supabase
+        .from("work_pricing")
+        .select("id", { count: "exact", head: true })
+        .eq("organization_id", organizationId!);
+      if ((pricingCount || 0) === 0) {
+        errors.push("Τιμοκατάλογος: Δεν υπάρχουν εργασίες");
+      }
+
+      if (errors.length > 0) {
+        setValidationErrors(errors);
+        toast.error(`${errors.length} βήματα δεν ολοκληρώθηκαν σωστά`);
+        return;
+      }
+
+      // All good — mark wizard as permanently completed
+      await supabase.from("org_settings").upsert({
+        organization_id: organizationId!,
+        setting_key: "setup_wizard_completed",
+        setting_value: "true",
+      }, { onConflict: "organization_id,setting_key" });
+
+      queryClient.invalidateQueries({ queryKey: ["setup-checklist"] });
+      queryClient.invalidateQueries({ queryKey: ["setup-wizard-status"] });
+      toast.success("Η ρύθμιση ολοκληρώθηκε επιτυχώς! 🎉");
+      onDismiss?.();
+    } catch (err: any) {
+      toast.error("Σφάλμα επαλήθευσης: " + (err.message || "Δοκιμάστε ξανά"));
+    } finally {
+      setValidating(false);
+    }
+  };
 
   const steps = demoMode ? demoSteps : realSteps;
 
