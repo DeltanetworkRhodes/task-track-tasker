@@ -97,8 +97,10 @@ const useTechnicians = () => {
   });
 };
 
-const AssignmentTable = ({ assignments }: AssignmentTableProps) => {
+const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: AssignmentTableProps) => {
   const [selected, setSelected] = useState<any>(null);
+  const [bulkStatus, setBulkStatus] = useState<string | null>(null);
+  const [bulkUpdating, setBulkUpdating] = useState(false);
   const [driveData, setDriveData] = useState<DriveData | null>(null);
   const [driveLoading, setDriveLoading] = useState(false);
   const [assigning, setAssigning] = useState<string | null>(null);
