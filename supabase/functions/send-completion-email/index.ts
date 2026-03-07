@@ -301,7 +301,6 @@ Deno.serve(async (req) => {
     }
     if (otdr_paths && otdr_paths.length > 0) {
       for (let i = 0; i < otdr_paths.length; i++) {
-        if (totalSize > MAX_ZIP_SIZE) { console.log(`ZIP size limit reached`); break; }
         try {
           const { data: fileData, error: dlErr } = await adminClient.storage
             .from("photos")
