@@ -198,13 +198,8 @@ async function embedSignature(pdfDoc: any, page: any, dataUrl: string, x: number
   }
 }
 
-async function loadTemplatePdf(): Promise<Uint8Array> {
-  return await Deno.readFile(new URL("./inspection_template.pdf", import.meta.url));
-}
-
-async function generateInspectionPdf(data: InspectionData): Promise<Uint8Array> {
-  const [templateBytes, fontBytes, boldFontBytes] = await Promise.all([
-    loadTemplatePdf(),
+async function generateInspectionPdf(data: InspectionData, templateBytes: Uint8Array): Promise<Uint8Array> {
+  const [fontBytes, boldFontBytes] = await Promise.all([
     fetch("https://cdn.jsdelivr.net/fontsource/fonts/roboto@latest/greek-400-normal.woff").then((r) => r.arrayBuffer()),
     fetch("https://cdn.jsdelivr.net/fontsource/fonts/roboto@latest/greek-700-normal.woff").then((r) => r.arrayBuffer()),
   ]);
