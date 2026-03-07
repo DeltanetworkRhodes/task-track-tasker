@@ -518,6 +518,8 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
             key={a.id}
             className="p-4 space-y-2 cursor-pointer hover:border-primary/30 transition-colors"
             onClick={() => { setSelectedAssignment(a); setShowSurveyForm(false); setShowConstructionForm(false); }}
+            onMouseEnter={() => handleCardHover(a)}
+            onTouchStart={() => handleCardHover(a)}
           >
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
