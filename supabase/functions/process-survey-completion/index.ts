@@ -184,7 +184,8 @@ function crc32(data: Uint8Array): number {
   return (crc ^ 0xFFFFFFFF) >>> 0;
 }
 
-async function deflateRaw(data: Uint8Array): Promise<Uint8Array> {
+
+
   // Use DecompressionStream/CompressionStream unavailable for raw deflate,
   // so we use the "deflate" format and strip the 2-byte header and 4-byte trailer
   const cs = new CompressionStream("deflate");
