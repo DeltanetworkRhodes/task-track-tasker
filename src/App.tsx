@@ -24,6 +24,7 @@ import TechnicianKPIs from "./pages/TechnicianKPIs";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
 import OrgSettings from "./pages/OrgSettings";
 import Calendar from "./pages/Calendar";
+import Kanban from "./pages/Kanban";
 import NotFound from "./pages/NotFound";
 import HelpChatBot from "./components/HelpChatBot";
 
@@ -108,6 +109,7 @@ const App = () => (
                 <Route path="/users" element={<ProtectedRoute><RoleGate><AdminRoute><UserManagement /></AdminRoute></RoleGate></ProtectedRoute>} />
                 <Route path="/settings" element={<ProtectedRoute><RoleGate><AdminRoute><OrgSettings /></AdminRoute></RoleGate></ProtectedRoute>} />
                 <Route path="/kpis" element={<ProtectedRoute><RoleGate><AdminRoute><TechnicianKPIs /></AdminRoute></RoleGate></ProtectedRoute>} />
+                <Route path="/kanban" element={<ProtectedRoute><RoleGate><AdminRoute><Kanban /></AdminRoute></RoleGate></ProtectedRoute>} />
                 <Route path="/calendar" element={<ProtectedRoute><RoleGate><AdminRoute><Calendar /></AdminRoute></RoleGate></ProtectedRoute>} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
