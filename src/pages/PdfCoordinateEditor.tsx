@@ -150,7 +150,6 @@ const FIELD_LABELS: Record<string, string> = {
   total_spaces: "Σύνολο Χώρων",
   cabinet: "Καμπίνα",
   pipe_code: "Κωδ. Σωλήνα",
-  pipe_placement: "Τοποθέτηση Σωλήνα",
 };
 
 const PdfCoordinateEditor = () => {
