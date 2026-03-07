@@ -198,7 +198,7 @@ let cachedMapping: PdfMapping | null = null;
 
 async function loadMapping(): Promise<PdfMapping> {
   if (cachedMapping) return cachedMapping;
-  const resp = await fetch("/templates/pdf-mapping.json");
+  const resp = await fetch(`/templates/pdf-mapping.json?v=${Date.now()}`);
   if (!resp.ok) throw new Error("Cannot load pdf-mapping.json");
   cachedMapping = await resp.json();
   return cachedMapping!;
