@@ -88,7 +88,7 @@ export function useSetupChecklist() {
           id: "emails",
           title: "Ρυθμίσεις Email",
           description: "Email αποστολέα, παραλήπτες ειδοποιήσεων",
-          completed: hasEmailSettings || !!settingsMap["email_from"],
+          completed: hasEmailSettings,
           route: "/settings",
           icon: "mail",
         },
