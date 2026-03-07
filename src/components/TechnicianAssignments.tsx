@@ -19,6 +19,7 @@ import IncompleteSurveys from "@/components/IncompleteSurveys";
 import ConstructionForm from "@/components/ConstructionForm";
 import SRComments from "@/components/SRComments";
 import InspectionReportForm from "@/components/InspectionReportForm";
+import InspectionReportViewer from "@/components/InspectionReportViewer";
 
 const statusFlow: { value: string; label: string }[] = [
   { value: "pending", label: "Αναμονή" },
