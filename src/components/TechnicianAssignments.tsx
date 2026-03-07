@@ -236,6 +236,18 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
     if (assignment.status === "pending") {
       await handleStatusChange(assignment.id, "inspection", assignment.status);
     }
+    // If no existing survey, show inspection report form first
+    // If survey already exists, go directly to survey form
+    if (!existingSurvey) {
+      setShowInspectionReport(true);
+    } else {
+      setShowSurveyForm(true);
+    }
+  };
+
+  // Called when inspection report is saved/submitted — proceed to survey form
+  const handleInspectionComplete = () => {
+    setShowInspectionReport(false);
     setShowSurveyForm(true);
   };
 
@@ -417,10 +429,19 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
                 size="sm"
                 variant="outline"
                 className="flex-1 gap-2 border-primary/30 text-primary hover:bg-primary/10"
-                onClick={() => setShowInspectionReport(true)}
+                onClick={() => setShowSurveyForm(true)}
               >
                 <FileEdit className="h-4 w-4" />
-                Δελτίο Αυτοψίας
+                Αρχεία Αυτοψίας
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="gap-2"
+                onClick={() => setShowInspectionReport(true)}
+              >
+                <FileText className="h-4 w-4" />
+                Δελτίο
               </Button>
               <Button
                 size="sm"
@@ -429,7 +450,6 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
                 onClick={() => setShowInspectionViewer(true)}
               >
                 <Eye className="h-4 w-4" />
-                Προβολή
               </Button>
             </div>
           )}
@@ -866,8 +886,8 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
                 assignment={selectedAssignment}
                 surveyId={existingSurvey?.id}
                 onComplete={() => {
-                  setShowInspectionReport(false);
                   queryClient.invalidateQueries({ queryKey: ["technician-assignments"] });
+                  handleInspectionComplete();
                 }}
                 onCancel={() => setShowInspectionReport(false)}
               />
