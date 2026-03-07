@@ -43,6 +43,7 @@ async function embedSignature(pdfDoc: any, page: any, dataUrl: string, x: number
   }
 }
 
+export async function generateInspectionPdfBytes(data: Record<string, any>): Promise<Uint8Array> {
   const FONT_URL = "https://cdn.jsdelivr.net/fontsource/fonts/roboto@latest/greek-400-normal.woff";
   const FONT_BOLD_URL = "https://cdn.jsdelivr.net/fontsource/fonts/roboto@latest/greek-700-normal.woff";
 
