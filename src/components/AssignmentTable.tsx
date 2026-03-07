@@ -254,8 +254,65 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
     fetchDrive();
   }, [selected?.srId]);
 
+  const toggleSelect = (id: string) => {
+    if (!onSelectionChange) return;
+    onSelectionChange(
+      selectedIds.includes(id) ? selectedIds.filter((x) => x !== id) : [...selectedIds, id]
+    );
+  };
+
+  const toggleAll = () => {
+    if (!onSelectionChange) return;
+    if (selectedIds.length === assignments.length) {
+      onSelectionChange([]);
+    } else {
+      onSelectionChange(assignments.map((a) => a.id));
+    }
+  };
+
+  const handleBulkStatusChange = async (newStatus: string) => {
+    if (selectedIds.length === 0) return;
+    setBulkUpdating(true);
+    try {
+      for (const id of selectedIds) {
+        await supabase.from("assignments").update({ status: newStatus }).eq("id", id);
+      }
+      toast.success(`${selectedIds.length} αναθέσεις → ${statusLabels[newStatus] || newStatus}`);
+      queryClient.invalidateQueries({ queryKey: ["assignments"] });
+      onSelectionChange?.([]);
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setBulkUpdating(false);
+    }
+  };
+
   return (
     <>
+      {/* Bulk Action Bar */}
+      {selectedIds.length > 0 && (
+        <div className="flex items-center gap-3 px-4 py-2.5 bg-primary/5 border-b border-primary/20">
+          <span className="text-xs font-semibold text-primary">
+            {selectedIds.length} επιλεγμένα
+          </span>
+          <Select onValueChange={handleBulkStatusChange} disabled={bulkUpdating}>
+            <SelectTrigger className="w-[180px] h-7 text-xs">
+              <SelectValue placeholder="Αλλαγή status..." />
+            </SelectTrigger>
+            <SelectContent>
+              {Object.entries(statusLabels).map(([key, label]) => (
+                <SelectItem key={key} value={key}>{label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <button
+            onClick={() => onSelectionChange?.([])}
+            className="text-[10px] text-muted-foreground hover:text-foreground ml-auto"
+          >
+            Αποεπιλογή
+          </button>
+        </div>
+      )}
       {/* Mobile Card View */}
       <div className="block md:hidden space-y-2 p-2">
         {assignments.map((a) => (
