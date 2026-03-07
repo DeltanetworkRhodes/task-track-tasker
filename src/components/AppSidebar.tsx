@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import NotificationBell from "@/components/NotificationBell";
 import deltaLogoIcon from "@/assets/delta-logo-icon.png";
 import { useTheme } from "next-themes";
+import { useConstructions } from "@/hooks/useData";
 
 const navItems = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard },
@@ -27,6 +28,8 @@ const AppSidebar = ({ onClose }: AppSidebarProps) => {
   const location = useLocation();
   const { user, signOut } = useAuth();
   const { theme, setTheme } = useTheme();
+  const { data: constructions } = useConstructions();
+  const activeConstructions = constructions?.filter(c => c.status === 'in_progress').length || 0;
 
   return (
     <aside className="flex h-full w-64 flex-col bg-sidebar border-r border-sidebar-border overflow-hidden">
@@ -65,7 +68,17 @@ const AppSidebar = ({ onClose }: AppSidebarProps) => {
             >
               <item.icon className={`h-[18px] w-[18px] shrink-0 ${isActive ? 'text-white' : ''}`} />
               {item.label}
-              {isActive && (
+              {item.to === '/construction' && activeConstructions > 0 && (
+                <span className={`ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+                  isActive ? 'bg-white/20 text-white' : 'bg-primary/10 text-primary'
+                }`}>
+                  {activeConstructions}
+                </span>
+              )}
+              {isActive && item.to !== '/construction' && (
+                <div className="ml-auto h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
+              )}
+              {isActive && item.to === '/construction' && activeConstructions === 0 && (
                 <div className="ml-auto h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
               )}
             </Link>
