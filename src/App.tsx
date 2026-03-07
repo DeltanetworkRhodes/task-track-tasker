@@ -23,6 +23,7 @@ import InstallApp from "./pages/InstallApp";
 import TechnicianKPIs from "./pages/TechnicianKPIs";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
 import OrgSettings from "./pages/OrgSettings";
+import Calendar from "./pages/Calendar";
 import NotFound from "./pages/NotFound";
 import HelpChatBot from "./components/HelpChatBot";
 
