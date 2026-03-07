@@ -107,6 +107,7 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
   const [assigning, setAssigning] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<any>(null);
   const [deleting, setDeleting] = useState(false);
+  const [showInspectionViewer, setShowInspectionViewer] = useState(false);
   const { data: technicians } = useTechnicians();
   const { data: history } = useAssignmentHistory(selected?.id || null);
   const queryClient = useQueryClient();
