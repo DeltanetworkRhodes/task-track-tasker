@@ -312,33 +312,28 @@ function escapeHtml(str: string): string {
   return str.replace(/[<>&"']/g, (c: string) => `&#${c.charCodeAt(0)};`);
 }
 
-// ─── PDF builder from inspection photos ─────────────────────────────
+// ─── PDF builder from already-downloaded inspection photos ──────────
 
 async function buildInspectionPdf(
-  adminClient: any,
-  inspectionFiles: { file_path: string; file_name: string }[],
+  inspectionData: { fileName: string; data: Uint8Array }[],
   srId: string
 ): Promise<Uint8Array | null> {
-  if (inspectionFiles.length === 0) return null;
+  if (inspectionData.length === 0) return null;
   
   try {
     const pdfDoc = await PDFDocument.create();
     
-    for (const sf of inspectionFiles) {
-      const fileData = await downloadFile(adminClient, sf.file_path);
-      if (!fileData) continue;
-      
-      const ext = sf.file_name.split(".").pop()?.toLowerCase() || "";
+    for (const item of inspectionData) {
+      const ext = item.fileName.split(".").pop()?.toLowerCase() || "";
       let image;
       try {
         if (ext === "png") {
-          image = await pdfDoc.embedPng(fileData);
+          image = await pdfDoc.embedPng(item.data);
         } else {
-          // jpg/jpeg/webp — try as JPEG
-          image = await pdfDoc.embedJpg(fileData);
+          image = await pdfDoc.embedJpg(item.data);
         }
       } catch (embedErr) {
-        console.error(`Failed to embed image ${sf.file_name}:`, embedErr);
+        console.error(`Failed to embed image ${item.fileName}:`, embedErr);
         continue;
       }
       
