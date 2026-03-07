@@ -170,21 +170,106 @@ async function getTargetParentFolder(
   return { folderId: targetFolder.id, folderType: targetName };
 }
 
-// ─── Lightweight PDF Generation (no pdf-lib, just images in Drive) ──
+// ─── Minimal ZIP builder (no external deps) ─────────────────────────
 
-// Download a single file from storage
-async function downloadFile(
-  adminClient: any, filePath: string
-): Promise<Uint8Array | null> {
-  const { data, error } = await adminClient.storage
-    .from("surveys")
-    .download(filePath);
+function crc32(data: Uint8Array): number {
+  let crc = 0xFFFFFFFF;
+  for (let i = 0; i < data.length; i++) {
+    crc ^= data[i];
+    for (let j = 0; j < 8; j++) {
+      crc = (crc >>> 1) ^ (crc & 1 ? 0xEDB88320 : 0);
+    }
+  }
+  return (crc ^ 0xFFFFFFFF) >>> 0;
+}
+
+function buildZip(files: { name: string; data: Uint8Array }[]): Uint8Array {
+  const entries: { name: Uint8Array; data: Uint8Array; crc: number; offset: number }[] = [];
+  const parts: Uint8Array[] = [];
+  let offset = 0;
+
+  const encoder = new TextEncoder();
+
+  for (const file of files) {
+    const nameBytes = encoder.encode(file.name);
+    const crc = crc32(file.data);
+    const localHeader = new Uint8Array(30 + nameBytes.length);
+    const view = new DataView(localHeader.buffer);
+    view.setUint32(0, 0x04034b50, true);  // signature
+    view.setUint16(4, 20, true);           // version needed
+    view.setUint16(6, 0, true);            // flags
+    view.setUint16(8, 0, true);            // compression: store
+    view.setUint16(10, 0, true);           // mod time
+    view.setUint16(12, 0, true);           // mod date
+    view.setUint32(14, crc, true);
+    view.setUint32(18, file.data.length, true); // compressed
+    view.setUint32(22, file.data.length, true); // uncompressed
+    view.setUint16(26, nameBytes.length, true);
+    view.setUint16(28, 0, true);           // extra field length
+    localHeader.set(nameBytes, 30);
+
+    entries.push({ name: nameBytes, data: file.data, crc, offset });
+    parts.push(localHeader, file.data);
+    offset += localHeader.length + file.data.length;
+  }
+
+  const centralDirStart = offset;
+  for (const entry of entries) {
+    const cdHeader = new Uint8Array(46 + entry.name.length);
+    const cdView = new DataView(cdHeader.buffer);
+    cdView.setUint32(0, 0x02014b50, true);
+    cdView.setUint16(4, 20, true);
+    cdView.setUint16(6, 20, true);
+    cdView.setUint16(8, 0, true);
+    cdView.setUint16(10, 0, true);
+    cdView.setUint16(12, 0, true);
+    cdView.setUint16(14, 0, true);
+    cdView.setUint32(16, entry.crc, true);
+    cdView.setUint32(20, entry.data.length, true);
+    cdView.setUint32(24, entry.data.length, true);
+    cdView.setUint16(28, entry.name.length, true);
+    cdView.setUint16(30, 0, true);
+    cdView.setUint16(32, 0, true);
+    cdView.setUint16(34, 0, true);
+    cdView.setUint16(36, 0, true);
+    cdView.setUint32(38, 0, true);
+    cdView.setUint32(42, entry.offset, true);
+    cdHeader.set(entry.name, 46);
+    parts.push(cdHeader);
+    offset += cdHeader.length;
+  }
+
+  const endRecord = new Uint8Array(22);
+  const endView = new DataView(endRecord.buffer);
+  endView.setUint32(0, 0x06054b50, true);
+  endView.setUint16(4, 0, true);
+  endView.setUint16(6, 0, true);
+  endView.setUint16(8, entries.length, true);
+  endView.setUint16(10, entries.length, true);
+  endView.setUint32(12, offset - centralDirStart, true);
+  endView.setUint32(16, centralDirStart, true);
+  endView.setUint16(20, 0, true);
+  parts.push(endRecord);
+
+  const totalLength = parts.reduce((sum, p) => sum + p.length, 0);
+  const result = new Uint8Array(totalLength);
+  let pos = 0;
+  for (const part of parts) {
+    result.set(part, pos);
+    pos += part.length;
+  }
+  return result;
+}
+
+// ─── Helpers ─────────────────────────────────────────────────────────
+
+async function downloadFile(adminClient: any, filePath: string): Promise<Uint8Array | null> {
+  const { data, error } = await adminClient.storage.from("surveys").download(filePath);
   if (error || !data) {
     console.error(`Failed to download ${filePath}:`, error);
     return null;
   }
-  const buf = await data.arrayBuffer();
-  return new Uint8Array(buf);
+  return new Uint8Array(await data.arrayBuffer());
 }
 
 const mimeMap: Record<string, string> = {
@@ -195,6 +280,10 @@ const mimeMap: Record<string, string> = {
 function getMime(fileName: string): string {
   const ext = fileName.split(".").pop()?.toLowerCase() || "";
   return mimeMap[ext] || "application/octet-stream";
+}
+
+function escapeHtml(str: string): string {
+  return str.replace(/[<>&"']/g, (c: string) => `&#${c.charCodeAt(0)};`);
 }
 
 // ─── Main handler ────────────────────────────────────────────────────
@@ -269,7 +358,7 @@ Deno.serve(async (req) => {
       technicianName = profile?.full_name || "Technician";
     }
 
-    // 3. Get survey files metadata (no download yet)
+    // 3. Get survey files
     const { data: surveyFiles } = await adminClient
       .from("survey_files")
       .select("*")
@@ -304,7 +393,6 @@ Deno.serve(async (req) => {
         if (target) {
           driveTargetType = target.folderType;
 
-          // Find or create SR folder
           const existingInTarget = await driveSearch(
             accessToken,
             `name = '${folderName}' and '${target.folderId}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`
@@ -314,7 +402,6 @@ Deno.serve(async (req) => {
           if (existingInTarget.length > 0) {
             folder = existingInTarget[0];
           } else {
-            // Check other folder for moving
             const otherTargetName = isComplete ? "ΑΝΑΜΟΝΗ" : "ΟΛΟΚΛΗΡΩΜΕΝΕΣ ΑΥΤΟΨΙΕΣ";
             const rootId = areaRootFolders[area];
             const currentMonth = greekMonths[new Date().getMonth()];
@@ -354,37 +441,30 @@ Deno.serve(async (req) => {
           const promelethFolder = await findOrCreateFolder(accessToken, "ΠΡΟΜΕΛΕΤΗ", folder.id);
 
           // Upload files ONE BY ONE to save memory
-          // Building photos → ΠΡΟΜΕΛΕΤΗ
           const buildingFiles = surveyFiles.filter((f: any) => f.file_type === "building_photo");
           for (const sf of buildingFiles) {
             const fileData = await downloadFile(adminClient, sf.file_path);
             if (fileData) {
               await uploadFileToDrive(accessToken, sf.file_name, getMime(sf.file_name), fileData, promelethFolder.id);
               filesUploadedCount++;
-              console.log(`Uploaded to ΠΡΟΜΕΛΕΤΗ: ${sf.file_name}`);
             }
-            // fileData goes out of scope → GC can reclaim
           }
 
-          // Screenshots → ΕΓΓΡΑΦΑ
           const screenshotFiles = surveyFiles.filter((f: any) => f.file_type === "screenshot");
           for (const sf of screenshotFiles) {
             const fileData = await downloadFile(adminClient, sf.file_path);
             if (fileData) {
               await uploadFileToDrive(accessToken, sf.file_name, getMime(sf.file_name), fileData, egrafaFolder.id);
               filesUploadedCount++;
-              console.log(`Uploaded to ΕΓΓΡΑΦΑ: ${sf.file_name}`);
             }
           }
 
-          // Inspection form photos → ΕΓΓΡΑΦΑ (as individual images)
           const inspectionFiles = surveyFiles.filter((f: any) => f.file_type === "inspection_form");
           for (const sf of inspectionFiles) {
             const fileData = await downloadFile(adminClient, sf.file_path);
             if (fileData) {
               await uploadFileToDrive(accessToken, sf.file_name, getMime(sf.file_name), fileData, egrafaFolder.id);
               filesUploadedCount++;
-              console.log(`Uploaded to ΕΓΓΡΑΦΑ: ${sf.file_name}`);
             }
           }
 
@@ -432,83 +512,138 @@ Deno.serve(async (req) => {
     
     console.log(`Assignment ${sr_id} status → ${newAssignmentStatus}, Survey → ${newSurveyStatus}`);
 
-    // 6. Send email only if COMPLETE (lightweight: no ZIP, just link to Drive)
+    // 6. Build ZIP and send email — ALWAYS (complete or incomplete)
     let emailSent = false;
-    if (isComplete) {
-      const resendApiKey = Deno.env.get("RESEND_API_KEY");
-      
-      const { data: orgEmailSettings } = await adminClient
-        .from("org_settings")
-        .select("setting_key, setting_value")
-        .eq("organization_id", orgId);
+    const resendApiKey = Deno.env.get("RESEND_API_KEY");
 
-      const emailSettingsMap: Record<string, string> = {};
-      (orgEmailSettings || []).forEach((s: any) => {
-        emailSettingsMap[s.setting_key] = s.setting_value;
-      });
+    const { data: orgEmailSettings } = await adminClient
+      .from("org_settings")
+      .select("setting_key, setting_value")
+      .eq("organization_id", orgId);
 
-      const toEmails = emailSettingsMap["report_to_emails"] || "";
-      const ccEmails = emailSettingsMap["report_cc_emails"] || "";
-      const recipients = toEmails.split(",").map((e: string) => e.trim()).filter(Boolean);
-      const ccRecipients = ccEmails.split(",").map((e: string) => e.trim()).filter(Boolean);
+    const emailSettingsMap: Record<string, string> = {};
+    (orgEmailSettings || []).forEach((s: any) => {
+      emailSettingsMap[s.setting_key] = s.setting_value;
+    });
 
-      if (resendApiKey && recipients.length > 0) {
-        try {
-          const escapedSrId = sr_id.replace(/[<>&"']/g, (c: string) => `&#${c.charCodeAt(0)};`);
-          const escapedName = customerName.replace(/[<>&"']/g, (c: string) => `&#${c.charCodeAt(0)};`);
-          const escapedAddress = address.replace(/[<>&"']/g, (c: string) => `&#${c.charCodeAt(0)};`);
-          const escapedPhone = phone.replace(/[<>&"']/g, (c: string) => `&#${c.charCodeAt(0)};`);
+    const toEmails = emailSettingsMap["report_to_emails"] || "";
+    const ccEmails = emailSettingsMap["report_cc_emails"] || "";
+    const recipients = toEmails.split(",").map((e: string) => e.trim()).filter(Boolean);
+    const ccRecipients = ccEmails.split(",").map((e: string) => e.trim()).filter(Boolean);
 
-          const emailHtml = `
-            <div style="font-family:Arial,sans-serif;padding:20px;">
-              <h2 style="color:#1a73e8;">Ολοκληρωμένη Αυτοψία - ${escapedSrId}</h2>
-              <table style="border-collapse:collapse;margin:16px 0;">
-                <tr><td style="padding:4px 12px 4px 0;font-weight:bold;">SR ID:</td><td>${escapedSrId}</td></tr>
-                <tr><td style="padding:4px 12px 4px 0;font-weight:bold;">Πελάτης:</td><td>${escapedName}</td></tr>
-                <tr><td style="padding:4px 12px 4px 0;font-weight:bold;">Διεύθυνση:</td><td>${escapedAddress || "—"}</td></tr>
-                <tr><td style="padding:4px 12px 4px 0;font-weight:bold;">Τηλέφωνο:</td><td>${escapedPhone || "—"}</td></tr>
-                <tr><td style="padding:4px 12px 4px 0;font-weight:bold;">Περιοχή:</td><td>${area}</td></tr>
-                <tr><td style="padding:4px 12px 4px 0;font-weight:bold;">Τεχνικός:</td><td>${technicianName}</td></tr>
-                <tr><td style="padding:4px 12px 4px 0;font-weight:bold;">Αρχεία:</td><td>${surveyFiles.length} αρχεία</td></tr>
-                ${driveFolderUrl ? `<tr><td style="padding:4px 12px 4px 0;font-weight:bold;">Drive:</td><td><a href="${driveFolderUrl}">Άνοιγμα φακέλου</a></td></tr>` : ""}
-              </table>
-              <p style="color:#666;font-size:13px;">Τα αρχεία αυτοψίας είναι διαθέσιμα στον φάκελο Google Drive.</p>
-            </div>
-          `;
+    if (resendApiKey && recipients.length > 0) {
+      try {
+        // Download files for ZIP (one by one, keep in array)
+        // Limit total ZIP size to ~8MB to stay within memory limits
+        const MAX_ZIP_SIZE = 8 * 1024 * 1024;
+        const zipFiles: { name: string; data: Uint8Array }[] = [];
+        let totalSize = 0;
+        let skippedFiles = 0;
 
-          const emailPayload: any = {
-            from: `DeltaNet FTTH <${emailSettingsMap["email_from"] || "onboarding@resend.dev"}>`,
-            to: recipients,
-            subject: `Αυτοψία ${sr_id} - ${customerName} - ΠΡΟΔΕΣΜΕΥΣΗ ΥΛΙΚΩΝ`,
-            html: emailHtml,
-          };
-
-          if (ccRecipients.length > 0) {
-            emailPayload.cc = ccRecipients;
+        for (const sf of surveyFiles) {
+          const fileData = await downloadFile(adminClient, sf.file_path);
+          if (fileData) {
+            if (totalSize + fileData.length > MAX_ZIP_SIZE) {
+              skippedFiles++;
+              console.log(`Skipping ${sf.file_name} (ZIP size limit)`);
+              continue;
+            }
+            // Prefix with folder name based on type
+            const prefix = sf.file_type === "building_photo" ? "ΠΡΟΜΕΛΕΤΗ/" 
+              : sf.file_type === "screenshot" ? "ΕΓΓΡΑΦΑ/"
+              : sf.file_type === "inspection_form" ? "ΕΓΓΡΑΦΑ/"
+              : "";
+            zipFiles.push({ name: `${prefix}${sf.file_name}`, data: fileData });
+            totalSize += fileData.length;
           }
+        }
 
-          const emailRes = await fetch("https://api.resend.com/emails", {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${resendApiKey}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify(emailPayload),
+        console.log(`ZIP: ${zipFiles.length} files, ${(totalSize / 1024 / 1024).toFixed(1)}MB, skipped ${skippedFiles}`);
+
+        // Build ZIP
+        const zipData = buildZip(zipFiles);
+        // Free file references
+        zipFiles.length = 0;
+
+        // Upload ZIP to storage
+        const zipFileName = `${sr_id}_survey_${Date.now()}.zip`;
+        const zipStoragePath = `zips/${zipFileName}`;
+        const { error: uploadErr } = await adminClient.storage
+          .from("surveys")
+          .upload(zipStoragePath, zipData, {
+            contentType: "application/zip",
+            upsert: true,
           });
 
-          if (!emailRes.ok) {
-            console.error("Resend error:", await emailRes.text());
-          } else {
-            console.log(`Email sent to: ${recipients.join(", ")}`);
-            emailSent = true;
-            await adminClient
-              .from("surveys")
-              .update({ email_sent: true })
-              .eq("id", survey_id);
-          }
-        } catch (emailErr) {
-          console.error("Email error (non-blocking):", emailErr);
+        if (uploadErr) {
+          console.error("ZIP upload error:", uploadErr);
         }
+
+        // Generate signed URL (7 days)
+        const { data: signedUrlData } = await adminClient.storage
+          .from("surveys")
+          .createSignedUrl(zipStoragePath, 60 * 60 * 24 * 7);
+
+        const zipUrl = signedUrlData?.signedUrl || "";
+
+        const statusLabel = isComplete ? "ΠΡΟΔΕΣΜΕΥΣΗ ΥΛΙΚΩΝ" : "ΕΛΛΙΠΗΣ ΑΥΤΟΨΙΑ";
+        const statusColor = isComplete ? "#2e7d32" : "#e65100";
+
+        const emailHtml = `
+          <div style="font-family:Arial,sans-serif;padding:20px;">
+            <h2 style="color:#1a73e8;">Αυτοψία - ${escapeHtml(sr_id)}</h2>
+            <div style="display:inline-block;padding:4px 12px;border-radius:4px;background:${statusColor};color:#fff;font-weight:bold;margin-bottom:16px;">
+              ${statusLabel}
+            </div>
+            <table style="border-collapse:collapse;margin:16px 0;">
+              <tr><td style="padding:4px 12px 4px 0;font-weight:bold;">SR ID:</td><td>${escapeHtml(sr_id)}</td></tr>
+              <tr><td style="padding:4px 12px 4px 0;font-weight:bold;">Πελάτης:</td><td>${escapeHtml(customerName)}</td></tr>
+              <tr><td style="padding:4px 12px 4px 0;font-weight:bold;">Διεύθυνση:</td><td>${escapeHtml(address) || "—"}</td></tr>
+              <tr><td style="padding:4px 12px 4px 0;font-weight:bold;">Τηλέφωνο:</td><td>${escapeHtml(phone) || "—"}</td></tr>
+              <tr><td style="padding:4px 12px 4px 0;font-weight:bold;">Περιοχή:</td><td>${escapeHtml(area)}</td></tr>
+              <tr><td style="padding:4px 12px 4px 0;font-weight:bold;">Τεχνικός:</td><td>${escapeHtml(technicianName)}</td></tr>
+              <tr><td style="padding:4px 12px 4px 0;font-weight:bold;">Αρχεία:</td><td>${surveyFiles.length} αρχεία</td></tr>
+              ${!isComplete ? `<tr><td style="padding:4px 12px 4px 0;font-weight:bold;color:${statusColor};">Λείπουν:</td><td style="color:${statusColor};">${missingTypes.join(", ")}</td></tr>` : ""}
+              ${driveFolderUrl ? `<tr><td style="padding:4px 12px 4px 0;font-weight:bold;">Drive:</td><td><a href="${driveFolderUrl}">Άνοιγμα φακέλου</a></td></tr>` : ""}
+            </table>
+            ${zipUrl ? `<p><a href="${zipUrl}" style="display:inline-block;padding:10px 20px;background:#1a73e8;color:#fff;border-radius:6px;text-decoration:none;font-weight:bold;">📥 Λήψη αρχείων (ZIP)</a></p>` : ""}
+            ${skippedFiles > 0 ? `<p style="color:#999;font-size:12px;">⚠️ ${skippedFiles} αρχεία παραλείφθηκαν λόγω μεγέθους. Δείτε τα στο Google Drive.</p>` : ""}
+            <p style="color:#666;font-size:13px;">Ο σύνδεσμος ZIP ισχύει για 7 ημέρες.</p>
+          </div>
+        `;
+
+        const emailPayload: any = {
+          from: `DeltaNet FTTH <${emailSettingsMap["email_from"] || "onboarding@resend.dev"}>`,
+          to: recipients,
+          subject: `Αυτοψία ${sr_id} - ${customerName} - ${statusLabel}`,
+          html: emailHtml,
+        };
+
+        if (ccRecipients.length > 0) {
+          emailPayload.cc = ccRecipients;
+        }
+
+        const emailRes = await fetch("https://api.resend.com/emails", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${resendApiKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(emailPayload),
+        });
+
+        if (!emailRes.ok) {
+          console.error("Resend error:", await emailRes.text());
+        } else {
+          console.log(`Email sent to: ${recipients.join(", ")}`);
+          emailSent = true;
+          await adminClient
+            .from("surveys")
+            .update({ email_sent: true })
+            .eq("id", survey_id);
+        }
+      } catch (emailErr) {
+        console.error("Email error (non-blocking):", emailErr);
       }
     }
 
