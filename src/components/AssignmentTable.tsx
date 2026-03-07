@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Assignment, statusLabels } from "@/data/mockData";
 import { Camera, MessageSquare, ExternalLink, User, MapPin, Phone, Hash, FolderOpen, FileText, Image, Loader2, Clock, ArrowRight, Trash2 } from "lucide-react";
+import SRComments from "@/components/SRComments";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -21,6 +22,8 @@ const statusColors: Record<string, string> = {
 
 interface AssignmentTableProps {
   assignments: Assignment[];
+  selectedIds?: string[];
+  onSelectionChange?: (ids: string[]) => void;
 }
 
 const DetailRow = ({ icon: Icon, label, value }: { icon: any; label: string; value: string | null | undefined }) => {
@@ -94,8 +97,10 @@ const useTechnicians = () => {
   });
 };
 
-const AssignmentTable = ({ assignments }: AssignmentTableProps) => {
+const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: AssignmentTableProps) => {
   const [selected, setSelected] = useState<any>(null);
+  const [bulkStatus, setBulkStatus] = useState<string | null>(null);
+  const [bulkUpdating, setBulkUpdating] = useState(false);
   const [driveData, setDriveData] = useState<DriveData | null>(null);
   const [driveLoading, setDriveLoading] = useState(false);
   const [assigning, setAssigning] = useState<string | null>(null);
@@ -249,8 +254,65 @@ const AssignmentTable = ({ assignments }: AssignmentTableProps) => {
     fetchDrive();
   }, [selected?.srId]);
 
+  const toggleSelect = (id: string) => {
+    if (!onSelectionChange) return;
+    onSelectionChange(
+      selectedIds.includes(id) ? selectedIds.filter((x) => x !== id) : [...selectedIds, id]
+    );
+  };
+
+  const toggleAll = () => {
+    if (!onSelectionChange) return;
+    if (selectedIds.length === assignments.length) {
+      onSelectionChange([]);
+    } else {
+      onSelectionChange(assignments.map((a) => a.id));
+    }
+  };
+
+  const handleBulkStatusChange = async (newStatus: string) => {
+    if (selectedIds.length === 0) return;
+    setBulkUpdating(true);
+    try {
+      for (const id of selectedIds) {
+        await supabase.from("assignments").update({ status: newStatus }).eq("id", id);
+      }
+      toast.success(`${selectedIds.length} αναθέσεις → ${statusLabels[newStatus] || newStatus}`);
+      queryClient.invalidateQueries({ queryKey: ["assignments"] });
+      onSelectionChange?.([]);
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setBulkUpdating(false);
+    }
+  };
+
   return (
     <>
+      {/* Bulk Action Bar */}
+      {selectedIds.length > 0 && (
+        <div className="flex items-center gap-3 px-4 py-2.5 bg-primary/5 border-b border-primary/20">
+          <span className="text-xs font-semibold text-primary">
+            {selectedIds.length} επιλεγμένα
+          </span>
+          <Select onValueChange={handleBulkStatusChange} disabled={bulkUpdating}>
+            <SelectTrigger className="w-[180px] h-7 text-xs">
+              <SelectValue placeholder="Αλλαγή status..." />
+            </SelectTrigger>
+            <SelectContent>
+              {Object.entries(statusLabels).map(([key, label]) => (
+                <SelectItem key={key} value={key}>{label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <button
+            onClick={() => onSelectionChange?.([])}
+            className="text-[10px] text-muted-foreground hover:text-foreground ml-auto"
+          >
+            Αποεπιλογή
+          </button>
+        </div>
+      )}
       {/* Mobile Card View */}
       <div className="block md:hidden space-y-2 p-2">
         {assignments.map((a) => (
@@ -333,6 +395,16 @@ const AssignmentTable = ({ assignments }: AssignmentTableProps) => {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border/50">
+              {onSelectionChange && (
+                <th className="py-3 px-2 w-8">
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.length === assignments.length && assignments.length > 0}
+                    onChange={toggleAll}
+                    className="h-3.5 w-3.5 rounded border-border accent-primary"
+                  />
+                </th>
+              )}
               <th className="py-3 px-4 text-left font-medium text-muted-foreground text-xs uppercase tracking-wider">SR ID</th>
               <th className="py-3 px-4 text-left font-medium text-muted-foreground text-xs uppercase tracking-wider">Περιοχή</th>
               <th className="py-3 px-4 text-left font-medium text-muted-foreground text-xs uppercase tracking-wider">Πελάτης</th>
@@ -350,8 +422,18 @@ const AssignmentTable = ({ assignments }: AssignmentTableProps) => {
             {assignments.map((a) => (
               <tr
                 key={a.id}
-                className="border-b border-border/30 hover:bg-secondary/50 transition-colors"
+                className={`border-b border-border/30 hover:bg-secondary/50 transition-colors ${selectedIds.includes(a.id) ? 'bg-primary/5' : ''}`}
               >
+                {onSelectionChange && (
+                  <td className="py-3 px-2" onClick={(e) => e.stopPropagation()}>
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.includes(a.id)}
+                      onChange={() => toggleSelect(a.id)}
+                      className="h-3.5 w-3.5 rounded border-border accent-primary"
+                    />
+                  </td>
+                )}
                 <td
                   className="py-3 px-4 font-bold text-primary cursor-pointer"
                   onClick={() => setSelected(a)}
@@ -546,6 +628,9 @@ const AssignmentTable = ({ assignments }: AssignmentTableProps) => {
               </div>
             </div>
           )}
+
+          {/* SR Comments */}
+          {selected && <SRComments assignmentId={selected.id} />}
 
           {/* Drive Folder Section */}
           <div className="mt-4 pt-4 border-t border-border/30">
