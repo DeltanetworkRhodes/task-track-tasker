@@ -40,7 +40,7 @@ const SurveyForm = ({ assignments, prefillSrId, prefillArea, onComplete }: Props
 
   const buildingRef = useRef<HTMLInputElement>(null);
   const screenshotRef = useRef<HTMLInputElement>(null);
-  const inspectionRef = useRef<HTMLInputElement>(null);
+  
 
   const handleFiles = (
     files: FileList | null,

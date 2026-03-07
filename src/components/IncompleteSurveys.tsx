@@ -20,7 +20,6 @@ const MAX_FILES = 10;
 const REQUIRED_TYPES = [
   { key: "building_photo", label: "Φωτογραφίες Κτιρίου" },
   { key: "screenshot", label: "Screenshots (ΧΕΜΔ & AutoCAD)" },
-  { key: "inspection_form", label: "Έντυπο Αυτοψίας" },
 ];
 
 const IncompleteSurveys = ({ filterSrId }: { filterSrId?: string }) => {
