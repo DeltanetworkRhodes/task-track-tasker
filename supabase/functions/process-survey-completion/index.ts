@@ -334,7 +334,8 @@ async function buildPdfViaGoogleSlides(
     const pdfBytes = new Uint8Array(await exportRes.arrayBuffer());
     console.log(`Exported PDF from Slides: ${(pdfBytes.length / 1024).toFixed(0)}KB`);
 
-    // 6. Delete the temporary Slides presentation (we have the PDF)
+    // 6. Cleanup: delete presentation and revoke temporary permissions
+    await cleanupPermissions(accessToken, permissionIds);
     await fetch(`https://www.googleapis.com/drive/v3/files/${presentationId}?supportsAllDrives=true`, {
       method: "DELETE",
       headers: { Authorization: `Bearer ${accessToken}` },
