@@ -1,0 +1,1 @@
+ALTER TABLE public.inspection_reports ADD COLUMN bcp_drop_4 boolean DEFAULT false;

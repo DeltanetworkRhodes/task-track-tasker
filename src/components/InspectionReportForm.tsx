@@ -715,10 +715,14 @@ const InspectionReportForm = ({ assignment, surveyId, onComplete, onCancel }: Pr
             </RadioGroup>
           </div>
         </div>
-        <div className="flex gap-4 mt-3">
+        <div className="flex gap-4 mt-3 flex-wrap">
           <label className="flex items-center gap-2">
             <Checkbox checked={form.bcp_floorbox} onCheckedChange={(v) => updateField("bcp_floorbox", v)} />
             <span className="text-xs">Floorbox</span>
+          </label>
+          <label className="flex items-center gap-2">
+            <Checkbox checked={form.bcp_drop_4} onCheckedChange={(v) => updateField("bcp_drop_4", v)} />
+            <span className="text-xs">Drop 4</span>
           </label>
           <label className="flex items-center gap-2">
             <Checkbox checked={form.bcp_drop_6} onCheckedChange={(v) => updateField("bcp_drop_6", v)} />

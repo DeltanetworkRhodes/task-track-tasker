@@ -538,6 +538,7 @@ export type Database = {
           assignment_id: string
           bcp_brand: string | null
           bcp_drop_12: boolean | null
+          bcp_drop_4: boolean | null
           bcp_drop_6: boolean | null
           bcp_floorbox: boolean | null
           bcp_size: string | null
@@ -617,6 +618,7 @@ export type Database = {
           assignment_id: string
           bcp_brand?: string | null
           bcp_drop_12?: boolean | null
+          bcp_drop_4?: boolean | null
           bcp_drop_6?: boolean | null
           bcp_floorbox?: boolean | null
           bcp_size?: string | null
@@ -696,6 +698,7 @@ export type Database = {
           assignment_id?: string
           bcp_brand?: string | null
           bcp_drop_12?: boolean | null
+          bcp_drop_4?: boolean | null
           bcp_drop_6?: boolean | null
           bcp_floorbox?: boolean | null
           bcp_size?: string | null
