@@ -548,6 +548,9 @@ const AssignmentTable = ({ assignments }: AssignmentTableProps) => {
             </div>
           )}
 
+          {/* SR Comments */}
+          {selected && <SRComments assignmentId={selected.id} />}
+
           {/* Drive Folder Section */}
           <div className="mt-4 pt-4 border-t border-border/30">
             <div className="flex items-center gap-2 mb-3">
