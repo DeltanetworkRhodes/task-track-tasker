@@ -183,8 +183,31 @@ function crc32(data: Uint8Array): number {
   return (crc ^ 0xFFFFFFFF) >>> 0;
 }
 
-function buildZip(files: { name: string; data: Uint8Array }[]): Uint8Array {
-  const entries: { name: Uint8Array; data: Uint8Array; crc: number; offset: number }[] = [];
+async function deflateRaw(data: Uint8Array): Promise<Uint8Array> {
+  // Use DecompressionStream/CompressionStream unavailable for raw deflate,
+  // so we use the "deflate" format and strip the 2-byte header and 4-byte trailer
+  const cs = new CompressionStream("deflate");
+  const writer = cs.writable.getWriter();
+  writer.write(data);
+  writer.close();
+  const reader = cs.readable.getReader();
+  const chunks: Uint8Array[] = [];
+  let totalLen = 0;
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    chunks.push(value);
+    totalLen += value.length;
+  }
+  const full = new Uint8Array(totalLen);
+  let pos = 0;
+  for (const c of chunks) { full.set(c, pos); pos += c.length; }
+  // Strip zlib header (2 bytes) and adler32 checksum (4 bytes) to get raw deflate
+  return full.subarray(2, full.length - 4);
+}
+
+async function buildZip(files: { name: string; data: Uint8Array }[]): Promise<Uint8Array> {
+  const entries: { name: Uint8Array; compressedData: Uint8Array; uncompressedSize: number; crc: number; offset: number; isCompressed: boolean }[] = [];
   const parts: Uint8Array[] = [];
   let offset = 0;
 
@@ -192,25 +215,41 @@ function buildZip(files: { name: string; data: Uint8Array }[]): Uint8Array {
 
   for (const file of files) {
     const nameBytes = encoder.encode(file.name);
-    const crc = crc32(file.data);
+    const crcVal = crc32(file.data);
+    
+    // Try to compress; only use if smaller
+    let compressedData: Uint8Array;
+    let isCompressed = false;
+    try {
+      const deflated = await deflateRaw(file.data);
+      if (deflated.length < file.data.length) {
+        compressedData = deflated;
+        isCompressed = true;
+      } else {
+        compressedData = file.data;
+      }
+    } catch {
+      compressedData = file.data;
+    }
+
     const localHeader = new Uint8Array(30 + nameBytes.length);
     const view = new DataView(localHeader.buffer);
-    view.setUint32(0, 0x04034b50, true);  // signature
-    view.setUint16(4, 20, true);           // version needed
-    view.setUint16(6, 0, true);            // flags
-    view.setUint16(8, 0, true);            // compression: store
-    view.setUint16(10, 0, true);           // mod time
-    view.setUint16(12, 0, true);           // mod date
-    view.setUint32(14, crc, true);
-    view.setUint32(18, file.data.length, true); // compressed
-    view.setUint32(22, file.data.length, true); // uncompressed
+    view.setUint32(0, 0x04034b50, true);
+    view.setUint16(4, 20, true);
+    view.setUint16(6, 0, true);
+    view.setUint16(8, isCompressed ? 8 : 0, true); // 8 = deflate, 0 = store
+    view.setUint16(10, 0, true);
+    view.setUint16(12, 0, true);
+    view.setUint32(14, crcVal, true);
+    view.setUint32(18, compressedData.length, true);
+    view.setUint32(22, file.data.length, true);
     view.setUint16(26, nameBytes.length, true);
-    view.setUint16(28, 0, true);           // extra field length
+    view.setUint16(28, 0, true);
     localHeader.set(nameBytes, 30);
 
-    entries.push({ name: nameBytes, data: file.data, crc, offset });
-    parts.push(localHeader, file.data);
-    offset += localHeader.length + file.data.length;
+    entries.push({ name: nameBytes, compressedData, uncompressedSize: file.data.length, crc: crcVal, offset, isCompressed });
+    parts.push(localHeader, compressedData);
+    offset += localHeader.length + compressedData.length;
   }
 
   const centralDirStart = offset;
@@ -221,12 +260,12 @@ function buildZip(files: { name: string; data: Uint8Array }[]): Uint8Array {
     cdView.setUint16(4, 20, true);
     cdView.setUint16(6, 20, true);
     cdView.setUint16(8, 0, true);
-    cdView.setUint16(10, 0, true);
+    cdView.setUint16(10, entry.isCompressed ? 8 : 0, true);
     cdView.setUint16(12, 0, true);
     cdView.setUint16(14, 0, true);
     cdView.setUint32(16, entry.crc, true);
-    cdView.setUint32(20, entry.data.length, true);
-    cdView.setUint32(24, entry.data.length, true);
+    cdView.setUint32(20, entry.compressedData.length, true);
+    cdView.setUint32(24, entry.uncompressedSize, true);
     cdView.setUint16(28, entry.name.length, true);
     cdView.setUint16(30, 0, true);
     cdView.setUint16(32, 0, true);
