@@ -604,7 +604,7 @@ const Surveys = () => {
 
       {/* Survey Detail Modal */}
       <Dialog open={!!selectedSurvey} onOpenChange={() => setSelectedSurvey(null)}>
-        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto sm:max-h-[85vh]">
           {selectedSurvey && (() => {
             const sc = statusConfig[selectedSurvey.status] || statusConfig["submitted"];
             const StatusIcon = sc.icon;
