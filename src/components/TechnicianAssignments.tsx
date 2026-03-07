@@ -236,6 +236,18 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
     if (assignment.status === "pending") {
       await handleStatusChange(assignment.id, "inspection", assignment.status);
     }
+    // If no existing survey, show inspection report form first
+    // If survey already exists, go directly to survey form
+    if (!existingSurvey) {
+      setShowInspectionReport(true);
+    } else {
+      setShowSurveyForm(true);
+    }
+  };
+
+  // Called when inspection report is saved/submitted — proceed to survey form
+  const handleInspectionComplete = () => {
+    setShowInspectionReport(false);
     setShowSurveyForm(true);
   };
 
