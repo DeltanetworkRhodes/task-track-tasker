@@ -271,10 +271,17 @@ const Index = () => {
 
           {/* Monthly Trend */}
           <div className="rounded-xl border border-border bg-card p-4 sm:p-5 shadow-sm">
-            <h2 className="font-bold text-sm mb-4 flex items-center gap-2 text-foreground">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-bold text-sm flex items-center gap-2 text-foreground">
               <CalendarDays className="h-4 w-4 text-accent shrink-0" />
               Μηνιαία Ολοκλήρωση
             </h2>
+            {momChanges && (
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${momChanges.completedPct >= 0 ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive'}`}>
+                {momChanges.completedPct >= 0 ? '↑' : '↓'} {Math.abs(momChanges.completedPct)}% vs προηγ.
+              </span>
+            )}
+          </div>
             <ChartContainer config={trendConfig} className="h-[200px] sm:h-[220px] w-full">
               <BarChart data={monthlyTrend} margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
