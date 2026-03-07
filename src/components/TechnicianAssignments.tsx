@@ -878,8 +878,8 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
                 assignment={selectedAssignment}
                 surveyId={existingSurvey?.id}
                 onComplete={() => {
-                  setShowInspectionReport(false);
                   queryClient.invalidateQueries({ queryKey: ["technician-assignments"] });
+                  handleInspectionComplete();
                 }}
                 onCancel={() => setShowInspectionReport(false)}
               />
