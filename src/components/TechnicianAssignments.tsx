@@ -173,24 +173,7 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
 
       const assignment = assignments.find((a) => a.id === assignmentId);
 
-      if (newStatus === "inspection" && oldStatus !== "inspection") {
-        try {
-          await supabase.functions.invoke("send-inspection-email", {
-            body: {
-              assignment_id: assignmentId,
-              sr_id: assignment?.sr_id,
-              area: assignment?.area,
-              customer_name: assignment?.customer_name,
-              address: assignment?.address,
-              cab: assignment?.cab,
-              comments: assignment?.comments,
-            },
-          });
-          toast.success("Αυτόματο email αυτοψίας εστάλη");
-        } catch (emailErr) {
-          console.error("Email error:", emailErr);
-        }
-      }
+
 
       // Auto-fetch Drive folder URLs on pre_committed
       if (newStatus === "pre_committed" && assignment) {
