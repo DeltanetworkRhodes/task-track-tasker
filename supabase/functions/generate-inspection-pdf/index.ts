@@ -200,6 +200,17 @@ function drawBoxedText(
   }
 }
 
+function drawCircleAround(page: any, x: number, y: number, radius = 7) {
+  page.drawEllipse({
+    x: x + radius / 2,
+    y: y + radius / 2,
+    xScale: radius,
+    yScale: radius,
+    borderColor: BLACK,
+    borderWidth: 1.5,
+  });
+}
+
 function drawWrappedText(
   page: any,
   text: string,
@@ -322,11 +333,11 @@ async function processField(
       break;
     }
     case "check_if": {
-      if (val === field.match) drawCheck(page, field.x!, field.y!, boldFont, defaults.checkSize);
+      if (val === field.match) drawCircleAround(page, field.x!, field.y!);
       break;
     }
     case "check_if_not": {
-      if (val !== field.match && val != null) drawCheck(page, field.x!, field.y!, boldFont, defaults.checkSize);
+      if (val !== field.match && val != null) drawCircleAround(page, field.x!, field.y!);
       break;
     }
     case "check_map": {
