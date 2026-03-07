@@ -209,7 +209,7 @@ const PdfCoordinateEditor = () => {
 
   // Get all positionable items (including sub-items from maps)
   const getPositionableItems = useCallback(() => {
-    const items: { key: string; subKey?: string; label: string; x: number; y: number; type: string; color: string }[] = [];
+    const items: { key: string; subKey?: string; label: string; x: number; y: number; type: string; color: string; mark?: string }[] = [];
     for (const field of currentFields) {
       if (field.type === "check_map" || field.type === "check_map_multi" || field.type === "floor_check") {
         if (field.map) {
@@ -253,6 +253,7 @@ const PdfCoordinateEditor = () => {
           y: field.y,
           type: field.type,
           color: FIELD_COLORS[field.type] || "#888",
+          mark: (field as any).mark,
         });
       }
     }
@@ -540,7 +541,7 @@ const PdfCoordinateEditor = () => {
                 onMouseDown={(e) => handleMouseDown(e, item.key, item.subKey)}
               >
                 {/* Marker: X for checks, ○ for check_if/check_if_not */}
-                {(item.type === "check_if" || item.type === "check_if_not") ? (
+                {(item.type === "check_if" || item.type === "check_if_not") && item.mark !== "x" ? (
                   <div
                     className="flex items-center justify-center transition-transform"
                     style={{
@@ -555,7 +556,7 @@ const PdfCoordinateEditor = () => {
                   >
                     <span style={{ fontSize: 9, fontWeight: 700, color: item.color, lineHeight: 1 }}>○</span>
                   </div>
-                ) : (item.type === "check" || item.type === "check_map" || item.type === "check_map_multi") ? (
+                ) : (item.type === "check" || item.type === "check_map" || item.type === "check_map_multi" || ((item.type === "check_if" || item.type === "check_if_not") && item.mark === "x")) ? (
                   <div
                     className="flex items-center justify-center transition-transform"
                     style={{
