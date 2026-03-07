@@ -1,28 +1,56 @@
 
 
-## Πρόβλημα
+# Σύνδεση με Google Drive API
 
-Τα ελληνικά δεν εμφανίζονται σωστά στο PDF γιατί η **pdf-lib υποστηρίζει μόνο `.ttf` και `.otf` fonts** — όχι `.woff`. Τα URLs που χρησιμοποιούνται τώρα (`greek-400-normal.woff`, `greek-700-normal.woff`) δεν γίνονται parse σωστά.
+## Κατάσταση
 
-## Λύση
+Δεν υπάρχει έτοιμος Google Drive connector στο Lovable. Θα χρειαστεί σύνδεση μέσω **Google Drive API** με Service Account, ώστε να διαβάζουμε αυτόματα τα Google Sheets (Form Responses) και αρχεία από το Drive σου.
 
-Αλλαγή των font URLs σε **Google Fonts `.ttf`** αρχεία (Roboto Regular & Bold) που υποστηρίζουν πλήρως ελληνικούς χαρακτήρες.
+## Τι χρειάζεται από εσένα
 
-### Αρχεία που αλλάζουν
+1. **Google Cloud Console** — Δημιουργία ενός Service Account:
+   - Πήγαινε στο [Google Cloud Console](https://console.cloud.google.com/)
+   - Ενεργοποίησε τα APIs: **Google Drive API** και **Google Sheets API**
+   - Δημιούργησε ένα **Service Account** και κατέβασε το JSON key
+   - Κάνε **Share** τα Google Sheets και τους φακέλους Drive σου με το email του Service Account (π.χ. `xxx@project.iam.gserviceaccount.com`)
 
-1. **`supabase/functions/generate-inspection-pdf/index.ts`** (lines 213-214)
-   - Αντικατάσταση `.woff` URLs με `.ttf` URLs:
-     - Regular: `https://fonts.gstatic.com/s/roboto/v47/KFOMCnqEu92Fr1ME7kSn66aGLdTylUAMQXC89YmC2DPNWubEbGmT.ttf`
-     - Bold: `https://fonts.gstatic.com/s/roboto/v47/KFOMCnqEu92Fr1ME7kSn66aGLdTylUAMQXC89YmC2DPNWubEbFqQ.ttf`
+2. **Credentials** — Θα σου ζητήσω να τα αποθηκεύσεις ως secrets:
+   - `GOOGLE_SERVICE_ACCOUNT_KEY` (το JSON key)
+   - IDs των Google Sheets (Form Responses 4, Form Responses 8, ΒΑΣΗ_ΤΙΜΟΛΟΓΗΣΗΣ κλπ.)
 
-2. **`public/templates/pdf-mapping.json`** (lines 151-152)
-   - Ίδια αλλαγή font URLs για consistency με τον client-side generator.
+## Τι θα φτιαχτεί
 
-3. **`src/lib/generateInspectionPdf.ts`** (line 210-211 area)
-   - Ίδια αλλαγή font URLs στο client-side PDF generation.
+### 1. Edge Function: `google-drive-sync`
+- Συνδέεται στο Google Drive/Sheets API μέσω Service Account
+- Διαβάζει τα δεδομένα από τα Google Sheets (Form Responses 4 → assignments, Form Responses 8 → constructions/materials)
+- Συγχρονίζει (upsert) τα δεδομένα στους πίνακες της βάσης
+- Μπορεί να καλείται χειροκίνητα ή με cron
 
-### Γιατί αυτό δουλεύει
-- Τα Google Fonts `.ttf` αρχεία περιέχουν πλήρη Unicode glyph tables (συμπεριλαμβανομένων ελληνικών)
-- Η pdf-lib + fontkit μπορούν να κάνουν parse και embed `.ttf` fonts σωστά
-- Τα `.woff` fonts χρησιμοποιούν compressed format που η pdf-lib δεν μπορεί να διαβάσει
+### 2. Edge Function: `google-drive-files`
+- Λίστα αρχείων/φακέλων από το Drive
+- Download φωτογραφιών και PDFs
+- Αποθήκευση στο Cloud Storage (bucket `photos`)
+
+### 3. Ενημέρωση σελίδων
+- Οι σελίδες Assignments, Construction, Materials θα χρησιμοποιούν τα πραγματικά δεδομένα από τη βάση (αντί mock data)
+- Κουμπί "Συγχρονισμός από Drive" στο dashboard
+- Εμφάνιση links προς τους φακέλους Drive ανά SR ID
+
+### 4. Database updates
+- Προσθήκη πεδίου `google_sheet_row_id` στους πίνακες assignments/constructions για αντιστοίχιση εγγραφών
+- Migration για τα νέα πεδία
+
+## Σειρά υλοποίησης
+
+1. Αποθήκευση Google Service Account key ως secret
+2. Δημιουργία edge function για ανάγνωση Sheets
+3. Δημιουργία edge function για αρχεία Drive
+4. Ενημέρωση UI με sync κουμπί και πραγματικά δεδομένα
+5. Αντικατάσταση mock data με live queries
+
+## Σημείωση
+
+Πριν προχωρήσω στην υλοποίηση, θα χρειαστώ:
+- Το **Google Service Account JSON key**
+- Τα **IDs** (ή URLs) των Google Sheets που χρησιμοποιείς (Form Responses 4, Form Responses 8, ΒΑΣΗ_ΤΙΜΟΛΟΓΗΣΗΣ, ΒΑΣΗ_ΥΛΙΚΩΝ)
 

@@ -148,8 +148,8 @@
     }
   },
   "fonts": {
-    "regular": "https://cdn.jsdelivr.net/fontsource/fonts/roboto@latest/greek-400-normal.woff",
-    "bold": "https://cdn.jsdelivr.net/fontsource/fonts/roboto@latest/greek-700-normal.woff"
+    "regular": "https://fonts.gstatic.com/s/roboto/v47/KFOMCnqEu92Fr1ME7kSn66aGLdTylUAMQXC89YmC2DPNWubEbGmT.ttf",
+    "bold": "https://fonts.gstatic.com/s/roboto/v47/KFOMCnqEu92Fr1ME7kSn66aGLdTylUAMQXC89YmC2DPNWubEbFqQ.ttf"
   },
   "defaults": {
     "fontSize": 9,
