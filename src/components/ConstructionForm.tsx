@@ -300,6 +300,79 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
     }
   }, [gisData, materials, gisAutoFilled, materialItems.length]);
 
+  // Auto-fill basic fields from GIS data
+  const [gisFieldsFilled, setGisFieldsFilled] = useState(false);
+  useEffect(() => {
+    if (!gisData || gisFieldsFilled) return;
+
+    // CAB from assignment or GIS associated_bcp
+    if (!cab && gisData.associated_bcp) {
+      setCab(gisData.associated_bcp);
+    }
+
+    // Floors
+    if (gisData.floors && floors === "0") {
+      setFloors(String(gisData.floors));
+    }
+
+    // Routing type from area_type or conduit
+    if (!routingType) {
+      if (gisData.area_type) {
+        setRoutingType(gisData.area_type);
+      } else if (gisData.conduit) {
+        setRoutingType(gisData.conduit);
+      }
+    }
+
+    // AK from building_id
+    if (!ak && gisData.building_id) {
+      setAk(gisData.building_id);
+    }
+
+    // Routes from optical_paths
+    const opticalPaths = (gisData.optical_paths as any[]) || [];
+    if (opticalPaths.length > 0) {
+      setRoutes((prev) => {
+        const updated = [...prev];
+        for (const path of opticalPaths) {
+          const raw = path.raw || path;
+          const pathType = (raw["OPTICAL PATH TYPE"] || raw["optical_path_type"] || "").toUpperCase();
+          const koiVal = String(raw["KOI"] || raw["koi"] || "");
+          const fyraVal = String(raw["4KOI"] || raw["fyra_koi"] || raw["4ΚΟΙ"] || "");
+
+          // Match to existing route labels
+          let matchIdx = -1;
+          if (pathType.includes("ΥΠΟΓ") || pathType.includes("CABIN TO BEP") || pathType.includes("CAB")) {
+            matchIdx = 0;
+          } else if (pathType.includes("ΕΝΑΕΡΙΟ") && pathType.includes("ΔΔ")) {
+            matchIdx = 1;
+          } else if (pathType.includes("ΕΝΑΕΡΙΟ") && pathType.includes("ΣΥΝΔΡ")) {
+            matchIdx = 2;
+          } else if (pathType.includes("INHOUSE") || pathType.includes("ΚΑΘΕΤ")) {
+            matchIdx = 3;
+          }
+
+          if (matchIdx >= 0) {
+            updated[matchIdx] = {
+              ...updated[matchIdx],
+              koi: koiVal || updated[matchIdx].koi,
+              fyraKoi: fyraVal || updated[matchIdx].fyraKoi,
+            };
+          }
+        }
+        return updated;
+      });
+    }
+
+    // Notes
+    if (gisData.notes && !pendingNote) {
+      setPendingNote(gisData.notes);
+    }
+
+    setGisFieldsFilled(true);
+    toast.success("Αυτόματη συμπλήρωση στοιχείων από GIS");
+  }, [gisData, gisFieldsFilled]);
+
   const worksByCategory = useMemo(() => {
     if (!workPricing) return {};
     const groups: Record<string, typeof workPricing> = {};
