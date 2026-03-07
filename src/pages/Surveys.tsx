@@ -49,9 +49,6 @@ const Surveys = () => {
   const [selectedSurvey, setSelectedSurvey] = useState<any>(null);
   const [sendingEmail, setSendingEmail] = useState(false);
   const [sendingReminder, setSendingReminder] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
-  const [toEmails, setToEmails] = useState("");
-  const [ccEmails, setCcEmails] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<any>(null);
   const [deleting, setDeleting] = useState(false);
 
