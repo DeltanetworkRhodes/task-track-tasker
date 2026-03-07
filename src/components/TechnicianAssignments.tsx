@@ -412,15 +412,26 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
             {existingSurvey ? "Συνέχεια Αυτοψίας" : "Έναρξη Αυτοψίας"}
           </Button>
           {existingSurvey && (
-            <Button
-              size="sm"
-              variant="outline"
-              className="w-full gap-2 border-primary/30 text-primary hover:bg-primary/10"
-              onClick={() => setShowInspectionReport(true)}
-            >
-              <FileText className="h-4 w-4" />
-              Δελτίο Αυτοψίας
-            </Button>
+            <div className="flex gap-2 w-full">
+              <Button
+                size="sm"
+                variant="outline"
+                className="flex-1 gap-2 border-primary/30 text-primary hover:bg-primary/10"
+                onClick={() => setShowInspectionReport(true)}
+              >
+                <FileEdit className="h-4 w-4" />
+                Δελτίο Αυτοψίας
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="gap-2"
+                onClick={() => setShowInspectionViewer(true)}
+              >
+                <Eye className="h-4 w-4" />
+                Προβολή
+              </Button>
+            </div>
           )}
           {existingSurvey && existingSurvey.status !== "ΕΛΛΙΠΗΣ ΑΥΤΟΨΙΑ" && (
             <>
