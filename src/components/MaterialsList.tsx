@@ -35,7 +35,7 @@ const MaterialsList = ({ materials }: MaterialsListProps) => {
               </td>
               <td className="py-3 px-4 text-right font-bold">
                 <span className="inline-flex items-center gap-1">
-                  {m.stock < 100 && <AlertTriangle className="h-3 w-3 text-warning" />}
+                  {m.stock < 100 && <AlertTriangle className="h-3 w-3 text-destructive" />}
                   {m.stock} {/^τεμ/i.test(m.unit) ? 'τεμάχια' : m.unit}
                 </span>
               </td>

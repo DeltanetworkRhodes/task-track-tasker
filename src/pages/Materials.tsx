@@ -175,7 +175,7 @@ const MaterialTable = ({ items, hasRealData, editingId, editValues, onEdit, onSa
                       />
                     </div>
                   ) : (
-                    <span className={`inline-flex items-center gap-1.5 ${isLow ? 'text-warning font-semibold' : ''}`}>
+                    <span className={`inline-flex items-center gap-1.5 ${isLow ? 'text-destructive font-semibold' : ''}`}>
                       {isLow && <AlertTriangle className="h-3 w-3" />}
                       {m.stock.toLocaleString('el-GR')} {/^τεμ/i.test(m.unit) ? 'τεμάχια' : m.unit}
                     </span>
