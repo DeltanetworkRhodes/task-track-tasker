@@ -244,7 +244,7 @@ Deno.serve(async (req) => {
     // Get survey files
     const { data: surveyFiles } = await adminClient
       .from("survey_files").select("*").eq("survey_id", survey_id);
-    const fileCount = surveyFiles?.length || 0;
+    let fileCount = surveyFiles?.length || 0;
 
     // Find existing ZIP or build new one
     let zipUrl = "";
