@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { PDFDocument, rgb, StandardFonts } from "https://esm.sh/pdf-lib@1.17.1";
+import { PDFDocument, rgb } from "https://esm.sh/pdf-lib@1.17.1";
+import fontkit from "https://esm.sh/@pdf-lib/fontkit@1.1.1";
 
 function uint8ToBase64(bytes: Uint8Array): string {
   let binary = "";
@@ -126,7 +127,7 @@ function drawCheckbox(
     color: checked ? rgb(0.1, 0.6, 0.54) : rgb(1, 1, 1),
   });
   if (checked) {
-    page.drawText("✓", { x: x + 1.5, y: y - 0.5, size: 8, font, color: rgb(1, 1, 1) });
+    page.drawText("V", { x: x + 2, y: y, size: 7, font, color: rgb(1, 1, 1) });
   }
   page.drawText(label, { x: x + boxSize + 4, y, size: 8, font, color: rgb(0.1, 0.14, 0.2) });
 }
@@ -145,9 +146,18 @@ async function embedSignature(pdfDoc: any, page: any, dataUrl: string, x: number
 }
 
 async function generateInspectionPdf(data: InspectionData): Promise<Uint8Array> {
+  const FONT_URL = "https://cdn.jsdelivr.net/fontsource/fonts/roboto@latest/greek-400-normal.woff";
+  const FONT_BOLD_URL = "https://cdn.jsdelivr.net/fontsource/fonts/roboto@latest/greek-700-normal.woff";
+
+  const [fontBytes, boldFontBytes] = await Promise.all([
+    fetch(FONT_URL).then(r => r.arrayBuffer()),
+    fetch(FONT_BOLD_URL).then(r => r.arrayBuffer()),
+  ]);
+
   const pdfDoc = await PDFDocument.create();
-  const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-  const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+  pdfDoc.registerFontkit(fontkit);
+  const font = await pdfDoc.embedFont(fontBytes, { subset: true });
+  const boldFont = await pdfDoc.embedFont(boldFontBytes, { subset: true });
 
   const brandColor = rgb(0.1, 0.6, 0.54); // teal
   const headerBg = rgb(0.1, 0.14, 0.2); // dark

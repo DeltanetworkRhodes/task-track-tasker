@@ -1,4 +1,5 @@
-import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
+import { PDFDocument, rgb } from "pdf-lib";
+import fontkit from "@pdf-lib/fontkit";
 
 const A4_W = 595.28;
 const A4_H = 841.89;
@@ -20,7 +21,7 @@ function drawCheckbox(page: any, checked: boolean, label: string, x: number, y: 
     color: checked ? rgb(0.1, 0.6, 0.54) : rgb(1, 1, 1),
   });
   if (checked) {
-    page.drawText("✓", { x: x + 1.5, y: y - 0.5, size: 8, font, color: rgb(1, 1, 1) });
+    page.drawText("V", { x: x + 2, y, size: 7, font, color: rgb(1, 1, 1) });
   }
   page.drawText(label, { x: x + boxSize + 4, y, size: 8, font, color: rgb(0.1, 0.14, 0.2) });
 }
@@ -43,9 +44,18 @@ async function embedSignature(pdfDoc: any, page: any, dataUrl: string, x: number
 }
 
 export async function generateInspectionPdfBytes(data: Record<string, any>): Promise<Uint8Array> {
+  const FONT_URL = "https://cdn.jsdelivr.net/fontsource/fonts/roboto@latest/greek-400-normal.woff";
+  const FONT_BOLD_URL = "https://cdn.jsdelivr.net/fontsource/fonts/roboto@latest/greek-700-normal.woff";
+
+  const [fontBytes, boldFontBytes] = await Promise.all([
+    fetch(FONT_URL).then(r => r.arrayBuffer()),
+    fetch(FONT_BOLD_URL).then(r => r.arrayBuffer()),
+  ]);
+
   const pdfDoc = await PDFDocument.create();
-  const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-  const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+  pdfDoc.registerFontkit(fontkit);
+  const font = await pdfDoc.embedFont(fontBytes, { subset: true });
+  const boldFont = await pdfDoc.embedFont(boldFontBytes, { subset: true });
 
   const brandColor = rgb(0.1, 0.6, 0.54);
   const headerBg = rgb(0.1, 0.14, 0.2);
