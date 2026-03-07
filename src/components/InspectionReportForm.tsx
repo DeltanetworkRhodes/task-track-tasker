@@ -90,7 +90,7 @@ const InspectionReportForm = ({ assignment, surveyId, onComplete, onCancel }: Pr
     wall_mount: false,
     fence_building_mount: false,
     excavation_to_building: false,
-    bep_position: "",
+    bep_position: [] as string[],
     vertical_routing: "",
     sketch_notes: "",
     optical_socket_position: "",
