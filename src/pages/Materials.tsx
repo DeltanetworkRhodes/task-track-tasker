@@ -727,7 +727,85 @@ const Materials = () => {
           </TabsContent>
         </Tabs>
 
-        <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        {/* Delivery Note Preview/Confirmation Dialog */}
+        <Dialog open={!!previewData} onOpenChange={(open) => !open && setPreviewData(null)}>
+          <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-hidden flex flex-col">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <FileText className="h-4 w-4 text-primary" />
+                Επιβεβαίωση Δελτίου Αποστολής — {previewData?.source}
+              </DialogTitle>
+              <p className="text-sm text-muted-foreground">
+                Ελέγξτε τα υλικά και τις ποσότητες πριν την αποθήκευση. Μπορείτε να τροποποιήσετε ποσότητες ή να αφαιρέσετε γραμμές.
+              </p>
+            </DialogHeader>
+            <div className="overflow-y-auto flex-1 -mx-6 px-6">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border bg-muted/30 sticky top-0">
+                    <th className="py-2.5 px-3 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Κωδικός</th>
+                    <th className="py-2.5 px-3 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Περιγραφή</th>
+                    <th className="py-2.5 px-3 text-right text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Ποσότητα</th>
+                    <th className="py-2.5 px-3 text-center text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Μονάδα</th>
+                    <th className="py-2.5 px-3 w-10" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {previewData?.materials.map((item, idx) => (
+                    <tr key={idx} className="border-b border-border/50 hover:bg-muted/20 transition-colors">
+                      <td className="py-2.5 px-3 text-xs font-bold text-primary font-mono">{item.code}</td>
+                      <td className="py-2.5 px-3 text-sm">{item.name}</td>
+                      <td className="py-2.5 px-3 text-right">
+                        <input
+                          type="number"
+                          value={item.quantity}
+                          onChange={(e) => updatePreviewQuantity(idx, Number(e.target.value) || 0)}
+                          className="w-24 rounded-lg border border-border bg-card px-2 py-1 text-right text-sm font-bold focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                        />
+                      </td>
+                      <td className="py-2.5 px-3 text-center text-xs text-muted-foreground">{item.unit}</td>
+                      <td className="py-2.5 px-1">
+                        <button
+                          onClick={() => removePreviewItem(idx)}
+                          className="rounded-lg p-1.5 text-muted-foreground/50 hover:text-destructive hover:bg-destructive/10 transition-colors"
+                          title="Αφαίρεση"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                  {(!previewData?.materials || previewData.materials.length === 0) && (
+                    <tr>
+                      <td colSpan={5} className="py-8 text-center text-muted-foreground text-sm">Δεν υπάρχουν υλικά</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+            <div className="flex items-center justify-between pt-4 border-t border-border">
+              <p className="text-sm text-muted-foreground">
+                {previewData?.materials.length || 0} υλικά — Σύνολο: <span className="font-bold text-foreground">{(previewData?.materials || []).reduce((s, m) => s + m.quantity, 0).toLocaleString('el-GR')}</span> τεμάχια
+              </p>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setPreviewData(null)}
+                  className="rounded-xl border border-border px-4 py-2 text-sm font-medium hover:bg-muted transition-colors"
+                >
+                  Ακύρωση
+                </button>
+                <button
+                  onClick={handleConfirmUpload}
+                  disabled={confirmingUpload || !previewData?.materials.length}
+                  className="rounded-xl cosmote-gradient px-5 py-2 text-sm font-bold text-white shadow-lg shadow-primary/20 hover:opacity-90 transition-all disabled:opacity-50"
+                >
+                  {confirmingUpload ? 'Αποθήκευση...' : 'Επιβεβαίωση & Αποθήκευση'}
+                </button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>Διαγραφή Υλικού</AlertDialogTitle>
