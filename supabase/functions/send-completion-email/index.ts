@@ -152,16 +152,7 @@ Deno.serve(async (req) => {
       orgId = profile?.organization_id || null;
     }
 
-    // Get org-specific email settings
-    let settingsQuery = adminClient.from("email_settings").select("*");
-    if (orgId) settingsQuery = settingsQuery.eq("organization_id", orgId);
-    const { data: settings } = await settingsQuery;
-    const settingsMap: Record<string, string> = {};
-    (settings || []).forEach((s: any) => {
-      settingsMap[s.setting_key] = s.setting_value;
-    });
-
-    // Get org settings for from/reply-to
+    // Get org-specific settings for all email config
     let orgSettingsQuery = adminClient.from("org_settings").select("setting_key, setting_value");
     if (orgId) orgSettingsQuery = orgSettingsQuery.eq("organization_id", orgId);
     const { data: orgSettings } = await orgSettingsQuery;
@@ -171,8 +162,8 @@ Deno.serve(async (req) => {
     const emailFrom = orgSettingsMap["email_from"] || "noreply@deltanetwork.gr";
     const emailReplyTo = orgSettingsMap["email_reply_to"] || "info@deltanetwork.gr";
 
-    const toEmails = settingsMap["completion_to_emails"] || settingsMap["report_to_emails"] || emailReplyTo;
-    const ccEmails = settingsMap["completion_cc_emails"] || settingsMap["report_cc_emails"] || "";
+    const toEmails = orgSettingsMap["completion_to_emails"] || orgSettingsMap["report_to_emails"] || emailReplyTo;
+    const ccEmails = orgSettingsMap["completion_cc_emails"] || orgSettingsMap["report_cc_emails"] || "";
 
     // ─── Build ZIP incrementally ────────────────────────────────────
     const zipFiles: Record<string, Uint8Array> = {};

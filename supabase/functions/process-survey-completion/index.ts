@@ -484,17 +484,20 @@ Deno.serve(async (req) => {
     let emailSent = false;
     if (isComplete) {
       const resendApiKey = Deno.env.get("RESEND_API_KEY");
-      const { data: emailSettings } = await adminClient
-        .from("email_settings")
-        .select("setting_key, setting_value");
+      
+      // Get org settings for email recipients
+      const { data: orgEmailSettings } = await adminClient
+        .from("org_settings")
+        .select("setting_key, setting_value")
+        .eq("organization_id", orgId);
 
-      const settingsMap: Record<string, string> = {};
-      (emailSettings || []).forEach((s: any) => {
-        settingsMap[s.setting_key] = s.setting_value;
+      const emailSettingsMap: Record<string, string> = {};
+      (orgEmailSettings || []).forEach((s: any) => {
+        emailSettingsMap[s.setting_key] = s.setting_value;
       });
 
-      const toEmails = settingsMap["report_to_emails"] || "";
-      const ccEmails = settingsMap["report_cc_emails"] || "";
+      const toEmails = emailSettingsMap["report_to_emails"] || "";
+      const ccEmails = emailSettingsMap["report_cc_emails"] || "";
       const recipients = toEmails.split(",").map((e: string) => e.trim()).filter(Boolean);
       const ccRecipients = ccEmails.split(",").map((e: string) => e.trim()).filter(Boolean);
 
