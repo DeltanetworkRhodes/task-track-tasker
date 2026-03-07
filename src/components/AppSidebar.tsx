@@ -15,6 +15,7 @@ const DEFAULT_NAV_ITEMS = [
   { to: '/materials', label: 'Αποθήκη', icon: Package },
   { to: '/work-pricing', label: 'Τιμοκατάλογος', icon: FileText },
   { to: '/profit', label: 'Κέρδος/SR', icon: TrendingUp },
+  { to: '/kanban', label: 'Kanban', icon: Columns3 },
   { to: '/kpis', label: 'KPIs Τεχνικών', icon: BarChart3 },
   { to: '/calendar', label: 'Ημερολόγιο', icon: CalendarDays },
   { to: '/users', label: 'Χρήστες', icon: UserCog },
