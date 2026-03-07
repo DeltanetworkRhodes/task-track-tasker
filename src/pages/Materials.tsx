@@ -292,11 +292,7 @@ const Materials = () => {
     
     setUploading(true);
     setUploadResult(null);
-    
-    let totalExtracted = 0;
-    let totalUpdated = 0;
-    const allNotFound: string[] = [];
-    const allExtracted: any[] = [];
+    const allExtracted: { code: string; name: string; quantity: number; unit: string }[] = [];
     
     try {
       for (let i = 0; i < pdfFiles.length; i++) {
@@ -319,31 +315,77 @@ const Materials = () => {
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || `Failed: ${pdfFiles[i].name}`);
         
-        totalExtracted += data.extracted?.length || 0;
-        totalUpdated += data.updated || 0;
-        if (data.not_found) allNotFound.push(...data.not_found);
         if (data.extracted) allExtracted.push(...data.extracted);
       }
       
-      setUploadResult({ extracted: allExtracted, updated: totalUpdated, not_found: allNotFound });
-      refetch();
-      queryClient.invalidateQueries({ queryKey: ["materials"] });
-      
-      if (totalUpdated > 0) {
-        toast.success(`Ενημερώθηκαν ${totalUpdated} υλικά ${uploadSource} από ${pdfFiles.length} δελτία`);
-      }
-      if (allNotFound.length > 0) {
-        toast.warning(`${allNotFound.length} κωδικοί δεν βρέθηκαν`);
-      }
-      if (totalExtracted === 0) {
+      if (allExtracted.length === 0) {
         toast.info('Δεν βρέθηκαν υλικά στα PDF');
+        return;
       }
+
+      // Show confirmation dialog instead of saving directly
+      setPreviewData({ source: uploadSource, materials: allExtracted });
     } catch (err: any) {
       toast.error(err.message);
     } finally {
       setUploading(false);
       e.target.value = '';
     }
+  };
+
+  const handleConfirmUpload = async () => {
+    if (!previewData) return;
+    setConfirmingUpload(true);
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/parse-delivery-note`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            source: previewData.source,
+            materials: previewData.materials.filter(m => m.quantity > 0),
+          }),
+        }
+      );
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Failed to save');
+      
+      setUploadResult(data);
+      setPreviewData(null);
+      refetch();
+      queryClient.invalidateQueries({ queryKey: ["materials"] });
+      
+      if (data.updated > 0 || data.created > 0) {
+        toast.success(`Ενημερώθηκαν ${data.updated} υλικά, δημιουργήθηκαν ${data.created} νέα`);
+      }
+      if (data.not_found?.length > 0) {
+        toast.warning(`${data.not_found.length} κωδικοί δεν αποθηκεύτηκαν`);
+      }
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setConfirmingUpload(false);
+    }
+  };
+
+  const updatePreviewQuantity = (index: number, newQty: number) => {
+    if (!previewData) return;
+    setPreviewData({
+      ...previewData,
+      materials: previewData.materials.map((m, i) => i === index ? { ...m, quantity: newQty } : m),
+    });
+  };
+
+  const removePreviewItem = (index: number) => {
+    if (!previewData) return;
+    setPreviewData({
+      ...previewData,
+      materials: previewData.materials.filter((_, i) => i !== index),
+    });
   };
 
   const handleDelete = async () => {
