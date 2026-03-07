@@ -167,7 +167,17 @@ const Assignments = () => {
             </span>
           </div>
           {isLoading ? (
-            <div className="p-8 text-center text-sm text-muted-foreground">Φόρτωση...</div>
+            <div className="p-4 space-y-3">
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="flex items-center gap-4 p-3">
+                  <Skeleton className="h-4 w-20 rounded-lg" />
+                  <Skeleton className="h-4 w-16 rounded-lg" />
+                  <Skeleton className="h-4 w-32 rounded-lg flex-1" />
+                  <Skeleton className="h-6 w-20 rounded-full" />
+                  <Skeleton className="h-4 w-16 rounded-lg" />
+                </div>
+              ))}
+            </div>
           ) : filtered.length === 0 ? (
             <div className="p-12 text-center">
               <AlertCircle className="h-8 w-8 text-muted-foreground/30 mx-auto mb-3" />
