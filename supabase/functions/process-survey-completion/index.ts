@@ -429,17 +429,61 @@ Deno.serve(async (req) => {
 
           driveFolderUrl = folder.webViewLink || `https://drive.google.com/drive/folders/${folder.id}`;
 
-          // Upload all files (including PDF) to Drive folder
-          for (const [fileName, fileData] of Object.entries(fileEntries)) {
-            const ext = fileName.split(".").pop()?.toLowerCase() || "";
-            const mimeMap: Record<string, string> = {
-              jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png",
-              gif: "image/gif", webp: "image/webp", pdf: "application/pdf",
-            };
-            const mimeType = mimeMap[ext] || "application/octet-stream";
-            await uploadFileToDrive(accessToken, fileName, mimeType, fileData, folder.id);
-            console.log(`Uploaded to Drive: ${fileName}`);
+          // Create subfolders: ΕΓΓΡΑΦΑ and ΠΡΟΜΕΛΕΤΗ
+          const egrafaFolder = await findOrCreateFolder(accessToken, "ΕΓΓΡΑΦΑ", folder.id);
+          const promelethFolder = await findOrCreateFolder(accessToken, "ΠΡΟΜΕΛΕΤΗ", folder.id);
+          console.log(`Created subfolders: ΕΓΓΡΑΦΑ (${egrafaFolder.id}), ΠΡΟΜΕΛΕΤΗ (${promelethFolder.id})`);
+
+          // Build a map of file_name → file_type from surveyFiles
+          const fileTypeMap: Record<string, string> = {};
+          for (const sf of surveyFiles) {
+            fileTypeMap[sf.file_name] = sf.file_type;
           }
+
+          const mimeMap: Record<string, string> = {
+            jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png",
+            gif: "image/gif", webp: "image/webp", pdf: "application/pdf",
+          };
+
+          // Generate PDF from building photos (all building_photo images → single PDF)
+          const buildingFiles = surveyFiles.filter((f: any) => f.file_type === "building_photo");
+          const buildingImages: { fileName: string; data: Uint8Array }[] = [];
+          for (const sf of buildingFiles) {
+            if (fileEntries[sf.file_name]) {
+              buildingImages.push({ fileName: sf.file_name, data: fileEntries[sf.file_name] });
+            }
+          }
+          if (buildingImages.length > 0) {
+            const buildingPdfBytes = await generateInspectionPDF(buildingImages);
+            const buildingPdfName = `Photos_Ktiriou_${sr_id}.pdf`;
+            await uploadFileToDrive(accessToken, buildingPdfName, "application/pdf", buildingPdfBytes, promelethFolder.id);
+            console.log(`Uploaded building photos PDF to ΠΡΟΜΕΛΕΤΗ: ${buildingPdfName}`);
+          }
+
+          // Also upload individual building photos to ΠΡΟΜΕΛΕΤΗ
+          for (const sf of buildingFiles) {
+            if (fileEntries[sf.file_name]) {
+              const ext = sf.file_name.split(".").pop()?.toLowerCase() || "";
+              const mimeType = mimeMap[ext] || "application/octet-stream";
+              await uploadFileToDrive(accessToken, sf.file_name, mimeType, fileEntries[sf.file_name], promelethFolder.id);
+              console.log(`Uploaded to ΠΡΟΜΕΛΕΤΗ: ${sf.file_name}`);
+            }
+          }
+
+          // Upload screenshots (ΧΕΜΔ & AutoCAD) to ΕΓΓΡΑΦΑ
+          const screenshotFiles = surveyFiles.filter((f: any) => f.file_type === "screenshot");
+          for (const sf of screenshotFiles) {
+            if (fileEntries[sf.file_name]) {
+              const ext = sf.file_name.split(".").pop()?.toLowerCase() || "";
+              const mimeType = mimeMap[ext] || "application/octet-stream";
+              await uploadFileToDrive(accessToken, sf.file_name, mimeType, fileEntries[sf.file_name], egrafaFolder.id);
+              console.log(`Uploaded to ΕΓΓΡΑΦΑ: ${sf.file_name}`);
+            }
+          }
+
+          // Upload inspection PDF (Δελτίο Αυτοψίας) to ΕΓΓΡΑΦΑ
+          await uploadFileToDrive(accessToken, pdfFileName, "application/pdf", pdfBytes, egrafaFolder.id);
+          console.log(`Uploaded inspection PDF to ΕΓΓΡΑΦΑ: ${pdfFileName}`);
 
           // Update assignment with Drive folder URL
           await adminClient
