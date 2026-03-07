@@ -263,16 +263,6 @@ const SurveyForm = ({ assignments, prefillSrId, prefillArea, onComplete }: Props
         accept="image/*"
       />
 
-      {/* ΦΩΤΟΓΡΑΦΙΑ ΕΝΤΥΠΟΥ */}
-      <FileUploadSection
-        label="Φωτογραφία Εντύπου Αυτοψίας"
-        files={inspectionPhotos}
-        inputRef={inspectionRef}
-        onAdd={(files) => handleFiles(files, setInspectionPhotos, inspectionPhotos)}
-        onRemove={(i) => removeFile(i, setInspectionPhotos, inspectionPhotos)}
-        accept="image/*"
-        capture
-      />
 
       {/* ΣΧΟΛΙΑ */}
       <Card className="p-4 space-y-3">
