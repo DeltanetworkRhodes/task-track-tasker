@@ -83,6 +83,7 @@ const InspectionReportForm = ({ assignment, surveyId, onComplete, onCancel }: Pr
     routing_other_notes: "",
     sidewalk_excavation: null as boolean | null,
     entry_pipe_notes: "",
+    ext_pipe_sidewalk_excavation: null as boolean | null,
     excavation_to_pipe: null as boolean | null,
     excavation_to_rg: null as boolean | null,
     pipe_placement: false,
