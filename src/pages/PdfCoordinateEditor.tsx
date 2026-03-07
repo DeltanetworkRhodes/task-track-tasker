@@ -225,6 +225,7 @@ const FIELD_LABELS: Record<string, string> = {
   // Page 4 - Στοιχεία Κτιρίου / Εξοπλισμός
   building_address: "Διεύθυνση Κτιρίου",
   building_id: "Κωδ. Κτιρίου",
+  customer_floor_select: "Όροφος Πελάτη (Επιλογή)",
   total_floors: "Σύνολο Ορόφων",
   total_apartments: "Σύνολο Διαμερισμάτων",
   total_shops: "Σύνολο Καταστημάτων",
@@ -232,6 +233,10 @@ const FIELD_LABELS: Record<string, string> = {
   cabinet: "Καμπίνα",
   pipe_code: "Κωδ. Σωλήνα",
   sr_id: "Αριθμός SR",
+  bcp_floorbox: "BCP: Floorbox",
+  bcp_drop_4: "BCP: Drop 4",
+  bcp_drop_6: "BCP: Drop 6",
+  bcp_drop_12: "BCP: Drop 12",
 };
 
 const PdfCoordinateEditor = () => {
