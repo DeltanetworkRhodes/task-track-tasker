@@ -30,6 +30,7 @@ const ICON_MAP: Record<string, React.ElementType> = {
   '/materials': Package,
   '/work-pricing': FileText,
   '/profit': TrendingUp,
+  '/kanban': Columns3,
   '/kpis': BarChart3,
   '/calendar': CalendarDays,
   '/users': UserCog,
