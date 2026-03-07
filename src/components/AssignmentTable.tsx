@@ -458,6 +458,7 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
               <tr
                 key={a.id}
                 className={`border-b border-border/30 hover:bg-secondary/50 transition-colors ${selectedIds.includes(a.id) ? 'bg-primary/5' : ''}`}
+                onMouseEnter={() => handleRowHover(a)}
               >
                 {onSelectionChange && (
                   <td className="py-3 px-2" onClick={(e) => e.stopPropagation()}>
