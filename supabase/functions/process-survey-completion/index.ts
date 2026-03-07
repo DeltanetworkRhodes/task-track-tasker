@@ -370,15 +370,16 @@ Deno.serve(async (req) => {
     // 1. Get assignment info
     const { data: assignment } = await adminClient
       .from("assignments")
-      .select("customer_name, address, phone, organization_id")
+      .select("customer_name, address, phone, cab, organization_id")
       .eq("sr_id", sr_id)
       .limit(1)
       .single();
 
     const orgId = assignment?.organization_id || null;
-    const customerName = assignment?.customer_name || "UNKNOWN";
-    const address = assignment?.address || "";
+    const customerName = assignment?.customer_name || "—";
+    const address = assignment?.address || "—";
     const phone = assignment?.phone || "";
+    const cab = assignment?.cab || "—";
 
     // 2. Get survey info
     const { data: survey } = await adminClient
@@ -635,6 +636,8 @@ Deno.serve(async (req) => {
         const emailFrom = emailSettingsMap["email_from"] || "noreply@deltanetwork.gr";
         const emailReplyTo = emailSettingsMap["email_reply_to"] || "info@deltanetwork.gr";
 
+        const surveyComments = survey?.comments || "";
+
         const emailHtml = `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
             <div style="background: ${headerColor}; color: white; padding: 16px 24px; border-radius: 8px 8px 0 0;">
@@ -645,49 +648,46 @@ Deno.serve(async (req) => {
             <div style="border: 1px solid #e5e7eb; border-top: none; padding: 24px; border-radius: 0 0 8px 8px;">
               <p style="color: #374151; font-size: 14px; line-height: 1.6;">Αξιότιμοι συνεργάτες,</p>
               <p style="color: #374151; font-size: 14px; line-height: 1.6;">
-                Σας ενημερώνουμε ότι ολοκληρώθηκε η αυτοψία για το <strong>SR: ${escapeHtml(sr_id)}</strong>${isComplete ? " και απαιτείται προδέσμευση υλικών." : ". Η αυτοψία είναι ελλιπής."}
+                Σας ενημερώνουμε ότι ο τεχνικός <strong>${escapeHtml(technicianName)}</strong> μετέβη για αυτοψία στο <strong>SR: ${escapeHtml(sr_id)}</strong>.
               </p>
               
               <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
                 <tr>
-                  <td style="padding: 8px 12px; background: ${labelBgColor}; border: 1px solid ${labelBorderColor}; font-size: 13px; color: ${labelTextColor}; width: 120px;">SR ID</td>
+                  <td style="padding: 8px 12px; background: #f9fafb; border: 1px solid #e5e7eb; font-size: 13px; color: #374151; width: 120px;">SR ID</td>
                   <td style="padding: 8px 12px; border: 1px solid #e5e7eb; font-size: 14px; font-weight: bold;">${escapeHtml(sr_id)}</td>
                 </tr>
                 <tr>
-                  <td style="padding: 8px 12px; background: ${labelBgColor}; border: 1px solid ${labelBorderColor}; font-size: 13px; color: ${labelTextColor};">Περιοχή</td>
+                  <td style="padding: 8px 12px; background: #f9fafb; border: 1px solid #e5e7eb; font-size: 13px; color: #374151;">Περιοχή</td>
                   <td style="padding: 8px 12px; border: 1px solid #e5e7eb; font-size: 14px;">${escapeHtml(area)}</td>
                 </tr>
                 <tr>
-                  <td style="padding: 8px 12px; background: ${labelBgColor}; border: 1px solid ${labelBorderColor}; font-size: 13px; color: ${labelTextColor};">Πελάτης</td>
+                  <td style="padding: 8px 12px; background: #f9fafb; border: 1px solid #e5e7eb; font-size: 13px; color: #374151;">Πελάτης</td>
                   <td style="padding: 8px 12px; border: 1px solid #e5e7eb; font-size: 14px;">${escapeHtml(customerName || "—")}</td>
                 </tr>
                 <tr>
-                  <td style="padding: 8px 12px; background: ${labelBgColor}; border: 1px solid ${labelBorderColor}; font-size: 13px; color: ${labelTextColor};">Διεύθυνση</td>
+                  <td style="padding: 8px 12px; background: #f9fafb; border: 1px solid #e5e7eb; font-size: 13px; color: #374151;">Διεύθυνση</td>
                   <td style="padding: 8px 12px; border: 1px solid #e5e7eb; font-size: 14px;">${escapeHtml(address || "—")}</td>
                 </tr>
                 <tr>
-                  <td style="padding: 8px 12px; background: ${labelBgColor}; border: 1px solid ${labelBorderColor}; font-size: 13px; color: ${labelTextColor};">Τηλέφωνο</td>
-                  <td style="padding: 8px 12px; border: 1px solid #e5e7eb; font-size: 14px;">${escapeHtml(phone || "—")}</td>
+                  <td style="padding: 8px 12px; background: #f9fafb; border: 1px solid #e5e7eb; font-size: 13px; color: #374151;">CAB</td>
+                  <td style="padding: 8px 12px; border: 1px solid #e5e7eb; font-size: 14px;">${escapeHtml(cab)}</td>
                 </tr>
                 <tr>
-                  <td style="padding: 8px 12px; background: ${labelBgColor}; border: 1px solid ${labelBorderColor}; font-size: 13px; color: ${labelTextColor};">Τεχνικός</td>
+                  <td style="padding: 8px 12px; background: #f9fafb; border: 1px solid #e5e7eb; font-size: 13px; color: #374151;">Τεχνικός</td>
                   <td style="padding: 8px 12px; border: 1px solid #e5e7eb; font-size: 14px;">${escapeHtml(technicianName)}</td>
                 </tr>
-                <tr>
-                  <td style="padding: 8px 12px; background: ${labelBgColor}; border: 1px solid ${labelBorderColor}; font-size: 13px; color: ${labelTextColor};">Αρχεία</td>
-                  <td style="padding: 8px 12px; border: 1px solid #e5e7eb; font-size: 14px;">${surveyFiles.length} αρχεία</td>
-                </tr>
-                ${!isComplete ? `
-                <tr>
-                  <td style="padding: 8px 12px; background: #fef2f2; border: 1px solid #fecaca; font-size: 13px; color: #991b1b;">Λείπουν</td>
-                  <td style="padding: 8px 12px; border: 1px solid #e5e7eb; font-size: 14px; color: #dc2626;">${missingTypes.join(", ")}</td>
-                </tr>` : ""}
               </table>
 
-              ${driveFolderUrl ? `
+              ${surveyComments ? `
               <div style="background: #f0f9ff; border-left: 4px solid #2563eb; padding: 12px 16px; margin: 16px 0; border-radius: 0 8px 8px 0;">
-                <p style="font-weight: bold; color: #1f2937; font-size: 13px; margin: 0 0 6px;">📁 Φάκελος Google Drive:</p>
-                <a href="${driveFolderUrl}" style="color: #2563eb; font-size: 14px;">${escapeHtml(driveFolderUrl)}</a>
+                <p style="font-weight: bold; color: #1f2937; font-size: 13px; margin: 0 0 6px;">📝 Σχόλια:</p>
+                <p style="color: #374151; font-size: 14px; margin: 0;">${escapeHtml(surveyComments)}</p>
+              </div>` : ""}
+
+              ${!isComplete ? `
+              <div style="background: #fef2f2; border-left: 4px solid #dc2626; padding: 12px 16px; margin: 16px 0; border-radius: 0 8px 8px 0;">
+                <p style="font-weight: bold; color: #991b1b; font-size: 13px; margin: 0 0 6px;">⚠️ Ελλιπή αρχεία:</p>
+                <p style="color: #dc2626; font-size: 14px; margin: 0;">${missingTypes.map(t => t === "building_photo" ? "Φωτογραφίες κτιρίου" : t === "screenshot" ? "Screenshots" : t === "inspection_form" ? "Έντυπο αυτοψίας" : t).join(", ")}</p>
               </div>` : ""}
 
               ${zipUrl ? `
@@ -699,7 +699,7 @@ Deno.serve(async (req) => {
               </p>` : ""}
 
               ${skippedFiles > 0 ? `
-              <p style="color: #ea580c; font-size: 12px; margin-top: 8px;">⚠️ ${skippedFiles} αρχεία παραλείφθηκαν λόγω μεγέθους. Δείτε τα στο Google Drive.</p>` : ""}
+              <p style="color: #ea580c; font-size: 12px; margin-top: 8px;">⚠️ ${skippedFiles} αρχεία παραλείφθηκαν λόγω μεγέθους.</p>` : ""}
               
               <p style="color: #374151; font-size: 14px; line-height: 1.6; margin-top: 24px;">Με εκτίμηση,</p>
               
@@ -719,7 +719,7 @@ Deno.serve(async (req) => {
           from: `DeltaNet FTTH <${emailFrom}>`,
           to: recipients,
           reply_to: emailReplyTo,
-          subject: `[${escapeHtml(statusLabel)}] Αυτοψία SR: ${sr_id} — ${area}`,
+          subject: `[ΑΥΤΟΨΙΑ] SR: ${sr_id} — ${area}`,
           html: emailHtml,
         };
 
