@@ -349,7 +349,7 @@ const PdfCoordinateEditor = () => {
       if (!field) return prev;
 
       if (subKey) {
-        if ((field.type === "check_map" || field.type === "floor_check") && field.map && field.map[subKey]) {
+        if ((field.type === "check_map" || field.type === "check_map_multi" || field.type === "floor_check") && field.map && field.map[subKey]) {
           field.map[subKey][axis] = value;
         }
       } else {
