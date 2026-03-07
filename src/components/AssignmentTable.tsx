@@ -110,6 +110,34 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
   const { data: history } = useAssignmentHistory(selected?.id || null);
   const queryClient = useQueryClient();
 
+  // Prefetch assignment details on hover (comments, history)
+  const handleRowHover = useCallback((assignment: any) => {
+    queryClient.prefetchQuery({
+      queryKey: ["sr_comments", assignment.id],
+      queryFn: async () => {
+        const { data } = await supabase
+          .from("sr_comments" as any)
+          .select("*")
+          .eq("assignment_id", assignment.id)
+          .order("created_at", { ascending: true });
+        return data || [];
+      },
+      staleTime: 30_000,
+    });
+    queryClient.prefetchQuery({
+      queryKey: ["assignment-history", assignment.id],
+      queryFn: async () => {
+        const { data } = await supabase
+          .from("assignment_history")
+          .select("*")
+          .eq("assignment_id", assignment.id)
+          .order("created_at", { ascending: true });
+        return data || [];
+      },
+      staleTime: 30_000,
+    });
+  }, [queryClient]);
+
   // Build a map of technician_id -> name
   const techMap = (technicians || []).reduce((acc: Record<string, string>, t) => {
     acc[t.user_id] = t.full_name || "—";
