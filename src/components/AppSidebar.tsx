@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import NotificationBell from "@/components/NotificationBell";
 import deltaLogoIcon from "@/assets/delta-logo-icon.png";
 import { useTheme } from "next-themes";
+import { useConstructions } from "@/hooks/useData";
 
 const navItems = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard },
