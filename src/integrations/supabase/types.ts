@@ -602,7 +602,7 @@ export type Database = {
           service_phone: string | null
           sketch_notes: string | null
           sr_id: string
-          survey_id: string
+          survey_id: string | null
           technician_id: string
           technician_name: string | null
           total_apartments: number | null
@@ -681,7 +681,7 @@ export type Database = {
           service_phone?: string | null
           sketch_notes?: string | null
           sr_id: string
-          survey_id: string
+          survey_id?: string | null
           technician_id: string
           technician_name?: string | null
           total_apartments?: number | null
@@ -760,7 +760,7 @@ export type Database = {
           service_phone?: string | null
           sketch_notes?: string | null
           sr_id?: string
-          survey_id?: string
+          survey_id?: string | null
           technician_id?: string
           technician_name?: string | null
           total_apartments?: number | null
