@@ -843,10 +843,10 @@ const InspectionReportForm = ({ assignment, surveyId, onComplete, onCancel }: Pr
 
       {/* Step indicator */}
       <div className="flex gap-1 mb-4">
-        {STEPS.map((s, i) => (
+         {STEPS.map((s, i) => (
           <button
             key={i}
-            onClick={() => setStep(i)}
+            onClick={() => navigateToStep(i)}
             className={`flex-1 flex flex-col items-center gap-1 py-2 rounded-lg transition-colors text-center ${
               i === step
                 ? "bg-primary/10 border border-primary/30"
