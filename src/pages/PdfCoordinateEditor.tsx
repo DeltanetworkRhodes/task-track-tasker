@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Download, ZoomIn, ZoomOut, RotateCcw, Eye, EyeOff, Copy, ChevronLeft, ChevronRight, FileText, X } from "lucide-react";
+import { Download, ZoomIn, ZoomOut, RotateCcw, Eye, EyeOff, Copy, ChevronLeft, ChevronRight, FileText } from "lucide-react";
 import * as pdfjsLib from "pdfjs-dist";
 import { toast } from "sonner";
 import { generateInspectionPdfBytes } from "@/lib/generateInspectionPdf";
