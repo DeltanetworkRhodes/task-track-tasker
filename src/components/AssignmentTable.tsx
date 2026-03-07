@@ -864,6 +864,16 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Inspection Report Viewer */}
+      {selected && (
+        <InspectionReportViewer
+          assignmentId={selected.id}
+          srId={selected.srId}
+          open={showInspectionViewer}
+          onOpenChange={setShowInspectionViewer}
+        />
+      )}
     </>
   );
 };
