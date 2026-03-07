@@ -208,11 +208,17 @@ async function embedSignature(pdfDoc: any, page: any, dataUrl: string, x: number
   }
 }
 
-async function generateInspectionPdf(data: InspectionData, templateBytes: Uint8Array): Promise<Uint8Array> {
-  const [fontBytes, boldFontBytes] = await Promise.all([
-    fetch("https://fonts.gstatic.com/s/roboto/v47/KFOMCnqEu92Fr1ME7kSn66aGLdTylUAMQXC89YmC2DPNWubEbGmT.ttf").then((r) => r.arrayBuffer()),
-    fetch("https://fonts.gstatic.com/s/roboto/v47/KFOMCnqEu92Fr1ME7kSn66aGLdTylUAMQXC89YmC2DPNWubEbFqQ.ttf").then((r) => r.arrayBuffer()),
+async function generateInspectionPdf(data: InspectionData, templateBytes: Uint8Array, adminClient: any): Promise<Uint8Array> {
+  // Load static Roboto TTF fonts from Supabase storage (Greek-compatible)
+  const [fontFile, boldFontFile] = await Promise.all([
+    adminClient.storage.from("surveys").download("fonts/Roboto-Regular.ttf"),
+    adminClient.storage.from("surveys").download("fonts/Roboto-Bold.ttf"),
   ]);
+  if (fontFile.error || !fontFile.data) throw new Error(`Font load failed: ${fontFile.error?.message}`);
+  if (boldFontFile.error || !boldFontFile.data) throw new Error(`Bold font load failed: ${boldFontFile.error?.message}`);
+  const fontBytes = new Uint8Array(await fontFile.data.arrayBuffer());
+  const boldFontBytes = new Uint8Array(await boldFontFile.data.arrayBuffer());
+  console.log(`Font loaded: regular=${fontBytes.length} bytes, bold=${boldFontBytes.length} bytes`);
 
   const pdfDoc = await PDFDocument.load(templateBytes);
   pdfDoc.registerFontkit(fontkit);
@@ -428,7 +434,7 @@ Deno.serve(async (req) => {
     }
 
     const templateBytes = new Uint8Array(await templateFile.arrayBuffer());
-    const pdfBytes = await generateInspectionPdf(report, templateBytes);
+    const pdfBytes = await generateInspectionPdf(report, templateBytes, adminClient);
     console.log(`PDF generated: ${(pdfBytes.length / 1024).toFixed(0)}KB`);
     let driveUrl = "";
     const serviceAccountKeyStr = Deno.env.get("GOOGLE_SERVICE_ACCOUNT_KEY");

@@ -148,8 +148,8 @@
     }
   },
   "fonts": {
-    "regular": "https://fonts.gstatic.com/s/roboto/v47/KFOMCnqEu92Fr1ME7kSn66aGLdTylUAMQXC89YmC2DPNWubEbGmT.ttf",
-    "bold": "https://fonts.gstatic.com/s/roboto/v47/KFOMCnqEu92Fr1ME7kSn66aGLdTylUAMQXC89YmC2DPNWubEbFqQ.ttf"
+    "regular": "/fonts/Roboto-Regular.ttf",
+    "bold": "/fonts/Roboto-Bold.ttf"
   },
   "defaults": {
     "fontSize": 9,
