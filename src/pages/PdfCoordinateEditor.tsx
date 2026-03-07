@@ -445,40 +445,36 @@ const PdfCoordinateEditor = () => {
 
   const handlePreviewPdf = async () => {
     if (!mapping) return;
-
-    // Open immediately to keep browser "user gesture" and avoid popup/client blocking
-    const previewTab = window.open("", "_blank");
-    if (previewTab) {
-      previewTab.document.write("<html><head><title>PDF Preview</title></head><body style='font-family: sans-serif; padding: 16px;'>Generating preview PDF...</body></html>");
-      previewTab.document.close();
-    }
-
     setPreviewLoading(true);
     try {
       const { generateInspectionPdfBytes: genPdf, clearMappingCache } = await import("@/lib/generateInspectionPdf");
       clearMappingCache();
 
       const pdfBytes = await genPdf(PREVIEW_SAMPLE_DATA, mapping);
-      const blob = new Blob([new Uint8Array(pdfBytes)], { type: "application/pdf" });
-      const url = URL.createObjectURL(blob);
 
-      if (previewTab && !previewTab.closed) {
-        previewTab.location.href = url;
-        toast.success("Preview PDF άνοιξε σε νέα καρτέλα!");
-      } else {
-        const a = document.createElement("a");
-        a.href = url;
-        a.target = "_blank";
-        a.rel = "noopener noreferrer";
-        a.click();
-        toast.success("Preview PDF δημιουργήθηκε (fallback άνοιγμα). ");
+      // Render PDF pages as images using pdf.js
+      const loadingTask = pdfjsLib.getDocument({ data: pdfBytes });
+      const pdf = await loadingTask.promise;
+      const rendered: string[] = [];
+
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const viewport = page.getViewport({ scale: 2 });
+        const canvas = document.createElement("canvas");
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+        const ctx = canvas.getContext("2d")!;
+        await page.render({ canvasContext: ctx, viewport }).promise;
+        rendered.push(canvas.toDataURL("image/png"));
       }
 
-      window.setTimeout(() => URL.revokeObjectURL(url), 60000);
+      setPreviewImages(rendered);
+      setPreviewPage(currentPage);
+      setShowPreview(true);
+      toast.success("Preview δημιουργήθηκε!");
     } catch (err) {
-      if (previewTab && !previewTab.closed) previewTab.close();
       console.error("Preview error:", err);
-      toast.error("Σφάλμα δημιουργίας preview: " + (err as Error).message);
+      toast.error("Σφάλμα preview: " + (err as Error).message);
     } finally {
       setPreviewLoading(false);
     }
