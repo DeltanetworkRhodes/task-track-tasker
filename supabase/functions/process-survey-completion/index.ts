@@ -269,11 +269,15 @@ async function buildPdfViaGoogleSlides(
       } catch { /* ignore */ }
     }
 
+    // Wait for permissions to propagate
+    await new Promise(r => setTimeout(r, 3000));
+
     for (let i = 0; i < imageFiles.length; i++) {
       const img = imageFiles[i];
       const slideObjectId = `slide_${i}`;
       const imageObjectId = `image_${i}`;
-      const imageUrl = `https://lh3.googleusercontent.com/d/${img.driveFileId}`;
+      // Use webContentLink-style URL that works with Slides API
+      const imageUrl = `https://drive.google.com/uc?id=${img.driveFileId}`;
 
       if (i === 0 && defaultSlideId) {
         requests.push({
