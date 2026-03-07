@@ -4,11 +4,88 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Download, ZoomIn, ZoomOut, RotateCcw, Eye, EyeOff, Copy, ChevronLeft, ChevronRight } from "lucide-react";
+import { Download, ZoomIn, ZoomOut, RotateCcw, Eye, EyeOff, Copy, ChevronLeft, ChevronRight, FileText, X } from "lucide-react";
 import * as pdfjsLib from "pdfjs-dist";
 import { toast } from "sonner";
+import { generateInspectionPdfBytes } from "@/lib/generateInspectionPdf";
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
+
+// Sample data that fills all fields so you can see where X/○ marks land
+const PREVIEW_SAMPLE_DATA: Record<string, any> = {
+  // Page 1
+  customer_name: "ΔΟΚΙΜΑΣΤΙΚΟΣ ΠΕΛΑΤΗΣ",
+  customer_father_name: "ΙΩΑΝΝΗΣ",
+  customer_mobile: "69012345678",
+  customer_phone: "21012345678",
+  customer_email: "test@example.com",
+  customer_street: "Λεωφ. Αλεξάνδρας",
+  customer_number: "15",
+  customer_postal_code: "114 73",
+  customer_floor: "3ος",
+  customer_apartment_code: "Δ2",
+  customer_county: "Αττικής",
+  customer_municipality: "Αθηνών",
+  customer_notes: "Δοκιμαστικές παρατηρήσεις πελάτη για έλεγχο wrapped text και αλλαγή γραμμής στο PDF.",
+  manager_name: "ΔΙΑΧΕΙΡΙΣΤΗΣ ΔΟΚΙΜΗΣ",
+  manager_mobile: "69087654321",
+  manager_email: "manager@test.gr",
+  service_address: "Οδός Σταδίου 10, Αθήνα",
+  service_phone: "21098765432",
+  service_email: "service@test.gr",
+  technician_name: "ΤΕΧΝΙΚΟΣ ΔΟΚΙΜΗΣ",
+  // Page 2
+  routing_escalit: true,
+  routing_external_pipe: true,
+  routing_aerial: true,
+  routing_other: true,
+  ext_pipe_sidewalk_excavation: true,
+  sidewalk_excavation: true,
+  excavation_to_pipe: true,
+  excavation_to_rg: false,
+  wall_mount: true,
+  fence_building_mount: true,
+  bep_position: "internal,external,pole",
+  vertical_routing: "shaft",
+  vertical_routing_other_notes: "Σημείωση κατακόρυφης",
+  routing_aerial_notes: "Εναέρια σημείωση",
+  routing_other_notes: "Άλλη σημείωση",
+  entry_pipe_notes: "Σημείωση σωλήνα εισαγωγής",
+  sketch_notes: "Σημειώσεις σκαριφήματος δοκιμής",
+  optical_socket_position: "Σαλόνι",
+  // Page 3
+  declarant_name: "ΔΗΛΩΝ ΔΟΚΙΜΗΣ",
+  declarant_id_number: "ΑΒ123456",
+  declarant_city: "Αθήνα",
+  declarant_street: "Ερμού",
+  declarant_number: "25",
+  declarant_postal_code: "105 63",
+  cost_option: "ote_covers",
+  declaration_date: "07/03/2026",
+  // Page 4
+  building_address: "Λεωφ. Αλεξάνδρας 15, Αθήνα 114 73",
+  building_id: "BLD-12345",
+  customer_floor_select: "3ος",
+  total_apartments: "12",
+  total_shops: "2",
+  total_spaces: "14",
+  total_floors: "6",
+  sr_id: "SR-2026-001",
+  cabinet: "CAB-100",
+  pipe_code: "PIPE-555",
+  bcp_brand: "RAYCAP",
+  bcp_size: "SMALL",
+  bcp_floorbox: true,
+  bcp_drop_4: true,
+  bcp_drop_6: false,
+  bcp_drop_12: false,
+  bep_brand: "ZTT",
+  bep_size: "MEDIUM",
+  bep_capacity: "24",
+  bmo_brand: "RAYCAP",
+  bmo_size: "LARGE",
+  bmo_capacity: "48",
+};
 
 interface FieldDef {
   key: string;
