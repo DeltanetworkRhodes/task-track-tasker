@@ -168,7 +168,7 @@ Deno.serve(async (req) => {
     // ─── Build ZIP incrementally ────────────────────────────────────
     const zipFiles: Record<string, Uint8Array> = {};
     let totalSize = 0;
-    const MAX_ZIP_SIZE = 30 * 1024 * 1024; // 30MB limit for memory safety
+    // No size limit — ZIP is uploaded to storage and only a signed URL link is sent
 
     // Get Drive access token once (needed for spreadsheet + drive photos)
     let driveAccessToken = "";

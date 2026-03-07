@@ -654,20 +654,13 @@ Deno.serve(async (req) => {
     if (resendApiKey && recipients.length > 0) {
       try {
         // Download files for ZIP (one by one, keep in array)
-        // Limit total ZIP size to 30MB
-        const MAX_ZIP_SIZE = 30 * 1024 * 1024;
+        // No size limit — ZIP is uploaded to storage and only a link is sent
         const zipFiles: { name: string; data: Uint8Array }[] = [];
         let totalSize = 0;
-        let skippedFiles = 0;
 
         for (const sf of surveyFiles) {
           const fileData = await downloadFile(adminClient, sf.file_path);
           if (fileData) {
-            if (totalSize + fileData.length > MAX_ZIP_SIZE) {
-              skippedFiles++;
-              console.log(`Skipping ${sf.file_name} (ZIP size limit)`);
-              continue;
-            }
             // Prefix with folder name based on type (ASCII for ZIP compatibility)
             const prefix = sf.file_type === "building_photo" ? "PROMELETI/" 
               : sf.file_type === "screenshot" ? "EGRAFA/"
@@ -682,14 +675,14 @@ Deno.serve(async (req) => {
         const inspectionForZip = surveyFiles.filter((f: any) => f.file_type === "inspection_form");
         if (inspectionForZip.length > 0) {
           const pdfData = await buildInspectionPdf(adminClient, inspectionForZip, sr_id);
-          if (pdfData && totalSize + pdfData.length <= MAX_ZIP_SIZE) {
+          if (pdfData) {
             zipFiles.push({ name: `EGRAFA/Deltio_Autopsias_${sr_id}.pdf`, data: pdfData });
             totalSize += pdfData.length;
             console.log(`Added inspection PDF to ZIP: ${(pdfData.length / 1024).toFixed(0)}KB`);
           }
         }
 
-        console.log(`ZIP: ${zipFiles.length} files, ${(totalSize / 1024 / 1024).toFixed(1)}MB, skipped ${skippedFiles}`);
+        console.log(`ZIP: ${zipFiles.length} files, ${(totalSize / 1024 / 1024).toFixed(1)}MB`);
 
         // Build ZIP
         const zipData = await buildZip(zipFiles);
