@@ -88,17 +88,22 @@ Deno.serve(async (req) => {
       });
     }
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const adminClient = createClient(supabaseUrl, serviceRoleKey);
+    const supabaseAuth = createClient(supabaseUrl, anonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
     const token = authHeader.replace("Bearer ", "");
-    const { data: { user }, error: userError } = await adminClient.auth.getUser(token);
-    if (userError || !user) {
+    const { data: claimsData, error: claimsError } = await supabaseAuth.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const { data: roleData } = await adminClient.from("user_roles").select("role").eq("user_id", user.id).single();
-    if (roleData?.role !== "admin") {
+    const userId = claimsData.claims.sub;
+    const adminClient = createClient(supabaseUrl, serviceRoleKey);
+    const { data: roleData } = await adminClient.from("user_roles").select("role").eq("user_id", userId).single();
+    if (!roleData || (roleData.role !== "admin" && roleData.role !== "super_admin")) {
       return new Response(JSON.stringify({ error: "Forbidden" }), {
         status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
