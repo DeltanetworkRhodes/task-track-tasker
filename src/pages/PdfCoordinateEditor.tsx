@@ -78,29 +78,32 @@ const PdfCoordinateEditor = () => {
       .catch(() => toast.error("Δεν βρέθηκε το pdf-mapping.json"));
   }, []);
 
-  // Render PDF pages as images
+  // Render PDF pages as images using pdf.js
   useEffect(() => {
     (async () => {
       try {
-        const resp = await fetch("/templates/inspection_template.pdf");
-        if (!resp.ok) throw new Error();
-        const bytes = await resp.arrayBuffer();
-        const pdf = await PDFDocument.load(bytes);
-        const pages = pdf.getPages();
-        if (pages.length > 0) {
-          const p = pages[0];
-          setPdfDims({ width: p.getWidth(), height: p.getHeight() });
+        const loadingTask = pdfjsLib.getDocument("/templates/inspection_template.pdf");
+        const pdf = await loadingTask.promise;
+        const totalPagesCount = pdf.numPages;
+        const rendered: string[] = [];
+
+        for (let i = 1; i <= totalPagesCount; i++) {
+          const page = await pdf.getPage(i);
+          const viewport = page.getViewport({ scale: 2 }); // render at 2x for sharpness
+          if (i === 1) {
+            setPdfDims({ width: viewport.width / 2, height: viewport.height / 2 });
+          }
+          const canvas = document.createElement("canvas");
+          canvas.width = viewport.width;
+          canvas.height = viewport.height;
+          const ctx = canvas.getContext("2d")!;
+          await page.render({ canvasContext: ctx, viewport }).promise;
+          rendered.push(canvas.toDataURL("image/png"));
         }
 
-        // Render each page as image using canvas
-        const images: string[] = [];
-        // We'll use pdf.js-like approach via an offscreen canvas
-        // Since we don't have pdf.js, we'll render page outlines and use the PDF as background via object tag
-        for (let i = 0; i < pages.length; i++) {
-          images.push(`/templates/inspection_template.pdf#page=${i + 1}`);
-        }
-        setPageImages(images);
-      } catch {
+        setPageImages(rendered);
+      } catch (err) {
+        console.error("PDF render error:", err);
         toast.error("Δεν φορτώθηκε το PDF template");
       }
     })();
