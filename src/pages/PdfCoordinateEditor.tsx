@@ -710,48 +710,4 @@ const PdfCoordinateEditor = () => {
         </div>
       </div>
 
-      {/* PDF Preview Overlay */}
-      {previewUrl && (
-        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-8">
-          <div className="bg-card rounded-lg shadow-2xl flex flex-col w-full max-w-4xl h-[90vh]">
-            <div className="flex items-center justify-between p-4 border-b">
-              <h2 className="text-lg font-bold text-foreground">Preview PDF</h2>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    const a = document.createElement("a");
-                    a.href = previewUrl;
-                    a.download = "preview-inspection.pdf";
-                    a.click();
-                  }}
-                >
-                  <Download className="h-4 w-4 mr-1" />
-                  Λήψη
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => {
-                    URL.revokeObjectURL(previewUrl);
-                    setPreviewUrl(null);
-                  }}
-                >
-                  <X className="h-5 w-5" />
-                </Button>
-              </div>
-            </div>
-            <iframe
-              src={previewUrl}
-              className="flex-1 w-full rounded-b-lg"
-              title="PDF Preview"
-            />
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
-
 export default PdfCoordinateEditor;
