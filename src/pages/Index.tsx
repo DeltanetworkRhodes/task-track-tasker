@@ -1,4 +1,7 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useOrganization } from "@/contexts/OrganizationContext";
 import AppLayout from "@/components/AppLayout";
 import deltaLogoIcon from "@/assets/delta-logo-icon.png";
 import StatCard from "@/components/StatCard";
@@ -10,7 +13,7 @@ import { statusLabels } from "@/data/mockData";
 import { ClipboardCheck, Wrench, TrendingUp, Euro, FolderOpen, Activity, Wifi, PieChartIcon, CalendarDays, Timer, Zap } from "lucide-react";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { BarChart, Bar, XAxis, YAxis, Cell, PieChart, Pie, LineChart, Line, CartesianGrid, ResponsiveContainer } from "recharts";
-import { useMemo } from "react";
+
 
 function getTimeAgo(dateStr: string): string {
   const now = new Date();
@@ -43,8 +46,24 @@ const GREEK_MONTHS: Record<number, string> = {
 
 const Index = () => {
   const [wizardDismissed, setWizardDismissed] = useState(false);
+  const { organizationId } = useOrganization();
   const { data: dbAssignments } = useAssignments();
   const { data: dbConstructions } = useConstructions();
+
+  const { data: wizardCompleted } = useQuery({
+    queryKey: ["setup-wizard-status", organizationId],
+    queryFn: async () => {
+      if (!organizationId) return false;
+      const { data } = await supabase
+        .from("org_settings")
+        .select("setting_value")
+        .eq("organization_id", organizationId)
+        .eq("setting_key", "setup_wizard_completed")
+        .maybeSingle();
+      return data?.setting_value === "true";
+    },
+    enabled: !!organizationId,
+  });
 
   const assignments = useMemo(() => {
     if (!dbAssignments) return [];
@@ -233,8 +252,8 @@ const Index = () => {
         </div>
 
         {/* Setup Wizard */}
-        {!wizardDismissed && (
-          <SetupWizard onDismiss={() => setWizardDismissed(true)} demoMode />
+        {!wizardDismissed && !wizardCompleted && (
+          <SetupWizard onDismiss={() => setWizardDismissed(true)} />
         )}
 
         {/* Stat Cards - responsive grid */}

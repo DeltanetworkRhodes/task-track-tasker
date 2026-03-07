@@ -1,5 +1,9 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { useOrganization } from "@/contexts/OrganizationContext";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { useSetupChecklist, SetupStep } from "@/hooks/useSetupChecklist";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -247,7 +251,97 @@ const SetupWizard = ({ onDismiss, demoMode = false }: SetupWizardProps) => {
   const { data: realSteps, isLoading } = useSetupChecklist();
   const [demoSteps, setDemoSteps] = useState<SetupStep[]>(DEMO_STEPS);
   const [activeStepIndex, setActiveStepIndex] = useState(0);
+  const [validating, setValidating] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const navigate = useNavigate();
+  const { organizationId } = useOrganization();
+  const queryClient = useQueryClient();
+
+  const handleFinalValidation = async () => {
+    if (demoMode) {
+      onDismiss?.();
+      return;
+    }
+    setValidating(true);
+    setValidationErrors([]);
+    try {
+      // Re-fetch fresh data to validate
+      const errors: string[] = [];
+
+      const { data: settings } = await supabase
+        .from("org_settings")
+        .select("setting_key, setting_value")
+        .eq("organization_id", organizationId!);
+
+      const settingsMap: Record<string, string> = {};
+      (settings || []).forEach((s) => {
+        settingsMap[s.setting_key] = s.setting_value;
+      });
+
+      if (!settingsMap["shared_drive_id"]) {
+        errors.push("Google Drive: Δεν έχει οριστεί Shared Drive ID");
+      }
+
+      let hasAreaFolders = false;
+      try {
+        const folders = JSON.parse(settingsMap["area_root_folders"] || "[]");
+        hasAreaFolders = Array.isArray(folders) && folders.length > 0;
+      } catch { hasAreaFolders = false; }
+      if (!hasAreaFolders) {
+        errors.push("Περιοχές: Δεν έχουν οριστεί φάκελοι περιοχών");
+      }
+
+      if (!settingsMap["email_from"] && !settingsMap["report_to_emails"]) {
+        errors.push("Email: Δεν έχουν ρυθμιστεί οι παραλήπτες email");
+      }
+
+      const { count: techCount } = await supabase
+        .from("profiles")
+        .select("id", { count: "exact", head: true })
+        .eq("organization_id", organizationId!);
+      if ((techCount || 0) <= 1) {
+        errors.push("Τεχνικοί: Δεν έχετε προσθέσει τεχνικούς");
+      }
+
+      const { count: materialCount } = await supabase
+        .from("materials")
+        .select("id", { count: "exact", head: true })
+        .eq("organization_id", organizationId!);
+      if ((materialCount || 0) === 0) {
+        errors.push("Αποθήκη: Δεν υπάρχουν υλικά");
+      }
+
+      const { count: pricingCount } = await supabase
+        .from("work_pricing")
+        .select("id", { count: "exact", head: true })
+        .eq("organization_id", organizationId!);
+      if ((pricingCount || 0) === 0) {
+        errors.push("Τιμοκατάλογος: Δεν υπάρχουν εργασίες");
+      }
+
+      if (errors.length > 0) {
+        setValidationErrors(errors);
+        toast.error(`${errors.length} βήματα δεν ολοκληρώθηκαν σωστά`);
+        return;
+      }
+
+      // All good — mark wizard as permanently completed
+      await supabase.from("org_settings").upsert({
+        organization_id: organizationId!,
+        setting_key: "setup_wizard_completed",
+        setting_value: "true",
+      }, { onConflict: "organization_id,setting_key" });
+
+      queryClient.invalidateQueries({ queryKey: ["setup-checklist"] });
+      queryClient.invalidateQueries({ queryKey: ["setup-wizard-status"] });
+      toast.success("Η ρύθμιση ολοκληρώθηκε επιτυχώς! 🎉");
+      onDismiss?.();
+    } catch (err: any) {
+      toast.error("Σφάλμα επαλήθευσης: " + (err.message || "Δοκιμάστε ξανά"));
+    } finally {
+      setValidating(false);
+    }
+  };
 
   const steps = demoMode ? demoSteps : realSteps;
 
@@ -258,7 +352,7 @@ const SetupWizard = ({ onDismiss, demoMode = false }: SetupWizardProps) => {
   const totalSteps = steps.length;
   const progress = Math.round((completedCount / totalSteps) * 100);
 
-  // All done
+  // All done — show validation button
   if (completedCount === totalSteps) {
     return (
       <Card className="p-5 sm:p-6 border-success/30 bg-success/5">
@@ -267,16 +361,42 @@ const SetupWizard = ({ onDismiss, demoMode = false }: SetupWizardProps) => {
             <CheckCircle2 className="h-6 w-6 text-success" />
           </div>
           <div className="flex-1">
-            <h3 className="text-base font-bold text-foreground">Η ρύθμιση ολοκληρώθηκε! 🎉</h3>
+            <h3 className="text-base font-bold text-foreground">Όλα τα βήματα ολοκληρώθηκαν!</h3>
             <p className="text-sm text-muted-foreground mt-1">
-              Όλα είναι έτοιμα. Μπορείτε να ξεκινήσετε να δημιουργείτε αναθέσεις και να διαχειρίζεστε τις κατασκευές σας.
+              Πατήστε «Επαλήθευση & Ολοκλήρωση» για να ελέγξουμε ότι όλα ρυθμίστηκαν σωστά.
             </p>
           </div>
-          {onDismiss && (
-            <Button variant="ghost" size="icon" className="shrink-0" onClick={onDismiss}>
-              <X className="h-4 w-4" />
-            </Button>
-          )}
+        </div>
+        {validationErrors.length > 0 && (
+          <div className="mt-4 rounded-xl bg-destructive/5 border border-destructive/20 p-3 space-y-1.5">
+            <p className="text-[11px] font-bold text-destructive uppercase tracking-wider flex items-center gap-1.5">
+              <AlertCircle className="h-3.5 w-3.5" />
+              Βρέθηκαν σφάλματα
+            </p>
+            {validationErrors.map((err, i) => (
+              <p key={i} className="text-xs text-destructive/80 pl-5">• {err}</p>
+            ))}
+          </div>
+        )}
+        <div className="mt-4 flex justify-end">
+          <Button
+            size="sm"
+            className="gap-1.5"
+            onClick={handleFinalValidation}
+            disabled={validating}
+          >
+            {validating ? (
+              <>
+                <span className="h-3.5 w-3.5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                Έλεγχος...
+              </>
+            ) : (
+              <>
+                <CheckCircle2 className="h-4 w-4" />
+                Επαλήθευση & Ολοκλήρωση
+              </>
+            )}
+          </Button>
         </div>
       </Card>
     );
