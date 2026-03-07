@@ -709,5 +709,8 @@ const PdfCoordinateEditor = () => {
           })}
         </div>
       </div>
+    </div>
+  );
+};
 
 export default PdfCoordinateEditor;
