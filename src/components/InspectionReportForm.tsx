@@ -89,6 +89,10 @@ const InspectionReportForm = ({ assignment, surveyId, onComplete, onCancel }: Pr
     vertical_routing: "",
     sketch_notes: "",
     optical_socket_position: "",
+    // Signatures (stored in form state to survive step navigation)
+    engineer_signature: "",
+    customer_signature: "",
+    manager_signature: "",
     // Page 3
     declaration_type: "approve",
     declarant_name: "",
@@ -99,6 +103,7 @@ const InspectionReportForm = ({ assignment, surveyId, onComplete, onCancel }: Pr
     declarant_postal_code: "",
     declaration_date: new Date().toISOString().split("T")[0],
     cost_option: "ote_covers",
+    declaration_signature: "",
     // Page 4
     building_id: "",
     building_address: assignment?.address || "",
@@ -175,22 +180,55 @@ const InspectionReportForm = ({ assignment, surveyId, onComplete, onCancel }: Pr
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
-  const getSignatureData = () => {
-    const sigs: Record<string, string> = {};
+  // Capture signatures from canvas refs into form state (called before leaving a step)
+  const captureSignaturesFromCanvas = () => {
+    const updates: Record<string, string> = {};
     if (engineerSigRef.current && !engineerSigRef.current.isEmpty()) {
-      sigs.engineer_signature = engineerSigRef.current.toDataURL("image/png");
+      updates.engineer_signature = engineerSigRef.current.toDataURL("image/png");
     }
     if (customerSigRef.current && !customerSigRef.current.isEmpty()) {
-      sigs.customer_signature = customerSigRef.current.toDataURL("image/png");
+      updates.customer_signature = customerSigRef.current.toDataURL("image/png");
     }
     if (managerSigRef.current && !managerSigRef.current.isEmpty()) {
-      sigs.manager_signature = managerSigRef.current.toDataURL("image/png");
+      updates.manager_signature = managerSigRef.current.toDataURL("image/png");
     }
     if (declarationSigRef.current && !declarationSigRef.current.isEmpty()) {
-      sigs.declaration_signature = declarationSigRef.current.toDataURL("image/png");
+      updates.declaration_signature = declarationSigRef.current.toDataURL("image/png");
     }
-    return sigs;
+    if (Object.keys(updates).length > 0) {
+      setForm((prev) => ({ ...prev, ...updates }));
+    }
+    return updates;
   };
+
+  // Navigate between steps, capturing signatures before leaving
+  const navigateToStep = (targetStep: number) => {
+    captureSignaturesFromCanvas();
+    setStep(targetStep);
+  };
+
+  // Restore saved signatures to canvases when returning to a step
+  useEffect(() => {
+    const restoreSignature = (ref: React.RefObject<SignatureCanvas>, dataUrl: string) => {
+      if (ref.current && dataUrl && dataUrl.startsWith("data:image/png;base64,")) {
+        // Small delay to ensure canvas is mounted
+        setTimeout(() => {
+          if (ref.current) {
+            ref.current.clear();
+            ref.current.fromDataURL(dataUrl, { ratio: 1 });
+          }
+        }, 100);
+      }
+    };
+    if (step === 1) {
+      restoreSignature(engineerSigRef, form.engineer_signature);
+      restoreSignature(customerSigRef, form.customer_signature);
+      restoreSignature(managerSigRef, form.manager_signature);
+    }
+    if (step === 2) {
+      restoreSignature(declarationSigRef, form.declaration_signature);
+    }
+  }, [step]);
 
   const handleSave = async (final = false) => {
     if (!user || !assignment) return;
@@ -202,16 +240,19 @@ const InspectionReportForm = ({ assignment, surveyId, onComplete, onCancel }: Pr
     }
 
     try {
-      const signatures = getSignatureData();
+      // Capture any signatures still on screen before saving
+      const freshSigs = captureSignaturesFromCanvas();
       const payload: any = {
         ...form,
-        ...signatures,
+        ...freshSigs,
         survey_id: surveyId || null,
         assignment_id: assignment.id,
         organization_id: organizationId || null,
         technician_id: user.id,
         sr_id: assignment.sr_id,
       };
+      // Remove fields not in DB
+      delete payload.declaration_type;
 
       if (existingReport) {
         const { error } = await supabase
@@ -827,10 +868,10 @@ const InspectionReportForm = ({ assignment, surveyId, onComplete, onCancel }: Pr
 
       {/* Step indicator */}
       <div className="flex gap-1 mb-4">
-        {STEPS.map((s, i) => (
+         {STEPS.map((s, i) => (
           <button
             key={i}
-            onClick={() => setStep(i)}
+            onClick={() => navigateToStep(i)}
             className={`flex-1 flex flex-col items-center gap-1 py-2 rounded-lg transition-colors text-center ${
               i === step
                 ? "bg-primary/10 border border-primary/30"
@@ -853,7 +894,7 @@ const InspectionReportForm = ({ assignment, surveyId, onComplete, onCancel }: Pr
       {/* Navigation */}
       <div className="flex items-center gap-2 pt-4 border-t border-border">
         {step > 0 && (
-          <Button variant="outline" size="sm" onClick={() => setStep(step - 1)} className="gap-1">
+          <Button variant="outline" size="sm" onClick={() => navigateToStep(step - 1)} className="gap-1">
             <ChevronLeft className="h-4 w-4" /> Πίσω
           </Button>
         )}
@@ -862,7 +903,7 @@ const InspectionReportForm = ({ assignment, surveyId, onComplete, onCancel }: Pr
           Αποθήκευση
         </Button>
         {step < STEPS.length - 1 ? (
-          <Button size="sm" onClick={() => setStep(step + 1)} className="gap-1">
+          <Button size="sm" onClick={() => navigateToStep(step + 1)} className="gap-1">
             Επόμενο <ChevronRight className="h-4 w-4" />
           </Button>
         ) : (
