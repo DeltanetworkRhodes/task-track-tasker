@@ -648,7 +648,7 @@ Deno.serve(async (req) => {
             <div style="border: 1px solid #e5e7eb; border-top: none; padding: 24px; border-radius: 0 0 8px 8px;">
               <p style="color: #374151; font-size: 14px; line-height: 1.6;">Αξιότιμοι συνεργάτες,</p>
               <p style="color: #374151; font-size: 14px; line-height: 1.6;">
-                Σας ενημερώνουμε ότι ο τεχνικός <strong>${escapeHtml(technicianName)}</strong> μετέβη για αυτοψία στο <strong>SR: ${escapeHtml(sr_id)}</strong>.
+                Σας ενημερώνουμε ότι ο τεχνικός <strong>${escapeHtml(technicianName)}</strong> μετέβη για αυτοψία στο <strong>SR: ${escapeHtml(sr_id)}</strong>.${isComplete ? " Σας αποστέλλουμε τα αρχεία για προδέσμευση υλικών." : " Η αυτοψία είναι ελλιπής."}
               </p>
               
               <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
