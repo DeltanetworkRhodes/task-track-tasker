@@ -212,29 +212,34 @@ async function generateInspectionPdf(data: InspectionData, templateBytes: Uint8A
   const pages = pdfDoc.getPages();
   if (pages.length < 4) throw new Error("Το template PDF πρέπει να έχει 4 σελίδες");
 
+  // ─── Page 1: Στοιχεία Πελάτη / Διαχειριστή / Τεχν. Υπηρεσίας ───
   const p1 = pages[0];
-  drawText(p1, data.customer_name || "", 185, 664, font);
-  drawText(p1, data.customer_father_name || "", 466, 664, font);
-  drawText(p1, data.customer_mobile || "", 172, 629, font);
-  drawText(p1, data.customer_phone || "", 176, 594, font);
-  drawText(p1, data.customer_email || "", 82, 560, font);
-  drawText(p1, data.customer_street || "", 72, 512, font);
-  drawText(p1, data.customer_number || "", 292, 512, font);
-  drawText(p1, data.customer_postal_code || "", 385, 512, font);
-  drawText(p1, data.customer_floor || "", 92, 478, font);
-  drawText(p1, data.customer_apartment_code || "", 250, 478, font);
-  drawText(p1, data.customer_county || "", 368, 478, font);
-  drawText(p1, data.customer_municipality || "", 470, 478, font);
-  drawWrappedText(p1, data.customer_notes || "", 35, 430, 520, 12, font, 8, 6);
+  const pageHeight = p1.getHeight();
+  console.log(`Page 1 dimensions: ${p1.getWidth()} x ${pageHeight}`);
+  
+  // Row positions (Y from bottom of page) - calibrated to actual template
+  drawText(p1, data.customer_name || "", 185, 700, font);         // ΟΝΟΜΑΤΕΠΩΝΥΜΟ
+  drawText(p1, data.customer_father_name || "", 466, 700, font);  // ΟΝΟΜΑ ΠΑΤΡΟΣ
+  drawText(p1, data.customer_mobile || "", 172, 660, font);       // ΤΗΛΕΦΩΝΟ (κινητό)
+  drawText(p1, data.customer_phone || "", 176, 630, font);        // ΤΗΛΕΦΩΝΟ (σταθερό)
+  drawText(p1, data.customer_email || "", 82, 600, font);         // EMAIL
+  drawText(p1, data.customer_street || "", 72, 560, font);        // ΟΔΟΣ
+  drawText(p1, data.customer_number || "", 292, 560, font);       // ΑΡΙΘ.
+  drawText(p1, data.customer_postal_code || "", 385, 560, font);  // Τ.Κ.
+  drawText(p1, data.customer_floor || "", 92, 528, font);         // ΟΡΟΦΟΣ
+  drawText(p1, data.customer_apartment_code || "", 250, 528, font); // ΚΩΔ. ΔΙΑΜ/ΤΟΣ
+  drawText(p1, data.customer_county || "", 368, 528, font);       // ΝΟΜΟΣ
+  drawText(p1, data.customer_municipality || "", 470, 528, font); // ΔΗΜΟΣ
+  drawWrappedText(p1, data.customer_notes || "", 35, 478, 520, 12, font, 8, 6); // Παρατηρήσεις
 
-  drawText(p1, data.manager_name || "", 170, 307, font);
-  drawText(p1, data.manager_mobile || "", 214, 274, font);
-  drawText(p1, data.manager_email || "", 82, 240, font);
+  drawText(p1, data.manager_name || "", 170, 345, font);          // Διαχειριστής ΟΝΟΜΑΤΕΠΩΝΥΜΟ
+  drawText(p1, data.manager_mobile || "", 214, 312, font);        // Τηλέφωνο Διαχειριστή
+  drawText(p1, data.manager_email || "", 82, 280, font);          // Email Διαχειριστή
 
-  drawText(p1, data.service_address || "", 190, 184, font);
-  drawText(p1, data.service_phone || "", 224, 151, font);
-  drawText(p1, data.service_email || "", 82, 119, font);
-  drawText(p1, data.technician_name || "", 350, 85, font);
+  drawText(p1, data.service_address || "", 190, 218, font);       // Αρμόδια Τεχνική Υπηρεσία
+  drawText(p1, data.service_phone || "", 224, 188, font);         // Τηλέφωνο Υπηρεσίας
+  drawText(p1, data.service_email || "", 82, 156, font);          // Email Υπηρεσίας
+  drawText(p1, data.technician_name || "", 350, 108, font);       // Τεχνικός
 
   const p2 = pages[1];
   drawCheck(p2, !!data.routing_escalit, 123, 730, boldFont);
