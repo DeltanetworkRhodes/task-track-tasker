@@ -440,6 +440,51 @@ const PdfCoordinateEditor = () => {
     });
   };
 
+  const handlePreviewPdf = async () => {
+    setPreviewLoading(true);
+    try {
+      // Save current mapping to a temporary cache so generateInspectionPdfBytes uses it
+      // We need to temporarily override the fetch for pdf-mapping.json
+      const mappingBlob = new Blob([JSON.stringify(mapping)], { type: "application/json" });
+      const mappingUrl = URL.createObjectURL(mappingBlob);
+      
+      // Monkey-patch fetch temporarily to intercept pdf-mapping.json requests
+      const originalFetch = window.fetch;
+      window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+        if (url.includes("pdf-mapping.json")) {
+          return new Response(JSON.stringify(mapping), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          });
+        }
+        return originalFetch(input, init);
+      };
+      
+      // Clear cached mapping so it reloads
+      // @ts-ignore - accessing module internals
+      const pdfModule = await import("@/lib/generateInspectionPdf");
+      
+      const pdfBytes = await generateInspectionPdfBytes(PREVIEW_SAMPLE_DATA);
+      
+      // Restore original fetch
+      window.fetch = originalFetch;
+      URL.revokeObjectURL(mappingUrl);
+      
+      // Clean up old preview URL
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+      
+      const blob = new Blob([pdfBytes], { type: "application/pdf" });
+      setPreviewUrl(URL.createObjectURL(blob));
+      toast.success("Preview PDF δημιουργήθηκε!");
+    } catch (err) {
+      console.error("Preview error:", err);
+      toast.error("Σφάλμα δημιουργίας preview: " + (err as Error).message);
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+
   const exportMapping = () => {
     if (!mapping) return;
     const json = JSON.stringify(mapping, null, 2);
