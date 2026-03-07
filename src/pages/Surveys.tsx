@@ -392,16 +392,18 @@ const Surveys = () => {
             </h3>
             <div className="space-y-2">
               {upcomingAppointments.slice(0, 5).map((a) => (
-                <div key={a.id} className="flex items-center gap-3 text-sm rounded-lg px-3 py-2.5 bg-muted/50 hover:bg-muted transition-colors">
-                  <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
-                  <span className="font-bold text-foreground text-xs">
-                    {new Date(a.appointment_at).toLocaleDateString("el-GR")}{" "}
-                    {new Date(a.appointment_at).toLocaleTimeString("el-GR", { hour: "2-digit", minute: "2-digit" })}
-                  </span>
-                  <span className="font-bold text-xs text-foreground">SR {a.sr_id}</span>
-                  <Badge variant="outline" className="text-xs">{a.area}</Badge>
+                <div key={a.id} className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-3 text-sm rounded-lg px-3 py-2.5 bg-muted/50 hover:bg-muted transition-colors">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                    <span className="font-bold text-foreground text-xs">
+                      {new Date(a.appointment_at).toLocaleDateString("el-GR")}{" "}
+                      {new Date(a.appointment_at).toLocaleTimeString("el-GR", { hour: "2-digit", minute: "2-digit" })}
+                    </span>
+                    <span className="font-bold text-xs text-foreground">SR {a.sr_id}</span>
+                    <Badge variant="outline" className="text-xs">{a.area}</Badge>
+                  </div>
                   {a.description && (
-                    <span className="text-xs text-muted-foreground truncate flex-1">{a.description}</span>
+                    <span className="text-xs text-muted-foreground truncate sm:flex-1 pl-5 sm:pl-0">{a.description}</span>
                   )}
                 </div>
               ))}
