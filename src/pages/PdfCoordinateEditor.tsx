@@ -253,6 +253,7 @@ const PdfCoordinateEditor = () => {
           y: field.y,
           type: field.type,
           color: FIELD_COLORS[field.type] || "#888",
+          mark: (field as any).mark,
         });
       }
     }
