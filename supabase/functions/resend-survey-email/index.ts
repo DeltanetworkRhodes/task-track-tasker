@@ -71,99 +71,13 @@ Deno.serve(async (req) => {
     const sr_id = survey.sr_id;
     const area = survey.area;
 
-    // Get assignment info
+    // Get assignment info (including Drive folder URL)
     const { data: assignment } = await adminClient
-      .from("assignments").select("customer_name, address, cab").eq("sr_id", sr_id).maybeSingle();
+      .from("assignments").select("customer_name, address, cab, drive_folder_url").eq("sr_id", sr_id).maybeSingle();
     const customerName = assignment?.customer_name || "";
     const address = assignment?.address || "";
     const cab = assignment?.cab || "";
-
-    // Get technician name
-    const { data: techProfile } = await adminClient
-      .from("profiles").select("full_name").eq("user_id", survey.technician_id).single();
-    const technicianName = techProfile?.full_name || "Τεχνικός";
-
-    // Get org settings
-    const userId = claimsData.claims.sub as string;
-    const { data: profile } = await adminClient
-      .from("profiles").select("organization_id").eq("user_id", userId).single();
-    const orgId = profile?.organization_id;
-
-    let orgSettingsQuery = adminClient.from("org_settings").select("setting_key, setting_value");
-    if (orgId) orgSettingsQuery = orgSettingsQuery.eq("organization_id", orgId);
-    const { data: orgSettings } = await orgSettingsQuery;
-    const settingsMap: Record<string, string> = {};
-    (orgSettings || []).forEach((s: any) => { settingsMap[s.setting_key] = s.setting_value; });
-
-    const toEmails = settingsMap["report_to_emails"] || "";
-    const ccEmails = settingsMap["report_cc_emails"] || "";
-    const recipients = toEmails.split(",").map((e: string) => e.trim()).filter(Boolean);
-    const ccRecipients = ccEmails.split(",").map((e: string) => e.trim()).filter(Boolean);
-
-    if (recipients.length === 0) {
-      return new Response(JSON.stringify({ error: "No email recipients configured" }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // Get survey files
-    const { data: surveyFiles } = await adminClient
-      .from("survey_files").select("*").eq("survey_id", survey_id);
-    let fileCount = surveyFiles?.length || 0;
-
-    // Find existing ZIP or build new one
-    let zipUrl = "";
-    const { data: existingZips } = await adminClient.storage
-      .from("surveys").list("zips", { search: sr_id });
-
-    const latestZip = existingZips
-      ?.filter((f: any) => f.name.includes(sr_id))
-      ?.sort((a: any, b: any) => b.name.localeCompare(a.name))?.[0];
-
-    if (latestZip) {
-      const { data: signedUrlData } = await adminClient.storage
-        .from("surveys").createSignedUrl(`zips/${latestZip.name}`, 60 * 60 * 24 * 7);
-      zipUrl = signedUrlData?.signedUrl || "";
-      console.log(`Found existing ZIP: ${latestZip.name}`);
-    }
-
-    // If no ZIP exists, call process-survey-completion for full rebuild
-    if (!zipUrl) {
-      console.log(`No cached ZIP found for ${sr_id}, calling process-survey-completion for full rebuild...`);
-      
-      const { data: rebuildResult, error: rebuildErr } = await adminClient.functions.invoke(
-        "process-survey-completion",
-        {
-          body: { survey_id },
-          headers: { Authorization: authHeader },
-        }
-      );
-
-      if (rebuildErr) {
-        console.error("process-survey-completion rebuild error:", rebuildErr);
-      } else {
-        console.log("process-survey-completion rebuild result:", JSON.stringify(rebuildResult));
-        
-        // After rebuild, check for the newly created ZIP
-        const { data: newZips } = await adminClient.storage
-          .from("surveys").list("zips", { search: sr_id });
-        const newLatestZip = newZips
-          ?.filter((f: any) => f.name.includes(sr_id))
-          ?.sort((a: any, b: any) => b.name.localeCompare(a.name))?.[0];
-        
-        if (newLatestZip) {
-          const { data: newSignedUrl } = await adminClient.storage
-            .from("surveys").createSignedUrl(`zips/${newLatestZip.name}`, 60 * 60 * 24 * 7);
-          zipUrl = newSignedUrl?.signedUrl || "";
-          console.log(`Got ZIP after rebuild: ${newLatestZip.name}`);
-
-          // Update file count from fresh data
-          const { data: freshFiles } = await adminClient
-            .from("survey_files").select("id").eq("survey_id", survey_id);
-          if (freshFiles) fileCount = freshFiles.length;
-        }
-      }
-    }
+    const driveFolderUrl = assignment?.drive_folder_url || "";
 
     const isComplete = survey.status === "ΠΡΟΔΕΣΜΕΥΣΗ ΥΛΙΚΩΝ";
     const statusLabel = isComplete ? "ΠΡΟΔΕΣΜΕΥΣΗ ΥΛΙΚΩΝ" : "ΕΛΛΙΠΗΣ ΑΥΤΟΨΙΑ";
