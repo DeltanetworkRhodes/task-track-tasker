@@ -43,10 +43,18 @@ async function embedSignature(pdfDoc: any, page: any, dataUrl: string, x: number
   }
 }
 
-export async function generateInspectionPdfBytes(data: Record<string, any>): Promise<Uint8Array> {
+  const FONT_URL = "https://cdn.jsdelivr.net/fontsource/fonts/roboto@latest/greek-400-normal.woff";
+  const FONT_BOLD_URL = "https://cdn.jsdelivr.net/fontsource/fonts/roboto@latest/greek-700-normal.woff";
+
+  const [fontBytes, boldFontBytes] = await Promise.all([
+    fetch(FONT_URL).then(r => r.arrayBuffer()),
+    fetch(FONT_BOLD_URL).then(r => r.arrayBuffer()),
+  ]);
+
   const pdfDoc = await PDFDocument.create();
-  const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-  const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+  pdfDoc.registerFontkit(fontkit);
+  const font = await pdfDoc.embedFont(fontBytes, { subset: true });
+  const boldFont = await pdfDoc.embedFont(boldFontBytes, { subset: true });
 
   const brandColor = rgb(0.1, 0.6, 0.54);
   const headerBg = rgb(0.1, 0.14, 0.2);
