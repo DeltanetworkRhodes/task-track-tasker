@@ -31,7 +31,7 @@ const areaRootFolders: Record<string, string> = {
   "ΚΩΣ": "1X1mtK4tV_sgGM9IdizNSK7AS19qX1nYl",
 };
 
-const REQUIRED_FILE_TYPES = ["building_photo", "screenshot", "inspection_form"];
+const REQUIRED_FILE_TYPES = ["building_photo", "screenshot"];
 
 
 // ─── Google Drive helpers ────────────────────────────────────────────
