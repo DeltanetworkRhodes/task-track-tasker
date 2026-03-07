@@ -154,7 +154,7 @@ const UserCard = ({ profile: p, role, roleMap, isPending }: UserCardProps) => {
 
       {/* Details row */}
       {isEditing ? (
-        <div className="pl-[52px] space-y-2">
+        <div className="pl-0 sm:pl-[52px] space-y-2">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
             <div className="flex items-center gap-1.5">
               <Mail className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
