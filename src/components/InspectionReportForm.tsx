@@ -165,12 +165,14 @@ const InspectionReportForm = ({ assignment, surveyId, onComplete, onCancel }: Pr
   useEffect(() => {
     if (existingReport) {
       const r = existingReport as any;
-      setForm((prev) => ({
-        ...prev,
-        ...Object.fromEntries(
-          Object.entries(r).filter(([k]) => k in prev)
-        ),
-      }));
+      const merged = Object.fromEntries(
+        Object.entries(r).filter(([k]) => k in form)
+      );
+      // Convert bep_position from comma-separated string to array
+      if (merged.bep_position && typeof merged.bep_position === "string") {
+        merged.bep_position = merged.bep_position.split(",").map((v: string) => v.trim()).filter(Boolean);
+      }
+      setForm((prev) => ({ ...prev, ...merged }));
     }
   }, [existingReport]);
 
