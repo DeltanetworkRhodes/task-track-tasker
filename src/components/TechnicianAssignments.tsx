@@ -926,6 +926,16 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Inspection Report Viewer */}
+      {selectedAssignment && (
+        <InspectionReportViewer
+          assignmentId={selectedAssignment.id}
+          srId={selectedAssignment.sr_id}
+          open={showInspectionViewer}
+          onOpenChange={setShowInspectionViewer}
+        />
+      )}
     </>
   );
 };
