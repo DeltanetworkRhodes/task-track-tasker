@@ -631,10 +631,17 @@ Deno.serve(async (req) => {
           }
         }
 
-        // Generate PDF from inspection_form photos and add to ZIP
-        const inspectionForZip = surveyFiles.filter((f: any) => f.file_type === "inspection_form");
-        if (inspectionForZip.length > 0) {
-          const pdfData = await buildInspectionPdf(adminClient, inspectionForZip, sr_id);
+        // Generate PDF from inspection_form photos already in zipFiles (avoid re-downloading)
+        const inspectionInZip = zipFiles
+          .filter(f => f.name.startsWith("EGRAFA/") && !f.name.endsWith(".pdf"))
+          .filter(f => {
+            const matchingSf = surveyFiles.find((sf: any) => f.name === `EGRAFA/${sf.file_name}` && sf.file_type === "inspection_form");
+            return !!matchingSf;
+          })
+          .map(f => ({ fileName: f.name.replace("EGRAFA/", ""), data: f.data }));
+        
+        if (inspectionInZip.length > 0) {
+          const pdfData = await buildInspectionPdf(inspectionInZip, sr_id);
           if (pdfData) {
             zipFiles.push({ name: `EGRAFA/Deltio_Autopsias_${sr_id}.pdf`, data: pdfData });
             totalSize += pdfData.length;
