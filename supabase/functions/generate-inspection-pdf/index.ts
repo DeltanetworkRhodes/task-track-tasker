@@ -333,11 +333,17 @@ async function processField(
       break;
     }
     case "check_if": {
-      if (val === field.match) drawCircleAround(page, field.x!, field.y!);
+      if (val === field.match) {
+        if (field.mark === "x") drawCheck(page, field.x!, field.y!, boldFont, defaults.checkSize);
+        else drawCircleAround(page, field.x!, field.y!);
+      }
       break;
     }
     case "check_if_not": {
-      if (val !== field.match && val != null) drawCircleAround(page, field.x!, field.y!);
+      if (val !== field.match && val != null) {
+        if (field.mark === "x") drawCheck(page, field.x!, field.y!, boldFont, defaults.checkSize);
+        else drawCircleAround(page, field.x!, field.y!);
+      }
       break;
     }
     case "check_map": {
