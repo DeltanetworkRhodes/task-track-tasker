@@ -93,8 +93,8 @@ const SurveyForm = ({ assignments, prefillSrId, prefillArea, onComplete }: Props
 
     setSubmitting(true);
     try {
-      // Auto-detect completeness
-      const hasAllFiles = buildingPhotos.length > 0 && screenshots.length > 0 && inspectionPhotos.length > 0;
+      // Auto-detect completeness (inspection_form no longer required — generated as PDF)
+      const hasAllFiles = buildingPhotos.length > 0 && screenshots.length > 0;
       const autoStatus = hasAllFiles ? "ΠΡΟΔΕΣΜΕΥΣΗ ΥΛΙΚΩΝ" : "ΕΛΛΙΠΗΣ ΑΥΤΟΨΙΑ";
 
       // Create survey record
