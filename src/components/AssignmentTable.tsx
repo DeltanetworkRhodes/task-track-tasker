@@ -353,6 +353,7 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
           <div
             key={a.id}
             className="rounded-xl border border-border bg-card p-3.5 active:bg-secondary/50 transition-colors"
+            onMouseEnter={() => handleRowHover(a)}
             onClick={() => setSelected(a)}
           >
             <div className="flex items-center justify-between mb-2">
