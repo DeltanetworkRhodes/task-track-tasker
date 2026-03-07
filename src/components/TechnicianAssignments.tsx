@@ -191,6 +191,8 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
         }
       }
     } catch (err: any) {
+      // Rollback optimistic update
+      queryClient.invalidateQueries({ queryKey: ["technician-assignments"] });
       toast.error(err.message || "Σφάλμα ενημέρωσης");
     } finally {
       setUpdating(null);
