@@ -4,7 +4,7 @@ import { useOrganization } from "@/contexts/OrganizationContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Camera, Upload, X, FileImage, CheckCircle, FileText, Loader2 } from "lucide-react";
+import { Camera, Upload, X, FileImage, CheckCircle, FileText, Loader2, WifiOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -13,6 +13,8 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { compressImages, formatFileSize } from "@/lib/imageCompression";
+import { enqueueSurvey, fileToOfflineFile, isOnline } from "@/lib/offlineQueue";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 
 interface Props {
   assignments?: any[];
