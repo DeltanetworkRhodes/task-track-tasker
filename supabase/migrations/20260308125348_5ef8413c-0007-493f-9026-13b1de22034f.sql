@@ -1,0 +1,1 @@
+ALTER TABLE public.assignments ADD COLUMN IF NOT EXISTS building_id_hemd text;

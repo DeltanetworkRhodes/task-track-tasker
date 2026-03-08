@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 
-import { MapPin, Phone, Calendar, MessageSquare, Loader2, Eye, FileEdit, CheckCircle, Clock, HardHat, XCircle, Ban, Upload, FileSpreadsheet, FileText } from "lucide-react";
+import { MapPin, Phone, Calendar, MessageSquare, Loader2, Eye, FileEdit, CheckCircle, Clock, HardHat, XCircle, Ban, Upload, FileSpreadsheet, FileText, ExternalLink } from "lucide-react";
 import GisUploadCard from "@/components/GisUploadCard";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -696,11 +696,34 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
                       <span className="text-muted-foreground">{selectedAssignment.comments}</span>
                     </div>
                   )}
+                  {(selectedAssignment as any).building_id_hemd && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-muted-foreground text-xs font-medium">ΧΕΜΔ ID:</span>
+                      <span className="text-xs font-mono">{(selectedAssignment as any).building_id_hemd}</span>
+                    </div>
+                  )}
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <Calendar className="h-4 w-4 shrink-0" />
                     <span>{new Date(selectedAssignment.created_at).toLocaleDateString("el-GR")}</span>
                   </div>
                 </Card>
+
+                {/* XEMD Button */}
+                {((selectedAssignment as any).latitude || (selectedAssignment as any).longitude) && (
+                  <a
+                    href={
+                      (selectedAssignment as any).latitude && (selectedAssignment as any).longitude
+                        ? `https://www.broadband-assist.gov.gr/public/?lat=${(selectedAssignment as any).latitude}&lng=${(selectedAssignment as any).longitude}`
+                        : "https://www.broadband-assist.gov.gr/public/"
+                    }
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-xs font-medium bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/20 transition-colors border border-emerald-500/20"
+                  >
+                    <ExternalLink className="h-3.5 w-3.5" />
+                    Προβολή στο ΧΕΜΔ
+                  </a>
+                )}
 
                 {/* Existing survey info */}
                 {existingSurvey && (
