@@ -1,5 +1,6 @@
 import ExcelJS from "exceljs";
 import { supabase } from "@/integrations/supabase/client";
+import demoSketchUrl from "@/assets/demo-sketch-placeholder.png";
 
 /* ────────────────────────────────────────────
    Types
