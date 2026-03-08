@@ -382,11 +382,11 @@ const Surveys = () => {
           />
           <StatCard 
             title="Προδέσμευση Υλικών" 
-            value={totalComplete} 
-            subtitle={`${totalSurveys > 0 ? Math.round((totalComplete / totalSurveys) * 100) : 0}% του συνόλου`} 
+            value={totalComplete + preCommittedCount} 
+            subtitle={`${totalComplete} αυτοψίες · ${preCommittedCount} αναθέσεις`} 
             icon={FileCheck} 
             trend="up" 
-            trendValue={`${totalComplete} ολοκληρωμένες`} 
+            trendValue={`${totalComplete + preCommittedCount} σύνολο`} 
           />
           <StatCard 
             title="Ελλιπείς Αυτοψίες" 
