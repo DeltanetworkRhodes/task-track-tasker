@@ -613,15 +613,19 @@ Deno.serve(async (req) => {
       zipTooLarge = true;
     } else {
       try {
+        // Build folder name: SR_XXXXXXX_ΠΕΛΑΤΗΣ
+        const safeName = (customerName || "").replace(/[\/\\:*?"<>|]/g, "_").trim();
+        const rootFolder = `SR ${sr_id}${safeName ? ` ${safeName}` : ""}`;
+        
         const zipFiles: { name: string; data: Uint8Array }[] = downloadedFiles.map(({ sf, data }) => ({
-          name: `${getZipFolder(sf.file_type)}/${sf.file_name}`,
+          name: `${rootFolder}/${getZipFolder(sf.file_type)}/${sf.file_name}`,
           data,
         }));
         
         // Add inspection PDF to ZIP if generated
         if (inspectionPdfBytes) {
           zipFiles.push({
-            name: `ΔΕΛΤΙΟ_ΑΥΤΟΨΙΑΣ/Deltio_Autopsias_${sr_id}.pdf`,
+            name: `${rootFolder}/ΕΓΓΡΑΦΑ/ΔΕΛΤΙΟ_ΑΥΤΟΨΙΑΣ/Deltio_Autopsias_${sr_id}.pdf`,
             data: inspectionPdfBytes,
           });
         }
