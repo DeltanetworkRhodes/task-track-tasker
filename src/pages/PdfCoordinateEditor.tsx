@@ -55,10 +55,8 @@ const PREVIEW_SAMPLE_DATA: Record<string, any> = {
   entry_pipe_notes: "Σημείωση σωλήνα εισαγωγής",
   sketch_notes: "Σημειώσεις σκαριφήματος δοκιμής για έλεγχο wrapped text στο PDF preview.",
   optical_socket_position: "Σαλόνι",
-  // Page 2 - Υπογραφές (dummy signature - small transparent PNG)
-  engineer_signature: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAAAUCAYAAAB7wJiVAAAAfklEQVRoge3QMQ0AIRAAwHLH/p0xcQEkzKDpi2Y2M/P2DvjxOwI2EoYShhKGEoYShhKGEoYShhKGEoYShhKGEoYShhKGEoYShhKGEoYShhKGEoYShhKGEoYShhKGEoYShhKGEoYShhKGEoYShhKGEoYShhKGEoYShhKGEv/fB7Z6BAX0nFGEAAAAAElFTkSuQmCC",
-  customer_signature: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAAAUCAYAAAB7wJiVAAAAfklEQVRoge3QMQ0AIRAAwHLH/p0xcQEkzKDpi2Y2M/P2DvjxOwI2EoYShhKGEoYShhKGEoYShhKGEoYShhKGEoYShhKGEoYShhKGEoYShhKGEoYShhKGEoYShhKGEoYShhKGEoYShhKGEoYShhKGEoYShhKGEoYShhKGEv/fB7Z6BAX0nFGEAAAAAElFTkSuQmCC",
-  manager_signature: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAAAUCAYAAAB7wJiVAAAAfklEQVRoge3QMQ0AIRAAwHLH/p0xcQEkzKDpi2Y2M/P2DvjxOwI2EoYShhKGEoYShhKGEoYShhKGEoYShhKGEoYShhKGEoYShhKGEoYShhKGEoYShhKGEoYShhKGEoYShhKGEoYShhKGEoYShhKGEoYShhKGEoYShhKGEv/fB7Z6BAX0nFGEAAAAAElFTkSuQmCC",
+  // Signatures are shown as ✎ markers in editor - no sample data needed for preview
+  // engineer_signature, customer_signature, manager_signature handled by editor markers
   // Page 3 - Υπεύθυνη Δήλωση
   declarant_name: "ΔΗΛΩΝ ΔΟΚΙΜΗΣ",
   declarant_id_number: "ΑΒ123456",
@@ -68,7 +66,7 @@ const PREVIEW_SAMPLE_DATA: Record<string, any> = {
   declarant_postal_code: "105 63",
   cost_option: "ote_covers",
   declaration_date: "07/03/2026",
-  declaration_signature: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAAAUCAYAAAB7wJiVAAAAfklEQVRoge3QMQ0AIRAAwHLH/p0xcQEkzKDpi2Y2M/P2DvjxOwI2EoYShhKGEoYShhKGEoYShhKGEoYShhKGEoYShhKGEoYShhKGEoYShhKGEoYShhKGEoYShhKGEoYShhKGEoYShhKGEoYShhKGEoYShhKGEoYShhKGEv/fB7Z6BAX0nFGEAAAAAElFTkSuQmCC",
+  // declaration_signature handled by editor marker
   // Page 4 - Στοιχεία Κτιρίου / Εξοπλισμός
   building_address: "Λεωφ. Αλεξάνδρας 15, Αθήνα 114 73",
   building_id: "BLD-12345",
