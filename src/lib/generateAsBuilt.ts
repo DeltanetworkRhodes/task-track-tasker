@@ -653,7 +653,7 @@ const DEMO_SR_DATA: DemoSRMap = {
       { type: "Α", description: "Υλοποίηση Υποδομής Εισαγωγής και Τοποθέτηση Κεντρικού Κατανεμητή", quantity: 1, floor: "+00" },
       { type: "Β", description: "Διασύνδεση των μετρητών κατανάλωσης ρεύματος", quantity: 1, floor: "+00" },
     ],
-    sketchImageUrl: demoSketchUrl, isNewInfrastructure: true, trenchLengthM: 156, cabId: "G526",
+    sketchImageUrl: demoSketchSr04, isNewInfrastructure: true, trenchLengthM: 156, cabId: "G526",
   },
 };
 
