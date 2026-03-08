@@ -94,7 +94,13 @@ const CreateAssignmentDialog = ({ open, onOpenChange }: Props) => {
         status: "pending",
         organization_id: organizationId,
       });
-      if (error) throw error;
+      if (error) {
+        if (error.code === '23505') {
+          toast.error(`Υπάρχει ήδη ανάθεση με SR ID "${form.sr_id.trim()}"`);
+          return;
+        }
+        throw error;
+      }
 
       toast.success("Η ανάθεση δημιουργήθηκε επιτυχώς");
       queryClient.invalidateQueries({ queryKey: ["assignments"] });
