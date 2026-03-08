@@ -301,7 +301,11 @@ const SurveyForm = ({ assignments, prefillSrId, prefillArea, onComplete }: Props
           className="hidden"
           onChange={(e) => {
             const f = e.target.files?.[0];
-            if (f) setInspectionPdf(f);
+            if (f && f.type === "application/pdf") {
+              setInspectionPdf(f);
+            } else if (f) {
+              toast.error("Μόνο αρχεία PDF επιτρέπονται");
+            }
             e.target.value = "";
           }}
         />
