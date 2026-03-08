@@ -344,13 +344,13 @@ function escapeHtml(str: string): string {
   return str.replace(/[<>&"']/g, (c: string) => `&#${c.charCodeAt(0)};`);
 }
 
-// Map file_type to Greek folder name for ZIP
+// Map file_type to folder path inside ZIP (relative to SR root)
 function getZipFolder(fileType: string): string {
   switch (fileType) {
-    case "building_photo": return "ΦΩΤΟΓΡΑΦΙΕΣ_ΚΤΙΡΙΟΥ";
-    case "screenshot": return "SCREENSHOTS";
-    case "inspection_pdf": return "ΔΕΛΤΙΟ_ΑΥΤΟΨΙΑΣ";
-    default: return "ΑΛΛΑ";
+    case "building_photo": return "ΠΡΟΜΕΛΕΤΗ/ΦΩΤΟΓΡΑΦΙΕΣ_ΚΤΙΡΙΟΥ";
+    case "screenshot": return "ΕΓΓΡΑΦΑ/SCREENSHOTS";
+    case "inspection_pdf": return "ΕΓΓΡΑΦΑ/ΔΕΛΤΙΟ_ΑΥΤΟΨΙΑΣ";
+    default: return "ΕΓΓΡΑΦΑ/ΑΛΛΑ";
   }
 }
 
@@ -613,15 +613,19 @@ Deno.serve(async (req) => {
       zipTooLarge = true;
     } else {
       try {
+        // Build folder name: SR_XXXXXXX_ΠΕΛΑΤΗΣ
+        const safeName = (customerName || "").replace(/[\/\\:*?"<>|]/g, "_").trim();
+        const rootFolder = `SR ${sr_id}${safeName ? ` ${safeName}` : ""}`;
+        
         const zipFiles: { name: string; data: Uint8Array }[] = downloadedFiles.map(({ sf, data }) => ({
-          name: `${getZipFolder(sf.file_type)}/${sf.file_name}`,
+          name: `${rootFolder}/${getZipFolder(sf.file_type)}/${sf.file_name}`,
           data,
         }));
         
         // Add inspection PDF to ZIP if generated
         if (inspectionPdfBytes) {
           zipFiles.push({
-            name: `ΔΕΛΤΙΟ_ΑΥΤΟΨΙΑΣ/Deltio_Autopsias_${sr_id}.pdf`,
+            name: `${rootFolder}/ΕΓΓΡΑΦΑ/ΔΕΛΤΙΟ_ΑΥΤΟΨΙΑΣ/Deltio_Autopsias_${sr_id}.pdf`,
             data: inspectionPdfBytes,
           });
         }
