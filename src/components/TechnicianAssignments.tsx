@@ -14,6 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
+import { useDemo } from "@/contexts/DemoContext";
 import { toast } from "sonner";
 import SurveyForm from "@/components/SurveyForm";
 import IncompleteSurveys from "@/components/IncompleteSurveys";
