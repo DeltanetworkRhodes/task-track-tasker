@@ -10,7 +10,6 @@ import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Plus, Loader2 } from "lucide-react";
 import { useOrganization } from "@/contexts/OrganizationContext";
-import SmartAddressLookup from "@/components/SmartAddressLookup";
 
 const useTechnicians = () => {
   return useQuery({
@@ -43,7 +42,6 @@ const CreateAssignmentDialog = ({ open, onOpenChange }: Props) => {
   const { data: technicians } = useTechnicians();
   const { organizationId } = useOrganization();
   const [submitting, setSubmitting] = useState(false);
-  const [latLng, setLatLng] = useState<{ lat: number | null; lng: number | null }>({ lat: null, lng: null });
 
   const [form, setForm] = useState({
     sr_id: "",
@@ -69,7 +67,6 @@ const CreateAssignmentDialog = ({ open, onOpenChange }: Props) => {
       comments: "",
       technician_id: "__none__",
     });
-    setLatLng({ lat: null, lng: null });
   };
 
   const handleSubmit = async () => {
@@ -96,9 +93,7 @@ const CreateAssignmentDialog = ({ open, onOpenChange }: Props) => {
         source_tab: form.area,
         status: "pending",
         organization_id: organizationId,
-        latitude: latLng.lat,
-        longitude: latLng.lng,
-      } as any);
+      });
       if (error) {
         if (error.code === '23505') {
           toast.error(`Υπάρχει ήδη ανάθεση με SR ID "${form.sr_id.trim()}"`);
@@ -165,13 +160,11 @@ const CreateAssignmentDialog = ({ open, onOpenChange }: Props) => {
 
           <div className="space-y-1.5">
             <Label className="text-xs">Διεύθυνση</Label>
-            <SmartAddressLookup
+            <Input
               value={form.address}
-              onChange={(addr) => update("address", addr)}
-              onLocationSelect={(result) => {
-                update("address", result.address);
-                setLatLng({ lat: result.latitude, lng: result.longitude });
-              }}
+              onChange={(e) => update("address", e.target.value)}
+              placeholder="Οδός, αριθμός, όροφος"
+              className="text-sm"
             />
           </div>
 

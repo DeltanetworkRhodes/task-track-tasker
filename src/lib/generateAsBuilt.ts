@@ -164,7 +164,7 @@ async function fetchAsBuiltData(srId: string): Promise<AsBuiltData> {
 
   return {
     srId: assignment.sr_id,
-    buildingId: (assignment as any).building_id_hemd || gisData?.building_id || "",
+    buildingId: gisData?.building_id || "",
     areaType: gisData?.area_type || "",
     floors: gisData?.floors || 0,
     customerFloor: gisData?.customer_floor || "",
@@ -181,8 +181,8 @@ async function fetchAsBuiltData(srId: string): Promise<AsBuiltData> {
     newBcp: gisData?.new_bcp || "",
     conduit: gisData?.conduit || "",
     distanceFromCabinet: Number(gisData?.distance_from_cabinet) || 0,
-    latitude: Number((assignment as any).latitude) || Number(gisData?.latitude) || 0,
-    longitude: Number((assignment as any).longitude) || Number(gisData?.longitude) || 0,
+    latitude: Number(gisData?.latitude) || 0,
+    longitude: Number(gisData?.longitude) || 0,
     notes: gisData?.notes || "",
     warning: gisData?.warning || "",
     failure: gisData?.failure || "",

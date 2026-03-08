@@ -117,7 +117,6 @@ export type Database = {
         Row: {
           address: string | null
           area: string
-          building_id_hemd: string | null
           cab: string | null
           comments: string | null
           created_at: string
@@ -127,8 +126,6 @@ export type Database = {
           drive_promeleti_url: string | null
           google_sheet_row_id: number | null
           id: string
-          latitude: number | null
-          longitude: number | null
           organization_id: string | null
           pdf_url: string | null
           phone: string | null
@@ -142,7 +139,6 @@ export type Database = {
         Insert: {
           address?: string | null
           area: string
-          building_id_hemd?: string | null
           cab?: string | null
           comments?: string | null
           created_at?: string
@@ -152,8 +148,6 @@ export type Database = {
           drive_promeleti_url?: string | null
           google_sheet_row_id?: number | null
           id?: string
-          latitude?: number | null
-          longitude?: number | null
           organization_id?: string | null
           pdf_url?: string | null
           phone?: string | null
@@ -167,7 +161,6 @@ export type Database = {
         Update: {
           address?: string | null
           area?: string
-          building_id_hemd?: string | null
           cab?: string | null
           comments?: string | null
           created_at?: string
@@ -177,8 +170,6 @@ export type Database = {
           drive_promeleti_url?: string | null
           google_sheet_row_id?: number | null
           id?: string
-          latitude?: number | null
-          longitude?: number | null
           organization_id?: string | null
           pdf_url?: string | null
           phone?: string | null
@@ -192,74 +183,6 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "assignments_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      buildings_registry: {
-        Row: {
-          address: string
-          area: string | null
-          branch: string | null
-          building_id: string | null
-          cabinet: string | null
-          city: string | null
-          created_at: string
-          id: string
-          latitude: number | null
-          longitude: number | null
-          nearby_bcp: string | null
-          notes: string | null
-          number: string | null
-          organization_id: string | null
-          postal_code: string | null
-          street: string | null
-          updated_at: string
-        }
-        Insert: {
-          address: string
-          area?: string | null
-          branch?: string | null
-          building_id?: string | null
-          cabinet?: string | null
-          city?: string | null
-          created_at?: string
-          id?: string
-          latitude?: number | null
-          longitude?: number | null
-          nearby_bcp?: string | null
-          notes?: string | null
-          number?: string | null
-          organization_id?: string | null
-          postal_code?: string | null
-          street?: string | null
-          updated_at?: string
-        }
-        Update: {
-          address?: string
-          area?: string | null
-          branch?: string | null
-          building_id?: string | null
-          cabinet?: string | null
-          city?: string | null
-          created_at?: string
-          id?: string
-          latitude?: number | null
-          longitude?: number | null
-          nearby_bcp?: string | null
-          notes?: string | null
-          number?: string | null
-          organization_id?: string | null
-          postal_code?: string | null
-          street?: string | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "buildings_registry_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
@@ -1398,34 +1321,6 @@ export type Database = {
         Returns: boolean
       }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
-      search_buildings: {
-        Args: { org_id?: string; search_term: string }
-        Returns: {
-          address: string
-          area: string | null
-          branch: string | null
-          building_id: string | null
-          cabinet: string | null
-          city: string | null
-          created_at: string
-          id: string
-          latitude: number | null
-          longitude: number | null
-          nearby_bcp: string | null
-          notes: string | null
-          number: string | null
-          organization_id: string | null
-          postal_code: string | null
-          street: string | null
-          updated_at: string
-        }[]
-        SetofOptions: {
-          from: "*"
-          to: "buildings_registry"
-          isOneToOne: false
-          isSetofReturn: true
-        }
-      }
     }
     Enums: {
       app_role: "admin" | "technician" | "super_admin"
