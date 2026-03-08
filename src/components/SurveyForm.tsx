@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { hapticFeedback } from "@/lib/haptics";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -141,6 +142,7 @@ const SurveyForm = ({ assignments, prefillSrId, prefillArea, onComplete }: Props
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    hapticFeedback.medium();
     if (!area || !srId.trim()) {
       toast.error("Συμπληρώστε Περιοχή και SR ID");
       return;
