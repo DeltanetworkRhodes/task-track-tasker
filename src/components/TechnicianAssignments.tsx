@@ -418,23 +418,6 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
                 <FileEdit className="h-4 w-4" />
                 Αρχεία Αυτοψίας
               </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                className="gap-2"
-                onClick={() => setShowInspectionReport(true)}
-              >
-                <FileText className="h-4 w-4" />
-                Δελτίο
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                className="gap-2"
-                onClick={() => setShowInspectionViewer(true)}
-              >
-                <Eye className="h-4 w-4" />
-              </Button>
             </div>
           )}
           {existingSurvey && existingSurvey.status !== "ΕΛΛΙΠΗΣ ΑΥΤΟΨΙΑ" && (
