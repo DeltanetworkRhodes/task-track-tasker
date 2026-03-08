@@ -1,9 +1,6 @@
 import ExcelJS from "exceljs";
 import { supabase } from "@/integrations/supabase/client";
-import demoSketchSr01 from "@/assets/demo-sketch-sr01.png";
-import demoSketchSr02 from "@/assets/demo-sketch-sr02.png";
-import demoSketchSr03 from "@/assets/demo-sketch-sr03.png";
-import demoSketchSr04 from "@/assets/demo-sketch-sr04.png";
+import { generateSketchBuffer } from "@/lib/generateSketch";
 
 /* ────────────────────────────────────────────
    Types
