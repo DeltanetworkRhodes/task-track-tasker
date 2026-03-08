@@ -4,7 +4,7 @@ import { useOrganization } from "@/contexts/OrganizationContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Camera, Upload, X, FileImage, CheckCircle } from "lucide-react";
+import { Camera, Upload, X, FileImage, CheckCircle, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -35,12 +35,13 @@ const SurveyForm = ({ assignments, prefillSrId, prefillArea, onComplete }: Props
   const [comments, setComments] = useState("");
   const [buildingPhotos, setBuildingPhotos] = useState<FileUpload[]>([]);
   const [screenshots, setScreenshots] = useState<FileUpload[]>([]);
+  const [inspectionPdf, setInspectionPdf] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
   const buildingRef = useRef<HTMLInputElement>(null);
   const screenshotRef = useRef<HTMLInputElement>(null);
-  
+  const pdfRef = useRef<HTMLInputElement>(null);
 
   const handleFiles = (
     files: FileList | null,
@@ -127,6 +128,30 @@ const SurveyForm = ({ assignments, prefillSrId, prefillArea, onComplete }: Props
         if (filesError) console.error("Files record error:", filesError);
       }
 
+      // Upload inspection PDF if provided
+      if (inspectionPdf) {
+        try {
+          const assignmentMatch = assignments?.find((a: any) => a.sr_id === srId.trim());
+          if (assignmentMatch) {
+            const pdfPath = `inspection-pdfs/${organizationId || "default"}/${srId.trim()}_${Date.now()}.pdf`;
+            const { error: pdfUploadErr } = await supabase.storage
+              .from("surveys")
+              .upload(pdfPath, inspectionPdf, { contentType: "application/pdf", upsert: true });
+            if (!pdfUploadErr) {
+              const { data: signedData } = await supabase.storage
+                .from("surveys")
+                .createSignedUrl(pdfPath, 60 * 60 * 24 * 365);
+              await supabase
+                .from("assignments")
+                .update({ pdf_url: signedData?.signedUrl || pdfPath })
+                .eq("id", assignmentMatch.id);
+            }
+          }
+        } catch (pdfErr) {
+          console.error("Inspection PDF upload error:", pdfErr);
+        }
+      }
+
       toast.success("Η αυτοψία υποβλήθηκε επιτυχώς!");
       setSubmitted(true);
 
@@ -183,6 +208,7 @@ const SurveyForm = ({ assignments, prefillSrId, prefillArea, onComplete }: Props
         setComments("");
         setBuildingPhotos([]);
         setScreenshots([]);
+        setInspectionPdf(null);
         setSubmitted(false);
       }, 3000);
 
@@ -263,6 +289,48 @@ const SurveyForm = ({ assignments, prefillSrId, prefillArea, onComplete }: Props
         accept="image/*"
       />
 
+      {/* ΔΕΛΤΙΟ ΑΥΤΟΨΙΑΣ PDF */}
+      <Card className="p-4 space-y-3">
+        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          Δελτίο Αυτοψίας (PDF)
+        </Label>
+        <input
+          ref={pdfRef}
+          type="file"
+          accept=".pdf"
+          className="hidden"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) setInspectionPdf(f);
+            e.target.value = "";
+          }}
+        />
+        {inspectionPdf ? (
+          <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+            <FileText className="h-5 w-5 text-primary shrink-0" />
+            <span className="text-sm truncate flex-1">{inspectionPdf.name}</span>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6"
+              onClick={() => setInspectionPdf(null)}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        ) : (
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full gap-2"
+            onClick={() => pdfRef.current?.click()}
+          >
+            <Upload className="h-4 w-4" />
+            Ανέβασμα Δελτίου Αυτοψίας
+          </Button>
+        )}
+      </Card>
 
       {/* ΣΧΟΛΙΑ */}
       <Card className="p-4 space-y-3">
