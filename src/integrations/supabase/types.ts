@@ -190,6 +190,74 @@ export type Database = {
           },
         ]
       }
+      buildings_registry: {
+        Row: {
+          address: string
+          area: string | null
+          branch: string | null
+          building_id: string | null
+          cabinet: string | null
+          city: string | null
+          created_at: string
+          id: string
+          latitude: number | null
+          longitude: number | null
+          nearby_bcp: string | null
+          notes: string | null
+          number: string | null
+          organization_id: string | null
+          postal_code: string | null
+          street: string | null
+          updated_at: string
+        }
+        Insert: {
+          address: string
+          area?: string | null
+          branch?: string | null
+          building_id?: string | null
+          cabinet?: string | null
+          city?: string | null
+          created_at?: string
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          nearby_bcp?: string | null
+          notes?: string | null
+          number?: string | null
+          organization_id?: string | null
+          postal_code?: string | null
+          street?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string
+          area?: string | null
+          branch?: string | null
+          building_id?: string | null
+          cabinet?: string | null
+          city?: string | null
+          created_at?: string
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          nearby_bcp?: string | null
+          notes?: string | null
+          number?: string | null
+          organization_id?: string | null
+          postal_code?: string | null
+          street?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "buildings_registry_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       construction_materials: {
         Row: {
           construction_id: string
@@ -1321,6 +1389,34 @@ export type Database = {
         Returns: boolean
       }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
+      search_buildings: {
+        Args: { org_id?: string; search_term: string }
+        Returns: {
+          address: string
+          area: string | null
+          branch: string | null
+          building_id: string | null
+          cabinet: string | null
+          city: string | null
+          created_at: string
+          id: string
+          latitude: number | null
+          longitude: number | null
+          nearby_bcp: string | null
+          notes: string | null
+          number: string | null
+          organization_id: string | null
+          postal_code: string | null
+          street: string | null
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "buildings_registry"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
     }
     Enums: {
       app_role: "admin" | "technician" | "super_admin"
