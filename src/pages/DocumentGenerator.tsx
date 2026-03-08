@@ -172,7 +172,7 @@ const DocumentGenerator = () => {
                   <Button
                     size="sm"
                     variant={cStatus === "completed" ? "default" : "outline"}
-                    disabled={isGenerating || !cStatus}
+                    disabled={isGenerating}
                     onClick={() => handleGenerate(assignment.sr_id)}
                     className="shrink-0"
                   >
