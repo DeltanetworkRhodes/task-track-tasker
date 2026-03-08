@@ -30,6 +30,8 @@ const IncompleteSurveys = ({ filterSrId }: { filterSrId?: string }) => {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [uploads, setUploads] = useState<Record<string, FileUpload[]>>({});
   const [submitting, setSubmitting] = useState(false);
+  const [compressing, setCompressing] = useState<Record<string, boolean>>({});
+  const [compressionStats, setCompressionStats] = useState<Record<string, { original: number; compressed: number }>>({});
   const inputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   // Fetch surveys for this technician (incomplete OR completed for editing)
