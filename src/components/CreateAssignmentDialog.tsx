@@ -10,6 +10,7 @@ import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Plus, Loader2 } from "lucide-react";
 import { useOrganization } from "@/contexts/OrganizationContext";
+import SmartAddressLookup from "@/components/SmartAddressLookup";
 
 const useTechnicians = () => {
   return useQuery({
@@ -160,11 +161,15 @@ const CreateAssignmentDialog = ({ open, onOpenChange }: Props) => {
 
           <div className="space-y-1.5">
             <Label className="text-xs">Διεύθυνση</Label>
-            <Input
+            <SmartAddressLookup
               value={form.address}
-              onChange={(e) => update("address", e.target.value)}
-              placeholder="Οδός, αριθμός, όροφος"
-              className="text-sm"
+              onChange={(addr) => update("address", addr)}
+              onBuildingSelect={(building) => {
+                if (building) {
+                  if (building.cabinet) update("cab", building.cabinet);
+                }
+              }}
+              organizationId={organizationId}
             />
           </div>
 
