@@ -6,6 +6,13 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const DEFAULT_SIGNATURE = `<div style="font-size: 12px; color: #718096;">
+  <img src="https://task-track-tasker.lovable.app/assets/delta-network-logo.png" alt="Delta Network Inc." style="width: 180px; margin-bottom: 12px; display: block;" />
+  <p style="margin: 0; font-weight: 700; color: #1a2332;">Κούλλαρος Μιχαήλ Άγγελος</p>
+  <p style="margin: 2px 0; color: #4a5568;">Technical Operations Manager | FTTx Projects | South Aegean</p>
+  <p style="margin: 2px 0;">M: +30 690 710 5282 | E: <a href="mailto:info@deltanetwork.gr" style="color: #1a9a8a; text-decoration: none;">info@deltanetwork.gr</a></p>
+</div>`;
+
 function escapeHtml(str: string): string {
   return String(str)
     .replace(/&/g, "&amp;")
@@ -96,6 +103,8 @@ Deno.serve(async (req) => {
 
     const emailFrom = orgSettingsMap["email_from"] || "noreply@deltanetwork.gr";
     const emailReplyTo = orgSettingsMap["email_reply_to"] || "info@deltanetwork.gr";
+    const emailSenderName = orgSettingsMap["email_sender_name"] || "DeltaNet FTTH";
+    const emailSignature = orgSettingsMap["email_signature"] || DEFAULT_SIGNATURE;
 
     const toEmails = orgSettingsMap["report_to_emails"] || emailReplyTo;
     const ccEmails = orgSettingsMap["report_cc_emails"] || "";
@@ -137,18 +146,13 @@ Deno.serve(async (req) => {
           
           <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 24px 0;" />
           
-          <div style="font-size: 12px; color: #718096;">
-            <img src="https://task-track-tasker.lovable.app/assets/delta-network-logo.png" alt="Delta Network Inc." style="width: 180px; margin-bottom: 12px; display: block;" />
-            <p style="margin: 0; font-weight: 700; color: #1a2332;">Κούλλαρος Μιχαήλ Άγγελος</p>
-            <p style="margin: 2px 0; color: #4a5568;">Technical Operations Manager | FTTx Projects | South Aegean</p>
-            <p style="margin: 2px 0;">M: +30 690 710 5282 | E: <a href="mailto:info@deltanetwork.gr" style="color: #1a9a8a; text-decoration: none;">info@deltanetwork.gr</a></p>
-          </div>
+          ${emailSignature}
         </div>
       </div>
     `;
 
     const emailPayload: any = {
-      from: `DeltaNet FTTH <${emailFrom}>`,
+      from: `${emailSenderName} <${emailFrom}>`,
       to: toEmails.split(",").map((e: string) => e.trim()),
       reply_to: emailReplyTo,
       subject,
