@@ -27,6 +27,7 @@ import OrgSettings from "./pages/OrgSettings";
 import Calendar from "./pages/Calendar";
 import DocumentGenerator from "./pages/DocumentGenerator";
 import DemoDashboard from "./pages/DemoDashboard";
+import WatermarkTest from "./pages/WatermarkTest";
 
 import NotFound from "./pages/NotFound";
 import HelpChatBot from "./components/HelpChatBot";
@@ -103,6 +104,7 @@ const App = () => (
                   <Route path="/login" element={<LoginPage />} />
                   <Route path="/reset-password" element={<ResetPassword />} />
                   <Route path="/demo" element={<DemoDashboard />} />
+                  <Route path="/watermark-test" element={<WatermarkTest />} />
                   <Route path="/" element={<ProtectedRoute><RoleGate><RoleRouter /></RoleGate></ProtectedRoute>} />
                   <Route path="/super-admin" element={<ProtectedRoute><SuperAdminRoute><SuperAdminDashboard /></SuperAdminRoute></ProtectedRoute>} />
                   <Route path="/technician" element={<ProtectedRoute><RoleGate><TechnicianDashboard /></RoleGate></ProtectedRoute>} />
