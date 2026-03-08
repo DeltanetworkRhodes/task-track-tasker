@@ -2,11 +2,8 @@ import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
 
-// Cache-busting: clear all caches and force SW update on every page load
+// Service Worker: force update check (but don't delete caches — needed for offline)
 if ("serviceWorker" in navigator) {
-  caches.keys().then((names) => {
-    names.forEach((name) => caches.delete(name));
-  });
   navigator.serviceWorker.getRegistration().then((reg) => {
     if (reg) {
       reg.update();
