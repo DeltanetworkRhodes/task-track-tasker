@@ -1,5 +1,6 @@
 import ExcelJS from "exceljs";
 import { supabase } from "@/integrations/supabase/client";
+import demoSketchUrl from "@/assets/demo-sketch-placeholder.png";
 
 /* ────────────────────────────────────────────
    Types
@@ -559,7 +560,7 @@ const DEMO_SR_DATA: DemoSRMap = {
       { type: "Α", description: "Τοποθέτηση ενός Floor Box ανά Όροφο", quantity: 3 },
       { type: "Α", description: "Υλοποίηση Υποδομής Εισαγωγής", quantity: 1, floor: "+00" },
     ],
-    sketchImageUrl: null, isNewInfrastructure: false, trenchLengthM: 0, cabId: "CAB-045",
+    sketchImageUrl: demoSketchUrl, isNewInfrastructure: false, trenchLengthM: 0, cabId: "CAB-045",
   },
   "SR-DEMO-02": {
     srId: "SR-DEMO-02", buildingId: "BLD-IAL-015", areaType: "OTE", floors: 5,
@@ -582,7 +583,7 @@ const DEMO_SR_DATA: DemoSRMap = {
       { type: "Α", description: "Τοποθέτηση ενός Floor Box ανά Όροφο", quantity: 5 },
       { type: "Β", description: "Πόρτα-πόρτα", quantity: 8 },
     ],
-    sketchImageUrl: null, isNewInfrastructure: true, trenchLengthM: 45, cabId: "CAB-112",
+    sketchImageUrl: demoSketchUrl, isNewInfrastructure: true, trenchLengthM: 45, cabId: "CAB-112",
   },
   "SR-DEMO-03": {
     srId: "SR-DEMO-03", buildingId: "BLD-FAL-008", areaType: "OTE", floors: 4,
@@ -604,7 +605,7 @@ const DEMO_SR_DATA: DemoSRMap = {
       { type: "Α", description: "Τοποθέτηση ενός Floor Box ανά Όροφο", quantity: 4 },
       { type: "Β", description: "Πόρτα-πόρτα", quantity: 6 },
     ],
-    sketchImageUrl: null, isNewInfrastructure: false, trenchLengthM: 0, cabId: "CAB-089",
+    sketchImageUrl: demoSketchUrl, isNewInfrastructure: false, trenchLengthM: 0, cabId: "CAB-089",
   },
   "2-334066371997": {
     srId: "2-334066371997", buildingId: "667102934", areaType: "OTE", floors: 4,
@@ -649,7 +650,7 @@ const DEMO_SR_DATA: DemoSRMap = {
       { type: "Α", description: "Υλοποίηση Υποδομής Εισαγωγής και Τοποθέτηση Κεντρικού Κατανεμητή", quantity: 1, floor: "+00" },
       { type: "Β", description: "Διασύνδεση των μετρητών κατανάλωσης ρεύματος", quantity: 1, floor: "+00" },
     ],
-    sketchImageUrl: null, isNewInfrastructure: true, trenchLengthM: 156, cabId: "G526",
+    sketchImageUrl: demoSketchUrl, isNewInfrastructure: true, trenchLengthM: 156, cabId: "G526",
   },
 };
 
