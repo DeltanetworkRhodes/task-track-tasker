@@ -486,7 +486,7 @@ const DemoDashboard = () => {
                 {adminSection === "dashboard" ? (
                   <AdminDashboardPanel />
                 ) : (
-                  <DemoSectionPlaceholder section={adminSection} />
+                  <DemoSectionRouter section={adminSection} />
                 )}
               </div>
             </div>
