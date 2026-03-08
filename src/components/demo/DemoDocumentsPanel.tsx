@@ -5,18 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { FileSpreadsheet, Download, CheckCircle2, Loader2, Eye, MapPin, Building2, FlaskConical, Image } from "lucide-react";
 import { getDemoAsBuiltData, generateAsBuiltFromData } from "@/lib/generateAsBuilt";
-import demoSketchSr01 from "@/assets/demo-sketch-sr01.png";
-import demoSketchSr02 from "@/assets/demo-sketch-sr02.png";
-import demoSketchSr03 from "@/assets/demo-sketch-sr03.png";
-import demoSketchSr04 from "@/assets/demo-sketch-sr04.png";
+import { generateOteSketch } from "@/lib/generateSketch";
 import { toast } from "sonner";
-
-const SKETCH_MAP: Record<string, string> = {
-  "SR-DEMO-01": demoSketchSr01,
-  "SR-DEMO-02": demoSketchSr02,
-  "SR-DEMO-03": demoSketchSr03,
-  "2-334066371997": demoSketchSr04,
-};
 
 const DEMO_SRS = [
   { srId: "SR-DEMO-01", area: "Ρόδος Κέντρο", address: "Λεωφ. Ελευθερίας 42", status: "pre_committed", cab: "CAB-045", floors: 3 },
@@ -155,11 +145,17 @@ const DemoDocumentsPanel = () => {
                 <div className="flex items-center gap-2 px-3 py-2 bg-muted/30 border-b border-border">
                   <Image className="h-4 w-4 text-muted-foreground" />
                   <span className="text-xs font-medium text-foreground">Σκαρίφημα (Preview)</span>
-                  <Badge variant="outline" className="text-[9px] ml-auto">demo placeholder</Badge>
+                  <Badge variant="outline" className="text-[9px] ml-auto">auto-generated</Badge>
                 </div>
                 <div className="p-2 bg-background">
                   <img
-                    src={SKETCH_MAP[selectedSr.srId] || demoSketchSr01}
+                    src={generateOteSketch({
+                      conduit: getDemoAsBuiltData(selectedSr.srId).conduit,
+                      cabId: getDemoAsBuiltData(selectedSr.srId).cabId,
+                      distanceFromCabinet: getDemoAsBuiltData(selectedSr.srId).distanceFromCabinet,
+                      address: selectedSr.address,
+                      buildingId: getDemoAsBuiltData(selectedSr.srId).buildingId,
+                    })}
                     alt={`Σκαρίφημα ${selectedSr.srId}`}
                     className="w-full h-auto rounded border border-border"
                   />
