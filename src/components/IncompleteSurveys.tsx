@@ -602,7 +602,7 @@ const IncompleteSurveys = ({ filterSrId }: { filterSrId?: string }) => {
                               inp.accept = "image/*";
                               inp.capture = "environment";
                               inp.onchange = () =>
-                                handleFiles(survey.id, mt.key, inp.files);
+                                handleFiles(survey.id, mt.key, inp.files, survey.sr_id);
                               inp.click();
                             }}
                           >
