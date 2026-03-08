@@ -83,6 +83,7 @@ const RoleRouter = () => {
   return <Index />;
 };
 
+// App component
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider attribute="class" defaultTheme="light" storageKey="delta-theme">
