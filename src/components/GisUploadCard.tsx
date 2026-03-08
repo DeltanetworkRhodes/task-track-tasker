@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
+import { useDemo } from "@/contexts/DemoContext";
 
 interface GisUploadCardProps {
   assignment: any;
@@ -18,18 +19,50 @@ const GisUploadCard = ({ assignment, hasExistingGis, onUploadSuccess, compact = 
   const [success, setSuccess] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
+  const { isDemo } = useDemo();
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !assignment) return;
 
-    if (!file.name.toLowerCase().endsWith(".xlsx")) {
-      toast.error("Μόνο αρχεία .XLSX γίνονται δεκτά");
+    if (!file.name.toLowerCase().endsWith(".xlsx") && !file.name.toLowerCase().endsWith(".csv")) {
+      toast.error("Μόνο αρχεία .XLSX / .CSV γίνονται δεκτά");
       return;
     }
 
     setUploading(true);
     setSuccess(false);
+
+    // Demo mode: simulate parsing
+    if (isDemo) {
+      await new Promise((r) => setTimeout(r, 1500));
+      const demoResult = {
+        parsed: { floors: 5, optical_paths: 3 },
+        floors: 5,
+        bep_type: "BEP-8",
+        floor_details: [
+          { floor: 0, apartments: 2, fb_count: 1 },
+          { floor: 1, apartments: 2, fb_count: 1 },
+          { floor: 2, apartments: 1, fb_count: 1 },
+          { floor: 3, apartments: 1, fb_count: 1 },
+          { floor: 4, apartments: 1, fb_count: 1 },
+        ],
+        gis_works: [
+          { code: "W-001", description: "Εγκατάσταση BEP", quantity: 1 },
+          { code: "W-002", description: "Floor Box", quantity: 5 },
+        ],
+      };
+      setSuccess(true);
+      setUploading(false);
+      toast.success(
+        `✅ Το GIS αναλύθηκε επιτυχώς! ${demoResult.parsed.floors} όροφοι, ${demoResult.parsed.optical_paths} οπτικές διαδρομές (Λειτουργία Demo)`,
+        { duration: 5000 }
+      );
+      onUploadSuccess?.(demoResult);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
+
     try {
       const formData = new FormData();
       formData.append("file", file);

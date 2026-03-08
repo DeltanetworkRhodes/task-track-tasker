@@ -14,6 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
+import { useDemo } from "@/contexts/DemoContext";
 import { toast } from "sonner";
 import SurveyForm from "@/components/SurveyForm";
 import IncompleteSurveys from "@/components/IncompleteSurveys";
@@ -51,6 +52,7 @@ interface Props {
 
 const TechnicianAssignments = ({ assignments, loading }: Props) => {
   const { user } = useAuth();
+  const { isDemo, demoGisData, updateDemoAssignment, addDemoGis } = useDemo();
   const [updating, setUpdating] = useState<string | null>(null);
   const [selectedAssignment, setSelectedAssignment] = useState<any | null>(null);
   const [showSurveyForm, setShowSurveyForm] = useState(false);
@@ -62,8 +64,9 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
 
   // Fetch existing survey for selected assignment
   const { data: existingSurvey } = useQuery({
-    queryKey: ["assignment-survey", selectedAssignment?.sr_id],
+    queryKey: ["assignment-survey", selectedAssignment?.sr_id, isDemo],
     queryFn: async () => {
+      if (isDemo) return null;
       const { data } = await supabase
         .from("surveys")
         .select("*")
@@ -74,13 +77,16 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
         .maybeSingle();
       return data;
     },
-    enabled: !!selectedAssignment && !!user,
+    enabled: !!selectedAssignment && (isDemo || !!user),
   });
 
   // Fetch which assignments have GIS data (for card icons)
   const { data: gisAssignmentIds } = useQuery({
-    queryKey: ["gis-assignment-ids", user?.id],
+    queryKey: ["gis-assignment-ids", user?.id, isDemo],
     queryFn: async () => {
+      if (isDemo) {
+        return Object.keys(demoGisData);
+      }
       const ids = assignments.map((a: any) => a.id);
       if (ids.length === 0) return [];
       const { data } = await supabase
@@ -89,13 +95,16 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
         .in("assignment_id", ids);
       return (data || []).map((d: any) => d.assignment_id);
     },
-    enabled: !!user && assignments.length > 0,
+    enabled: isDemo || (!!user && assignments.length > 0),
   });
 
   // Fetch GIS data for selected assignment
   const { data: existingGisData } = useQuery({
-    queryKey: ["assignment-gis", selectedAssignment?.id],
+    queryKey: ["assignment-gis", selectedAssignment?.id, isDemo],
     queryFn: async () => {
+      if (isDemo) {
+        return demoGisData[selectedAssignment!.id] || null;
+      }
       const { data } = await supabase
         .from("gis_data")
         .select("*")
@@ -103,11 +112,36 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
         .maybeSingle();
       return data;
     },
-    enabled: !!selectedAssignment && !!user,
+    enabled: !!selectedAssignment && (isDemo || !!user),
   });
 
   const handleGisUploadSuccess = async (result: any) => {
     if (!selectedAssignment) return;
+    
+    if (isDemo) {
+      // Demo mode: simulate GIS upload + auto-transition
+      const demoGis = {
+        id: `demo-gis-${selectedAssignment.id}`,
+        assignment_id: selectedAssignment.id,
+        sr_id: selectedAssignment.sr_id,
+        floors: result?.floors || 4,
+        bep_type: result?.bep_type || "BEP-4",
+        floor_details: result?.floor_details || [],
+        gis_works: result?.gis_works || [],
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      addDemoGis(selectedAssignment.id, demoGis);
+      
+      if (selectedAssignment.status === "pre_committed") {
+        updateDemoAssignment(selectedAssignment.id, { status: "construction" });
+        setSelectedAssignment({ ...selectedAssignment, status: "construction" });
+        toast.success("🏗️ Η ανάθεση μετέβη αυτόματα σε Κατασκευή! (Λειτουργία Demo)", { duration: 4000 });
+      }
+      queryClient.invalidateQueries({ queryKey: ["gis-assignment-ids"] });
+      queryClient.invalidateQueries({ queryKey: ["assignment-gis"] });
+      return;
+    }
     
     // Auto-transition to construction if currently pre_committed
     if (selectedAssignment.status === "pre_committed") {
@@ -126,13 +160,22 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
         queryClient.invalidateQueries({ queryKey: ["technician-assignments"] });
       } catch (err: any) {
         console.error("Auto-transition error:", err);
-        // Non-blocking - GIS was still uploaded successfully
         toast.info("Το GIS ανέβηκε. Αλλάξτε χειροκίνητα σε Κατασκευή.");
       }
     }
   };
 
   const handleStatusChange = async (assignmentId: string, newStatus: string, oldStatus: string) => {
+    if (isDemo) {
+      updateDemoAssignment(assignmentId, { status: newStatus });
+      if (selectedAssignment?.id === assignmentId) {
+        setSelectedAssignment({ ...selectedAssignment, status: newStatus });
+      }
+      toast.success(`Κατάσταση → ${statusLabels[newStatus]} (Λειτουργία Demo)`);
+      setUpdating(null);
+      return;
+    }
+    
     // Client-side guard: block construction without GIS
     if (newStatus === "construction") {
       const hasGis = gisAssignmentIds?.includes(assignmentId);
