@@ -754,7 +754,7 @@ Deno.serve(async (req) => {
         `;
 
         const emailPayload: any = {
-          from: `DeltaNet FTTH <${emailFrom}>`,
+          from: `${emailSenderName} <${emailFrom}>`,
           to: recipients,
           reply_to: emailReplyTo,
           subject: `[ΑΥΤΟΨΙΑ] SR: ${sr_id} — ${area}`,
