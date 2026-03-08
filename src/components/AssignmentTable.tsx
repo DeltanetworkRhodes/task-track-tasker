@@ -699,18 +699,6 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
             </div>
           )}
 
-          {/* View Inspection Report */}
-          {selected && (
-            <div className="mt-3 pt-3 border-t border-border/30">
-              <button
-                onClick={() => setShowInspectionViewer(true)}
-                className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium bg-primary/5 text-primary hover:bg-primary/10 transition-colors"
-              >
-                <Eye className="h-3.5 w-3.5" />
-                Προβολή Δελτίου Αυτοψίας
-              </button>
-            </div>
-          )}
 
           {/* Timeline */}
           {history && history.length > 0 && (
