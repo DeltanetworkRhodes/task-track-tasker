@@ -64,8 +64,9 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
 
   // Fetch existing survey for selected assignment
   const { data: existingSurvey } = useQuery({
-    queryKey: ["assignment-survey", selectedAssignment?.sr_id],
+    queryKey: ["assignment-survey", selectedAssignment?.sr_id, isDemo],
     queryFn: async () => {
+      if (isDemo) return null;
       const { data } = await supabase
         .from("surveys")
         .select("*")
@@ -76,13 +77,16 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
         .maybeSingle();
       return data;
     },
-    enabled: !!selectedAssignment && !!user,
+    enabled: !!selectedAssignment && (isDemo || !!user),
   });
 
   // Fetch which assignments have GIS data (for card icons)
   const { data: gisAssignmentIds } = useQuery({
-    queryKey: ["gis-assignment-ids", user?.id],
+    queryKey: ["gis-assignment-ids", user?.id, isDemo],
     queryFn: async () => {
+      if (isDemo) {
+        return Object.keys(demoGisData);
+      }
       const ids = assignments.map((a: any) => a.id);
       if (ids.length === 0) return [];
       const { data } = await supabase
@@ -91,13 +95,16 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
         .in("assignment_id", ids);
       return (data || []).map((d: any) => d.assignment_id);
     },
-    enabled: !!user && assignments.length > 0,
+    enabled: isDemo || (!!user && assignments.length > 0),
   });
 
   // Fetch GIS data for selected assignment
   const { data: existingGisData } = useQuery({
-    queryKey: ["assignment-gis", selectedAssignment?.id],
+    queryKey: ["assignment-gis", selectedAssignment?.id, isDemo],
     queryFn: async () => {
+      if (isDemo) {
+        return demoGisData[selectedAssignment!.id] || null;
+      }
       const { data } = await supabase
         .from("gis_data")
         .select("*")
@@ -105,7 +112,7 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
         .maybeSingle();
       return data;
     },
-    enabled: !!selectedAssignment && !!user,
+    enabled: !!selectedAssignment && (isDemo || !!user),
   });
 
   const handleGisUploadSuccess = async (result: any) => {
