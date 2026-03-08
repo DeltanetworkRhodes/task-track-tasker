@@ -58,9 +58,7 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
   const [cancelReason, setCancelReason] = useState("");
   const [cancelling, setCancelling] = useState(false);
   const [uploadingGis, setUploadingGis] = useState(false);
-  const [uploadingPdf, setUploadingPdf] = useState(false);
   const gisFileInputRef = useRef<HTMLInputElement>(null);
-  const pdfFileInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
 
   // Fetch existing survey for selected assignment
