@@ -387,6 +387,7 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
 
   const renderStatusAction = (assignment: any) => {
     const status = assignment.status;
+    const btnClass = "w-full gap-2 min-h-[44px] text-sm";
 
     if (status === "cancelled") {
       return (
@@ -401,8 +402,7 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
       return (
         <div className="space-y-3">
           <Button
-            size="sm"
-            className="w-full gap-2"
+            className={btnClass}
             onClick={() => handleStartSurvey(assignment)}
           >
             <FileEdit className="h-4 w-4" />
@@ -410,9 +410,8 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
           </Button>
           {assignment.pdf_url && (
             <Button
-              size="sm"
               variant="outline"
-              className="w-full gap-2"
+              className={btnClass}
               onClick={() => window.open(assignment.pdf_url, "_blank")}
             >
               <Eye className="h-4 w-4" />
@@ -422,9 +421,8 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
           {existingSurvey && (
             <div className="flex gap-2 w-full">
               <Button
-                size="sm"
                 variant="outline"
-                className="flex-1 gap-2 border-primary/30 text-primary hover:bg-primary/10"
+                className={`flex-1 gap-2 min-h-[44px] text-sm border-primary/30 text-primary hover:bg-primary/10`}
                 onClick={() => setShowSurveyForm(true)}
               >
                 <FileEdit className="h-4 w-4" />
@@ -442,9 +440,8 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
                 onChange={handleGisUpload}
               />
               <Button
-                size="sm"
                 variant="outline"
-                className="w-full gap-2 border-blue-500/30 text-blue-600 hover:bg-blue-500/10"
+                className={`${btnClass} border-blue-500/30 text-blue-600 hover:bg-blue-500/10`}
                 onClick={() => gisFileInputRef.current?.click()}
                 disabled={uploadingGis}
               >
@@ -460,9 +457,8 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
             </>
           )}
           <Button
-            size="sm"
             variant="outline"
-            className="w-full gap-2 text-destructive border-destructive/30 hover:bg-destructive/10"
+            className={`${btnClass} text-destructive border-destructive/30 hover:bg-destructive/10`}
             onClick={() => { setShowCancelDialog(true); }}
           >
             <XCircle className="h-4 w-4" />
@@ -475,10 +471,10 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
     if (status === "pre_committed") {
       const hasGis = existingGisData || gisAssignmentIds?.includes(assignment.id);
       return (
-        <div className="space-y-2">
+        <div className="space-y-3">
           {/* Show construction form button only when GIS exists */}
           {hasGis && (
-            <Button size="sm" className="w-full gap-2" onClick={() => setShowConstructionForm(true)}>
+            <Button className={btnClass} onClick={() => setShowConstructionForm(true)}>
               <HardHat className="h-4 w-4" />
               Φόρμα Κατασκευής
             </Button>
@@ -491,9 +487,8 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
             onChange={handleGisUpload}
           />
           <Button
-            size="sm"
             variant="outline"
-            className="w-full gap-2 border-blue-500/30 text-blue-600 hover:bg-blue-500/10"
+            className={`${btnClass} border-blue-500/30 text-blue-600 hover:bg-blue-500/10`}
             onClick={() => gisFileInputRef.current?.click()}
             disabled={uploadingGis}
           >
@@ -507,9 +502,8 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
             {uploadingGis ? "Ανάλυση GIS..." : hasGis ? "Αντικατάσταση GIS" : "Upload Προδέσμευσης GIS"}
           </Button>
           <Button
-            size="sm"
             variant="outline"
-            className="w-full gap-2 text-destructive border-destructive/30 hover:bg-destructive/10"
+            className={`${btnClass} text-destructive border-destructive/30 hover:bg-destructive/10`}
             onClick={() => { setShowCancelDialog(true); }}
           >
             <XCircle className="h-4 w-4" />
@@ -521,8 +515,8 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
 
     if (status === "waiting_ote" || status === "construction") {
       return (
-        <div className="space-y-2">
-          <Button size="sm" className="w-full gap-2" onClick={() => setShowConstructionForm(true)}>
+        <div className="space-y-3">
+          <Button className={btnClass} onClick={() => setShowConstructionForm(true)}>
             <HardHat className="h-4 w-4" />
             Φόρμα Κατασκευής
           </Button>
@@ -534,9 +528,8 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
             onChange={handleGisUpload}
           />
           <Button
-            size="sm"
             variant="outline"
-            className="w-full gap-2 border-blue-500/30 text-blue-600 hover:bg-blue-500/10"
+            className={`${btnClass} border-blue-500/30 text-blue-600 hover:bg-blue-500/10`}
             onClick={() => gisFileInputRef.current?.click()}
             disabled={uploadingGis}
           >
@@ -550,9 +543,8 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
             {uploadingGis ? "Ανάλυση GIS..." : existingGisData ? "Αντικατάσταση GIS" : "Upload GIS"}
           </Button>
           <Button
-            size="sm"
             variant="outline"
-            className="w-full gap-2 text-destructive border-destructive/30 hover:bg-destructive/10"
+            className={`${btnClass} text-destructive border-destructive/30 hover:bg-destructive/10`}
             onClick={() => { setShowCancelDialog(true); }}
           >
             <XCircle className="h-4 w-4" />
