@@ -154,7 +154,7 @@ Deno.serve(async (req) => {
     const accessToken = await getAccessToken(serviceAccountKey);
 
     // === PART 1: Check advanced statuses for MISSING folders → revert to inspection ===
-    const revertStatuses = ["pre_committed", "waiting_ote", "construction"];
+    const revertStatuses = ["pre_committed", "construction"];
     const { data: advancedAssignments, error: fetchErr1 } = await supabase
       .from("assignments")
       .select("id, sr_id, status, area, customer_name, technician_id, organization_id, comments")
