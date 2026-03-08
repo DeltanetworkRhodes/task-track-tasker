@@ -129,9 +129,9 @@ async function fetchAsBuiltData(srId: string): Promise<AsBuiltData> {
   const gisWorks = (gisData?.gis_works as any[]) || [];
 
   const opticalPaths: OpticalPathEntry[] = rawPaths.map((p: any) => ({
-    type: p.type || p.OPTICAL_PATH_TYPE || "BEP-BMO",
-    path: p.path || p.OPTICAL_PATH || p.optical_path || "",
-    gis_id: p.gis_id || "",
+    type: p.type || p["OPTICAL PATH TYPE"] || p.OPTICAL_PATH_TYPE || "BEP-BMO",
+    path: p.path || p["OPTICAL PATH"] || p.OPTICAL_PATH || p.optical_path || "",
+    gis_id: p.gis_id || p["GIS ID"] || "",
   }));
 
   const floorBoxes: FloorBox[] = floorDetails.map((fd: any) => ({
