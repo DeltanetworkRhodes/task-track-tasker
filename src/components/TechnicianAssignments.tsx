@@ -903,6 +903,7 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
             {/* Survey Form (inline in sheet) */}
             {selectedAssignment && showSurveyForm && (
               <SurveyForm
+                assignments={assignments}
                 prefillSrId={selectedAssignment.sr_id}
                 prefillArea={selectedAssignment.area}
                 onComplete={handleSurveyComplete}
