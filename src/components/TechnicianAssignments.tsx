@@ -441,23 +441,6 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
             <FileEdit className="h-4 w-4" />
             {existingSurvey ? "Συνέχεια Αυτοψίας" : "Έναρξη Αυτοψίας"}
           </Button>
-          <input
-            ref={pdfFileInputRef}
-            type="file"
-            accept=".pdf"
-            className="hidden"
-            onChange={handlePdfUpload}
-          />
-          <Button
-            size="sm"
-            variant="outline"
-            className="w-full gap-2 border-primary/30 text-primary hover:bg-primary/10"
-            onClick={() => pdfFileInputRef.current?.click()}
-            disabled={uploadingPdf}
-          >
-            {uploadingPdf ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-            {assignment.pdf_url ? "Αντικατάσταση Δελτίου" : "Ανέβασμα Δελτίου Αυτοψίας"}
-          </Button>
           {assignment.pdf_url && (
             <Button
               size="sm"
