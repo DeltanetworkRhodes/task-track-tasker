@@ -1,72 +1,50 @@
+import imageCompression from "browser-image-compression";
+
+const COMPRESSION_OPTIONS = {
+  maxSizeMB: 1,
+  maxWidthOrHeight: 1920,
+  useWebWorker: true,
+  fileType: "image/jpeg" as const,
+};
+
 /**
- * Compress/resize image using canvas
- * @param file - The image file to compress
- * @param maxWidth - Maximum width in pixels (default: 1600)
- * @param quality - JPEG quality 0-1 (default: 0.7)
- * @returns Compressed file (or original if not an image or already small)
+ * Compress a single image using browser-image-compression (Web Worker).
+ * Non-image files are returned as-is.
  */
-export const compressImage = (file: File, maxWidth = 1600, quality = 0.7): Promise<File> => {
-  return new Promise((resolve) => {
-    if (!file.type.startsWith("image/")) {
-      resolve(file);
-      return;
-    }
+export const compressImage = async (
+  file: File,
+  opts: Partial<typeof COMPRESSION_OPTIONS> = {}
+): Promise<File> => {
+  if (!file.type.startsWith("image/")) return file;
 
-    const img = new Image();
-    const url = URL.createObjectURL(file);
-    img.onload = () => {
-      URL.revokeObjectURL(url);
-      let { width, height } = img;
+  const options = { ...COMPRESSION_OPTIONS, ...opts };
 
-      // Skip if already small enough
-      if (width <= maxWidth && file.size < 500 * 1024) {
-        resolve(file);
-        return;
-      }
-
-      if (width > maxWidth) {
-        height = Math.round((height * maxWidth) / width);
-        width = maxWidth;
-      }
-
-      const canvas = document.createElement("canvas");
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext("2d")!;
-      ctx.drawImage(img, 0, 0, width, height);
-      canvas.toBlob(
-        (blob) => {
-          if (blob) {
-            const compressed = new File(
-              [blob],
-              file.name.replace(/\.\w+$/, ".jpg"),
-              { type: "image/jpeg" }
-            );
-            console.log(
-              `Compressed ${file.name}: ${(file.size / 1024).toFixed(0)}KB → ${(compressed.size / 1024).toFixed(0)}KB`
-            );
-            resolve(compressed);
-          } else {
-            resolve(file);
-          }
-        },
-        "image/jpeg",
-        quality
-      );
-    };
-    img.onerror = () => {
-      URL.revokeObjectURL(url);
-      resolve(file);
-    };
-    img.src = url;
-  });
+  try {
+    const compressed = await imageCompression(file, options);
+    // Ensure we get a File (not Blob) with a .jpg name
+    const result = new File(
+      [compressed],
+      file.name.replace(/\.\w+$/, ".jpg"),
+      { type: "image/jpeg" }
+    );
+    console.log(
+      `Compressed ${file.name}: ${(file.size / 1024).toFixed(0)}KB → ${(result.size / 1024).toFixed(0)}KB`
+    );
+    return result;
+  } catch (err) {
+    console.error("Compression failed, using original:", err);
+    return file;
+  }
 };
 
 /**
  * Compress multiple images in parallel
  */
-export const compressImages = (files: File[], maxWidth = 1600, quality = 0.7): Promise<File[]> => {
-  return Promise.all(files.map((f) => compressImage(f, maxWidth, quality)));
+export const compressImages = (
+  files: File[],
+  opts: Partial<typeof COMPRESSION_OPTIONS> = {}
+): Promise<File[]> => {
+  return Promise.all(files.map((f) => compressImage(f, opts)));
 };
 
 /**

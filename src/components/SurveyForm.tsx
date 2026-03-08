@@ -4,13 +4,15 @@ import { useOrganization } from "@/contexts/OrganizationContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Camera, Upload, X, FileImage, CheckCircle, FileText } from "lucide-react";
+import { Camera, Upload, X, FileImage, CheckCircle, FileText, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import { compressImages, formatFileSize } from "@/lib/imageCompression";
 
 interface Props {
   assignments?: any[];
@@ -26,6 +28,11 @@ interface FileUpload {
 
 const MAX_FILES = 10;
 
+interface CompressionState {
+  isCompressing: boolean;
+  originalSize: number;
+  compressedSize: number;
+}
 const SurveyForm = ({ assignments, prefillSrId, prefillArea, onComplete }: Props) => {
   const { user } = useAuth();
   const { organizationId } = useOrganization();
@@ -38,19 +45,41 @@ const SurveyForm = ({ assignments, prefillSrId, prefillArea, onComplete }: Props
   const [inspectionPdf, setInspectionPdf] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-
+  const [compressing, setCompressing] = useState<Record<string, boolean>>({});
+  const [compressionStats, setCompressionStats] = useState<Record<string, { original: number; compressed: number }>>({});
   const buildingRef = useRef<HTMLInputElement>(null);
   const screenshotRef = useRef<HTMLInputElement>(null);
   const pdfRef = useRef<HTMLInputElement>(null);
 
-  const handleFiles = (
+  const handleFiles = async (
     files: FileList | null,
     setter: React.Dispatch<React.SetStateAction<FileUpload[]>>,
-    current: FileUpload[]
+    current: FileUpload[],
+    category: string
   ) => {
     if (!files) return;
     const remaining = MAX_FILES - current.length;
-    const newFiles = Array.from(files).slice(0, remaining).map((file) => ({
+    const rawFiles = Array.from(files).slice(0, remaining);
+
+    // Compress images
+    const hasImages = rawFiles.some((f) => f.type.startsWith("image/"));
+    let processedFiles = rawFiles;
+    if (hasImages) {
+      setCompressing((prev) => ({ ...prev, [category]: true }));
+      const originalSize = rawFiles.reduce((s, f) => s + f.size, 0);
+      processedFiles = await compressImages(rawFiles);
+      const compressedSize = processedFiles.reduce((s, f) => s + f.size, 0);
+      setCompressionStats((prev) => ({
+        ...prev,
+        [category]: {
+          original: (prev[category]?.original || 0) + originalSize,
+          compressed: (prev[category]?.compressed || 0) + compressedSize,
+        },
+      }));
+      setCompressing((prev) => ({ ...prev, [category]: false }));
+    }
+
+    const newFiles = processedFiles.map((file) => ({
       file,
       preview: URL.createObjectURL(file),
     }));
@@ -270,10 +299,12 @@ const SurveyForm = ({ assignments, prefillSrId, prefillArea, onComplete }: Props
         required
         files={buildingPhotos}
         inputRef={buildingRef}
-        onAdd={(files) => handleFiles(files, setBuildingPhotos, buildingPhotos)}
+        onAdd={(files) => handleFiles(files, setBuildingPhotos, buildingPhotos, "building")}
         onRemove={(i) => removeFile(i, setBuildingPhotos, buildingPhotos)}
         accept="image/*"
         capture
+        isCompressing={compressing["building"]}
+        compressionStats={compressionStats["building"]}
       />
 
       {/* SCREENSHOTS */}
@@ -281,9 +312,11 @@ const SurveyForm = ({ assignments, prefillSrId, prefillArea, onComplete }: Props
         label="Screenshots (ΧΕΜΔ & AutoCAD)"
         files={screenshots}
         inputRef={screenshotRef}
-        onAdd={(files) => handleFiles(files, setScreenshots, screenshots)}
+        onAdd={(files) => handleFiles(files, setScreenshots, screenshots, "screenshots")}
         onRemove={(i) => removeFile(i, setScreenshots, screenshots)}
         accept="image/*"
+        isCompressing={compressing["screenshots"]}
+        compressionStats={compressionStats["screenshots"]}
       />
 
       {/* ΔΕΛΤΙΟ ΑΥΤΟΨΙΑΣ PDF */}
@@ -372,6 +405,8 @@ interface FileUploadSectionProps {
   onRemove: (index: number) => void;
   accept?: string;
   capture?: boolean;
+  isCompressing?: boolean;
+  compressionStats?: { original: number; compressed: number };
 }
 
 const FileUploadSection = ({
@@ -383,84 +418,112 @@ const FileUploadSection = ({
   onRemove,
   accept,
   capture,
-}: FileUploadSectionProps) => (
-  <Card className="p-4 space-y-3">
-    <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-      {label} {required && <span className="text-destructive">*</span>}
-    </Label>
-    <p className="text-xs text-muted-foreground">
-      Ανεβάστε έως {MAX_FILES} αρχεία.
-    </p>
+  isCompressing,
+  compressionStats,
+}: FileUploadSectionProps) => {
+  const savings = compressionStats
+    ? Math.round((1 - compressionStats.compressed / compressionStats.original) * 100)
+    : 0;
 
-    {/* Thumbnails */}
-    {files.length > 0 && (
-      <div className="grid grid-cols-4 gap-2">
-        {files.map((f, i) => (
-          <div key={i} className="relative group">
-            <img
-              src={f.preview}
-              alt={f.file.name}
-              className="h-20 w-full object-cover rounded-lg border border-border"
-            />
-            <button
-              type="button"
-              onClick={() => onRemove(i)}
-              className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-            >
-              <X className="h-3 w-3" />
-            </button>
-          </div>
-        ))}
-      </div>
-    )}
+  return (
+    <Card className="p-4 space-y-3">
+      <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+        {label} {required && <span className="text-destructive">*</span>}
+      </Label>
+      <p className="text-xs text-muted-foreground">
+        Ανεβάστε έως {MAX_FILES} αρχεία. Οι φωτογραφίες συμπιέζονται αυτόματα.
+      </p>
 
-    {files.length < MAX_FILES && (
-      <div className="flex gap-2">
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className="gap-1.5 text-xs"
-          onClick={() => inputRef.current?.click()}
-        >
-          <Upload className="h-3.5 w-3.5" />
-          Προσθήκη αρχείου
-        </Button>
-        {capture && (
+      {/* Compression loading state */}
+      {isCompressing && (
+        <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50 animate-pulse">
+          <Loader2 className="h-4 w-4 animate-spin text-primary" />
+          <span className="text-xs font-medium text-muted-foreground">
+            Συμπίεση φωτογραφιών...
+          </span>
+        </div>
+      )}
+
+      {/* Compression stats */}
+      {compressionStats && !isCompressing && (
+        <div className="flex items-center gap-2 p-2 rounded-lg bg-accent/30 text-xs text-muted-foreground">
+          <FileImage className="h-3.5 w-3.5 text-primary shrink-0" />
+          <span>
+            {formatFileSize(compressionStats.original)} → {formatFileSize(compressionStats.compressed)}{" "}
+            <span className="font-semibold text-primary">(-{savings}%)</span>
+          </span>
+        </div>
+      )}
+
+      {/* Thumbnails */}
+      {files.length > 0 && (
+        <div className="grid grid-cols-4 gap-2">
+          {files.map((f, i) => (
+            <div key={i} className="relative group">
+              <img
+                src={f.preview}
+                alt={f.file.name}
+                className="h-20 w-full object-cover rounded-lg border border-border"
+              />
+              <button
+                type="button"
+                onClick={() => onRemove(i)}
+                className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {files.length < MAX_FILES && !isCompressing && (
+        <div className="flex gap-2">
           <Button
             type="button"
             variant="outline"
             size="sm"
             className="gap-1.5 text-xs"
-            onClick={() => {
-              // Create a temp input with capture
-              const inp = document.createElement("input");
-              inp.type = "file";
-              inp.accept = "image/*";
-              inp.capture = "environment";
-              inp.onchange = () => onAdd(inp.files);
-              inp.click();
-            }}
+            onClick={() => inputRef.current?.click()}
           >
-            <Camera className="h-3.5 w-3.5" />
-            Κάμερα
+            <Upload className="h-3.5 w-3.5" />
+            Προσθήκη αρχείου
           </Button>
-        )}
-      </div>
-    )}
+          {capture && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="gap-1.5 text-xs"
+              onClick={() => {
+                const inp = document.createElement("input");
+                inp.type = "file";
+                inp.accept = "image/*";
+                inp.capture = "environment";
+                inp.onchange = () => onAdd(inp.files);
+                inp.click();
+              }}
+            >
+              <Camera className="h-3.5 w-3.5" />
+              Κάμερα
+            </Button>
+          )}
+        </div>
+      )}
 
-    <input
-      ref={inputRef}
-      type="file"
-      accept={accept}
-      multiple
-      className="hidden"
-      onChange={(e) => {
-        onAdd(e.target.files);
-        e.target.value = "";
-      }}
-    />
-  </Card>
-);
+      <input
+        ref={inputRef}
+        type="file"
+        accept={accept}
+        multiple
+        className="hidden"
+        onChange={(e) => {
+          onAdd(e.target.files);
+          e.target.value = "";
+        }}
+      />
+    </Card>
+  );
+};
 
 export default SurveyForm;
