@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from "react";
+import { compressImage } from "@/lib/imageCompression";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -476,46 +477,7 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
     setMaterialItems((prev) => prev.map((m) => (m.material_id === id ? { ...m, quantity: qty } : m)));
   };
 
-  // Compress/resize image using canvas
-  const compressImage = (file: File, maxWidth = 1600, quality = 0.7): Promise<File> => {
-    return new Promise((resolve) => {
-      // Skip non-image files
-      if (!file.type.startsWith("image/")) { resolve(file); return; }
-      
-      const img = new Image();
-      const url = URL.createObjectURL(file);
-      img.onload = () => {
-        URL.revokeObjectURL(url);
-        let { width, height } = img;
-        if (width <= maxWidth && file.size < 500 * 1024) { resolve(file); return; }
-        
-        if (width > maxWidth) {
-          height = Math.round((height * maxWidth) / width);
-          width = maxWidth;
-        }
-        const canvas = document.createElement("canvas");
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext("2d")!;
-        ctx.drawImage(img, 0, 0, width, height);
-        canvas.toBlob(
-          (blob) => {
-            if (blob) {
-              const compressed = new File([blob], file.name.replace(/\.\w+$/, ".jpg"), { type: "image/jpeg" });
-              console.log(`Compressed ${file.name}: ${(file.size/1024).toFixed(0)}KB → ${(compressed.size/1024).toFixed(0)}KB`);
-              resolve(compressed);
-            } else {
-              resolve(file);
-            }
-          },
-          "image/jpeg",
-          quality
-        );
-      };
-      img.onerror = () => { URL.revokeObjectURL(url); resolve(file); };
-      img.src = url;
-    });
-  };
+  // compressImage imported from shared utility
 
   // Photo handling per category
   const handleCategoryPhotoSelect = async (category: string, e: React.ChangeEvent<HTMLInputElement>) => {

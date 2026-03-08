@@ -4,7 +4,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Camera, Upload, X, ChevronDown, ChevronUp, Loader2, FileCheck, FileWarning, ImagePlus } from "lucide-react";
+import { Camera, Upload, X, ChevronDown, ChevronUp, Loader2, FileCheck, FileWarning, ImagePlus, Shrink } from "lucide-react";
+import { compressImages, formatFileSize } from "@/lib/imageCompression";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -29,6 +30,8 @@ const IncompleteSurveys = ({ filterSrId }: { filterSrId?: string }) => {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [uploads, setUploads] = useState<Record<string, FileUpload[]>>({});
   const [submitting, setSubmitting] = useState(false);
+  const [compressing, setCompressing] = useState<Record<string, boolean>>({});
+  const [compressionStats, setCompressionStats] = useState<Record<string, { original: number; compressed: number }>>({});
   const inputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   // Fetch surveys for this technician (incomplete OR completed for editing)
@@ -74,7 +77,8 @@ const IncompleteSurveys = ({ filterSrId }: { filterSrId?: string }) => {
 
   const isIncomplete = (survey: any) => survey.status === "ΕΛΛΙΠΗΣ ΑΥΤΟΨΙΑ";
 
-  const handleFiles = (
+
+  const handleFiles = async (
     surveyId: string,
     fileType: string,
     files: FileList | null
@@ -83,13 +87,37 @@ const IncompleteSurveys = ({ filterSrId }: { filterSrId?: string }) => {
     const key = `${surveyId}_${fileType}`;
     const current = uploads[key] || [];
     const remaining = MAX_FILES - current.length;
-    const newFiles = Array.from(files)
-      .slice(0, remaining)
-      .map((file) => ({
+    const rawFiles = Array.from(files).slice(0, remaining);
+    
+    // Auto-compress images
+    const isImageType = fileType !== "inspection_pdf";
+    if (isImageType && rawFiles.some(f => f.type.startsWith("image/"))) {
+      setCompressing(prev => ({ ...prev, [key]: true }));
+      const originalSize = rawFiles.reduce((sum, f) => sum + f.size, 0);
+      const compressed = await compressImages(rawFiles);
+      const compressedSize = compressed.reduce((sum, f) => sum + f.size, 0);
+      
+      setCompressionStats(prev => ({
+        ...prev,
+        [key]: {
+          original: (prev[key]?.original || 0) + originalSize,
+          compressed: (prev[key]?.compressed || 0) + compressedSize,
+        }
+      }));
+      setCompressing(prev => ({ ...prev, [key]: false }));
+      
+      const newFiles = compressed.map((file) => ({
         file,
         preview: URL.createObjectURL(file),
       }));
-    setUploads((prev) => ({ ...prev, [key]: [...current, ...newFiles] }));
+      setUploads((prev) => ({ ...prev, [key]: [...current, ...newFiles] }));
+    } else {
+      const newFiles = rawFiles.map((file) => ({
+        file,
+        preview: URL.createObjectURL(file),
+      }));
+      setUploads((prev) => ({ ...prev, [key]: [...current, ...newFiles] }));
+    }
   };
 
   const removeFile = (surveyId: string, fileType: string, index: number) => {
@@ -299,25 +327,43 @@ const IncompleteSurveys = ({ filterSrId }: { filterSrId?: string }) => {
                     {mt.label}
                   </Label>
 
-                  {files.length > 0 && (
-                    <div className="grid grid-cols-4 gap-2">
-                      {files.map((f, i) => (
-                        <div key={i} className="relative group">
-                          <img
-                            src={f.preview}
-                            alt={f.file.name}
-                            className="h-16 w-full object-cover rounded-lg border border-border"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => removeFile(survey.id, mt.key, i)}
-                            className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                          >
-                            <X className="h-3 w-3" />
-                          </button>
-                        </div>
-                      ))}
+                  {compressing[key] && (
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      Συμπίεση φωτογραφιών...
                     </div>
+                  )}
+
+                  {files.length > 0 && (
+                    <>
+                      <div className="grid grid-cols-4 gap-2">
+                        {files.map((f, i) => (
+                          <div key={i} className="relative group">
+                            <img
+                              src={f.preview}
+                              alt={f.file.name}
+                              className="h-16 w-full object-cover rounded-lg border border-border"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => removeFile(survey.id, mt.key, i)}
+                              className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                      {compressionStats[key] && (
+                        <div className="flex items-center gap-1.5 text-[10px] text-accent">
+                          <Shrink className="h-3 w-3" />
+                          <span>
+                            {formatFileSize(compressionStats[key].original)} → {formatFileSize(compressionStats[key].compressed)}
+                            {" "}({Math.round((1 - compressionStats[key].compressed / compressionStats[key].original) * 100)}% μείωση)
+                          </span>
+                        </div>
+                      )}
+                    </>
                   )}
 
                   <div className="flex gap-2">
@@ -472,25 +518,43 @@ const IncompleteSurveys = ({ filterSrId }: { filterSrId?: string }) => {
                         ↑ {mt.label}
                       </Label>
 
-                      {files.length > 0 && (
-                        <div className="grid grid-cols-4 gap-2">
-                          {files.map((f, i) => (
-                            <div key={i} className="relative group">
-                              <img
-                                src={f.preview}
-                                alt={f.file.name}
-                                className="h-16 w-full object-cover rounded-lg border border-border"
-                              />
-                              <button
-                                type="button"
-                                onClick={() => removeFile(survey.id, mt.key, i)}
-                                className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                              >
-                                <X className="h-3 w-3" />
-                              </button>
-                            </div>
-                          ))}
+                      {compressing[key] && (
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                          Συμπίεση φωτογραφιών...
                         </div>
+                      )}
+
+                      {files.length > 0 && (
+                        <>
+                          <div className="grid grid-cols-4 gap-2">
+                            {files.map((f, i) => (
+                              <div key={i} className="relative group">
+                                <img
+                                  src={f.preview}
+                                  alt={f.file.name}
+                                  className="h-16 w-full object-cover rounded-lg border border-border"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => removeFile(survey.id, mt.key, i)}
+                                  className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                                >
+                                  <X className="h-3 w-3" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                          {compressionStats[key] && (
+                            <div className="flex items-center gap-1.5 text-[10px] text-accent">
+                              <Shrink className="h-3 w-3" />
+                              <span>
+                                {formatFileSize(compressionStats[key].original)} → {formatFileSize(compressionStats[key].compressed)}
+                                {" "}({Math.round((1 - compressionStats[key].compressed / compressionStats[key].original) * 100)}% μείωση)
+                              </span>
+                            </div>
+                          )}
+                        </>
                       )}
 
                       <div className="flex gap-2">
