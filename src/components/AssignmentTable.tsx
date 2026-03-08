@@ -584,14 +584,6 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
                   </Select>
                 </td>
                 <td className="py-3 px-4 font-bold text-xs text-muted-foreground whitespace-nowrap">{a.date}</td>
-                <td className="py-3 px-4 text-center">
-                  {a.photos > 0 && (
-                    <span className="inline-flex items-center gap-1 text-muted-foreground">
-                      <Camera className="h-3.5 w-3.5" />
-                      <span className="text-xs">{a.photos}</span>
-                    </span>
-                  )}
-                </td>
                 <td className="py-3 px-4 text-xs text-muted-foreground max-w-[200px] truncate">
                   {a.comments && (
                     <span className="inline-flex items-center gap-1">
