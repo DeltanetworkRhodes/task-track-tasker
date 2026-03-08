@@ -454,14 +454,6 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
             <XCircle className="h-4 w-4" />
             Ακύρωση
           </Button>
-          <Button
-            variant="outline"
-            className={`${btnClass} text-destructive border-destructive/30 hover:bg-destructive/10`}
-            onClick={() => { setShowCancelDialog(true); }}
-          >
-            <XCircle className="h-4 w-4" />
-            Ακύρωση
-          </Button>
         </div>
       );
     }
