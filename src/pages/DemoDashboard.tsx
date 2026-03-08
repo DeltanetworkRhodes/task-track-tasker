@@ -185,6 +185,7 @@ const DemoSectionRouter = ({ section }: { section: string }) => {
     case "calendar": return <DemoCalendarPanel />;
     case "users": return <DemoUsersPanel />;
     case "settings": return <DemoSettingsPanel />;
+    case "documents": return <DemoDocumentsPanel />;
     default: return null;
   }
 };
