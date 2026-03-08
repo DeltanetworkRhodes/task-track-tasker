@@ -456,7 +456,7 @@ export async function generateAsBuiltFromData(data: AsBuiltData): Promise<AsBuil
         sketchBuf = generateSketchBuffer({
           conduit: data.conduit || data.bepType || "",
           cabId: data.cabId || "",
-          distanceFromCabinet: data.distanceFromCabinet || 0,
+          trenchLengthM: data.trenchLengthM || 0,
           address: data.address || "",
           buildingId: data.buildingId || "",
         });

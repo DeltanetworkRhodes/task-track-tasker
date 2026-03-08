@@ -14,8 +14,8 @@ interface SketchInput {
   conduit: string;
   /** CAB identifier e.g. "G526" */
   cabId: string;
-  /** Distance from cabinet in meters */
-  distanceFromCabinet: number;
+  /** Distance from building (BEP) to distribution point (trench/σκάμα) in meters */
+  trenchLengthM: number;
   /** Full address string */
   address: string;
   /** Building ID e.g. "667102934" */
@@ -115,7 +115,7 @@ export function generateOteSketch(input: SketchInput): string {
   ctx.stroke();
 
   // ── Distance annotation above cable ──
-  const distText = `${input.distanceFromCabinet}m`;
+  const distText = `${input.trenchLengthM}m`;
   const midCableX = (cableStartX + cableEndX) / 2;
   ctx.fillStyle = "#000000";
   ctx.font = "bold 18px Arial, sans-serif";
