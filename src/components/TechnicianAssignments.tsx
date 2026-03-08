@@ -708,6 +708,23 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
                   </div>
                 </Card>
 
+                {/* XEMD Button */}
+                {((selectedAssignment as any).latitude || (selectedAssignment as any).longitude) && (
+                  <a
+                    href={
+                      (selectedAssignment as any).latitude && (selectedAssignment as any).longitude
+                        ? `https://www.broadband-assist.gov.gr/public/?lat=${(selectedAssignment as any).latitude}&lng=${(selectedAssignment as any).longitude}`
+                        : "https://www.broadband-assist.gov.gr/public/"
+                    }
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-xs font-medium bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/20 transition-colors border border-emerald-500/20"
+                  >
+                    <ExternalLink className="h-3.5 w-3.5" />
+                    Προβολή στο ΧΕΜΔ
+                  </a>
+                )}
+
                 {/* Existing survey info */}
                 {existingSurvey && (
                   <Card className="p-3 space-y-1">
