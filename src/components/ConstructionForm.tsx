@@ -559,6 +559,10 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
   const totalMaterialCost = deltanetMaterials.reduce((sum, m) => sum + m.price * m.quantity, 0);
 
   const handleSubmit = async () => {
+    if (hasRejectedPhotos()) {
+      toast.error("Υπάρχουν φωτογραφίες που δεν πέρασαν τον έλεγχο ΟΤΕ. Αντικαταστήστε τες πριν την υποβολή.");
+      return;
+    }
     if (!cab.trim()) {
       toast.error("Η Καμπίνα (CAB) είναι υποχρεωτική");
       return;
