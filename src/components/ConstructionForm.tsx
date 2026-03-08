@@ -73,6 +73,7 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
   const { organizationId, organization } = useOrganization();
   const orgName = organization?.name || "DELTANETWORK";
   const queryClient = useQueryClient();
+  const { analyzeConstructionPhoto, getConstructionResult, isConstructionAnalyzing, hasRejectedPhotos } = useConstructionPhotoAnalysis();
 
   // Form state
   const [sesId, setSesId] = useState("");
