@@ -257,10 +257,14 @@ const Surveys = () => {
   const totalBlockers = (surveys || []).filter((s) => s.status === "BLOCKER" || s.status === "ΑΠΑΙΤΕΙΤΑΙ ΕΝΕΡΓΕΙΑ").length;
   const totalAppointments = (surveys || []).filter((s) => s.status === "ΡΑΝΤΕΒΟΥ").length;
   const totalEmailsSent = (surveys || []).filter((s) => s.email_sent).length;
+  const totalSubmitted = (surveys || []).filter((s) => s.status === "submitted").length;
+  const totalActionRequired = (surveys || []).filter((s) => s.status === "ΑΠΑΙΤΕΙΤΑΙ ΕΝΕΡΓΕΙΑ").length;
 
-  // Assignment stats for pre_committed
+  // Assignment stats
   const preCommittedCount = (dbAssignments || []).filter((a) => a.status === "pre_committed").length;
   const waitingOteCount = (dbAssignments || []).filter((a) => a.status === "waiting_ote").length;
+  const inspectionCount = (dbAssignments || []).filter((a) => a.status === "inspection").length;
+  const totalActiveAssignments = (dbAssignments || []).filter((a) => a.status !== "cancelled" && a.status !== "completed").length;
 
   // Status distribution chart
   const statusCounts = useMemo(() => {
