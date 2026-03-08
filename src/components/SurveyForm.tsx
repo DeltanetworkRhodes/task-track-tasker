@@ -28,6 +28,11 @@ interface FileUpload {
 
 const MAX_FILES = 10;
 
+interface CompressionState {
+  isCompressing: boolean;
+  originalSize: number;
+  compressedSize: number;
+}
 const SurveyForm = ({ assignments, prefillSrId, prefillArea, onComplete }: Props) => {
   const { user } = useAuth();
   const { organizationId } = useOrganization();
