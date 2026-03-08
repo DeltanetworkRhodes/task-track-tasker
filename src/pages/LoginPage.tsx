@@ -8,6 +8,8 @@ import deltaLogoIcon from "@/assets/delta-logo-icon.png";
 
 const LoginPage = () => {
   const { user, loading: authLoading } = useAuth();
+  const { enterDemo } = useDemo();
+  const navigate = useNavigate();
   const [mode, setMode] = useState<"login" | "signup" | "forgot">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
