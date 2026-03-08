@@ -492,12 +492,12 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
       </div>
 
       {/* Desktop Table View */}
-      <div className="hidden md:block overflow-x-auto">
-        <table className="w-full text-sm">
+      <div className="hidden md:block">
+        <table className="w-full text-sm table-fixed">
           <thead>
             <tr className="border-b border-border/50">
               {onSelectionChange && (
-                <th className="py-3 px-2 w-8">
+                <th className="py-2.5 px-1.5 w-8">
                   <input
                     type="checkbox"
                     checked={selectedIds.length === assignments.length && assignments.length > 0}
@@ -506,17 +506,16 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
                   />
                 </th>
               )}
-              <th className="py-3 px-4 text-left font-medium text-muted-foreground text-xs uppercase tracking-wider">SR ID</th>
-              <th className="py-3 px-4 text-left font-medium text-muted-foreground text-xs uppercase tracking-wider">Περιοχή</th>
-              <th className="py-3 px-4 text-left font-medium text-muted-foreground text-xs uppercase tracking-wider">Πελάτης</th>
-              <th className="py-3 px-4 text-left font-medium text-muted-foreground text-xs uppercase tracking-wider">CAB</th>
-              <th className="py-3 px-4 text-left font-medium text-muted-foreground text-xs uppercase tracking-wider">Τεχνικός</th>
-              <th className="py-3 px-4 text-left font-medium text-muted-foreground text-xs uppercase tracking-wider">Κατάσταση</th>
-              <th className="py-3 px-4 text-left font-medium text-muted-foreground text-xs uppercase tracking-wider">Ημ/νία</th>
-              
-              <th className="py-3 px-4 text-left font-medium text-muted-foreground text-xs uppercase tracking-wider">Σχόλια</th>
-              <th className="py-3 px-4 text-center font-medium text-muted-foreground text-xs uppercase tracking-wider">Drive</th>
-              <th className="py-3 px-4 text-center font-medium text-muted-foreground text-xs uppercase tracking-wider"></th>
+              <th className="py-2.5 px-2 text-left font-medium text-muted-foreground text-[11px] uppercase tracking-wider w-[10%]">SR ID</th>
+              <th className="py-2.5 px-2 text-left font-medium text-muted-foreground text-[11px] uppercase tracking-wider w-[10%]">Περιοχή</th>
+              <th className="py-2.5 px-2 text-left font-medium text-muted-foreground text-[11px] uppercase tracking-wider w-[14%]">Πελάτης</th>
+              <th className="py-2.5 px-2 text-left font-medium text-muted-foreground text-[11px] uppercase tracking-wider w-[7%]">CAB</th>
+              <th className="py-2.5 px-2 text-left font-medium text-muted-foreground text-[11px] uppercase tracking-wider w-[14%]">Τεχνικός</th>
+              <th className="py-2.5 px-2 text-left font-medium text-muted-foreground text-[11px] uppercase tracking-wider w-[12%]">Κατάσταση</th>
+              <th className="py-2.5 px-2 text-left font-medium text-muted-foreground text-[11px] uppercase tracking-wider w-[9%]">Ημ/νία</th>
+              <th className="py-2.5 px-2 text-left font-medium text-muted-foreground text-[11px] uppercase tracking-wider w-[16%]">Σχόλια</th>
+              <th className="py-2.5 px-1.5 text-center font-medium text-muted-foreground text-[11px] uppercase tracking-wider w-[5%]">Drive</th>
+              <th className="py-2.5 px-1.5 text-center font-medium text-muted-foreground text-[11px] uppercase tracking-wider w-[3%]"></th>
             </tr>
           </thead>
           <tbody>
