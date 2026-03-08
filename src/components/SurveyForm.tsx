@@ -131,13 +131,23 @@ const SurveyForm = ({ assignments, prefillSrId, prefillArea, onComplete }: Props
       // Upload inspection PDF if provided
       if (inspectionPdf) {
         try {
-          const assignmentMatch = assignments?.find((a: any) => a.sr_id === srId.trim());
-          if (assignmentMatch) {
-            const pdfPath = `inspection-pdfs/${organizationId || "default"}/${srId.trim()}_${Date.now()}.pdf`;
-            const { error: pdfUploadErr } = await supabase.storage
-              .from("surveys")
-              .upload(pdfPath, inspectionPdf, { contentType: "application/pdf", upsert: true });
-            if (!pdfUploadErr) {
+          const pdfPath = `${user!.id}/${survey.id}/inspection_pdf/${crypto.randomUUID()}.pdf`;
+          const { error: pdfUploadErr } = await supabase.storage
+            .from("surveys")
+            .upload(pdfPath, inspectionPdf, { contentType: "application/pdf" });
+          if (!pdfUploadErr) {
+            // Register as survey_file so process-survey-completion uploads it to Drive ΕΓΓΡΑΦΑ
+            await supabase.from("survey_files").insert({
+              survey_id: survey.id,
+              file_path: pdfPath,
+              file_name: inspectionPdf.name,
+              file_type: "inspection_pdf",
+              organization_id: organizationId,
+            });
+
+            // Also update assignment pdf_url
+            const assignmentMatch = assignments?.find((a: any) => a.sr_id === srId.trim());
+            if (assignmentMatch) {
               const { data: signedData } = await supabase.storage
                 .from("surveys")
                 .createSignedUrl(pdfPath, 60 * 60 * 24 * 365);
