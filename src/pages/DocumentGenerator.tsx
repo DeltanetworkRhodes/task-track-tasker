@@ -27,21 +27,23 @@ const DocumentGenerator = () => {
   const [generatingId, setGeneratingId] = useState<string | null>(null);
   const [selectedSrId, setSelectedSrId] = useState<string | null>(null);
 
-  const filteredAssignments = assignments.filter((a: any) => {
+  // Only show assignments that have a construction record
+  const assignmentsWithConstruction = assignments.filter((a: any) =>
+    constructions.some((c: any) => c.sr_id === a.sr_id)
+  );
+
+  const filteredAssignments = assignmentsWithConstruction.filter((a: any) => {
     const matchesSearch = !search ||
       a.sr_id.toLowerCase().includes(search.toLowerCase()) ||
       (a.address || "").toLowerCase().includes(search.toLowerCase()) ||
       (a.area || "").toLowerCase().includes(search.toLowerCase());
 
     const construction = constructions.find((c: any) => c.sr_id === a.sr_id);
-    const hasConstruction = !!construction;
-
     const matchesStatus = statusFilter === "all" ||
       (statusFilter === "ready" && (construction as any)?.status === "completed") ||
-      (statusFilter === "in_progress" && (construction as any)?.status === "in_progress") ||
-      (statusFilter === "no_construction" && !hasConstruction);
+      (statusFilter === "in_progress" && (construction as any)?.status === "in_progress");
 
-    return matchesSearch && (statusFilter === "all" ? true : matchesStatus);
+    return matchesSearch && matchesStatus;
   });
 
   const getConstructionStatus = (srId: string) => {
