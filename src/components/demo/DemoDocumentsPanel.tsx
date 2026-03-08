@@ -11,6 +11,13 @@ import demoSketchSr03 from "@/assets/demo-sketch-sr03.png";
 import demoSketchSr04 from "@/assets/demo-sketch-sr04.png";
 import { toast } from "sonner";
 
+const SKETCH_MAP: Record<string, string> = {
+  "SR-DEMO-01": demoSketchSr01,
+  "SR-DEMO-02": demoSketchSr02,
+  "SR-DEMO-03": demoSketchSr03,
+  "2-334066371997": demoSketchSr04,
+};
+
 const DEMO_SRS = [
   { srId: "SR-DEMO-01", area: "Ρόδος Κέντρο", address: "Λεωφ. Ελευθερίας 42", status: "pre_committed", cab: "CAB-045", floors: 3 },
   { srId: "SR-DEMO-02", area: "Ιαλυσός", address: "Οδός Ηρώων 15", status: "construction", cab: "CAB-112", floors: 5 },
