@@ -75,7 +75,10 @@ const IncompleteSurveys = ({ filterSrId }: { filterSrId?: string }) => {
 
   const isIncomplete = (survey: any) => survey.status === "ΕΛΛΙΠΗΣ ΑΥΤΟΨΙΑ";
 
-  const handleFiles = (
+  const [compressing, setCompressing] = useState<Record<string, boolean>>({});
+  const [compressionStats, setCompressionStats] = useState<Record<string, { original: number; compressed: number }>>({});
+
+  const handleFiles = async (
     surveyId: string,
     fileType: string,
     files: FileList | null
@@ -84,13 +87,37 @@ const IncompleteSurveys = ({ filterSrId }: { filterSrId?: string }) => {
     const key = `${surveyId}_${fileType}`;
     const current = uploads[key] || [];
     const remaining = MAX_FILES - current.length;
-    const newFiles = Array.from(files)
-      .slice(0, remaining)
-      .map((file) => ({
+    const rawFiles = Array.from(files).slice(0, remaining);
+    
+    // Auto-compress images
+    const isImageType = fileType !== "inspection_pdf";
+    if (isImageType && rawFiles.some(f => f.type.startsWith("image/"))) {
+      setCompressing(prev => ({ ...prev, [key]: true }));
+      const originalSize = rawFiles.reduce((sum, f) => sum + f.size, 0);
+      const compressed = await compressImages(rawFiles);
+      const compressedSize = compressed.reduce((sum, f) => sum + f.size, 0);
+      
+      setCompressionStats(prev => ({
+        ...prev,
+        [key]: {
+          original: (prev[key]?.original || 0) + originalSize,
+          compressed: (prev[key]?.compressed || 0) + compressedSize,
+        }
+      }));
+      setCompressing(prev => ({ ...prev, [key]: false }));
+      
+      const newFiles = compressed.map((file) => ({
         file,
         preview: URL.createObjectURL(file),
       }));
-    setUploads((prev) => ({ ...prev, [key]: [...current, ...newFiles] }));
+      setUploads((prev) => ({ ...prev, [key]: [...current, ...newFiles] }));
+    } else {
+      const newFiles = rawFiles.map((file) => ({
+        file,
+        preview: URL.createObjectURL(file),
+      }));
+      setUploads((prev) => ({ ...prev, [key]: [...current, ...newFiles] }));
+    }
   };
 
   const removeFile = (surveyId: string, fileType: string, index: number) => {
