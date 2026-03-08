@@ -766,10 +766,6 @@ Deno.serve(async (req) => {
                 <p style="color: #dc2626; font-size: 14px; margin: 0;">${missingTypes.map(t => t === "building_photo" ? "Φωτογραφίες κτιρίου" : t === "screenshot" ? "Screenshots" : t).join(", ")}</p>
               </div>` : ""}
 
-              ${hasZipAttachment ? `
-              <div style="background: #f0faf8; border-left: 4px solid ${brandTeal}; padding: 14px 18px; margin: 20px 0; border-radius: 0 8px 8px 0;">
-                <p style="font-weight: 700; color: ${textPrimary}; font-size: 13px; margin: 0;">📎 Τα αρχεία αυτοψίας επισυνάπτονται ως ZIP</p>
-              </div>` : ""}
 
               ${showDownloadLink ? `
               <div style="text-align: center; margin: 24px 0;">
