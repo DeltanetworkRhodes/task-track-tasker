@@ -20,6 +20,7 @@ const MAX_FILES = 10;
 const REQUIRED_TYPES = [
   { key: "building_photo", label: "Φωτογραφίες Κτιρίου" },
   { key: "screenshot", label: "Screenshots (ΧΕΜΔ & AutoCAD)" },
+  { key: "inspection_pdf", label: "Δελτίο Αυτοψίας (PDF)", acceptTypes: ".pdf,application/pdf" },
 ];
 
 const IncompleteSurveys = ({ filterSrId }: { filterSrId?: string }) => {
