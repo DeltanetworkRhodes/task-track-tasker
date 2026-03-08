@@ -257,10 +257,14 @@ const Surveys = () => {
   const totalBlockers = (surveys || []).filter((s) => s.status === "BLOCKER" || s.status === "ΑΠΑΙΤΕΙΤΑΙ ΕΝΕΡΓΕΙΑ").length;
   const totalAppointments = (surveys || []).filter((s) => s.status === "ΡΑΝΤΕΒΟΥ").length;
   const totalEmailsSent = (surveys || []).filter((s) => s.email_sent).length;
+  const totalSubmitted = (surveys || []).filter((s) => s.status === "submitted").length;
+  const totalActionRequired = (surveys || []).filter((s) => s.status === "ΑΠΑΙΤΕΙΤΑΙ ΕΝΕΡΓΕΙΑ").length;
 
-  // Assignment stats for pre_committed
+  // Assignment stats
   const preCommittedCount = (dbAssignments || []).filter((a) => a.status === "pre_committed").length;
   const waitingOteCount = (dbAssignments || []).filter((a) => a.status === "waiting_ote").length;
+  const inspectionCount = (dbAssignments || []).filter((a) => a.status === "inspection").length;
+  const totalActiveAssignments = (dbAssignments || []).filter((a) => a.status !== "cancelled" && a.status !== "completed").length;
 
   // Status distribution chart
   const statusCounts = useMemo(() => {
@@ -318,14 +322,72 @@ const Surveys = () => {
         </div>
 
         {/* Stat Cards */}
-        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-7">
-          <StatCard title="Σύνολο Αυτοψιών" value={totalSurveys} subtitle={`${filtered.length} εμφανίζονται`} icon={ClipboardCheck} />
-          <StatCard title="Ολοκληρωμένες" value={totalComplete} subtitle={`${totalSurveys > 0 ? Math.round((totalComplete / totalSurveys) * 100) : 0}% επιτυχία`} icon={FileCheck} trend="up" trendValue={`${totalComplete} πλήρεις`} />
-          <StatCard title="Ελλιπείς" value={totalIncomplete} subtitle="αναμονή αρχείων" icon={FileWarning} accent />
-          <StatCard title="Blockers" value={totalBlockers} subtitle="απαιτούν ενέργεια" icon={ShieldAlert} />
-          <StatCard title="Προδεσμεύσεις" value={preCommittedCount} subtitle={`${waitingOteCount} αναμονή ΟΤΕ`} icon={CheckCircle} />
-          <StatCard title="Email Σταλμένα" value={totalEmailsSent} subtitle={`${totalSurveys - totalEmailsSent} εκκρεμούν`} icon={Mail} />
-          <StatCard title="Ραντεβού" value={totalAppointments} subtitle={`${upcomingAppointments.length} επερχόμενα`} icon={CalendarPlus} />
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-4">
+          <StatCard 
+            title="Σύνολο Αυτοψιών" 
+            value={totalSurveys} 
+            subtitle={`${totalSubmitted} νέες · ${filtered.length} εμφανίζονται`} 
+            icon={ClipboardCheck} 
+          />
+          <StatCard 
+            title="Προδέσμευση Υλικών" 
+            value={totalComplete} 
+            subtitle={`${totalSurveys > 0 ? Math.round((totalComplete / totalSurveys) * 100) : 0}% του συνόλου`} 
+            icon={FileCheck} 
+            trend="up" 
+            trendValue={`${totalComplete} ολοκληρωμένες`} 
+          />
+          <StatCard 
+            title="Ελλιπείς Αυτοψίες" 
+            value={totalIncomplete} 
+            subtitle="αναμονή αρχείων/στοιχείων" 
+            icon={FileWarning} 
+            accent 
+            trend={totalIncomplete > 0 ? "down" : "neutral"}
+            trendValue={totalIncomplete > 0 ? `${totalIncomplete} εκκρεμούν` : "Καμία εκκρεμότητα"}
+          />
+          <StatCard 
+            title="Blockers / Ενέργειες" 
+            value={totalBlockers} 
+            subtitle={`${totalActionRequired} απαιτούν ενέργεια`} 
+            icon={ShieldAlert} 
+            trend={totalBlockers > 0 ? "down" : "neutral"}
+            trendValue={totalBlockers > 0 ? "Χρειάζεται προσοχή" : "Όλα εντάξει"}
+          />
+        </div>
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-4">
+          <StatCard 
+            title="Προδεσμεύσεις (SR)" 
+            value={preCommittedCount} 
+            subtitle={`${inspectionCount} σε αυτοψία · ${waitingOteCount} αναμονή ΟΤΕ`} 
+            icon={CheckCircle} 
+            trend={preCommittedCount > 0 ? "up" : "neutral"}
+            trendValue={`${totalActiveAssignments} ενεργές αναθέσεις`}
+          />
+          <StatCard 
+            title="Email Σταλμένα" 
+            value={totalEmailsSent} 
+            subtitle={`${totalSurveys - totalEmailsSent} δεν έχουν σταλεί`} 
+            icon={Mail} 
+            trend={totalEmailsSent > 0 ? "up" : "neutral"}
+            trendValue={`${totalSurveys > 0 ? Math.round((totalEmailsSent / totalSurveys) * 100) : 0}% κάλυψη`}
+          />
+          <StatCard 
+            title="Ραντεβού" 
+            value={totalAppointments} 
+            subtitle={`${upcomingAppointments.length} επερχόμενα`} 
+            icon={CalendarPlus} 
+            trend={upcomingAppointments.length > 0 ? "up" : "neutral"}
+            trendValue={upcomingAppointments.length > 0 ? `${upcomingAppointments.length} προγραμματισμένα` : "Κανένα ενεργό"}
+          />
+          <StatCard 
+            title="Αναμονή ΟΤΕ" 
+            value={waitingOteCount} 
+            subtitle="αναθέσεις σε αναμονή απάντησης" 
+            icon={Clock} 
+            trend={waitingOteCount > 0 ? "down" : "neutral"}
+            trendValue={waitingOteCount > 0 ? "Εκκρεμούν" : "Καμία αναμονή"}
+          />
         </div>
 
         {/* Charts Row */}
