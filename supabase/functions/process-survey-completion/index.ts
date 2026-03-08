@@ -33,7 +33,6 @@ const areaRootFolders: Record<string, string> = {
 
 const REQUIRED_FILE_TYPES = ["building_photo", "screenshot"];
 
-
 // ─── Google Drive helpers ────────────────────────────────────────────
 
 async function getAccessToken(serviceAccountKey: any): Promise<string> {
@@ -206,6 +205,113 @@ async function buildInspectionPdf(
   }
 }
 
+// ─── ZIP builder (STORE method, no compression) ─────────────────────
+
+function buildZipStore(files: { name: string; data: Uint8Array }[]): Uint8Array {
+  const encoder = new TextEncoder();
+  const centralDir: Uint8Array[] = [];
+  const localParts: Uint8Array[] = [];
+  let offset = 0;
+
+  for (const file of files) {
+    const nameBytes = encoder.encode(file.name);
+    const crc = crc32(file.data);
+    const size = file.data.length;
+
+    // Local file header (30 + name + data)
+    const local = new Uint8Array(30 + nameBytes.length + size);
+    const lv = new DataView(local.buffer);
+    lv.setUint32(0, 0x04034b50, true); // signature
+    lv.setUint16(4, 20, true); // version needed
+    lv.setUint16(6, 0, true); // flags
+    lv.setUint16(8, 0, true); // compression: STORE
+    lv.setUint16(10, 0, true); // mod time
+    lv.setUint16(12, 0, true); // mod date
+    lv.setUint32(14, crc, true);
+    lv.setUint32(18, size, true); // compressed
+    lv.setUint32(22, size, true); // uncompressed
+    lv.setUint16(26, nameBytes.length, true);
+    lv.setUint16(28, 0, true); // extra length
+    local.set(nameBytes, 30);
+    local.set(file.data, 30 + nameBytes.length);
+    localParts.push(local);
+
+    // Central directory entry (46 + name)
+    const central = new Uint8Array(46 + nameBytes.length);
+    const cv = new DataView(central.buffer);
+    cv.setUint32(0, 0x02014b50, true);
+    cv.setUint16(4, 20, true); // version made by
+    cv.setUint16(6, 20, true); // version needed
+    cv.setUint16(8, 0, true); // flags
+    cv.setUint16(10, 0, true); // compression
+    cv.setUint16(12, 0, true); // mod time
+    cv.setUint16(14, 0, true); // mod date
+    cv.setUint32(16, crc, true);
+    cv.setUint32(20, size, true);
+    cv.setUint32(24, size, true);
+    cv.setUint16(28, nameBytes.length, true);
+    cv.setUint16(30, 0, true); // extra
+    cv.setUint16(32, 0, true); // comment
+    cv.setUint16(34, 0, true); // disk
+    cv.setUint16(36, 0, true); // internal attrs
+    cv.setUint32(38, 0, true); // external attrs
+    cv.setUint32(42, offset, true); // local header offset
+    central.set(nameBytes, 46);
+    centralDir.push(central);
+
+    offset += local.length;
+  }
+
+  const cdSize = centralDir.reduce((s, c) => s + c.length, 0);
+  const eocd = new Uint8Array(22);
+  const ev = new DataView(eocd.buffer);
+  ev.setUint32(0, 0x06054b50, true);
+  ev.setUint16(4, 0, true); // disk
+  ev.setUint16(6, 0, true); // disk with cd
+  ev.setUint16(8, files.length, true);
+  ev.setUint16(10, files.length, true);
+  ev.setUint32(12, cdSize, true);
+  ev.setUint32(16, offset, true);
+  ev.setUint16(20, 0, true);
+
+  const totalSize = offset + cdSize + 22;
+  const result = new Uint8Array(totalSize);
+  let pos = 0;
+  for (const part of localParts) {
+    result.set(part, pos);
+    pos += part.length;
+  }
+  for (const cd of centralDir) {
+    result.set(cd, pos);
+    pos += cd.length;
+  }
+  result.set(eocd, pos);
+  return result;
+}
+
+function crc32(data: Uint8Array): number {
+  let crc = 0xFFFFFFFF;
+  const table = getCrc32Table();
+  for (let i = 0; i < data.length; i++) {
+    crc = (crc >>> 8) ^ table[(crc ^ data[i]) & 0xFF];
+  }
+  return (crc ^ 0xFFFFFFFF) >>> 0;
+}
+
+let _crc32Table: Uint32Array | null = null;
+function getCrc32Table(): Uint32Array {
+  if (_crc32Table) return _crc32Table;
+  _crc32Table = new Uint32Array(256);
+  for (let i = 0; i < 256; i++) {
+    let c = i;
+    for (let j = 0; j < 8; j++) {
+      c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+    }
+    _crc32Table[i] = c >>> 0;
+  }
+  return _crc32Table;
+}
+
 // ─── Helpers ─────────────────────────────────────────────────────────
 
 async function downloadFile(adminClient: any, filePath: string): Promise<Uint8Array | null> {
@@ -230,6 +336,18 @@ function getMime(fileName: string): string {
 function escapeHtml(str: string): string {
   return str.replace(/[<>&"']/g, (c: string) => `&#${c.charCodeAt(0)};`);
 }
+
+// Map file_type to Greek folder name for ZIP
+function getZipFolder(fileType: string): string {
+  switch (fileType) {
+    case "building_photo": return "ΦΩΤΟΓΡΑΦΙΕΣ_ΚΤΙΡΙΟΥ";
+    case "screenshot": return "SCREENSHOTS";
+    case "inspection_pdf": return "ΔΕΛΤΙΟ_ΑΥΤΟΨΙΑΣ";
+    default: return "ΑΛΛΑ";
+  }
+}
+
+const MAX_ZIP_SIZE_FOR_EMAIL = 38 * 1024 * 1024; // 38MB safe limit for Resend (under 40MB)
 
 // ─── Main handler ────────────────────────────────────────────────────
 
@@ -317,7 +435,7 @@ Deno.serve(async (req) => {
 
     console.log(`File check: present=${presentTypes.join(",")}, missing=${missingTypes.join(",")}, complete=${isComplete}`);
 
-    // 2. Download ALL files ONCE (used for both Drive upload and ZIP)
+    // 2. Download ALL files ONCE (used for Drive upload, ZIP, and email)
     const downloadedFiles: { sf: any; data: Uint8Array }[] = [];
     const BATCH_SIZE = 3;
     for (let i = 0; i < surveyFiles.length; i += BATCH_SIZE) {
@@ -334,7 +452,7 @@ Deno.serve(async (req) => {
     }
     console.log(`Downloaded ${downloadedFiles.length}/${surveyFiles.length} files`);
 
-    // 3. Google Drive: create folder structure & upload + generate PDF via Slides
+    // 3. Google Drive: create folder structure & upload
     const folderName = `${sr_id} - ${customerName}`;
     let driveFolderUrl = "";
     let driveTargetType = "";
@@ -430,13 +548,11 @@ Deno.serve(async (req) => {
             .map(({ sf, data }) => ({ fileName: sf.file_name, data }));
 
           if (inspectionImages.length > 0) {
-            // Guard: skip if total image data exceeds 8MB to prevent CPU timeout
             const totalImageSize = inspectionImages.reduce((s, i) => s + i.data.length, 0);
             if (totalImageSize <= 8 * 1024 * 1024) {
               console.log(`Building inspection PDF from ${inspectionImages.length} images (${(totalImageSize / 1024 / 1024).toFixed(1)}MB)`);
               inspectionPdfBytes = await buildInspectionPdf(inspectionImages);
               if (inspectionPdfBytes) {
-                // Upload PDF to Drive ΕΓΓΡΑΦΑ folder
                 try {
                   await uploadFileToDrive(accessToken, `Deltio_Autopsias_${sr_id}.pdf`, "application/pdf", inspectionPdfBytes, egrafaFolder.id);
                   console.log(`Uploaded inspection PDF to Drive ΕΓΓΡΑΦΑ`);
@@ -477,7 +593,43 @@ Deno.serve(async (req) => {
     
     console.log(`Assignment ${sr_id} status → ${newAssignmentStatus}, Survey → ${newSurveyStatus}`);
 
-    // 5. Send email with Google Drive folder link (no ZIP)
+    // 5. Build ZIP from downloaded files for email attachment
+    let zipBytes: Uint8Array | null = null;
+    let zipTooLarge = false;
+    
+    try {
+      const zipFiles: { name: string; data: Uint8Array }[] = downloadedFiles.map(({ sf, data }) => ({
+        name: `${getZipFolder(sf.file_type)}/${sf.file_name}`,
+        data,
+      }));
+      
+      // Add inspection PDF to ZIP if generated
+      if (inspectionPdfBytes) {
+        zipFiles.push({
+          name: `ΔΕΛΤΙΟ_ΑΥΤΟΨΙΑΣ/Deltio_Autopsias_${sr_id}.pdf`,
+          data: inspectionPdfBytes,
+        });
+      }
+      
+      if (zipFiles.length > 0) {
+        zipBytes = buildZipStore(zipFiles);
+        console.log(`Built ZIP: ${zipFiles.length} files, ${(zipBytes.length / 1024 / 1024).toFixed(1)}MB`);
+        
+        if (zipBytes.length > MAX_ZIP_SIZE_FOR_EMAIL) {
+          console.log(`ZIP too large for email (${(zipBytes.length / 1024 / 1024).toFixed(1)}MB > 38MB), will fallback to Drive link`);
+          zipTooLarge = true;
+          zipBytes = null; // Free memory
+        }
+      }
+    } catch (zipErr) {
+      console.error("ZIP build error (non-blocking):", zipErr);
+    }
+
+    // Free downloaded files memory
+    downloadedFiles.length = 0;
+    inspectionPdfBytes = null;
+
+    // 6. Send email with ZIP attachment (or fallback to Drive link if too large)
     let emailSent = false;
     const resendApiKey = Deno.env.get("RESEND_API_KEY");
 
@@ -496,9 +648,6 @@ Deno.serve(async (req) => {
     const recipients = toEmails.split(",").map((e: string) => e.trim()).filter(Boolean);
     const ccRecipients = ccEmails.split(",").map((e: string) => e.trim()).filter(Boolean);
 
-    // Free memory - no longer needed
-    downloadedFiles.length = 0;
-
     if (resendApiKey && recipients.length > 0) {
       try {
         const statusLabel = isComplete ? "ΠΡΟΔΕΣΜΕΥΣΗ ΥΛΙΚΩΝ" : "ΕΛΛΙΠΗΣ ΑΥΤΟΨΙΑ";
@@ -515,6 +664,10 @@ Deno.serve(async (req) => {
         const emailFrom = emailSettingsMap["email_from"] || "noreply@deltanetwork.gr";
         const emailReplyTo = emailSettingsMap["email_reply_to"] || "info@deltanetwork.gr";
         const surveyComments = survey?.comments || "";
+
+        // Determine if we show Drive fallback or ZIP info
+        const showDriveFallback = zipTooLarge && driveFolderUrl;
+        const hasZipAttachment = zipBytes && !zipTooLarge;
 
         const emailHtml = `
           <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f5f7fa;">
@@ -575,13 +728,19 @@ Deno.serve(async (req) => {
                 <p style="color: #dc2626; font-size: 14px; margin: 0;">${missingTypes.map(t => t === "building_photo" ? "Φωτογραφίες κτιρίου" : t === "screenshot" ? "Screenshots" : t).join(", ")}</p>
               </div>` : ""}
 
-              ${driveFolderUrl ? `
-              <div style="text-align: center; margin: 24px 0;">
-                <a href="${driveFolderUrl}" style="background: ${brandDark}; color: white; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-size: 14px; font-weight: 700; display: inline-block; letter-spacing: 0.3px;">📂 Άνοιγμα Φακέλου Google Drive</a>
+              ${hasZipAttachment ? `
+              <div style="background: #f0faf8; border-left: 4px solid ${brandTeal}; padding: 14px 18px; margin: 20px 0; border-radius: 0 8px 8px 0;">
+                <p style="font-weight: 700; color: ${textPrimary}; font-size: 13px; margin: 0;">📎 Τα αρχεία αυτοψίας επισυνάπτονται ως ZIP</p>
+              </div>` : ""}
+
+              ${showDriveFallback ? `
+              <div style="background: #fffbeb; border-left: 4px solid #f59e0b; padding: 14px 18px; margin: 20px 0; border-radius: 0 8px 8px 0;">
+                <p style="font-weight: 700; color: ${textPrimary}; font-size: 13px; margin: 0 0 6px;">📁 Τα αρχεία είναι πολλά για email</p>
+                <p style="color: ${textSecondary}; font-size: 13px; margin: 0;">Μπορείτε να τα βρείτε στο Google Drive:</p>
               </div>
-              <p style="color: ${textMuted}; font-size: 11px; text-align: center; margin-top: 4px;">
-                ${surveyFiles.length} αρχεία στο φάκελο
-              </p>` : ""}
+              <div style="text-align: center; margin: 16px 0;">
+                <a href="${driveFolderUrl}" style="background: ${brandDark}; color: white; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-size: 14px; font-weight: 700; display: inline-block; letter-spacing: 0.3px;">📂 Άνοιγμα Φακέλου Google Drive</a>
+              </div>` : ""}
 
               <p style="color: ${textSecondary}; font-size: 14px; line-height: 1.6; margin-top: 28px;">Με εκτίμηση,</p>
               
@@ -609,6 +768,15 @@ Deno.serve(async (req) => {
           emailPayload.cc = ccRecipients;
         }
 
+        // Attach ZIP if available
+        if (zipBytes && !zipTooLarge) {
+          emailPayload.attachments = [{
+            filename: `Autopsía_${sr_id}.zip`,
+            content: uint8ToBase64(zipBytes),
+          }];
+          console.log(`Attaching ZIP to email: ${(zipBytes.length / 1024 / 1024).toFixed(1)}MB`);
+        }
+
         const emailRes = await fetch("https://api.resend.com/emails", {
           method: "POST",
           headers: {
@@ -619,10 +787,38 @@ Deno.serve(async (req) => {
         });
 
         if (!emailRes.ok) {
-          console.error("Resend error:", await emailRes.text());
+          const errText = await emailRes.text();
+          console.error("Resend error:", errText);
+          
+          // If email fails due to size, retry without attachment + Drive link
+          if (zipBytes && errText.includes("size")) {
+            console.log("Retrying email without ZIP attachment, using Drive link fallback...");
+            delete emailPayload.attachments;
+            if (driveFolderUrl) {
+              emailPayload.html = emailPayload.html.replace(
+                "📎 Τα αρχεία αυτοψίας επισυνάπτονται ως ZIP",
+                `📁 <a href="${driveFolderUrl}">Άνοιγμα Φακέλου Google Drive</a>`
+              );
+            }
+            const retryRes = await fetch("https://api.resend.com/emails", {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${resendApiKey}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(emailPayload),
+            });
+            if (retryRes.ok) {
+              emailSent = true;
+              console.log("Email sent (without ZIP, Drive link fallback)");
+            }
+          }
         } else {
-          console.log(`Email sent to: ${recipients.join(", ")}`);
+          console.log(`Email sent to: ${recipients.join(", ")}${zipBytes ? " (with ZIP)" : ""}`);
           emailSent = true;
+        }
+        
+        if (emailSent) {
           await adminClient
             .from("surveys")
             .update({ email_sent: true })
@@ -632,6 +828,9 @@ Deno.serve(async (req) => {
         console.error("Email error (non-blocking):", emailErr);
       }
     }
+
+    // Free ZIP memory
+    zipBytes = null;
 
     return new Response(
       JSON.stringify({
