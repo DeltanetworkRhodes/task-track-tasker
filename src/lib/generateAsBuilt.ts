@@ -168,8 +168,8 @@ export async function generateAsBuilt(srId: string): Promise<void> {
         });
         // Place in the ΟΡΙΖΟΝΤΟΓΡΑΦΙΑ area (approximate rows 35-55, columns A-T)
         epimetrisiSheet.addImage(imageId, {
-          tl: { col: 0, row: 34 },
-          br: { col: 19, row: 54 },
+          tl: { col: 0, row: 34, nativeCol: 0, nativeColOff: 0, nativeRow: 34, nativeRowOff: 0 } as any,
+          br: { col: 19, row: 54, nativeCol: 19, nativeColOff: 0, nativeRow: 54, nativeRowOff: 0 } as any,
         });
       }
     }
