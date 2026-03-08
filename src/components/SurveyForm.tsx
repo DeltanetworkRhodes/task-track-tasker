@@ -231,21 +231,80 @@ const SurveyForm = ({ assignments, prefillSrId, prefillArea, onComplete }: Props
         return;
       }
 
-      // === ONLINE PATH (existing logic) ===
-      const { data: survey, error: surveyError } = await supabase
-        .from("surveys")
-        .insert({
-          sr_id: srId.trim(),
-          area,
-          technician_id: user!.id,
-          comments: comments.trim(),
-          status: autoStatus,
-          organization_id: organizationId,
-        })
-        .select("id")
-        .single();
+      // === ONLINE PATH ===
+      // Check for existing incomplete survey for this SR
+      let survey: { id: string };
+      let mergedIntoExisting = false;
 
-      if (surveyError) throw surveyError;
+      const { data: existingSurvey } = await supabase
+        .from("surveys")
+        .select("id, status")
+        .eq("sr_id", srId.trim())
+        .eq("technician_id", user!.id)
+        .eq("status", "ΕΛΛΙΠΗΣ ΑΥΤΟΨΙΑ")
+        .maybeSingle();
+
+      if (existingSurvey) {
+        // Merge into existing incomplete survey
+        survey = existingSurvey;
+        mergedIntoExisting = true;
+
+        // Update status and comments
+        await supabase
+          .from("surveys")
+          .update({
+            status: autoStatus,
+            comments: comments.trim(),
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", existingSurvey.id);
+
+        // Delete old files from storage & DB to replace with new ones
+        const { data: oldFiles } = await supabase
+          .from("survey_files")
+          .select("id, file_path, file_type")
+          .eq("survey_id", existingSurvey.id);
+
+        if (oldFiles && oldFiles.length > 0) {
+          // Only replace file types that the user is uploading now
+          const uploadingTypes = new Set<string>();
+          if (buildingPhotos.length > 0) uploadingTypes.add("building_photo");
+          if (screenshots.length > 0) uploadingTypes.add("screenshot");
+          if (inspectionPdf) uploadingTypes.add("inspection_pdf");
+
+          const filesToReplace = oldFiles.filter((f) => uploadingTypes.has(f.file_type));
+          if (filesToReplace.length > 0) {
+            // Remove from storage
+            const pathsToRemove = filesToReplace.map((f) => f.file_path);
+            await supabase.storage.from("surveys").remove(pathsToRemove);
+            // Remove DB records
+            const idsToRemove = filesToReplace.map((f) => f.id);
+            await supabase.from("survey_files").delete().in("id", idsToRemove);
+          }
+        }
+
+        toast.info("Βρέθηκε υπάρχων φάκελος αναμονής. Τα αρχεία ενημερώθηκαν.", {
+          icon: "📂",
+          duration: 5000,
+        });
+      } else {
+        // Create new survey
+        const { data: newSurvey, error: surveyError } = await supabase
+          .from("surveys")
+          .insert({
+            sr_id: srId.trim(),
+            area,
+            technician_id: user!.id,
+            comments: comments.trim(),
+            status: autoStatus,
+            organization_id: organizationId,
+          })
+          .select("id")
+          .single();
+
+        if (surveyError) throw surveyError;
+        survey = newSurvey;
+      }
 
       const allFiles = [
         ...(await uploadFiles(buildingPhotos, survey.id, "building_photo")),
