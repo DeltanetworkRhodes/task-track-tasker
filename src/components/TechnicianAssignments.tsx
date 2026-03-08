@@ -847,18 +847,6 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
               />
             )}
 
-            {/* Inspection Report Form (inline in sheet) */}
-            {selectedAssignment && showInspectionReport && (
-              <InspectionReportForm
-                assignment={selectedAssignment}
-                surveyId={existingSurvey?.id}
-                onComplete={() => {
-                  queryClient.invalidateQueries({ queryKey: ["technician-assignments"] });
-                  handleInspectionComplete();
-                }}
-                onCancel={() => setShowInspectionReport(false)}
-              />
-            )}
             {/* Construction Form (inline in sheet) */}
             {selectedAssignment && showConstructionForm && (
               <ConstructionForm
