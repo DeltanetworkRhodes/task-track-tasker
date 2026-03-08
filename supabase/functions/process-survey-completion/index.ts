@@ -801,8 +801,8 @@ Deno.serve(async (req) => {
           emailPayload.cc = ccRecipients;
         }
 
-        // Attach ZIP if available
-        if (zipBytes && !zipTooLarge) {
+        // Attach ZIP if small enough for email, otherwise signed URL is already in the HTML
+        if (zipBytes && !zipTooLarge && !zipDownloadUrl) {
           emailPayload.attachments = [{
             filename: `Autopsía_${sr_id}.zip`,
             content: uint8ToBase64(zipBytes),
