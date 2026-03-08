@@ -448,16 +448,11 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
           )}
           <Button
             variant="outline"
-            className={`${btnClass} border-green-500/30 text-green-600 hover:bg-green-500/10`}
-            onClick={() => handleStatusChange(assignment.id, "pre_committed", assignment.status)}
-            disabled={updating === assignment.id}
+            className={`${btnClass} text-destructive border-destructive/30 hover:bg-destructive/10`}
+            onClick={() => { setShowCancelDialog(true); }}
           >
-            {updating === assignment.id ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <CheckCircle className="h-4 w-4" />
-            )}
-            ΟΚ → Προδέσμευση Υλικών
+            <XCircle className="h-4 w-4" />
+            Ακύρωση
           </Button>
           <Button
             variant="outline"
