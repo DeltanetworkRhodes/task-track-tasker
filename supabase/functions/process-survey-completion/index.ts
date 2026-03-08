@@ -354,7 +354,7 @@ function getZipFolder(fileType: string): string {
   }
 }
 
-const MAX_ZIP_SIZE_FOR_EMAIL = 15 * 1024 * 1024; // 15MB safe limit to stay within Edge Function memory
+const MAX_ZIP_SIZE_FOR_EMAIL = 15 * 1024 * 1024; // kept for logging reference
 
 // ─── Main handler ────────────────────────────────────────────────────
 
@@ -704,8 +704,7 @@ Deno.serve(async (req) => {
         const emailSignature = emailSettingsMap["email_signature"] || DEFAULT_SIGNATURE;
         const surveyComments = survey?.comments || "";
 
-        // Determine if we show download link or ZIP attachment
-        const hasZipAttachment = zipBytes && !zipTooLarge && !zipDownloadUrl;
+        // Always show download link, never attach ZIP
         const showDownloadLink = !!zipDownloadUrl;
 
         const emailHtml = `
@@ -767,10 +766,6 @@ Deno.serve(async (req) => {
                 <p style="color: #dc2626; font-size: 14px; margin: 0;">${missingTypes.map(t => t === "building_photo" ? "Φωτογραφίες κτιρίου" : t === "screenshot" ? "Screenshots" : t).join(", ")}</p>
               </div>` : ""}
 
-              ${hasZipAttachment ? `
-              <div style="background: #f0faf8; border-left: 4px solid ${brandTeal}; padding: 14px 18px; margin: 20px 0; border-radius: 0 8px 8px 0;">
-                <p style="font-weight: 700; color: ${textPrimary}; font-size: 13px; margin: 0;">📎 Τα αρχεία αυτοψίας επισυνάπτονται ως ZIP</p>
-              </div>` : ""}
 
               ${showDownloadLink ? `
               <div style="text-align: center; margin: 24px 0;">
@@ -801,15 +796,6 @@ Deno.serve(async (req) => {
           emailPayload.cc = ccRecipients;
         }
 
-        // Attach ZIP if small enough for email, otherwise signed URL is already in the HTML
-        if (zipBytes && !zipTooLarge && !zipDownloadUrl) {
-          emailPayload.attachments = [{
-            filename: `Autopsía_${sr_id}.zip`,
-            content: uint8ToBase64(zipBytes),
-          }];
-          console.log(`Attaching ZIP to email: ${(zipBytes.length / 1024 / 1024).toFixed(1)}MB`);
-        }
-
         const emailRes = await fetch("https://api.resend.com/emails", {
           method: "POST",
           headers: {
@@ -822,32 +808,8 @@ Deno.serve(async (req) => {
         if (!emailRes.ok) {
           const errText = await emailRes.text();
           console.error("Resend error:", errText);
-          
-          // If email fails due to size, retry without attachment — signed URL is already in the HTML
-          if (zipBytes && errText.includes("size")) {
-            console.log("Retrying email without ZIP attachment, using signed download URL...");
-            delete emailPayload.attachments;
-            if (zipDownloadUrl) {
-              emailPayload.html = emailPayload.html.replace(
-                "📎 Τα αρχεία αυτοψίας επισυνάπτονται ως ZIP",
-                `📥 <a href="${zipDownloadUrl}">Λήψη Αρχείων (ZIP)</a> — Ισχύει 7 ημέρες`
-              );
-            }
-            const retryRes = await fetch("https://api.resend.com/emails", {
-              method: "POST",
-              headers: {
-                Authorization: `Bearer ${resendApiKey}`,
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify(emailPayload),
-            });
-            if (retryRes.ok) {
-              emailSent = true;
-              console.log("Email sent (without ZIP, Drive link fallback)");
-            }
-          }
         } else {
-          console.log(`Email sent to: ${recipients.join(", ")}${zipBytes ? " (with ZIP)" : ""}`);
+          console.log(`Email sent to: ${recipients.join(", ")} (download link: ${showDownloadLink})`);
           emailSent = true;
         }
         
