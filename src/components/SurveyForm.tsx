@@ -289,6 +289,48 @@ const SurveyForm = ({ assignments, prefillSrId, prefillArea, onComplete }: Props
         accept="image/*"
       />
 
+      {/* ΔΕΛΤΙΟ ΑΥΤΟΨΙΑΣ PDF */}
+      <Card className="p-4 space-y-3">
+        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          Δελτίο Αυτοψίας (PDF)
+        </Label>
+        <input
+          ref={pdfRef}
+          type="file"
+          accept=".pdf"
+          className="hidden"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) setInspectionPdf(f);
+            e.target.value = "";
+          }}
+        />
+        {inspectionPdf ? (
+          <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+            <FileText className="h-5 w-5 text-primary shrink-0" />
+            <span className="text-sm truncate flex-1">{inspectionPdf.name}</span>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6"
+              onClick={() => setInspectionPdf(null)}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        ) : (
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full gap-2"
+            onClick={() => pdfRef.current?.click()}
+          >
+            <Upload className="h-4 w-4" />
+            Ανέβασμα Δελτίου Αυτοψίας
+          </Button>
+        )}
+      </Card>
 
       {/* ΣΧΟΛΙΑ */}
       <Card className="p-4 space-y-3">
