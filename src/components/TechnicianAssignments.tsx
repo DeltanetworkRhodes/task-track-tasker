@@ -58,9 +58,7 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
   const [cancelling, setCancelling] = useState(false);
-  const [uploadingGis, setUploadingGis] = useState(false);
-  const gisFileInputRef = useRef<HTMLInputElement>(null);
-  const queryClient = useQueryClient();
+  const [uploadingGis] = useState(false);
 
   // Fetch existing survey for selected assignment
   const { data: existingSurvey } = useQuery({
