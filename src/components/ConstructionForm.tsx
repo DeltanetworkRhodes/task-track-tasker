@@ -494,7 +494,16 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
     
     // Compress all photos in parallel
     const compressed = await Promise.all(files.map((f) => compressImage(f)));
-    
+
+    // Apply watermark
+    const wmData: WatermarkData = {
+      srId: assignment?.sr_id || "—",
+      address: assignment?.address || undefined,
+      latitude: assignment?.latitude,
+      longitude: assignment?.longitude,
+      datetime: new Date(),
+    };
+    const watermarked = await Promise.all(compressed.map((f) => applyWatermark(f, wmData)));
     // AI analysis for each photo (only when online)
     const accepted: File[] = [];
     const acceptedPreviews: string[] = [];
