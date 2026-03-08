@@ -164,12 +164,10 @@ const CreateAssignmentDialog = ({ open, onOpenChange }: Props) => {
             <SmartAddressLookup
               value={form.address}
               onChange={(addr) => update("address", addr)}
-              onBuildingSelect={(building) => {
-                if (building) {
-                  if (building.cabinet) update("cab", building.cabinet);
-                }
+              onLocationSelect={(result) => {
+                update("address", result.address);
+                if (result.latitude) setLatLng({ lat: result.latitude, lng: result.longitude });
               }}
-              organizationId={organizationId}
             />
           </div>
 
