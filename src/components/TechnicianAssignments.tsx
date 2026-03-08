@@ -18,8 +18,6 @@ import SurveyForm from "@/components/SurveyForm";
 import IncompleteSurveys from "@/components/IncompleteSurveys";
 import ConstructionForm from "@/components/ConstructionForm";
 import SRComments from "@/components/SRComments";
-import InspectionReportForm from "@/components/InspectionReportForm";
-import InspectionReportViewer from "@/components/InspectionReportViewer";
 
 const statusFlow: { value: string; label: string }[] = [
   { value: "pending", label: "Αναμονή" },
@@ -56,13 +54,13 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
   const [selectedAssignment, setSelectedAssignment] = useState<any | null>(null);
   const [showSurveyForm, setShowSurveyForm] = useState(false);
   const [showConstructionForm, setShowConstructionForm] = useState(false);
-  const [showInspectionReport, setShowInspectionReport] = useState(false);
-  const [showInspectionViewer, setShowInspectionViewer] = useState(false);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
   const [cancelling, setCancelling] = useState(false);
   const [uploadingGis, setUploadingGis] = useState(false);
+  const [uploadingPdf, setUploadingPdf] = useState(false);
   const gisFileInputRef = useRef<HTMLInputElement>(null);
+  const pdfFileInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
 
   // Fetch existing survey for selected assignment
@@ -236,19 +234,39 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
     if (assignment.status === "pending") {
       await handleStatusChange(assignment.id, "inspection", assignment.status);
     }
-    // If no existing survey, show inspection report form first
-    // If survey already exists, go directly to survey form
-    if (!existingSurvey) {
-      setShowInspectionReport(true);
-    } else {
-      setShowSurveyForm(true);
-    }
+    setShowSurveyForm(true);
   };
 
-  // Called when inspection report is saved/submitted — proceed to survey form
-  const handleInspectionComplete = () => {
-    setShowInspectionReport(false);
-    setShowSurveyForm(true);
+  const handlePdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !selectedAssignment) return;
+    e.target.value = "";
+    setUploadingPdf(true);
+    try {
+      const filePath = `inspection-pdfs/${selectedAssignment.organization_id || "default"}/${selectedAssignment.sr_id}_${Date.now()}.pdf`;
+      const { error: uploadError } = await supabase.storage
+        .from("surveys")
+        .upload(filePath, file, { contentType: "application/pdf", upsert: true });
+      if (uploadError) throw uploadError;
+
+      const { data: signedData } = await supabase.storage
+        .from("surveys")
+        .createSignedUrl(filePath, 60 * 60 * 24 * 365);
+
+      const { error: updateError } = await supabase
+        .from("assignments")
+        .update({ pdf_url: signedData?.signedUrl || filePath })
+        .eq("id", selectedAssignment.id);
+      if (updateError) throw updateError;
+
+      queryClient.invalidateQueries({ queryKey: ["technician-assignments"] });
+      toast.success("Το δελτίο αυτοψίας ανέβηκε επιτυχώς");
+    } catch (err: any) {
+      console.error("PDF upload error:", err);
+      toast.error("Σφάλμα κατά το ανέβασμα: " + err.message);
+    } finally {
+      setUploadingPdf(false);
+    }
   };
 
   const handleSurveyComplete = () => {
@@ -423,6 +441,34 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
             <FileEdit className="h-4 w-4" />
             {existingSurvey ? "Συνέχεια Αυτοψίας" : "Έναρξη Αυτοψίας"}
           </Button>
+          <input
+            ref={pdfFileInputRef}
+            type="file"
+            accept=".pdf"
+            className="hidden"
+            onChange={handlePdfUpload}
+          />
+          <Button
+            size="sm"
+            variant="outline"
+            className="w-full gap-2 border-primary/30 text-primary hover:bg-primary/10"
+            onClick={() => pdfFileInputRef.current?.click()}
+            disabled={uploadingPdf}
+          >
+            {uploadingPdf ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+            {assignment.pdf_url ? "Αντικατάσταση Δελτίου" : "Ανέβασμα Δελτίου Αυτοψίας"}
+          </Button>
+          {assignment.pdf_url && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="w-full gap-2"
+              onClick={() => window.open(assignment.pdf_url, "_blank")}
+            >
+              <Eye className="h-4 w-4" />
+              Προβολή Δελτίου
+            </Button>
+          )}
           {existingSurvey && (
             <div className="flex gap-2 w-full">
               <Button
@@ -433,23 +479,6 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
               >
                 <FileEdit className="h-4 w-4" />
                 Αρχεία Αυτοψίας
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                className="gap-2"
-                onClick={() => setShowInspectionReport(true)}
-              >
-                <FileText className="h-4 w-4" />
-                Δελτίο
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                className="gap-2"
-                onClick={() => setShowInspectionViewer(true)}
-              >
-                <Eye className="h-4 w-4" />
               </Button>
             </div>
           )}
@@ -663,7 +692,7 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
       </div>
 
       {/* SR Detail Sheet */}
-      <Sheet open={!!selectedAssignment} onOpenChange={(open) => { if (!open) { setSelectedAssignment(null); setShowSurveyForm(false); setShowConstructionForm(false); setShowInspectionReport(false); } }}>
+      <Sheet open={!!selectedAssignment} onOpenChange={(open) => { if (!open) { setSelectedAssignment(null); setShowSurveyForm(false); setShowConstructionForm(false); } }}>
         <SheetContent side="bottom" className="h-[90vh] p-0">
           <SheetHeader className="px-4 pt-4 pb-2">
             <SheetTitle className="text-left">
@@ -675,7 +704,7 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
           </SheetHeader>
 
           <ScrollArea className="h-[calc(90vh-80px)] px-4 pb-6">
-            {selectedAssignment && !showSurveyForm && !showConstructionForm && !showInspectionReport && (
+            {selectedAssignment && !showSurveyForm && !showConstructionForm && (
               <div className="space-y-4">
                 {/* Status badge */}
                 <div className="flex items-center gap-2">
@@ -880,18 +909,6 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
               />
             )}
 
-            {/* Inspection Report Form (inline in sheet) */}
-            {selectedAssignment && showInspectionReport && (
-              <InspectionReportForm
-                assignment={selectedAssignment}
-                surveyId={existingSurvey?.id}
-                onComplete={() => {
-                  queryClient.invalidateQueries({ queryKey: ["technician-assignments"] });
-                  handleInspectionComplete();
-                }}
-                onCancel={() => setShowInspectionReport(false)}
-              />
-            )}
             {/* Construction Form (inline in sheet) */}
             {selectedAssignment && showConstructionForm && (
               <ConstructionForm
@@ -947,15 +964,6 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
         </DialogContent>
       </Dialog>
 
-      {/* Inspection Report Viewer */}
-      {selectedAssignment && (
-        <InspectionReportViewer
-          assignmentId={selectedAssignment.id}
-          srId={selectedAssignment.sr_id}
-          open={showInspectionViewer}
-          onOpenChange={setShowInspectionViewer}
-        />
-      )}
     </>
   );
 };
