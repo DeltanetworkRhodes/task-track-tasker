@@ -473,8 +473,16 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
     }
 
     if (status === "pre_committed") {
+      const hasGis = existingGisData || gisAssignmentIds?.includes(assignment.id);
       return (
         <div className="space-y-2">
+          {/* Show construction form button only when GIS exists */}
+          {hasGis && (
+            <Button size="sm" className="w-full gap-2" onClick={() => setShowConstructionForm(true)}>
+              <HardHat className="h-4 w-4" />
+              Φόρμα Κατασκευής
+            </Button>
+          )}
           <input
             ref={gisFileInputRef}
             type="file"
@@ -491,10 +499,12 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
           >
             {uploadingGis ? (
               <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
+            ) : hasGis ? (
               <FileSpreadsheet className="h-4 w-4" />
+            ) : (
+              <Upload className="h-4 w-4" />
             )}
-            {uploadingGis ? "Ανάλυση GIS..." : "Αντικατάσταση GIS"}
+            {uploadingGis ? "Ανάλυση GIS..." : hasGis ? "Αντικατάσταση GIS" : "Upload Προδέσμευσης GIS"}
           </Button>
           <Button
             size="sm"
