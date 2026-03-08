@@ -67,7 +67,6 @@ export const statusLabels: Record<string, string> = {
   pending: 'Αναμονή',
   inspection: 'Αυτοψία',
   pre_committed: 'Προδέσμευση',
-  waiting_ote: 'Αναμονή ΟΤΕ',
   construction: 'Κατασκευή',
   completed: 'Ολοκληρώθηκε',
   cancelled: 'Ακυρωμένο',
