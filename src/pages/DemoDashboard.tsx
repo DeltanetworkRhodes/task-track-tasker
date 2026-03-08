@@ -170,28 +170,21 @@ const DemoSidebar = ({
   );
 };
 
-// ─── Demo Admin Content for non-dashboard sections ───
-const DemoSectionPlaceholder = ({ section }: { section: string }) => {
-  const item = DEMO_NAV_ITEMS.find(i => i.key === section);
-  const Icon = item?.icon || LayoutDashboard;
-  return (
-    <div className="flex flex-col items-center justify-center py-20 text-center space-y-4">
-      <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10">
-        <Icon className="h-8 w-8 text-primary" />
-      </div>
-      <h2 className="text-lg font-bold text-foreground">{item?.label || section}</h2>
-      <p className="text-sm text-muted-foreground max-w-md">
-        Αυτή η σελίδα είναι πλήρως λειτουργική στην πραγματική εφαρμογή.
-        Στο Demo Mode εμφανίζεται μόνο η δομή πλοήγησης.
-      </p>
-      <button
-        onClick={() => toast.info("Λειτουργία Demo — Δεν υπάρχουν πραγματικά δεδομένα")}
-        className="rounded-xl border border-border px-4 py-2 text-xs text-muted-foreground hover:bg-muted transition-colors"
-      >
-        Δοκιμή Αλληλεπίδρασης
-      </button>
-    </div>
-  );
+// ─── Section router for admin demo ───
+const DemoSectionRouter = ({ section }: { section: string }) => {
+  switch (section) {
+    case "assignments": return <DemoAssignmentsPanel />;
+    case "construction": return <DemoConstructionsPanel />;
+    case "materials": return <DemoMaterialsPanel />;
+    case "work-pricing": return <DemoWorkPricingPanel />;
+    case "profit": return <DemoProfitPanel />;
+    case "kpis": return <DemoKPIsPanel />;
+    case "surveys": return <DemoSurveysPanel />;
+    case "calendar": return <DemoCalendarPanel />;
+    case "users": return <DemoUsersPanel />;
+    case "settings": return <DemoSettingsPanel />;
+    default: return null;
+  }
 };
 
 // ─── Admin Dashboard Panel ───
