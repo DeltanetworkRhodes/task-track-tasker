@@ -508,8 +508,8 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
     const accepted: File[] = [];
     const acceptedPreviews: string[] = [];
 
-    for (let i = 0; i < compressed.length; i++) {
-      const file = compressed[i];
+    for (let i = 0; i < watermarked.length; i++) {
+      const file = watermarked[i];
       const existingCount = (categorizedPhotos[category] || []).length;
       const idx = existingCount + accepted.length;
 
