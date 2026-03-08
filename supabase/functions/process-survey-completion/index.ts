@@ -704,8 +704,7 @@ Deno.serve(async (req) => {
         const emailSignature = emailSettingsMap["email_signature"] || DEFAULT_SIGNATURE;
         const surveyComments = survey?.comments || "";
 
-        // Determine if we show download link or ZIP attachment
-        const hasZipAttachment = zipBytes && !zipTooLarge && !zipDownloadUrl;
+        // Always show download link, never attach ZIP
         const showDownloadLink = !!zipDownloadUrl;
 
         const emailHtml = `
