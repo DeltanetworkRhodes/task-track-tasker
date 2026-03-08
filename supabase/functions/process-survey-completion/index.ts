@@ -354,7 +354,7 @@ function getZipFolder(fileType: string): string {
   }
 }
 
-const MAX_ZIP_SIZE_FOR_EMAIL = 38 * 1024 * 1024; // 38MB safe limit for Resend (under 40MB)
+const MAX_ZIP_SIZE_FOR_EMAIL = 15 * 1024 * 1024; // 15MB safe limit to stay within Edge Function memory
 
 // ─── Main handler ────────────────────────────────────────────────────
 
