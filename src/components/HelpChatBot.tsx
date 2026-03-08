@@ -111,7 +111,7 @@ export default function HelpChatBot() {
   }
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 flex w-[360px] max-w-[calc(100vw-2rem)] flex-col rounded-2xl border border-border bg-card shadow-2xl overflow-hidden" style={{ height: "min(520px, calc(100vh - 6rem))" }}>
+    <div className="fixed bottom-6 right-6 z-50 hidden lg:flex w-[360px] max-w-[calc(100vw-2rem)] flex-col rounded-2xl border border-border bg-card shadow-2xl overflow-hidden" style={{ height: "min(520px, calc(100vh - 6rem))" }}>
       {/* Header */}
       <div className="flex items-center justify-between gap-2 border-b border-border bg-primary px-4 py-3">
         <div className="flex items-center gap-2">
