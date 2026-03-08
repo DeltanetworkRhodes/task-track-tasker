@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { compressImages, formatFileSize } from "@/lib/imageCompression";
+import { applyWatermarkBatch, type WatermarkData } from "@/lib/watermark";
 import { enqueueSurvey, fileToOfflineFile, isOnline } from "@/lib/offlineQueue";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { usePhotoAnalysis, type PhotoAnalysisResult } from "@/hooks/usePhotoAnalysis";
