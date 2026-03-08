@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { PDFDocument } from "https://esm.sh/pdf-lib@1.17.1";
+import { zipSync } from "https://esm.sh/fflate@0.8.2";
 
 function uint8ToBase64(bytes: Uint8Array): string {
   let binary = "";
@@ -633,8 +634,10 @@ Deno.serve(async (req) => {
       }
       
       if (zipFiles.length > 0) {
-        zipBytes = buildZipStore(zipFiles);
-        console.log(`Built ZIP: ${zipFiles.length} files, ${(zipBytes.length / 1024 / 1024).toFixed(1)}MB`);
+        const zipInput: Record<string, Uint8Array> = {};
+        for (const file of zipFiles) zipInput[file.name] = file.data;
+        zipBytes = zipSync(zipInput, { level: 0 });
+        console.log(`Built ZIP: ${zipFiles.length} files, ${(zipBytes.length / 1024 / 1024).toFixed(1)}MB, root=${rootFolder}`);
 
         // Always upload ZIP to storage for signed URL
         const safeSrId = sr_id.replace(/[^a-zA-Z0-9_-]/g, "_");
