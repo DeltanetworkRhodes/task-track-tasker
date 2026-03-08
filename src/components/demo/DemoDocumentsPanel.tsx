@@ -145,7 +145,7 @@ const DemoDocumentsPanel = () => {
                 <div className="flex items-center gap-2 px-3 py-2 bg-muted/30 border-b border-border">
                   <Image className="h-4 w-4 text-muted-foreground" />
                   <span className="text-xs font-medium text-foreground">Σκαρίφημα (Preview)</span>
-                  <Badge variant="outline" className="text-[9px] ml-auto">demo placeholder</Badge>
+                  <Badge variant="outline" className="text-[9px] ml-auto">auto-generated</Badge>
                 </div>
                 <div className="p-2 bg-background">
                   <img
