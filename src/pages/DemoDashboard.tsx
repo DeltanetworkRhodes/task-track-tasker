@@ -3,6 +3,11 @@ import { useDemo } from "@/contexts/DemoContext";
 import { useNavigate } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LogOut, ClipboardList, AlertTriangle, Shield, Wrench, Euro, TrendingUp, Timer, FolderOpen, Activity, CalendarDays, PieChart as PieChartIcon, LayoutDashboard, Search, Package, FileText, BarChart3, UserCog, Settings, Menu, X, Sun, Moon } from "lucide-react";
+import {
+  DemoAssignmentsPanel, DemoConstructionsPanel, DemoMaterialsPanel,
+  DemoWorkPricingPanel, DemoProfitPanel, DemoKPIsPanel, DemoSurveysPanel,
+  DemoCalendarPanel, DemoUsersPanel, DemoSettingsPanel
+} from "@/components/demo/DemoSectionPanels";
 import TechnicianAssignments from "@/components/TechnicianAssignments";
 import StatCard from "@/components/StatCard";
 import { statusLabels } from "@/data/mockData";
