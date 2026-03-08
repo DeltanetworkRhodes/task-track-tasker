@@ -869,6 +869,12 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
             )}
           </ScrollArea>
 
+          {/* Fixed action buttons at bottom — scrollable if many */}
+          {selectedAssignment && !showSurveyForm && !showConstructionForm && (
+            <div className="shrink-0 border-t border-border bg-card px-4 py-3 safe-bottom max-h-[40vh] overflow-y-auto">
+              {renderStatusAction(selectedAssignment)}
+            </div>
+          )}
         </SheetContent>
       </Sheet>
 
