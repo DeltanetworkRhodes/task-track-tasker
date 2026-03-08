@@ -246,7 +246,7 @@ const IncompleteSurveys = ({ filterSrId }: { filterSrId?: string }) => {
             <div>
               <h3 className="text-sm font-bold text-foreground">Αρχεία Αυτοψίας</h3>
               <p className="text-[10px] text-muted-foreground">
-                {missingTypes.length > 0 ? `${3 - missingTypes.length}/3 αρχεία` : "Όλα τα αρχεία"}
+                {missingTypes.length > 0 ? `${REQUIRED_TYPES.length - missingTypes.length}/${REQUIRED_TYPES.length} αρχεία` : "Όλα τα αρχεία"}
               </p>
             </div>
           </div>
