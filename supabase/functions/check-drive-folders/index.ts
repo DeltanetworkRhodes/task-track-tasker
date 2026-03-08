@@ -56,7 +56,6 @@ async function getAccessToken(serviceAccountKey: any): Promise<string> {
 
 const SHARED_DRIVE_ID = "0AN9VpmNEa7QBUk9PVA";
 
-// Search folders that may contain SR subfolders
 const SEARCH_FOLDER_IDS = [
   "1JvcSG3tiOplSujXhb3yj_ELQLjfrgOzO", // ΡΟΔΟΣ
   "1X1mtK4tV_sgGM9IdizNSK7AS19qX1nYl", // ΚΩΣ
@@ -77,6 +76,35 @@ async function driveSearchFolder(accessToken: string, srId: string): Promise<boo
     if (!res.ok) continue;
     const data = await res.json();
     if (data.files && data.files.length > 0) return true;
+  }
+  return false;
+}
+
+// Check if a Drive folder has any files (not just subfolders)
+async function driveFolderHasFiles(accessToken: string, srId: string): Promise<boolean> {
+  // First find the folder
+  for (const folderId of SEARCH_FOLDER_IDS) {
+    const query = `name contains '${srId}' and '${folderId}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`;
+    const url = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&fields=files(id)&pageSize=1&supportsAllDrives=true&includeItemsFromAllDrives=true&corpora=drive&driveId=${SHARED_DRIVE_ID}`;
+    
+    const res = await fetch(url, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (!res.ok) continue;
+    const data = await res.json();
+    if (data.files && data.files.length > 0) {
+      const srFolderId = data.files[0].id;
+      // Check for any files recursively inside this folder (files + subfolders' files)
+      const filesQuery = `'${srFolderId}' in parents and trashed = false`;
+      const filesUrl = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(filesQuery)}&fields=files(id,mimeType)&pageSize=5&supportsAllDrives=true&includeItemsFromAllDrives=true&corpora=drive&driveId=${SHARED_DRIVE_ID}`;
+      const filesRes = await fetch(filesUrl, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      if (!filesRes.ok) continue;
+      const filesData = await filesRes.json();
+      // Has content (files or subfolders with content)
+      return filesData.files && filesData.files.length > 0;
+    }
   }
   return false;
 }
@@ -125,38 +153,29 @@ Deno.serve(async (req) => {
     const serviceAccountKey = JSON.parse(serviceAccountKeyStr);
     const accessToken = await getAccessToken(serviceAccountKey);
 
-    // Fetch assignments in target statuses
-    const targetStatuses = ["pre_committed", "waiting_ote", "construction"];
-    const { data: assignments, error: fetchErr } = await supabase
+    // === PART 1: Check advanced statuses for MISSING folders → revert to inspection ===
+    const revertStatuses = ["pre_committed", "waiting_ote", "construction"];
+    const { data: advancedAssignments, error: fetchErr1 } = await supabase
       .from("assignments")
-      .select("id, sr_id, status, area, customer_name, technician_id, organization_id")
-      .in("status", targetStatuses);
+      .select("id, sr_id, status, area, customer_name, technician_id, organization_id, comments")
+      .in("status", revertStatuses);
 
-    if (fetchErr) throw fetchErr;
-    if (!assignments || assignments.length === 0) {
-      return new Response(
-        JSON.stringify({ checked: 0, reverted: 0, details: [] }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    console.log(`Checking ${assignments.length} assignments for Drive folders...`);
+    if (fetchErr1) throw fetchErr1;
 
     const reverted: any[] = [];
 
-    for (const assignment of assignments) {
+    for (const assignment of (advancedAssignments || [])) {
       const found = await driveSearchFolder(accessToken, assignment.sr_id);
       
       if (!found) {
         console.log(`Drive folder MISSING for SR ${assignment.sr_id} (${assignment.status}) → reverting to inspection`);
 
-        // Revert to inspection
         const { error: updateErr } = await supabase
           .from("assignments")
           .update({ 
             status: "inspection",
-            comments: (assignment as any).comments 
-              ? `${(assignment as any).comments}\n\n[ΑΥΤΟΜΑΤΟ]: Επαναφορά σε αυτοψία - Λείπει ο φάκελος Google Drive`
+            comments: assignment.comments 
+              ? `${assignment.comments}\n\n[ΑΥΤΟΜΑΤΟ]: Επαναφορά σε αυτοψία - Λείπει ο φάκελος Google Drive`
               : `[ΑΥΤΟΜΑΤΟ]: Επαναφορά σε αυτοψία - Λείπει ο φάκελος Google Drive`
           })
           .eq("id", assignment.id);
@@ -166,7 +185,6 @@ Deno.serve(async (req) => {
           continue;
         }
 
-        // Notify technician
         if (assignment.technician_id) {
           await supabase.from("notifications").insert({
             user_id: assignment.technician_id,
@@ -185,13 +203,101 @@ Deno.serve(async (req) => {
       }
     }
 
-    console.log(`Done. Checked: ${assignments.length}, Reverted: ${reverted.length}`);
+    // === PART 2: Check pending/inspection assignments WITH Drive folders+files → promote to pre_committed ===
+    const promoteStatuses = ["pending", "inspection"];
+    const { data: earlyAssignments, error: fetchErr2 } = await supabase
+      .from("assignments")
+      .select("id, sr_id, status, area, customer_name, technician_id, organization_id, comments")
+      .in("status", promoteStatuses);
+
+    if (fetchErr2) throw fetchErr2;
+
+    const promoted: any[] = [];
+
+    for (const assignment of (earlyAssignments || [])) {
+      const hasFiles = await driveFolderHasFiles(accessToken, assignment.sr_id);
+      
+      if (hasFiles) {
+        console.log(`Drive folder WITH files found for SR ${assignment.sr_id} (${assignment.status}) → promoting to pre_committed`);
+
+        const { error: updateErr } = await supabase
+          .from("assignments")
+          .update({ 
+            status: "pre_committed",
+            comments: assignment.comments 
+              ? `${assignment.comments}\n\n[ΑΥΤΟΜΑΤΟ]: Προαγωγή σε Προδέσμευση - Βρέθηκε φάκελος Google Drive με αρχεία`
+              : `[ΑΥΤΟΜΑΤΟ]: Προαγωγή σε Προδέσμευση - Βρέθηκε φάκελος Google Drive με αρχεία`
+          })
+          .eq("id", assignment.id);
+
+        if (updateErr) {
+          console.error(`Failed to promote ${assignment.sr_id}:`, updateErr);
+          continue;
+        }
+
+        // Auto-fetch Drive folder URLs for the promoted assignment
+        try {
+          const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+          // Use google-drive-files to get folder URLs
+          for (const folderId of SEARCH_FOLDER_IDS) {
+            const query = `name contains '${assignment.sr_id}' and '${folderId}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`;
+            const url = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&fields=files(id,name,webViewLink)&pageSize=1&supportsAllDrives=true&includeItemsFromAllDrives=true&corpora=drive&driveId=${SHARED_DRIVE_ID}`;
+            const res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+            if (!res.ok) continue;
+            const data = await res.json();
+            if (data.files && data.files.length > 0) {
+              const srFolder = data.files[0];
+              // Find ΕΓΓΡΑΦΑ and ΠΡΟΜΕΛΕΤΗ subfolders
+              const subQuery = `'${srFolder.id}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`;
+              const subUrl = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(subQuery)}&fields=files(id,name,webViewLink)&pageSize=10&supportsAllDrives=true&includeItemsFromAllDrives=true&corpora=drive&driveId=${SHARED_DRIVE_ID}`;
+              const subRes = await fetch(subUrl, { headers: { Authorization: `Bearer ${accessToken}` } });
+              let egrafaUrl = null, promeletiUrl = null;
+              if (subRes.ok) {
+                const subData = await subRes.json();
+                for (const sub of (subData.files || [])) {
+                  if (sub.name === "ΕΓΓΡΑΦΑ") egrafaUrl = sub.webViewLink;
+                  if (sub.name === "ΠΡΟΜΕΛΕΤΗ") promeletiUrl = sub.webViewLink;
+                }
+              }
+              await supabase.from("assignments").update({
+                drive_folder_url: srFolder.webViewLink || null,
+                drive_egrafa_url: egrafaUrl,
+                drive_promeleti_url: promeletiUrl,
+              }).eq("id", assignment.id);
+              break;
+            }
+          }
+        } catch (driveErr) {
+          console.error(`Drive URL fetch error for ${assignment.sr_id}:`, driveErr);
+        }
+
+        if (assignment.technician_id) {
+          await supabase.from("notifications").insert({
+            user_id: assignment.technician_id,
+            title: "Προαγωγή σε Προδέσμευση",
+            message: `Το SR ${assignment.sr_id} (${assignment.area}) προχώρησε αυτόματα σε Προδέσμευση Υλικών - βρέθηκε φάκελος Drive.`,
+            data: { assignment_id: assignment.id, sr_id: assignment.sr_id },
+            organization_id: assignment.organization_id,
+          });
+        }
+
+        promoted.push({
+          sr_id: assignment.sr_id,
+          area: assignment.area,
+          old_status: assignment.status,
+        });
+      }
+    }
+
+    console.log(`Done. Reverted: ${reverted.length}, Promoted: ${promoted.length}`);
 
     return new Response(
       JSON.stringify({
-        checked: assignments.length,
+        checked: (advancedAssignments?.length || 0) + (earlyAssignments?.length || 0),
         reverted: reverted.length,
-        details: reverted,
+        promoted: promoted.length,
+        revertDetails: reverted,
+        promoteDetails: promoted,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
