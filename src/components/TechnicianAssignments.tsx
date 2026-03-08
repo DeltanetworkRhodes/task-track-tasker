@@ -467,35 +467,19 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
       const hasGis = existingGisData || gisAssignmentIds?.includes(assignment.id);
       return (
         <div className="space-y-3">
+          {/* Prominent GIS upload when missing */}
+          <GisUploadCard
+            assignment={assignment}
+            hasExistingGis={!!hasGis}
+            onUploadSuccess={handleGisUploadSuccess}
+          />
           {/* Show construction form button only when GIS exists */}
           {hasGis && (
             <Button className={btnClass} onClick={() => setShowConstructionForm(true)}>
               <HardHat className="h-4 w-4" />
-              Φόρμα Κατασκευής
+              Έναρξη Κατασκευής
             </Button>
           )}
-          <input
-            ref={gisFileInputRef}
-            type="file"
-            accept=".xlsx"
-            className="hidden"
-            onChange={handleGisUpload}
-          />
-          <Button
-            variant="outline"
-            className={`${btnClass} border-blue-500/30 text-blue-600 hover:bg-blue-500/10`}
-            onClick={() => gisFileInputRef.current?.click()}
-            disabled={uploadingGis}
-          >
-            {uploadingGis ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : hasGis ? (
-              <FileSpreadsheet className="h-4 w-4" />
-            ) : (
-              <Upload className="h-4 w-4" />
-            )}
-            {uploadingGis ? "Ανάλυση GIS..." : hasGis ? "Αντικατάσταση GIS" : "Upload Προδέσμευσης GIS"}
-          </Button>
           <Button
             variant="outline"
             className={`${btnClass} text-destructive border-destructive/30 hover:bg-destructive/10`}
