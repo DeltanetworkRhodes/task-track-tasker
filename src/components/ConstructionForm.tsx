@@ -477,10 +477,7 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
     setMaterialItems((prev) => prev.map((m) => (m.material_id === id ? { ...m, quantity: qty } : m)));
   };
 
-  // Use shared compression utility
-  const { compressImage } = await import("@/lib/imageCompression").catch(() => ({
-    compressImage: (file: File) => Promise.resolve(file)
-  }));
+  // compressImage imported from shared utility
 
   // Photo handling per category
   const handleCategoryPhotoSelect = async (category: string, e: React.ChangeEvent<HTMLInputElement>) => {
