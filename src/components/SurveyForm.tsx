@@ -90,11 +90,29 @@ const SurveyForm = ({ assignments, prefillSrId, prefillArea, onComplete }: Props
       setCompressing((prev) => ({ ...prev, [category]: false }));
     }
 
-    const newFiles = processedFiles.map((file) => ({
-      file,
-      preview: URL.createObjectURL(file),
-    }));
-    setter([...current, ...newFiles]);
+    const accepted: FileUpload[] = [];
+    const photoType = CATEGORY_TO_PHOTO_TYPE[category] || "building_photo";
+    const startIndex = current.length;
+
+    for (let i = 0; i < processedFiles.length; i++) {
+      const file = processedFiles[i];
+      const preview = URL.createObjectURL(file);
+
+      // AI analysis only when online and for image files
+      if (isOnline() && file.type.startsWith("image/")) {
+        const result = await analyzePhoto(file, photoType, category, startIndex + i);
+        if (!result.isValid) {
+          URL.revokeObjectURL(preview);
+          continue; // Skip rejected photos
+        }
+      }
+
+      accepted.push({ file, preview });
+    }
+
+    if (accepted.length > 0) {
+      setter([...current, ...accepted]);
+    }
   };
 
   const removeFile = (
