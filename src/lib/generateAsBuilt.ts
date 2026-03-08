@@ -325,7 +325,8 @@ export async function generateAsBuilt(srId: string): Promise<AsBuiltResult> {
 /**
  * Generate from pre-built data (allows testing with mock data)
  */
-export async function generateAsBuiltFromData(data: AsBuiltData): Promise<void> {
+export async function generateAsBuiltFromData(data: AsBuiltData): Promise<AsBuiltResult> {
+  const warnings: string[] = [];
   // Load template
   const templateResp = await fetch("/templates/as_build_template.xlsx");
   if (!templateResp.ok) {
