@@ -704,9 +704,9 @@ Deno.serve(async (req) => {
         const emailSignature = emailSettingsMap["email_signature"] || DEFAULT_SIGNATURE;
         const surveyComments = survey?.comments || "";
 
-        // Determine if we show Drive fallback or ZIP info
-        const showDriveFallback = zipTooLarge && driveFolderUrl;
-        const hasZipAttachment = zipBytes && !zipTooLarge;
+        // Determine if we show download link or ZIP attachment
+        const hasZipAttachment = zipBytes && !zipTooLarge && !zipDownloadUrl;
+        const showDownloadLink = !!zipDownloadUrl;
 
         const emailHtml = `
           <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f5f7fa;">
