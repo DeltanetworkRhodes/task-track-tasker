@@ -159,8 +159,8 @@ const DemoDocumentsPanel = () => {
                 </div>
                 <div className="p-2 bg-background">
                   <img
-                    src={demoSketchUrl}
-                    alt="Demo Sketch - Σκαρίφημα"
+                    src={SKETCH_MAP[selectedSr.srId] || demoSketchSr01}
+                    alt={`Σκαρίφημα ${selectedSr.srId}`}
                     className="w-full h-auto rounded border border-border"
                   />
                 </div>
