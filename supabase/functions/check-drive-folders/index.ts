@@ -203,11 +203,12 @@ Deno.serve(async (req) => {
       }
     }
 
-    // === PART 2: Check pending/inspection assignments WITH Drive folders+files → promote to pre_committed ===
+    // === PART 2: Check pending/inspection assignments → promote to pre_committed ===
+    // First check DB for existing Drive URLs, then fallback to Drive API
     const promoteStatuses = ["pending", "inspection"];
     const { data: earlyAssignments, error: fetchErr2 } = await supabase
       .from("assignments")
-      .select("id, sr_id, status, area, customer_name, technician_id, organization_id, comments")
+      .select("id, sr_id, status, area, customer_name, technician_id, organization_id, comments, drive_folder_url, drive_egrafa_url, drive_promeleti_url")
       .in("status", promoteStatuses);
 
     if (fetchErr2) throw fetchErr2;
@@ -215,7 +216,9 @@ Deno.serve(async (req) => {
     const promoted: any[] = [];
 
     for (const assignment of (earlyAssignments || [])) {
-      const hasFiles = await driveFolderHasFiles(accessToken, assignment.sr_id);
+      // Fast path: if DB already has Drive URLs, promote immediately
+      const hasDbUrls = assignment.drive_folder_url || assignment.drive_egrafa_url || assignment.drive_promeleti_url;
+      const hasFiles = hasDbUrls || await driveFolderHasFiles(accessToken, assignment.sr_id);
       
       if (hasFiles) {
         console.log(`Drive folder WITH files found for SR ${assignment.sr_id} (${assignment.status}) → promoting to pre_committed`);
