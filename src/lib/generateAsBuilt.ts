@@ -312,9 +312,14 @@ function fillLabelsSheet(sheet: ExcelJS.Worksheet, data: AsBuiltData, filterType
    Main AS-BUILD Generator
    ──────────────────────────────────────────── */
 
-export async function generateAsBuilt(srId: string): Promise<void> {
+export interface AsBuiltResult {
+  success: boolean;
+  warnings: string[];
+}
+
+export async function generateAsBuilt(srId: string): Promise<AsBuiltResult> {
   const data = await fetchAsBuiltData(srId);
-  await generateAsBuiltFromData(data);
+  return generateAsBuiltFromData(data);
 }
 
 /**
