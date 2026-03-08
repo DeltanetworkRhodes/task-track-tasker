@@ -357,8 +357,8 @@ const IncompleteSurveys = ({ filterSrId }: { filterSrId?: string }) => {
                       inputRefs.current[inputKey] = el;
                     }}
                     type="file"
-                    accept="image/*"
-                    multiple
+                    accept={acceptTypes}
+                    multiple={mt.key !== "inspection_pdf"}
                     className="hidden"
                     onChange={(e) => {
                       handleFiles(survey.id, mt.key, e.target.files);
