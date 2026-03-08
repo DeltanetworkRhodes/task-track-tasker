@@ -398,7 +398,7 @@ const Surveys = () => {
             trendValue={totalBlockers > 0 ? "Χρειάζεται προσοχή" : "Όλα εντάξει"}
           />
         </div>
-        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
           <StatCard 
             title="Προδεσμεύσεις (SR)" 
             value={preCommittedCount} 
@@ -422,15 +422,6 @@ const Surveys = () => {
             icon={CalendarPlus} 
             trend={upcomingAppointments.length > 0 ? "up" : "neutral"}
             trendValue={upcomingAppointments.length > 0 ? `${upcomingAppointments.length} προγραμματισμένα` : "Κανένα ενεργό"}
-          />
-          <StatCard 
-            title="Ελλιπή Έγγραφα" 
-            value={incompleteSurveyAssignments + totalIncomplete} 
-            subtitle={`${totalIncomplete} αυτοψίες · ${incompleteSurveyAssignments} αναθέσεις`} 
-            icon={FileWarning} 
-            accent
-            trend={incompleteSurveyAssignments + totalIncomplete > 0 ? "down" : "neutral"}
-            trendValue={incompleteSurveyAssignments + totalIncomplete > 0 ? "Εκκρεμούν έγγραφα" : "Όλα πλήρη"}
           />
         </div>
 
