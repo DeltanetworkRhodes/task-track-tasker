@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { FileSpreadsheet } from "lucide-react";
 import { useDemo } from "@/contexts/DemoContext";
 import { useNavigate } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
