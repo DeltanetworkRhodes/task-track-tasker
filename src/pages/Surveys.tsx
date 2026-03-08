@@ -268,7 +268,7 @@ const Surveys = () => {
 
   // Status distribution chart — combines surveys + assignment statuses
   const assignmentStatusLabels: Record<string, string> = {
-    pre_committed: "Προδέσμευση",
+    pre_committed: "Προδέσμευση Υλικών",
     waiting_ote: "Αναμονή ΟΤΕ",
     inspection: "Αυτοψία",
     construction: "Κατασκευή",
@@ -285,7 +285,7 @@ const Surveys = () => {
   const statusCounts = useMemo(() => {
     // Survey statuses
     const counts: Record<string, { label: string; count: number; fill: string }> = {};
-    (surveys || []).forEach(s => {
+    (surveys || []).forEach((s) => {
       if (!counts[s.status]) {
         counts[s.status] = {
           label: statusConfig[s.status]?.label || s.status,
@@ -295,18 +295,26 @@ const Surveys = () => {
       }
       counts[s.status].count++;
     });
+
     // Assignment statuses (active only)
-    (dbAssignments || []).filter(a => a.status !== "cancelled" && a.status !== "completed").forEach(a => {
-      const key = `assign_${a.status}`;
-      if (!counts[key]) {
-        counts[key] = {
-          label: assignmentStatusLabels[a.status] || a.status,
-          count: 0,
-          fill: assignmentStatusColors[a.status] || "hsl(200 10% 60%)",
-        };
-      }
-      counts[key].count++;
-    });
+    (dbAssignments || [])
+      .filter((a) => a.status !== "cancelled" && a.status !== "completed")
+      .forEach((a) => {
+        const key = a.status === "pre_committed" ? "ΠΡΟΔΕΣΜΕΥΣΗ ΥΛΙΚΩΝ" : `assign_${a.status}`;
+        if (!counts[key]) {
+          counts[key] = {
+            label: key === "ΠΡΟΔΕΣΜΕΥΣΗ ΥΛΙΚΩΝ"
+              ? statusConfig["ΠΡΟΔΕΣΜΕΥΣΗ ΥΛΙΚΩΝ"].label
+              : assignmentStatusLabels[a.status] || a.status,
+            count: 0,
+            fill: key === "ΠΡΟΔΕΣΜΕΥΣΗ ΥΛΙΚΩΝ"
+              ? statusConfig["ΠΡΟΔΕΣΜΕΥΣΗ ΥΛΙΚΩΝ"].chartColor
+              : assignmentStatusColors[a.status] || "hsl(200 10% 60%)",
+          };
+        }
+        counts[key].count++;
+      });
+
     return Object.entries(counts).map(([status, data]) => ({
       status,
       label: data.label,
