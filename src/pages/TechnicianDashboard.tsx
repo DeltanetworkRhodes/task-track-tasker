@@ -42,6 +42,20 @@ const TechnicianDashboard = () => {
     enabled: !!user,
   });
 
+  const filteredAssignments = useMemo(() => {
+    let list = (assignments || []).filter(a => hideCancelled ? a.status !== "cancelled" : true);
+    const q = searchQuery.trim().toLowerCase();
+    if (q) {
+      list = list.filter(a =>
+        (a.sr_id && a.sr_id.toLowerCase().includes(q)) ||
+        (a.address && a.address.toLowerCase().includes(q)) ||
+        (a.area && a.area.toLowerCase().includes(q)) ||
+        (a.building_id_hemd && a.building_id_hemd.toLowerCase().includes(q))
+      );
+    }
+    return list;
+  }, [assignments, hideCancelled, searchQuery]);
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -80,8 +94,32 @@ const TechnicianDashboard = () => {
         </TabsList>
 
         <TabsContent value="assignments">
-          <div className="flex items-center justify-end mb-3">
-            <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
+          {/* Search Bar */}
+          <div className="relative mb-3">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Αναζήτηση SR, Διεύθυνση, Building ID..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 pr-9 h-10 text-sm"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+
+          <div className="flex items-center justify-between mb-3">
+            {searchQuery && (
+              <span className="text-xs text-muted-foreground">
+                {filteredAssignments.length} αποτέλεσμα{filteredAssignments.length !== 1 ? "τα" : ""}
+              </span>
+            )}
+            <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer ml-auto">
               <input
                 type="checkbox"
                 checked={hideCancelled}
@@ -91,10 +129,19 @@ const TechnicianDashboard = () => {
               Απόκρυψη ακυρωμένων
             </label>
           </div>
-          <TechnicianAssignments
-            assignments={(assignments || []).filter(a => hideCancelled ? a.status !== "cancelled" : true)}
-            loading={isLoading}
-          />
+
+          {searchQuery && filteredAssignments.length === 0 && !isLoading ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <Search className="h-10 w-10 text-muted-foreground/40 mb-3" />
+              <p className="text-sm font-medium text-muted-foreground">Δεν βρέθηκαν έργα με αυτά τα στοιχεία</p>
+              <p className="text-xs text-muted-foreground/60 mt-1">Δοκιμάστε διαφορετικούς όρους αναζήτησης</p>
+            </div>
+          ) : (
+            <TechnicianAssignments
+              assignments={filteredAssignments}
+              loading={isLoading}
+            />
+          )}
         </TabsContent>
 
         <TabsContent value="map">
