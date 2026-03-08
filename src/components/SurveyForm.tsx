@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { compressImages, formatFileSize } from "@/lib/imageCompression";
+import { applyWatermarkBatch, type WatermarkData } from "@/lib/watermark";
 import { enqueueSurvey, fileToOfflineFile, isOnline } from "@/lib/offlineQueue";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { usePhotoAnalysis, type PhotoAnalysisResult } from "@/hooks/usePhotoAnalysis";
@@ -80,6 +81,18 @@ const SurveyForm = ({ assignments, prefillSrId, prefillArea, onComplete }: Props
       setCompressing((prev) => ({ ...prev, [category]: true }));
       const originalSize = rawFiles.reduce((s, f) => s + f.size, 0);
       processedFiles = await compressImages(rawFiles);
+
+      // Apply watermark with SR context
+      const assignmentMatch = assignments?.find((a: any) => a.sr_id === srId.trim());
+      const wmData: WatermarkData = {
+        srId: srId.trim() || "—",
+        address: assignmentMatch?.address || undefined,
+        latitude: assignmentMatch?.latitude,
+        longitude: assignmentMatch?.longitude,
+        datetime: new Date(),
+      };
+      processedFiles = await applyWatermarkBatch(processedFiles, wmData);
+
       const compressedSize = processedFiles.reduce((s, f) => s + f.size, 0);
       setCompressionStats((prev) => ({
         ...prev,

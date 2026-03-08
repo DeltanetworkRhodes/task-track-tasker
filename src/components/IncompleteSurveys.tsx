@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Camera, Upload, X, ChevronDown, ChevronUp, Loader2, FileCheck, FileWarning, ImagePlus, Shrink } from "lucide-react";
 import { compressImages, formatFileSize } from "@/lib/imageCompression";
+import { applyWatermarkBatch, type WatermarkData } from "@/lib/watermark";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -81,7 +82,8 @@ const IncompleteSurveys = ({ filterSrId }: { filterSrId?: string }) => {
   const handleFiles = async (
     surveyId: string,
     fileType: string,
-    files: FileList | null
+    files: FileList | null,
+    srId?: string
   ) => {
     if (!files) return;
     const key = `${surveyId}_${fileType}`;
@@ -94,7 +96,27 @@ const IncompleteSurveys = ({ filterSrId }: { filterSrId?: string }) => {
     if (isImageType && rawFiles.some(f => f.type.startsWith("image/"))) {
       setCompressing(prev => ({ ...prev, [key]: true }));
       const originalSize = rawFiles.reduce((sum, f) => sum + f.size, 0);
-      const compressed = await compressImages(rawFiles);
+      let compressed = await compressImages(rawFiles);
+
+      // Apply watermark if we have SR context
+      if (srId) {
+        // Fetch assignment data for address/GPS
+        const { data: assignmentData } = await supabase
+          .from("assignments")
+          .select("address, latitude, longitude")
+          .eq("sr_id", srId)
+          .maybeSingle();
+
+        const wmData: WatermarkData = {
+          srId,
+          address: assignmentData?.address || undefined,
+          latitude: assignmentData?.latitude,
+          longitude: assignmentData?.longitude,
+          datetime: new Date(),
+        };
+        compressed = await applyWatermarkBatch(compressed, wmData);
+      }
+
       const compressedSize = compressed.reduce((sum, f) => sum + f.size, 0);
       
       setCompressionStats(prev => ({
@@ -389,7 +411,7 @@ const IncompleteSurveys = ({ filterSrId }: { filterSrId?: string }) => {
                           inp.accept = "image/*";
                           inp.capture = "environment";
                           inp.onchange = () =>
-                            handleFiles(survey.id, mt.key, inp.files);
+                            handleFiles(survey.id, mt.key, inp.files, survey.sr_id);
                           inp.click();
                         }}
                       >
@@ -408,7 +430,7 @@ const IncompleteSurveys = ({ filterSrId }: { filterSrId?: string }) => {
                     multiple={mt.key !== "inspection_pdf"}
                     className="hidden"
                     onChange={(e) => {
-                      handleFiles(survey.id, mt.key, e.target.files);
+                      handleFiles(survey.id, mt.key, e.target.files, survey.sr_id);
                       e.target.value = "";
                     }}
                   />
@@ -580,7 +602,7 @@ const IncompleteSurveys = ({ filterSrId }: { filterSrId?: string }) => {
                               inp.accept = "image/*";
                               inp.capture = "environment";
                               inp.onchange = () =>
-                                handleFiles(survey.id, mt.key, inp.files);
+                                handleFiles(survey.id, mt.key, inp.files, survey.sr_id);
                               inp.click();
                             }}
                           >
@@ -599,7 +621,7 @@ const IncompleteSurveys = ({ filterSrId }: { filterSrId?: string }) => {
                         multiple={mt.key !== "inspection_pdf"}
                         className="hidden"
                         onChange={(e) => {
-                          handleFiles(survey.id, mt.key, e.target.files);
+                          handleFiles(survey.id, mt.key, e.target.files, survey.sr_id);
                           e.target.value = "";
                         }}
                       />
