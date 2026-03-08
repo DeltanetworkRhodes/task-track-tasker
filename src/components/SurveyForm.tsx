@@ -396,6 +396,7 @@ const SurveyForm = ({ assignments, prefillSrId, prefillArea, onComplete }: Props
         capture
         isCompressing={compressing["building"]}
         compressionStats={compressionStats["building"]}
+        isAiAnalyzing={isAnalyzing("building")}
       />
 
       {/* SCREENSHOTS */}
