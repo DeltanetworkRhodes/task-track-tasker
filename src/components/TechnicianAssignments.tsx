@@ -117,6 +117,22 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
     enabled: !!selectedAssignment && (isDemo || !!user),
   });
 
+  // Fetch pre-work checklist for selected assignment (to init blocker state)
+  const { data: preWorkChecklist } = useQuery({
+    queryKey: ["pre-work-checklist", selectedAssignment?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("pre_work_checklists" as any)
+        .select("completed")
+        .eq("assignment_id", selectedAssignment!.id)
+        .maybeSingle();
+      const completed = !!(data as any)?.completed;
+      setPreWorkComplete(completed);
+      return data;
+    },
+    enabled: !!selectedAssignment && !isDemo && !!user,
+  });
+
   const handleGisUploadSuccess = async (result: any) => {
     if (!selectedAssignment) return;
     
