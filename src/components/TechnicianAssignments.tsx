@@ -1,6 +1,7 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useCallback } from "react";
 
 import { MapPin, Phone, Calendar, MessageSquare, Loader2, Eye, FileEdit, CheckCircle, Clock, HardHat, XCircle, Ban, Upload, FileSpreadsheet, FileText } from "lucide-react";
+import GisUploadCard from "@/components/GisUploadCard";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -57,8 +58,6 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
   const [cancelling, setCancelling] = useState(false);
-  const [uploadingGis, setUploadingGis] = useState(false);
-  const gisFileInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
 
   // Fetch existing survey for selected assignment
@@ -107,51 +106,29 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
     enabled: !!selectedAssignment && !!user,
   });
 
-  const handleGisUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !selectedAssignment) return;
-
-    if (!file.name.toLowerCase().endsWith('.xlsx')) {
-      toast.error("Μόνο αρχεία .XLSX γίνονται δεκτά");
-      return;
-    }
-
-    setUploadingGis(true);
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("assignment_id", selectedAssignment.id);
-      formData.append("sr_id", selectedAssignment.sr_id);
-
-      const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData?.session?.access_token;
-
-      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
-      const response = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/parse-gis-excel`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-          body: formData,
-        }
-      );
-
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error || "Upload failed");
-
-      toast.success(
-        `GIS αναλύθηκε: ${result.parsed.floors} όροφοι, ${result.parsed.optical_paths} οπτικές διαδρομές`
-      );
-      queryClient.invalidateQueries({ queryKey: ["technician-assignments"] });
-      queryClient.invalidateQueries({ queryKey: ["assignment-gis"] });
-    } catch (err: any) {
-      console.error("GIS upload error:", err);
-      toast.error("Σφάλμα: " + (err.message || "Δοκιμάστε ξανά"));
-    } finally {
-      setUploadingGis(false);
-      if (gisFileInputRef.current) gisFileInputRef.current.value = "";
+  const handleGisUploadSuccess = async (result: any) => {
+    if (!selectedAssignment) return;
+    
+    // Auto-transition to construction if currently pre_committed
+    if (selectedAssignment.status === "pre_committed") {
+      try {
+        const { error } = await supabase
+          .from("assignments")
+          .update({ status: "construction" })
+          .eq("id", selectedAssignment.id);
+        
+        if (error) throw error;
+        
+        toast.success("🏗️ Η ανάθεση μετέβη αυτόματα σε Κατασκευή!", { duration: 4000 });
+        
+        // Update local state
+        setSelectedAssignment({ ...selectedAssignment, status: "construction" });
+        queryClient.invalidateQueries({ queryKey: ["technician-assignments"] });
+      } catch (err: any) {
+        console.error("Auto-transition error:", err);
+        // Non-blocking - GIS was still uploaded successfully
+        toast.info("Το GIS ανέβηκε. Αλλάξτε χειροκίνητα σε Κατασκευή.");
+      }
     }
   };
 
@@ -465,30 +442,12 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
             </div>
           )}
           {existingSurvey && existingSurvey.status !== "ΕΛΛΙΠΗΣ ΑΥΤΟΨΙΑ" && (
-            <>
-              <input
-                ref={gisFileInputRef}
-                type="file"
-                accept=".xlsx"
-                className="hidden"
-                onChange={handleGisUpload}
-              />
-              <Button
-                variant="outline"
-                className={`${btnClass} border-blue-500/30 text-blue-600 hover:bg-blue-500/10`}
-                onClick={() => gisFileInputRef.current?.click()}
-                disabled={uploadingGis}
-              >
-                {uploadingGis ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : existingGisData ? (
-                  <FileSpreadsheet className="h-4 w-4" />
-                ) : (
-                  <Upload className="h-4 w-4" />
-                )}
-                {uploadingGis ? "Ανάλυση GIS..." : existingGisData ? "Αντικατάσταση GIS" : "Upload Προδέσμευσης GIS"}
-              </Button>
-            </>
+            <GisUploadCard
+              assignment={assignment}
+              hasExistingGis={!!existingGisData}
+              onUploadSuccess={handleGisUploadSuccess}
+              compact={!!existingGisData}
+            />
           )}
           <Button
             variant="outline"
@@ -506,35 +465,19 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
       const hasGis = existingGisData || gisAssignmentIds?.includes(assignment.id);
       return (
         <div className="space-y-3">
+          {/* Prominent GIS upload when missing */}
+          <GisUploadCard
+            assignment={assignment}
+            hasExistingGis={!!hasGis}
+            onUploadSuccess={handleGisUploadSuccess}
+          />
           {/* Show construction form button only when GIS exists */}
           {hasGis && (
             <Button className={btnClass} onClick={() => setShowConstructionForm(true)}>
               <HardHat className="h-4 w-4" />
-              Φόρμα Κατασκευής
+              Έναρξη Κατασκευής
             </Button>
           )}
-          <input
-            ref={gisFileInputRef}
-            type="file"
-            accept=".xlsx"
-            className="hidden"
-            onChange={handleGisUpload}
-          />
-          <Button
-            variant="outline"
-            className={`${btnClass} border-blue-500/30 text-blue-600 hover:bg-blue-500/10`}
-            onClick={() => gisFileInputRef.current?.click()}
-            disabled={uploadingGis}
-          >
-            {uploadingGis ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : hasGis ? (
-              <FileSpreadsheet className="h-4 w-4" />
-            ) : (
-              <Upload className="h-4 w-4" />
-            )}
-            {uploadingGis ? "Ανάλυση GIS..." : hasGis ? "Αντικατάσταση GIS" : "Upload Προδέσμευσης GIS"}
-          </Button>
           <Button
             variant="outline"
             className={`${btnClass} text-destructive border-destructive/30 hover:bg-destructive/10`}
@@ -554,28 +497,12 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
             <HardHat className="h-4 w-4" />
             Φόρμα Κατασκευής
           </Button>
-          <input
-            ref={gisFileInputRef}
-            type="file"
-            accept=".xlsx"
-            className="hidden"
-            onChange={handleGisUpload}
+          <GisUploadCard
+            assignment={assignment}
+            hasExistingGis={!!existingGisData}
+            onUploadSuccess={handleGisUploadSuccess}
+            compact
           />
-          <Button
-            variant="outline"
-            className={`${btnClass} border-blue-500/30 text-blue-600 hover:bg-blue-500/10`}
-            onClick={() => gisFileInputRef.current?.click()}
-            disabled={uploadingGis}
-          >
-            {uploadingGis ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : existingGisData ? (
-              <FileSpreadsheet className="h-4 w-4" />
-            ) : (
-              <Upload className="h-4 w-4" />
-            )}
-            {uploadingGis ? "Ανάλυση GIS..." : existingGisData ? "Αντικατάσταση GIS" : "Upload GIS"}
-          </Button>
           <Button
             variant="outline"
             className={`${btnClass} text-destructive border-destructive/30 hover:bg-destructive/10`}
