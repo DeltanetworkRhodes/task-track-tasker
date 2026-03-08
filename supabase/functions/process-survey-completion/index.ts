@@ -600,8 +600,9 @@ Deno.serve(async (req) => {
     
     console.log(`Assignment ${sr_id} status → ${newAssignmentStatus}, Survey → ${newSurveyStatus}`);
 
-    // 5. Build ZIP from downloaded files for email attachment
+    // 5. Build ZIP and upload to Storage, then create signed download URL
     let zipBytes: Uint8Array | null = null;
+    let zipDownloadUrl = "";
     let zipTooLarge = false;
     
     // First check total size of downloaded files to avoid building a huge ZIP
@@ -609,34 +610,56 @@ Deno.serve(async (req) => {
     const estimatedZipSize = totalDownloadedSize + (downloadedFiles.length * 100); // STORE zip overhead
     
     if (estimatedZipSize > MAX_ZIP_SIZE_FOR_EMAIL) {
-      console.log(`Files too large for email ZIP (${(totalDownloadedSize / 1024 / 1024).toFixed(1)}MB estimated), using Drive link fallback`);
+      console.log(`Files too large for email attachment (${(totalDownloadedSize / 1024 / 1024).toFixed(1)}MB), will upload to storage`);
       zipTooLarge = true;
-    } else {
-      try {
-        // Build folder name: SR_XXXXXXX_ΠΕΛΑΤΗΣ
-        const safeName = (customerName || "").replace(/[\/\\:*?"<>|]/g, "_").trim();
-        const rootFolder = `SR ${sr_id}${safeName ? ` ${safeName}` : ""}`;
-        
-        const zipFiles: { name: string; data: Uint8Array }[] = downloadedFiles.map(({ sf, data }) => ({
-          name: `${rootFolder}/${getZipFolder(sf.file_type)}/${sf.file_name}`,
-          data,
-        }));
-        
-        // Add inspection PDF to ZIP if generated
-        if (inspectionPdfBytes) {
-          zipFiles.push({
-            name: `${rootFolder}/ΕΓΓΡΑΦΑ/ΔΕΛΤΙΟ_ΑΥΤΟΨΙΑΣ/Deltio_Autopsias_${sr_id}.pdf`,
-            data: inspectionPdfBytes,
-          });
-        }
-        
-        if (zipFiles.length > 0) {
-          zipBytes = buildZipStore(zipFiles);
-          console.log(`Built ZIP: ${zipFiles.length} files, ${(zipBytes.length / 1024 / 1024).toFixed(1)}MB`);
-        }
-      } catch (zipErr) {
-        console.error("ZIP build error (non-blocking):", zipErr);
+    }
+
+    try {
+      // Build folder name: SR_XXXXXXX_ΠΕΛΑΤΗΣ
+      const safeName = (customerName || "").replace(/[\/\\:*?"<>|]/g, "_").trim();
+      const rootFolder = `SR ${sr_id}${safeName ? ` ${safeName}` : ""}`;
+      
+      const zipFiles: { name: string; data: Uint8Array }[] = downloadedFiles.map(({ sf, data }) => ({
+        name: `${rootFolder}/${getZipFolder(sf.file_type)}/${sf.file_name}`,
+        data,
+      }));
+      
+      // Add inspection PDF to ZIP if generated
+      if (inspectionPdfBytes) {
+        zipFiles.push({
+          name: `${rootFolder}/ΕΓΓΡΑΦΑ/ΔΕΛΤΙΟ_ΑΥΤΟΨΙΑΣ/Deltio_Autopsias_${sr_id}.pdf`,
+          data: inspectionPdfBytes,
+        });
       }
+      
+      if (zipFiles.length > 0) {
+        zipBytes = buildZipStore(zipFiles);
+        console.log(`Built ZIP: ${zipFiles.length} files, ${(zipBytes.length / 1024 / 1024).toFixed(1)}MB`);
+
+        // Always upload ZIP to storage for signed URL
+        const safeSrId = sr_id.replace(/[^a-zA-Z0-9_-]/g, "_");
+        const zipStoragePath = `surveys/${safeSrId}/Autopsía_${safeSrId}.zip`;
+
+        const { error: uploadErr } = await adminClient.storage
+          .from("photos")
+          .upload(zipStoragePath, zipBytes, {
+            contentType: "application/zip",
+            upsert: true,
+          });
+
+        if (uploadErr) {
+          console.error(`ZIP upload error:`, uploadErr);
+        } else {
+          // Create a signed URL valid for 7 days
+          const { data: signedData } = await adminClient.storage
+            .from("photos")
+            .createSignedUrl(zipStoragePath, 7 * 24 * 60 * 60);
+          zipDownloadUrl = signedData?.signedUrl || "";
+          console.log(`ZIP uploaded to storage, signed URL created`);
+        }
+      }
+    } catch (zipErr) {
+      console.error("ZIP build error (non-blocking):", zipErr);
     }
 
     // Free downloaded files memory BEFORE base64 conversion
