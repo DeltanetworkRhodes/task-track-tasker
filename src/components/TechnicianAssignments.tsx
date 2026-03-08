@@ -882,12 +882,6 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
             )}
           </ScrollArea>
 
-          {/* Sticky action buttons at bottom */}
-          {selectedAssignment && !showSurveyForm && !showConstructionForm && (
-            <div className="shrink-0 border-t border-border bg-background px-4 py-3 safe-bottom">
-              {renderStatusAction(selectedAssignment)}
-            </div>
-          )}
         </SheetContent>
       </Sheet>
 
