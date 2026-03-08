@@ -430,7 +430,7 @@ const IncompleteSurveys = ({ filterSrId }: { filterSrId?: string }) => {
                     multiple={mt.key !== "inspection_pdf"}
                     className="hidden"
                     onChange={(e) => {
-                      handleFiles(survey.id, mt.key, e.target.files);
+                      handleFiles(survey.id, mt.key, e.target.files, survey.sr_id);
                       e.target.value = "";
                     }}
                   />
