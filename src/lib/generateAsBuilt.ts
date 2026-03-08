@@ -135,16 +135,16 @@ async function fetchAsBuiltData(srId: string): Promise<AsBuiltData> {
   }));
 
   const floorBoxes: FloorBox[] = floorDetails.map((fd: any) => ({
-    floor: fd.floor ?? fd.ΟΡΟΦΟΣ ?? "",
-    fb_id: fd.fb_id ?? fd.FB_ID ?? "",
-    apartments: fd.apartments ?? fd.ΔΙΑΜΕΡΙΣΜΑΤΑ ?? 0,
-    shops: fd.shops ?? fd.ΚΑΤΑΣΤΗΜΑΤΑ ?? 0,
-    fb_count: fd.fb_count ?? fd.FB01 ?? 0,
-    fb_type: fd.fb_type ?? fd.FB01_TYPE ?? "",
-    fb_customer: fd.fb_customer ?? fd.FB_ΠΕΛΑΤΗ ?? "",
-    customer_space: fd.customer_space ?? fd.ΑΡΙΘΜΗΣΗ_ΧΩΡΟΥ_ΠΕΛΑΤΗ ?? "",
-    meters: fd.meters ?? fd.ΜΕΤΡΑ ?? 0,
-    pipe_type: fd.pipe_type ?? fd.ΕΙΔΟΣ ?? "",
+    floor: fd.floor ?? fd["ΟΡΟΦΟΣ"] ?? fd.ΟΡΟΦΟΣ ?? "",
+    fb_id: fd.fb_id ?? fd.FB_ID ?? fd["GIS ID"] ?? "",
+    apartments: fd.apartments ?? fd["ΔΙΑΜΕΡΙΣΜΑΤΑ"] ?? fd.ΔΙΑΜΕΡΙΣΜΑΤΑ ?? 0,
+    shops: fd.shops ?? fd["ΚΑΤΑΣΤΗΜΑΤΑ"] ?? fd.ΚΑΤΑΣΤΗΜΑΤΑ ?? 0,
+    fb_count: fd.fb_count ?? fd.FB01 ?? fd["FB01"] ?? 0,
+    fb_type: fd.fb_type ?? fd.FB01_TYPE ?? fd["FB01 TYPE"] ?? "",
+    fb_customer: fd.fb_customer ?? fd["FB ΠΕΛΑΤΗ"] ?? fd.FB_ΠΕΛΑΤΗ ?? "",
+    customer_space: fd.customer_space ?? fd["ΑΡΙΘΜΗΣΗ ΧΩΡΟΥ ΠΕΛΑΤΗ"] ?? fd.ΑΡΙΘΜΗΣΗ_ΧΩΡΟΥ_ΠΕΛΑΤΗ ?? "",
+    meters: fd.meters ?? fd["ΜΕΤΡΑ"] ?? fd.ΜΕΤΡΑ ?? 0,
+    pipe_type: fd.pipe_type ?? fd["ΕΙΔΟΣ"] ?? fd.ΕΙΔΟΣ ?? "",
   }));
 
   const areaType = gisData?.area_type || "";
