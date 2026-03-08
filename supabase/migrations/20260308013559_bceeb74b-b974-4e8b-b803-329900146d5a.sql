@@ -1,0 +1,1 @@
+ALTER TABLE public.assignments ADD CONSTRAINT assignments_sr_id_unique UNIQUE (sr_id);
