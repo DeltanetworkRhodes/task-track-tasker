@@ -24,7 +24,10 @@ const AsBuiltExporter = ({
   const handleGenerate = async () => {
     setGenerating(true);
     try {
-      await generateAsBuilt(srId);
+      const result = await generateAsBuilt(srId);
+      if (result.warnings.length > 0) {
+        result.warnings.forEach(w => toast.warning(w));
+      }
       toast.success(`AS-BUILD για ${srId} δημιουργήθηκε!`);
     } catch (err: any) {
       toast.error(err.message || "Σφάλμα δημιουργίας AS-BUILD");
