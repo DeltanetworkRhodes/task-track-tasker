@@ -162,13 +162,12 @@ const SurveyForm = ({ assignments, prefillSrId, prefillArea, onComplete }: Props
         }
       }
 
-      toast.success("Η αυτοψία υποβλήθηκε επιτυχώς!");
+      toast.success("Η αυτοψία υποβλήθηκε! Η επεξεργασία (ZIP, Drive, email) γίνεται στο παρασκήνιο.");
       setSubmitted(true);
 
-      // If survey is complete, auto-advance assignment to construction
+      // If survey is complete, auto-advance assignment to pre_committed
       if (autoStatus === "ΠΡΟΔΕΣΜΕΥΣΗ ΥΛΙΚΩΝ") {
         try {
-          // Find the assignment for this SR and update to construction
           const { data: assignmentData } = await supabase
             .from("assignments")
             .select("id, status")
@@ -188,23 +187,8 @@ const SurveyForm = ({ assignments, prefillSrId, prefillArea, onComplete }: Props
         }
       }
 
-      // Always trigger automation: file check, PDF, Drive folder, email (if complete)
-      try {
-        const { data: result, error: procError } = await supabase.functions.invoke("process-survey-completion", {
-          body: { survey_id: survey.id, sr_id: srId.trim(), area },
-        });
-        if (procError) {
-          console.error("Process survey error:", procError);
-        } else if (result) {
-          if (result.is_complete) {
-            toast.success(`Ολοκληρωμένη αυτοψία → ${result.drive_target || "Drive"} + email`);
-          } else {
-            toast.info(`Ελλιπής αυτοψία → ${result.drive_target || "ΑΝΑΜΟΝΗ"}. Λείπουν: ${(result.missing_types || []).length} τύποι αρχείων`);
-          }
-        }
-      } catch (autoErr) {
-        console.error("Automation error:", autoErr);
-      }
+      // Background processing is triggered automatically via database webhook
+      // No need to wait for ZIP/Drive/Email — it happens asynchronously
 
       // Cleanup previews
       [...buildingPhotos, ...screenshots].forEach((f) =>
