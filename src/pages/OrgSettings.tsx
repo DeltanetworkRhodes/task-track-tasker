@@ -244,7 +244,7 @@ const OrgSettings = () => {
 
   return (
     <AppLayout>
-      <div className="space-y-6 max-w-[1400px]">
+      <div className="space-y-6 max-w-[1400px] mx-auto">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-foreground flex items-center gap-2">
             <Settings className="h-5 sm:h-6 w-5 sm:w-6" />

@@ -300,7 +300,7 @@ const Surveys = () => {
 
   return (
     <AppLayout>
-      <div className="space-y-6 max-w-[1400px]">
+      <div className="space-y-6 max-w-[1400px] mx-auto">
         {/* Header */}
         <div className="flex items-start justify-between">
           <div>
