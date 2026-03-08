@@ -36,11 +36,17 @@ interface CompressionState {
   originalSize: number;
   compressedSize: number;
 }
+const CATEGORY_TO_PHOTO_TYPE: Record<string, string> = {
+  building: "building_photo",
+  screenshots: "screenshot",
+};
+
 const SurveyForm = ({ assignments, prefillSrId, prefillArea, onComplete }: Props) => {
   const { user } = useAuth();
   const { organizationId } = useOrganization();
   const queryClient = useQueryClient();
   const online = useOnlineStatus();
+  const { analyzePhoto, getResult, isAnalyzing, clearResults } = usePhotoAnalysis();
   const [area, setArea] = useState(prefillArea || "");
   const [srId, setSrId] = useState(prefillSrId || "");
   const [comments, setComments] = useState("");
