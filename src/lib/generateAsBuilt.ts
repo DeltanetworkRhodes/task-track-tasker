@@ -288,9 +288,28 @@ function fillErgasiesSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
    Dynamic optical path generation
    ──────────────────────────────────────────── */
 
-function fillLabelsSheet(ws: ExcelJS.Worksheet, d: AsBuiltData, filterTypes: string[]) {
-  const filtered = d.opticalPaths.filter(op => filterTypes.includes(op.type));
-  filtered.forEach((op, idx) => {
+function fillLabelsBepSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
+  // Fill 12 rows for ports 1-12
+  // Use BEP-BMO and BEP paths first, then fill remaining with "χωρίς ports"
+  const bepPaths = d.opticalPaths.filter(op => op.type === "BEP-BMO" || op.type === "BEP");
+  for (let port = 0; port < 12; port++) {
+    const r = 2 + port;
+    if (port < bepPaths.length) {
+      ws.getCell(r, 1).value = bepPaths[port].path;
+    } else {
+      ws.getCell(r, 1).value = "χωρίς ports";
+    }
+  }
+  // Also add CAB-BEP paths below
+  const cabBepPaths = d.opticalPaths.filter(op => op.type === "CAB-BEP");
+  cabBepPaths.forEach((op, idx) => {
+    ws.getCell(14 + idx, 1).value = op.path;
+  });
+}
+
+function fillLabelsBmoSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
+  const bmoPaths = d.opticalPaths.filter(op => op.type === "BMO-FB" || op.type === "BEP-BMO");
+  bmoPaths.forEach((op, idx) => {
     ws.getCell(2 + idx, 1).value = op.path;
   });
 }

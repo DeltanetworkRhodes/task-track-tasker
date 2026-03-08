@@ -5,40 +5,64 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { FileSpreadsheet, Download, Search, CheckCircle2, AlertCircle, Loader2, FlaskConical } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { FileSpreadsheet, Download, Search, CheckCircle2, AlertCircle, Loader2, FlaskConical, Eye, MapPin, Building2 } from "lucide-react";
 import { useAssignments, useConstructions } from "@/hooks/useData";
-import { generateAsBuilt, generateAsBuiltFromData, getMockAsBuiltData } from "@/lib/generateAsBuilt";
+import { generateAsBuilt, generateAsBuiltFromData, getDemoAsBuiltData } from "@/lib/generateAsBuilt";
+import { useDemo } from "@/contexts/DemoContext";
 import { toast } from "sonner";
 
 const DocumentGenerator = () => {
-  const { data: assignments, isLoading: assignmentsLoading } = useAssignments();
-  const { data: constructions } = useConstructions();
+  const { isDemo, demoAssignments, demoConstructions } = useDemo();
+  const { data: realAssignments, isLoading: assignmentsLoading } = useAssignments();
+  const { data: realConstructions } = useConstructions();
+
+  const assignments = isDemo ? demoAssignments : (realAssignments || []);
+  const constructions = isDemo
+    ? Object.values(demoConstructions)
+    : (realConstructions || []);
+
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [generatingId, setGeneratingId] = useState<string | null>(null);
-  const [testGenerating, setTestGenerating] = useState(false);
+  const [selectedSrId, setSelectedSrId] = useState<string | null>(null);
 
-  const filteredAssignments = (assignments || []).filter(a => {
-    const matchesSearch = !search || 
+  const filteredAssignments = assignments.filter((a: any) => {
+    const matchesSearch = !search ||
       a.sr_id.toLowerCase().includes(search.toLowerCase()) ||
       (a.address || "").toLowerCase().includes(search.toLowerCase()) ||
       (a.area || "").toLowerCase().includes(search.toLowerCase());
-    
-    const construction = constructions?.find(c => c.sr_id === a.sr_id);
+
+    const construction = constructions.find((c: any) => c.sr_id === a.sr_id);
     const hasConstruction = !!construction;
-    
-    const matchesStatus = statusFilter === "all" || 
-      (statusFilter === "ready" && construction?.status === "completed") ||
-      (statusFilter === "in_progress" && construction?.status === "in_progress") ||
+
+    const matchesStatus = statusFilter === "all" ||
+      (statusFilter === "ready" && (construction as any)?.status === "completed") ||
+      (statusFilter === "in_progress" && (construction as any)?.status === "in_progress") ||
       (statusFilter === "no_construction" && !hasConstruction);
 
     return matchesSearch && (statusFilter === "all" ? true : matchesStatus);
   });
 
+  const getConstructionStatus = (srId: string) => {
+    return (constructions.find((x: any) => x.sr_id === srId) as any)?.status || null;
+  };
+
+  const selectedAssignment = assignments.find((a: any) => a.sr_id === selectedSrId);
+  const selectedConstruction = constructions.find((c: any) => c.sr_id === selectedSrId);
+
   const handleGenerate = async (srId: string) => {
     setGeneratingId(srId);
     try {
-      const result = await generateAsBuilt(srId);
+      let result;
+      if (isDemo) {
+        // Demo mode: use isolated demo data for this specific SR
+        const demoData = getDemoAsBuiltData(srId);
+        result = await generateAsBuiltFromData(demoData);
+      } else {
+        // Production: fetch from database
+        result = await generateAsBuilt(srId);
+      }
       if (result.warnings.length > 0) {
         result.warnings.forEach(w => toast.warning(w));
       }
@@ -48,26 +72,6 @@ const DocumentGenerator = () => {
     } finally {
       setGeneratingId(null);
     }
-  };
-
-  const handleTestGenerate = async () => {
-    setTestGenerating(true);
-    try {
-      const mockData = getMockAsBuiltData();
-      const result = await generateAsBuiltFromData(mockData);
-      if (result.warnings.length > 0) {
-        result.warnings.forEach(w => toast.warning(w));
-      }
-      toast.success("Test AS-BUILD δημιουργήθηκε με mock data!");
-    } catch (err: any) {
-      toast.error(err.message || "Σφάλμα κατά το test generation");
-    } finally {
-      setTestGenerating(false);
-    }
-  };
-
-  const getConstructionStatus = (srId: string) => {
-    return constructions?.find(x => x.sr_id === srId)?.status || null;
   };
 
   return (
@@ -84,19 +88,12 @@ const DocumentGenerator = () => {
               Εξαγωγή τελικών AS-BUILD Excel αρχείων ανά SR
             </p>
           </div>
-          <Button
-            variant="outline"
-            onClick={handleTestGenerate}
-            disabled={testGenerating}
-            className="shrink-0"
-          >
-            {testGenerating ? (
-              <Loader2 className="h-4 w-4 animate-spin mr-2" />
-            ) : (
-              <FlaskConical className="h-4 w-4 mr-2" />
-            )}
-            Test AS-BUILD (Mock Data)
-          </Button>
+          {isDemo && (
+            <Badge variant="outline" className="border-primary/30 bg-primary/5 text-primary text-xs">
+              <FlaskConical className="h-3 w-3 mr-1" />
+              Demo Mode
+            </Badge>
+          )}
         </div>
 
         {/* Filters */}
@@ -126,7 +123,7 @@ const DocumentGenerator = () => {
         </Card>
 
         {/* Results */}
-        {assignmentsLoading ? (
+        {assignmentsLoading && !isDemo ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
@@ -134,16 +131,18 @@ const DocumentGenerator = () => {
           <Card className="p-8 text-center text-muted-foreground">
             <FileSpreadsheet className="h-10 w-10 mx-auto mb-3 opacity-40" />
             <p className="text-sm">Δεν βρέθηκαν αναθέσεις</p>
-            <p className="text-xs mt-2">Χρησιμοποιήστε το κουμπί "Test AS-BUILD" για δοκιμαστική εξαγωγή με ψεύτικα δεδομένα</p>
           </Card>
         ) : (
           <div className="grid gap-3">
-            {filteredAssignments.map(assignment => {
+            {filteredAssignments.map((assignment: any) => {
               const cStatus = getConstructionStatus(assignment.sr_id);
-              const isGenerating = generatingId === assignment.sr_id;
 
               return (
-                <Card key={assignment.id} className="p-4 flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                <Card
+                  key={assignment.id}
+                  className="p-4 flex flex-col sm:flex-row items-start sm:items-center gap-3 cursor-pointer hover:border-primary/40 transition-colors"
+                  onClick={() => setSelectedSrId(assignment.sr_id)}
+                >
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-semibold text-foreground">{assignment.sr_id}</span>
@@ -171,23 +170,94 @@ const DocumentGenerator = () => {
                   </div>
                   <Button
                     size="sm"
-                    variant={cStatus === "completed" ? "default" : "outline"}
-                    disabled={isGenerating}
-                    onClick={() => handleGenerate(assignment.sr_id)}
+                    variant="ghost"
                     className="shrink-0"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedSrId(assignment.sr_id);
+                    }}
                   >
-                    {isGenerating ? (
-                      <Loader2 className="h-4 w-4 animate-spin mr-1" />
-                    ) : (
-                      <Download className="h-4 w-4 mr-1" />
-                    )}
-                    Εξαγωγή AS-BUILD
+                    <Eye className="h-4 w-4 mr-1" />
+                    Λεπτομέρειες
                   </Button>
                 </Card>
               );
             })}
           </div>
         )}
+
+        {/* SR Detail Dialog with Export Button */}
+        <Dialog open={!!selectedSrId} onOpenChange={(open) => !open && setSelectedSrId(null)}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <FileSpreadsheet className="h-5 w-5 text-primary" />
+                {selectedSrId}
+              </DialogTitle>
+            </DialogHeader>
+
+            {selectedAssignment && (
+              <div className="space-y-4">
+                {/* SR Info */}
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <MapPin className="h-4 w-4" />
+                    <span>{(selectedAssignment as any).address || "—"}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <Building2 className="h-4 w-4" />
+                    <span>{(selectedAssignment as any).area}</span>
+                  </div>
+                </div>
+
+                {/* Construction Status */}
+                <div className="p-3 rounded-lg bg-muted/50">
+                  <p className="text-xs text-muted-foreground mb-1">Κατάσταση Κατασκευής</p>
+                  {selectedConstruction ? (
+                    <div className="flex items-center gap-2">
+                      <Badge
+                        variant="outline"
+                        className={
+                          (selectedConstruction as any).status === "completed"
+                            ? "bg-green-500/10 text-green-600 border-green-500/20"
+                            : "bg-amber-500/10 text-amber-600 border-amber-500/20"
+                        }
+                      >
+                        {(selectedConstruction as any).status === "completed" ? "Ολοκληρωμένο" : "Σε εξέλιξη"}
+                      </Badge>
+                      {(selectedConstruction as any).cab && (
+                        <span className="text-xs text-muted-foreground">CAB: {(selectedConstruction as any).cab}</span>
+                      )}
+                    </div>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">Χωρίς κατασκευή</span>
+                  )}
+                </div>
+
+                {/* Export Button - INSIDE the dialog */}
+                <Button
+                  className="w-full"
+                  size="lg"
+                  disabled={generatingId === selectedSrId}
+                  onClick={() => selectedSrId && handleGenerate(selectedSrId)}
+                >
+                  {generatingId === selectedSrId ? (
+                    <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                  ) : (
+                    <Download className="h-5 w-5 mr-2" />
+                  )}
+                  Εξαγωγή AS-BUILD
+                </Button>
+
+                {isDemo && (
+                  <p className="text-[10px] text-muted-foreground text-center">
+                    Demo Mode: Θα χρησιμοποιηθούν αποκλειστικά τα demo δεδομένα του {selectedSrId}
+                  </p>
+                )}
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </AppLayout>
   );
