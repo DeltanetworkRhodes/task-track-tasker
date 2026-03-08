@@ -126,118 +126,120 @@ const MaterialTable = ({ items, hasRealData, editingId, editValues, onEdit, onSa
   );
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b border-border bg-muted/30">
-            <SortHeader field="code" label="Κωδικός" />
-            <SortHeader field="name" label="Περιγραφή" />
-            <SortHeader field="stock" label="Απόθεμα" align="right" />
-            <SortHeader field="price" label="Τιμή" align="right" />
-            <th className="py-3 px-4 text-right font-semibold text-muted-foreground text-[11px] uppercase tracking-wider">Αξία</th>
-            <th className="py-3 px-4 text-right font-semibold text-muted-foreground text-[11px] uppercase tracking-wider">Όριο</th>
-            {hasRealData && <th className="py-3 px-2 w-10" />}
-          </tr>
-        </thead>
-        <tbody>
-          {items.map((m) => {
-            const isEditing = editingId === m.id;
-            const value = m.stock * m.price;
-            const isLow = m.stock < m.low_stock_threshold;
-            return (
-              <tr key={m.id} className={`border-b border-border/50 transition-colors ${isEditing ? 'bg-primary/5' : 'hover:bg-muted/30'}`}>
-                <td className="py-3 px-4 text-xs font-bold text-primary">{m.code}</td>
-                <td className="py-3 px-4 font-medium">
-                  {isEditing ? (
-                    <input
-                      type="text"
-                      value={editValues.name}
-                      onChange={e => onEditChange('name', e.target.value)}
-                      className="w-full rounded-lg border border-primary/30 bg-card px-2 py-1 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-                    />
-                  ) : m.name}
-                </td>
-                <td className="py-3 px-4 text-right font-bold">
-                  {isEditing ? (
-                    <div className="flex items-center gap-1 justify-end">
-                      <input
-                        type="number"
-                        value={editValues.stock}
-                        onChange={e => onEditChange('stock', e.target.value)}
-                        className="w-20 rounded-lg border border-primary/30 bg-card px-2 py-1 text-right text-sm font-bold focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-                        autoFocus
-                      />
-                      <input
-                        type="text"
-                        value={editValues.unit}
-                        onChange={e => onEditChange('unit', e.target.value)}
-                        className="w-16 rounded-lg border border-primary/30 bg-card px-1 py-1 text-xs focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-                      />
-                    </div>
-                  ) : (
-                    <span className={`inline-flex items-center gap-1.5 ${isLow ? 'text-destructive font-semibold' : ''}`}>
-                      {isLow && <AlertTriangle className="h-3 w-3" />}
-                      {m.stock.toLocaleString('el-GR')} {/^τεμ/i.test(m.unit) ? 'τεμάχια' : m.unit}
-                    </span>
-                  )}
-                </td>
-                <td className="py-3 px-4 text-right font-bold text-muted-foreground">
-                  {isEditing ? (
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={editValues.price}
-                      onChange={e => onEditChange('price', e.target.value)}
-                      className="w-20 ml-auto rounded-lg border border-primary/30 bg-card px-2 py-1 text-right text-sm font-bold focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-                    />
-                  ) : (
-                    m.price === 0 ? <span className="text-muted-foreground/40">—</span> : `${m.price.toFixed(2)}€`
-                  )}
-                </td>
-                <td className="py-3 px-4 text-right font-bold">
-                  {value === 0 ? <span className="text-muted-foreground/40">—</span> : `${value.toLocaleString('el-GR', { minimumFractionDigits: 2 })}€`}
-                </td>
-                <td className="py-3 px-4 text-right font-bold text-xs">
-                  {isEditing ? (
-                    <input
-                      type="number"
-                      value={editValues.low_stock_threshold}
-                      onChange={e => onEditChange('low_stock_threshold', e.target.value)}
-                      className="w-16 ml-auto rounded-lg border border-primary/30 bg-card px-2 py-1 text-right text-sm font-bold focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-                    />
-                  ) : (
-                    <span className="text-muted-foreground">{m.low_stock_threshold}</span>
-                  )}
-                </td>
-                {hasRealData && (
-                  <td className="py-3 px-2 text-right">
+    <>
+      {/* Mobile Card View */}
+      <div className="md:hidden divide-y divide-border">
+        {items.length === 0 ? (
+          <div className="py-12 text-center text-muted-foreground text-sm">Δεν βρέθηκαν υλικά</div>
+        ) : items.map((m) => {
+          const isEditing = editingId === m.id;
+          const value = m.stock * m.price;
+          const isLow = m.stock < m.low_stock_threshold;
+          return (
+            <div key={m.id} className={`p-3 ${isEditing ? 'bg-primary/5' : ''}`}>
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs font-bold text-primary">{m.code}</span>
+                {isLow && <span className="flex items-center gap-1 text-destructive text-[10px] font-bold"><AlertTriangle className="h-3 w-3" /> Χαμηλό</span>}
+              </div>
+              <p className="text-sm font-medium truncate mb-1.5">{m.name}</p>
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-bold">{m.stock.toLocaleString('el-GR')} {/^τεμ/i.test(m.unit) ? 'τεμ.' : m.unit}</span>
+                <span className="text-muted-foreground">{m.price > 0 ? `${m.price.toFixed(2)}€` : '—'}</span>
+                <span className="font-bold">{value > 0 ? `${value.toLocaleString('el-GR', { minimumFractionDigits: 2 })}€` : '—'}</span>
+              </div>
+              {hasRealData && (
+                <div className="flex items-center gap-1 justify-end mt-2">
+                  <button onClick={() => onHistory(m)} className="rounded-lg p-1.5 text-muted-foreground/50 hover:text-accent-foreground hover:bg-accent/10"><History className="h-3.5 w-3.5" /></button>
+                  <button onClick={() => onEdit(m)} className="rounded-lg p-1.5 text-muted-foreground/50 hover:text-primary hover:bg-primary/10"><Pencil className="h-3.5 w-3.5" /></button>
+                  <button onClick={() => onDelete(m)} className="rounded-lg p-1.5 text-muted-foreground/50 hover:text-destructive hover:bg-destructive/10"><Trash2 className="h-3.5 w-3.5" /></button>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Desktop Table View */}
+      <div className="hidden md:block overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-border bg-muted/30">
+              <SortHeader field="code" label="Κωδικός" />
+              <SortHeader field="name" label="Περιγραφή" />
+              <SortHeader field="stock" label="Απόθεμα" align="right" />
+              <SortHeader field="price" label="Τιμή" align="right" />
+              <th className="py-3 px-4 text-right font-semibold text-muted-foreground text-[11px] uppercase tracking-wider">Αξία</th>
+              <th className="py-3 px-4 text-right font-semibold text-muted-foreground text-[11px] uppercase tracking-wider">Όριο</th>
+              {hasRealData && <th className="py-3 px-2 w-10" />}
+            </tr>
+          </thead>
+          <tbody>
+            {items.map((m) => {
+              const isEditing = editingId === m.id;
+              const value = m.stock * m.price;
+              const isLow = m.stock < m.low_stock_threshold;
+              return (
+                <tr key={m.id} className={`border-b border-border/50 transition-colors ${isEditing ? 'bg-primary/5' : 'hover:bg-muted/30'}`}>
+                  <td className="py-3 px-4 text-xs font-bold text-primary">{m.code}</td>
+                  <td className="py-3 px-4 font-medium">
+                    {isEditing ? (
+                      <input type="text" value={editValues.name} onChange={e => onEditChange('name', e.target.value)} className="w-full rounded-lg border border-primary/30 bg-card px-2 py-1 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                    ) : m.name}
+                  </td>
+                  <td className="py-3 px-4 text-right font-bold">
                     {isEditing ? (
                       <div className="flex items-center gap-1 justify-end">
-                        <button onClick={onSave} className="rounded-lg p-1.5 text-success hover:bg-success/10 transition-colors"><Check className="h-3.5 w-3.5" /></button>
-                        <button onClick={onCancel} className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted transition-colors"><X className="h-3.5 w-3.5" /></button>
+                        <input type="number" value={editValues.stock} onChange={e => onEditChange('stock', e.target.value)} className="w-20 rounded-lg border border-primary/30 bg-card px-2 py-1 text-right text-sm font-bold focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20" autoFocus />
+                        <input type="text" value={editValues.unit} onChange={e => onEditChange('unit', e.target.value)} className="w-16 rounded-lg border border-primary/30 bg-card px-1 py-1 text-xs focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20" />
                       </div>
                     ) : (
-                      <div className="flex items-center gap-0.5 justify-end">
-                        <button onClick={() => onHistory(m)} className="rounded-lg p-1.5 text-muted-foreground/50 hover:text-accent-foreground hover:bg-accent/10 transition-colors" title="Ιστορικό"><History className="h-3.5 w-3.5" /></button>
-                        <button onClick={() => onEdit(m)} className="rounded-lg p-1.5 text-muted-foreground/50 hover:text-primary hover:bg-primary/10 transition-colors"><Pencil className="h-3.5 w-3.5" /></button>
-                        <button onClick={() => onDelete(m)} className="rounded-lg p-1.5 text-muted-foreground/50 hover:text-destructive hover:bg-destructive/10 transition-colors"><Trash2 className="h-3.5 w-3.5" /></button>
-                      </div>
+                      <span className={`inline-flex items-center gap-1.5 ${isLow ? 'text-destructive font-semibold' : ''}`}>
+                        {isLow && <AlertTriangle className="h-3 w-3" />}
+                        {m.stock.toLocaleString('el-GR')} {/^τεμ/i.test(m.unit) ? 'τεμάχια' : m.unit}
+                      </span>
                     )}
                   </td>
-                )}
+                  <td className="py-3 px-4 text-right font-bold text-muted-foreground">
+                    {isEditing ? (
+                      <input type="number" step="0.01" value={editValues.price} onChange={e => onEditChange('price', e.target.value)} className="w-20 ml-auto rounded-lg border border-primary/30 bg-card px-2 py-1 text-right text-sm font-bold focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                    ) : (m.price === 0 ? <span className="text-muted-foreground/40">—</span> : `${m.price.toFixed(2)}€`)}
+                  </td>
+                  <td className="py-3 px-4 text-right font-bold">
+                    {value === 0 ? <span className="text-muted-foreground/40">—</span> : `${value.toLocaleString('el-GR', { minimumFractionDigits: 2 })}€`}
+                  </td>
+                  <td className="py-3 px-4 text-right font-bold text-xs">
+                    {isEditing ? (
+                      <input type="number" value={editValues.low_stock_threshold} onChange={e => onEditChange('low_stock_threshold', e.target.value)} className="w-16 ml-auto rounded-lg border border-primary/30 bg-card px-2 py-1 text-right text-sm font-bold focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                    ) : (<span className="text-muted-foreground">{m.low_stock_threshold}</span>)}
+                  </td>
+                  {hasRealData && (
+                    <td className="py-3 px-2 text-right">
+                      {isEditing ? (
+                        <div className="flex items-center gap-1 justify-end">
+                          <button onClick={onSave} className="rounded-lg p-1.5 text-success hover:bg-success/10 transition-colors"><Check className="h-3.5 w-3.5" /></button>
+                          <button onClick={onCancel} className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted transition-colors"><X className="h-3.5 w-3.5" /></button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-0.5 justify-end">
+                          <button onClick={() => onHistory(m)} className="rounded-lg p-1.5 text-muted-foreground/50 hover:text-accent-foreground hover:bg-accent/10 transition-colors" title="Ιστορικό"><History className="h-3.5 w-3.5" /></button>
+                          <button onClick={() => onEdit(m)} className="rounded-lg p-1.5 text-muted-foreground/50 hover:text-primary hover:bg-primary/10 transition-colors"><Pencil className="h-3.5 w-3.5" /></button>
+                          <button onClick={() => onDelete(m)} className="rounded-lg p-1.5 text-muted-foreground/50 hover:text-destructive hover:bg-destructive/10 transition-colors"><Trash2 className="h-3.5 w-3.5" /></button>
+                        </div>
+                      )}
+                    </td>
+                  )}
+                </tr>
+              );
+            })}
+            {items.length === 0 && (
+              <tr>
+                <td colSpan={hasRealData ? 7 : 6} className="py-12 text-center text-muted-foreground text-sm">Δεν βρέθηκαν υλικά</td>
               </tr>
-            );
-          })}
-          {items.length === 0 && (
-            <tr>
-              <td colSpan={hasRealData ? 7 : 6} className="py-12 text-center text-muted-foreground text-sm">
-                Δεν βρέθηκαν υλικά
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
-    </div>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </>
   );
 };
 
@@ -505,31 +507,30 @@ const Materials = () => {
 
   return (
     <AppLayout>
-      <div className="space-y-6 max-w-[1400px]">
+      <div className="space-y-6 max-w-[1400px] mx-auto">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-3">
           <div>
-            <h1 className="text-2xl font-extrabold tracking-tight">Αποθήκη Υλικών</h1>
-            <p className="text-sm text-muted-foreground mt-1">
+            <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight">Αποθήκη Υλικών</h1>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-1">
               Διαχείριση αποθεμάτων OTE & {orgName}
-              
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            <label className={`flex items-center gap-2 rounded-xl border-2 border-primary/40 bg-primary/8 px-4 py-2.5 text-sm font-bold text-primary hover:bg-primary/15 hover:border-primary/60 transition-all cursor-pointer ${uploading ? 'opacity-50 pointer-events-none' : ''}`}>
-              <Upload className={`h-4 w-4 ${uploading ? 'animate-pulse' : ''}`} />
-              {uploading ? 'Ανάγνωση PDF...' : 'Δελτίο OTE'}
+          <div className="flex flex-wrap items-center gap-2">
+            <label className={`flex items-center gap-1.5 rounded-xl border-2 border-primary/40 bg-primary/8 px-3 py-2 text-xs sm:text-sm font-bold text-primary hover:bg-primary/15 hover:border-primary/60 transition-all cursor-pointer ${uploading ? 'opacity-50 pointer-events-none' : ''}`}>
+              <Upload className={`h-3.5 w-3.5 ${uploading ? 'animate-pulse' : ''}`} />
+              {uploading ? 'PDF...' : 'Δελτίο OTE'}
               <input type="file" accept=".pdf" multiple onChange={(e) => handlePdfUpload(e, 'OTE')} className="hidden" disabled={uploading} />
             </label>
-            <label className={`flex items-center gap-2 rounded-xl border-2 border-accent/40 bg-accent/8 px-4 py-2.5 text-sm font-bold text-accent hover:bg-accent/15 hover:border-accent/60 transition-all cursor-pointer ${uploading ? 'opacity-50 pointer-events-none' : ''}`}>
-              <Upload className={`h-4 w-4 ${uploading ? 'animate-pulse' : ''}`} />
-              {uploading ? 'Ανάγνωση PDF...' : `Δελτίο ${orgName}`}
+            <label className={`flex items-center gap-1.5 rounded-xl border-2 border-accent/40 bg-accent/8 px-3 py-2 text-xs sm:text-sm font-bold text-accent hover:bg-accent/15 hover:border-accent/60 transition-all cursor-pointer ${uploading ? 'opacity-50 pointer-events-none' : ''}`}>
+              <Upload className={`h-3.5 w-3.5 ${uploading ? 'animate-pulse' : ''}`} />
+              {uploading ? 'PDF...' : `Δελτίο ${orgName}`}
               <input type="file" accept=".pdf" multiple onChange={(e) => handlePdfUpload(e, 'DELTANETWORK')} className="hidden" disabled={uploading} />
             </label>
             <Dialog open={addOpen} onOpenChange={setAddOpen}>
               <DialogTrigger asChild>
-                <button className="flex items-center gap-2 rounded-xl cosmote-gradient px-4 py-2.5 text-sm font-bold text-white shadow-lg shadow-primary/20 hover:opacity-90 transition-all">
-                  <Plus className="h-4 w-4" />
+                <button className="flex items-center gap-1.5 rounded-xl cosmote-gradient px-3 py-2 text-xs sm:text-sm font-bold text-white shadow-lg shadow-primary/20 hover:opacity-90 transition-all">
+                  <Plus className="h-3.5 w-3.5" />
                   Νέο Υλικό
                 </button>
               </DialogTrigger>

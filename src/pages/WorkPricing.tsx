@@ -147,18 +147,18 @@ const WorkPricing = () => {
 
   return (
     <AppLayout>
-      <div className="space-y-6 max-w-[1400px]">
+      <div className="space-y-6 max-w-[1400px] mx-auto">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-extrabold tracking-tight">Τιμοκατάλογος Εργασιών</h1>
-            <p className="text-sm text-muted-foreground mt-1">
+            <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight">Τιμοκατάλογος Εργασιών</h1>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-1">
               Διαχείριση τιμών εργασιών — {filtered.length} εγγραφές
             </p>
           </div>
           <Dialog open={addOpen} onOpenChange={setAddOpen}>
             <DialogTrigger asChild>
-              <button className="flex items-center gap-2 rounded-xl cosmote-gradient px-4 py-2.5 text-sm font-bold text-white shadow-lg shadow-primary/20 hover:opacity-90 transition-all">
+              <button className="flex items-center gap-2 rounded-xl cosmote-gradient px-4 py-2.5 text-sm font-bold text-white shadow-lg shadow-primary/20 hover:opacity-90 transition-all self-start sm:self-auto">
                 <Plus className="h-4 w-4" />
                 Νέα Εργασία
               </button>
