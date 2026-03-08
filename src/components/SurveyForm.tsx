@@ -409,6 +409,7 @@ const SurveyForm = ({ assignments, prefillSrId, prefillArea, onComplete }: Props
         accept="image/*"
         isCompressing={compressing["screenshots"]}
         compressionStats={compressionStats["screenshots"]}
+        isAiAnalyzing={isAnalyzing("screenshots")}
       />
 
       {/* ΔΕΛΤΙΟ ΑΥΤΟΨΙΑΣ PDF */}
