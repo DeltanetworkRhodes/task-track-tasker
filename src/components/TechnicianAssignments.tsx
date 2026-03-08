@@ -712,6 +712,14 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
                   </div>
                 </Card>
 
+                {/* Pre-Work Checklist - visible for pending assignments */}
+                {(selectedAssignment.status === "pending" || selectedAssignment.status === "inspection") && (
+                  <PreWorkChecklist
+                    assignment={selectedAssignment}
+                    onChecklistComplete={setPreWorkComplete}
+                  />
+                )}
+
                 {/* Existing survey info */}
                 {existingSurvey && (
                   <Card className="p-3 space-y-1">
