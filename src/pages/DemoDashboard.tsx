@@ -51,6 +51,7 @@ const DEMO_NAV_ITEMS = [
   { key: "assignments", label: "Αναθέσεις", icon: ClipboardList },
   { key: "surveys", label: "Αυτοψίες", icon: Search },
   { key: "construction", label: "Κατασκευές", icon: Wrench },
+  { key: "documents", label: "AS-BUILD", icon: FileSpreadsheet },
   { key: "materials", label: "Αποθήκη", icon: Package },
   { key: "work-pricing", label: "Τιμοκατάλογος", icon: FileText },
   { key: "profit", label: "Κέρδος/SR", icon: TrendingUp },
