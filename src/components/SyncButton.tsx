@@ -49,6 +49,12 @@ const SyncButton = () => {
               variant: "destructive",
             });
           }
+          if (checkData.promoted > 0) {
+            toast({
+              title: "Αυτόματη Προαγωγή",
+              description: `${checkData.promoted} αναθέσεις προχώρησαν σε Προδέσμευση (βρέθηκε φάκελος Drive)`,
+            });
+          }
         }
       } catch (driveCheckErr) {
         console.error("Drive folder check error:", driveCheckErr);
