@@ -35,6 +35,7 @@ const SurveyForm = ({ assignments, prefillSrId, prefillArea, onComplete }: Props
   const [comments, setComments] = useState("");
   const [buildingPhotos, setBuildingPhotos] = useState<FileUpload[]>([]);
   const [screenshots, setScreenshots] = useState<FileUpload[]>([]);
+  const [inspectionPdf, setInspectionPdf] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
