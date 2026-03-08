@@ -6,7 +6,8 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const PHOTO_TYPE_PROMPTS: Record<string, string> = {
+// ─── Survey-phase prompts (simple quality check) ───
+const SURVEY_PROMPTS: Record<string, string> = {
   building_photo:
     "Ελέγξτε αν η φωτογραφία δείχνει ξεκάθαρα ένα κτίριο ή είσοδο κτιρίου. Πρέπει να φαίνεται η πρόσοψη ή η είσοδος.",
   screenshot:
@@ -17,6 +18,26 @@ const PHOTO_TYPE_PROMPTS: Record<string, string> = {
     "Ελέγξτε αν η φωτογραφία δείχνει εργασίες κατασκευής FTTH (σωληνώσεις, εκσκαφές, τοποθέτηση καλωδίων, εξοπλισμός).",
 };
 
+// ─── Construction-phase category-specific prompts (deep QA) ───
+const CONSTRUCTION_CATEGORY_PROMPTS: Record<string, string> = {
+  ΣΚΑΜΑ:
+    "Ελέγξτε το σκάμα (εκσκαφή): Είναι ολοκληρωμένο; Έχει σωστό βάθος; Υπάρχουν σωληνώσεις τοποθετημένες; Είναι ασφαλές;",
+  ΟΔΕΥΣΗ:
+    "Ελέγξτε την όδευση οπτικής ίνας: Υπάρχουν απότομες τσακίσεις (γωνία μικρότερη από ακτίνα κάμψης); Είναι το καλώδιο μέσα σε κανάλι/σωλήνα ή χύμα; Είναι στερεωμένο σωστά;",
+  BCP:
+    "Ελέγξτε το BCP (Building Connection Point): Είναι τοποθετημένο σωστά και ίσια; Έχει ταμπελάκι σήμανσης; Είναι τα splicing καθαρά;",
+  BEP:
+    "Ελέγξτε το BEP (Building Entry Point): Σωστή τοποθέτηση; Στεγανοποίηση εισόδου; Σήμανση παρούσα;",
+  BMO:
+    "Ελέγξτε το BMO (Building Main Outlet): Σωστή τοποθέτηση στον τοίχο, ευθυγράμμιση, σήμανση, καθαρή καλωδίωση;",
+  FB:
+    "Ελέγξτε το Floor Box: Σωστή τοποθέτηση, κάλυμμα, σήμανση, splicing εντός;",
+  ΚΑΜΠΙΝΑ:
+    "Ελέγξτε την καμπίνα: Σωστή σύνδεση, τακτοποίηση καλωδίων, σήμανση πορτών;",
+  Γ_ΦΑΣΗ:
+    "Ελέγξτε τη Γ' Φάση (σύνδεση πελάτη): ONT/Router τοποθετημένο σωστά; Πριζάκι οπτικής ίνας σωστά στον τοίχο; Ταμπελάκι πελάτη παρόν;",
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -24,24 +45,79 @@ serve(async (req) => {
 
   try {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
-    }
+    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    const { imageBase64, photoType } = await req.json();
+    const { imageBase64, photoType, phase, category } = await req.json();
 
     if (!imageBase64) {
       return new Response(
-        JSON.stringify({ isValid: false, message: "Δεν βρέθηκε εικόνα." }),
+        JSON.stringify({ isValid: false, isApproved: false, message: "Δεν βρέθηκε εικόνα." }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const typePrompt =
-      PHOTO_TYPE_PROMPTS[photoType] ||
-      "Ελέγξτε αν η φωτογραφία είναι σχετική με τηλεπικοινωνιακό έργο FTTH.";
+    const isConstruction = phase === "construction";
 
-    const systemPrompt = `Είστε Αυστηρός Επιθεωρητής Έργων FTTH (Fiber-To-The-Home). 
+    // ─── Build system prompt ───
+    let systemPrompt: string;
+    let toolDef: any;
+
+    if (isConstruction) {
+      const catPrompt =
+        CONSTRUCTION_CATEGORY_PROMPTS[category] ||
+        "Ελέγξτε αν η φωτογραφία δείχνει εργασίες κατασκευής FTTH σύμφωνα με τις προδιαγραφές ΟΤΕ.";
+
+      systemPrompt = `Είσαι ένας αυστηρός και έμπειρος Ελεγκτής Ποιότητας Έργων Οπτικών Ινών (FTTH) του ΟΤΕ για την Β' Φάση (Κατασκευή/Ολοκλήρωση).
+Η δουλειά σου είναι να αναλύεις φωτογραφίες από τις εγκαταστάσεις των τεχνικών και να εγκρίνεις ή να απορρίπτεις τη δουλειά βάσει των αυστηρών προδιαγραφών του ΟΤΕ.
+
+Κριτήρια Ελέγχου:
+1. ΠΟΙΟΤΗΤΑ ΦΩΤΟΓΡΑΦΙΑΣ: Είναι καθαρή, εστιασμένη, με καλό φωτισμό; Αν είναι θολή, σκοτεινή ή υπερεκτεθειμένη → απόρριψη.
+2. ΟΔΕΥΣΗ ΟΠΤΙΚΗΣ ΙΝΑΣ: Υπάρχουν απότομες τσακίσεις (απαγορεύεται γωνία μικρότερη από την επιτρεπόμενη ακτίνα κάμψης 30mm); Είναι το καλώδιο μέσα σε κανάλι/σωλήνα ή καλά στερεωμένο (και ΟΧΙ χύμα);
+3. ΕΞΟΠΛΙΣΜΟΣ (Πριζάκι/ONT): Ο εξοπλισμός πρέπει να είναι τοποθετημένος σωστά και ίσια στον τοίχο, χωρίς κλίση.
+4. ΣΗΜΑΝΣΗ: Πρέπει να υπάρχει διακριτό ταμπελάκι (label) με ID γραμμής/πελάτη, όπως απαιτεί ο ΟΤΕ.
+
+Ειδικές οδηγίες για αυτή την κατηγορία: ${catPrompt}
+
+ΣΗΜΑΝΤΙΚΟ: Να είσαι αυστηρός. Αν κάτι δεν τηρεί τις προδιαγραφές, απέρριψέ το με συγκεκριμένο feedback.`;
+
+      toolDef = {
+        type: "function",
+        function: {
+          name: "construction_photo_analysis",
+          description: "Return the OTE Phase B quality analysis result.",
+          parameters: {
+            type: "object",
+            properties: {
+              isApproved: {
+                type: "boolean",
+                description: "true if photo passes OTE Phase B quality standards",
+              },
+              qualityScore: {
+                type: "number",
+                description: "Quality score from 1 to 10",
+              },
+              issuesFound: {
+                type: "array",
+                items: { type: "string" },
+                description: "List of specific issues found (empty if approved)",
+              },
+              feedbackForTechnician: {
+                type: "string",
+                description: "Detailed feedback in Greek for the technician",
+              },
+            },
+            required: ["isApproved", "qualityScore", "issuesFound", "feedbackForTechnician"],
+            additionalProperties: false,
+          },
+        },
+      };
+    } else {
+      // Survey-phase simple check
+      const typePrompt =
+        SURVEY_PROMPTS[photoType] ||
+        "Ελέγξτε αν η φωτογραφία είναι σχετική με τηλεπικοινωνιακό έργο FTTH.";
+
+      systemPrompt = `Είστε Αυστηρός Επιθεωρητής Έργων FTTH (Fiber-To-The-Home).
 Αναλύετε φωτογραφίες από τεχνικούς πεδίου και ελέγχετε την ποιότητά τους.
 
 Πρέπει να ελέγξετε:
@@ -49,7 +125,33 @@ serve(async (req) => {
 2. Αν η φωτογραφία είναι πολύ σκοτεινή ή υπερεκτεθειμένη - αν ναι, απορρίψτε τη.
 3. ${typePrompt}
 
-ΣΗΜΑΝΤΙΚΟ: Να είστε αυστηρός αλλά λογικός. Αν η φωτογραφία είναι αρκετά ευκρινής και δείχνει κάτι σχετικό, εγκρίνετέ τη.`;
+ΣΗΜΑΝΤΙΚΟ: Να είστε αυστηρός αλλά λογικός.`;
+
+      toolDef = {
+        type: "function",
+        function: {
+          name: "photo_analysis_result",
+          description: "Return the analysis result for the photo quality check.",
+          parameters: {
+            type: "object",
+            properties: {
+              isValid: {
+                type: "boolean",
+                description: "true if the photo passes quality checks",
+              },
+              message: {
+                type: "string",
+                description: "Short feedback message in Greek",
+              },
+            },
+            required: ["isValid", "message"],
+            additionalProperties: false,
+          },
+        },
+      };
+    }
+
+    const toolName = toolDef.function.name;
 
     const response = await fetch(
       "https://ai.gateway.lovable.dev/v1/chat/completions",
@@ -68,84 +170,33 @@ serve(async (req) => {
               content: [
                 {
                   type: "text",
-                  text: "Αναλύστε αυτή τη φωτογραφία. Απαντήστε ΜΟΝΟ με ένα JSON object χωρίς markdown.",
+                  text: isConstruction
+                    ? `Αναλύστε αυτή τη φωτογραφία κατασκευής FTTH (κατηγορία: ${category || "γενική"}).`
+                    : "Αναλύστε αυτή τη φωτογραφία.",
                 },
                 {
                   type: "image_url",
-                  image_url: {
-                    url: `data:image/jpeg;base64,${imageBase64}`,
-                  },
+                  image_url: { url: `data:image/jpeg;base64,${imageBase64}` },
                 },
               ],
             },
           ],
-          tools: [
-            {
-              type: "function",
-              function: {
-                name: "photo_analysis_result",
-                description:
-                  "Return the analysis result for the photo quality check.",
-                parameters: {
-                  type: "object",
-                  properties: {
-                    isValid: {
-                      type: "boolean",
-                      description:
-                        "true if the photo passes quality checks, false otherwise",
-                    },
-                    message: {
-                      type: "string",
-                      description:
-                        "Short feedback message in Greek explaining the result",
-                    },
-                  },
-                  required: ["isValid", "message"],
-                  additionalProperties: false,
-                },
-              },
-            },
-          ],
-          tool_choice: {
-            type: "function",
-            function: { name: "photo_analysis_result" },
-          },
+          tools: [toolDef],
+          tool_choice: { type: "function", function: { name: toolName } },
         }),
       }
     );
 
     if (!response.ok) {
-      if (response.status === 429) {
-        return new Response(
-          JSON.stringify({
-            isValid: true,
-            message: "Ο έλεγχος AI δεν είναι διαθέσιμος αυτή τη στιγμή. Η φωτογραφία γίνεται δεκτή.",
-            skipped: true,
-          }),
-          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      if (response.status === 402) {
-        return new Response(
-          JSON.stringify({
-            isValid: true,
-            message: "Ο έλεγχος AI δεν είναι διαθέσιμος. Η φωτογραφία γίνεται δεκτή.",
-            skipped: true,
-          }),
-          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      const errorText = await response.text();
-      console.error("AI gateway error:", response.status, errorText);
-      // Graceful degradation: accept photo if AI is unavailable
-      return new Response(
-        JSON.stringify({
-          isValid: true,
-          message: "Ο έλεγχος AI δεν ήταν δυνατός. Η φωτογραφία γίνεται δεκτή.",
-          skipped: true,
-        }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      const txt = await response.text();
+      console.error("AI gateway error:", response.status, txt);
+      // Graceful degradation
+      const fallback = isConstruction
+        ? { isApproved: true, qualityScore: 10, issuesFound: [], feedbackForTechnician: "Ο έλεγχος AI δεν ήταν δυνατός. Η φωτογραφία γίνεται δεκτή.", skipped: true }
+        : { isValid: true, message: "Ο έλεγχος AI δεν ήταν δυνατός. Η φωτογραφία γίνεται δεκτή.", skipped: true };
+      return new Response(JSON.stringify(fallback), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const data = await response.json();
@@ -159,29 +210,22 @@ serve(async (req) => {
       });
     }
 
-    // Fallback: try to parse from content
-    const content = data.choices?.[0]?.message?.content || "";
-    try {
-      const parsed = JSON.parse(content);
-      return new Response(JSON.stringify(parsed), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    } catch {
-      // If we can't parse, accept the photo
-      return new Response(
-        JSON.stringify({
-          isValid: true,
-          message: "Ο έλεγχος AI δεν ήταν δυνατός. Η φωτογραφία γίνεται δεκτή.",
-          skipped: true,
-        }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    // Fallback: accept
+    const fallback = isConstruction
+      ? { isApproved: true, qualityScore: 10, issuesFound: [], feedbackForTechnician: "Ο έλεγχος AI δεν ήταν δυνατός.", skipped: true }
+      : { isValid: true, message: "Ο έλεγχος AI δεν ήταν δυνατός.", skipped: true };
+    return new Response(JSON.stringify(fallback), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   } catch (e) {
     console.error("analyze-photo error:", e);
     return new Response(
       JSON.stringify({
         isValid: true,
+        isApproved: true,
+        qualityScore: 10,
+        issuesFound: [],
+        feedbackForTechnician: "Σφάλμα ανάλυσης. Η φωτογραφία γίνεται δεκτή.",
         message: "Σφάλμα ανάλυσης. Η φωτογραφία γίνεται δεκτή.",
         skipped: true,
       }),

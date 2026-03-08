@@ -5,7 +5,7 @@ import { useOrganization } from "@/contexts/OrganizationContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Trash2, Loader2, CheckCircle, HardHat, Package, Wrench, Camera, X, ChevronDown, ChevronRight, Plus, Minus, MapPin, Route } from "lucide-react";
+import { Trash2, Loader2, CheckCircle, HardHat, Package, Wrench, Camera, X, ChevronDown, ChevronRight, Plus, Minus, MapPin, Route, BrainCircuit, ShieldCheck, ShieldAlert, AlertTriangle } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +13,9 @@ import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useConstructionPhotoAnalysis } from "@/hooks/usePhotoAnalysis";
+import { isOnline } from "@/lib/offlineQueue";
 
 interface WorkItem {
   work_pricing_id: string;
@@ -70,6 +73,7 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
   const { organizationId, organization } = useOrganization();
   const orgName = organization?.name || "DELTANETWORK";
   const queryClient = useQueryClient();
+  const { analyzeConstructionPhoto, getConstructionResult, isConstructionAnalyzing, hasRejectedPhotos } = useConstructionPhotoAnalysis();
 
   // Form state
   const [sesId, setSesId] = useState("");
@@ -479,7 +483,7 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
 
   // compressImage imported from shared utility
 
-  // Photo handling per category
+  // Photo handling per category with AI QA
   const handleCategoryPhotoSelect = async (category: string, e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
@@ -489,17 +493,36 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
     // Compress all photos in parallel
     const compressed = await Promise.all(files.map((f) => compressImage(f)));
     
-    setCategorizedPhotos((prev) => ({ ...prev, [category]: [...(prev[category] || []), ...compressed] }));
-    compressed.forEach((file) => {
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        setCategorizedPreviews((prev) => ({
-          ...prev,
-          [category]: [...(prev[category] || []), ev.target?.result as string],
-        }));
-      };
-      reader.readAsDataURL(file);
-    });
+    // AI analysis for each photo (only when online)
+    const accepted: File[] = [];
+    const acceptedPreviews: string[] = [];
+
+    for (let i = 0; i < compressed.length; i++) {
+      const file = compressed[i];
+      const existingCount = (categorizedPhotos[category] || []).length;
+      const idx = existingCount + accepted.length;
+
+      if (isOnline()) {
+        const result = await analyzeConstructionPhoto(file, category, idx);
+        if (!result.isApproved || result.qualityScore < 7) {
+          // Photo rejected by AI — don't add
+          continue;
+        }
+      }
+
+      accepted.push(file);
+      const preview = await new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onload = (ev) => resolve(ev.target?.result as string);
+        reader.readAsDataURL(file);
+      });
+      acceptedPreviews.push(preview);
+    }
+
+    if (accepted.length > 0) {
+      setCategorizedPhotos((prev) => ({ ...prev, [category]: [...(prev[category] || []), ...accepted] }));
+      setCategorizedPreviews((prev) => ({ ...prev, [category]: [...(prev[category] || []), ...acceptedPreviews] }));
+    }
   };
 
   const removeCategoryPhoto = (category: string, index: number) => {
@@ -536,6 +559,10 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
   const totalMaterialCost = deltanetMaterials.reduce((sum, m) => sum + m.price * m.quantity, 0);
 
   const handleSubmit = async () => {
+    if (hasRejectedPhotos()) {
+      toast.error("Υπάρχουν φωτογραφίες που δεν πέρασαν τον έλεγχο ΟΤΕ. Αντικαταστήστε τες πριν την υποβολή.");
+      return;
+    }
     if (!cab.trim()) {
       toast.error("Η Καμπίνα (CAB) είναι υποχρεωτική");
       return;
@@ -1110,6 +1137,7 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
           {visiblePhotoCategories.map((cat) => {
             const catPhotos = categorizedPhotos[cat.key] || [];
             const catPreviews = categorizedPreviews[cat.key] || [];
+            const analyzing = isConstructionAnalyzing(cat.key);
             return (
               <div key={cat.key} className="border border-border rounded-lg p-3 space-y-2">
                 <div className="flex items-center justify-between">
@@ -1137,31 +1165,65 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
                       size="sm"
                       onClick={() => fileInputRefs.current[cat.key]?.click()}
                       className="h-7 text-[11px] gap-1 px-2"
+                      disabled={analyzing}
                     >
-                      <Camera className="h-3 w-3" />
-                      Φωτο
+                      {analyzing ? (
+                        <>
+                          <BrainCircuit className="h-3 w-3 animate-spin" />
+                          AI Ανάλυση...
+                        </>
+                      ) : (
+                        <>
+                          <Camera className="h-3 w-3" />
+                          Φωτο
+                        </>
+                      )}
                     </Button>
                   </div>
                 </div>
+
+                {/* AI analyzing indicator */}
+                {analyzing && (
+                  <div className="flex items-center gap-2 p-2 rounded-lg bg-primary/10 border border-primary/20 animate-pulse">
+                    <BrainCircuit className="h-4 w-4 animate-spin text-primary" />
+                    <span className="text-xs font-medium text-primary">
+                      Το AI ελέγχει τις προδιαγραφές ΟΤΕ Β' Φάσης...
+                    </span>
+                  </div>
+                )}
                 
                 {catPreviews.length > 0 && (
                   <div className="grid grid-cols-4 gap-1.5">
-                    {catPreviews.map((preview, i) => (
-                      <div key={i} className="relative group">
-                        <img
-                          src={preview}
-                          alt={`${cat.label} ${i + 1}`}
-                          className="w-full h-16 object-cover rounded border border-border"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => removeCategoryPhoto(cat.key, i)}
-                          className="absolute top-0.5 right-0.5 bg-destructive text-destructive-foreground rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          <X className="h-2.5 w-2.5" />
-                        </button>
-                      </div>
-                    ))}
+                    {catPreviews.map((preview, i) => {
+                      const result = getConstructionResult(cat.key, i);
+                      return (
+                        <div key={i} className="relative group">
+                          <img
+                            src={preview}
+                            alt={`${cat.label} ${i + 1}`}
+                            className="w-full h-16 object-cover rounded border border-border"
+                          />
+                          {/* AI approval badge */}
+                          {result && !result.skipped && (
+                            <div className="absolute top-0.5 left-0.5" title={`Score: ${result.qualityScore}/10`}>
+                              <ShieldCheck className="h-4 w-4 text-green-500 drop-shadow" />
+                            </div>
+                          )}
+                          {result && !result.skipped && result.qualityScore && (
+                            <div className="absolute bottom-0.5 left-0.5 bg-black/60 text-white text-[9px] px-1 rounded">
+                              {result.qualityScore}/10
+                            </div>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => removeCategoryPhoto(cat.key, i)}
+                            className="absolute top-0.5 right-0.5 bg-destructive text-destructive-foreground rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <X className="h-2.5 w-2.5" />
+                          </button>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>
