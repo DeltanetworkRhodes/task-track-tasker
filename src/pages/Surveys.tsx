@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useAssignments } from "@/hooks/useData";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -97,7 +98,7 @@ const Surveys = () => {
     },
   });
 
-
+  const { data: dbAssignments } = useAssignments();
   const { data: appointments } = useQuery({
     queryKey: ["appointments"],
     queryFn: async () => {
@@ -255,6 +256,11 @@ const Surveys = () => {
   const totalIncomplete = (surveys || []).filter((s) => s.status === "ΕΛΛΙΠΗΣ ΑΥΤΟΨΙΑ").length;
   const totalBlockers = (surveys || []).filter((s) => s.status === "BLOCKER" || s.status === "ΑΠΑΙΤΕΙΤΑΙ ΕΝΕΡΓΕΙΑ").length;
   const totalAppointments = (surveys || []).filter((s) => s.status === "ΡΑΝΤΕΒΟΥ").length;
+  const totalEmailsSent = (surveys || []).filter((s) => s.email_sent).length;
+
+  // Assignment stats for pre_committed
+  const preCommittedCount = (dbAssignments || []).filter((a) => a.status === "pre_committed").length;
+  const waitingOteCount = (dbAssignments || []).filter((a) => a.status === "waiting_ote").length;
 
   // Status distribution chart
   const statusCounts = useMemo(() => {
@@ -312,11 +318,13 @@ const Surveys = () => {
         </div>
 
         {/* Stat Cards */}
-        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-5">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-7">
           <StatCard title="Σύνολο Αυτοψιών" value={totalSurveys} subtitle={`${filtered.length} εμφανίζονται`} icon={ClipboardCheck} />
           <StatCard title="Ολοκληρωμένες" value={totalComplete} subtitle={`${totalSurveys > 0 ? Math.round((totalComplete / totalSurveys) * 100) : 0}% επιτυχία`} icon={FileCheck} trend="up" trendValue={`${totalComplete} πλήρεις`} />
           <StatCard title="Ελλιπείς" value={totalIncomplete} subtitle="αναμονή αρχείων" icon={FileWarning} accent />
           <StatCard title="Blockers" value={totalBlockers} subtitle="απαιτούν ενέργεια" icon={ShieldAlert} />
+          <StatCard title="Προδεσμεύσεις" value={preCommittedCount} subtitle={`${waitingOteCount} αναμονή ΟΤΕ`} icon={CheckCircle} />
+          <StatCard title="Email Σταλμένα" value={totalEmailsSent} subtitle={`${totalSurveys - totalEmailsSent} εκκρεμούν`} icon={Mail} />
           <StatCard title="Ραντεβού" value={totalAppointments} subtitle={`${upcomingAppointments.length} επερχόμενα`} icon={CalendarPlus} />
         </div>
 
