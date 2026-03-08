@@ -384,12 +384,25 @@ const OrgSettings = () => {
                   {section.fields.map((field) => (
                     <div key={field.key} className="space-y-1.5">
                       <Label className="text-xs font-medium">{field.label}</Label>
-                      <Input
-                        value={values[field.key] || ""}
-                        onChange={(e) => setValues({ ...values, [field.key]: e.target.value })}
-                        placeholder={field.placeholder}
-                        className="text-sm"
-                      />
+                      {(field as any).multiline ? (
+                        <Textarea
+                          value={values[field.key] || ""}
+                          onChange={(e) => setValues({ ...values, [field.key]: e.target.value })}
+                          placeholder={field.placeholder || `<div style="font-size:12px;color:#718096;">
+<p style="margin:0;font-weight:700;">Όνομα Υπεύθυνου</p>
+<p style="margin:2px 0;">Τίτλος | Τμήμα</p>
+<p style="margin:2px 0;">Τηλ: +30 ... | Email: info@company.gr</p>
+</div>`}
+                          className="text-xs font-mono min-h-[160px]"
+                        />
+                      ) : (
+                        <Input
+                          value={values[field.key] || ""}
+                          onChange={(e) => setValues({ ...values, [field.key]: e.target.value })}
+                          placeholder={field.placeholder}
+                          className="text-sm"
+                        />
+                      )}
                       <p className="text-[11px] text-muted-foreground">{field.description}</p>
                     </div>
                   ))}
