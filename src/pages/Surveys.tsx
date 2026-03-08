@@ -98,7 +98,7 @@ const Surveys = () => {
     },
   });
 
-
+  const { data: dbAssignments } = useAssignments();
   const { data: appointments } = useQuery({
     queryKey: ["appointments"],
     queryFn: async () => {
