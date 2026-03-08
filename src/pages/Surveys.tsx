@@ -530,20 +530,18 @@ const Surveys = () => {
                 })}
               </div>
 
-              {/* Desktop Table View */}
-              <div className="hidden md:block overflow-x-auto">
-                <table className="w-full text-sm">
+              {/* Tablet Compact Table View */}
+              <div className="hidden md:block lg:hidden">
+                <table className="w-full text-xs table-fixed">
                   <thead>
-                    <tr className="bg-muted/50 text-muted-foreground text-xs uppercase tracking-wider">
-                      <th className="text-left px-4 py-3 font-medium">SR ID</th>
-                      <th className="text-left px-4 py-3 font-medium">Περιοχή</th>
-                      <th className="text-left px-4 py-3 font-medium">Τεχνικός</th>
-                      <th className="text-left px-4 py-3 font-medium">Κατάσταση</th>
-                      <th className="text-left px-4 py-3 font-medium">Σχόλια</th>
-                      <th className="text-left px-4 py-3 font-medium">Ημερομηνία</th>
-                      <th className="text-center px-4 py-3 font-medium">Email</th>
-                      <th className="text-center px-4 py-3 font-medium">Ενέργεια</th>
-                      <th className="text-center px-4 py-3 font-medium"></th>
+                    <tr className="bg-muted/50 text-muted-foreground text-[10px] uppercase tracking-wider">
+                      <th className="text-left px-1.5 py-2 font-medium w-[14%]">SR ID</th>
+                      <th className="text-left px-1.5 py-2 font-medium w-[10%]">Περιοχή</th>
+                      <th className="text-left px-1.5 py-2 font-medium w-[16%]">Τεχνικός</th>
+                      <th className="text-left px-1.5 py-2 font-medium w-[18%]">Κατάσταση</th>
+                      <th className="text-left px-1.5 py-2 font-medium w-[12%]">Ημ/νία</th>
+                      <th className="text-center px-1.5 py-2 font-medium w-[6%]">Email</th>
+                      <th className="text-center px-1 py-2 w-[5%]"></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -556,32 +554,91 @@ const Surveys = () => {
                           className="border-t border-border/50 hover:bg-muted/30 cursor-pointer transition-colors"
                           onClick={() => setSelectedSurvey(s)}
                         >
-                          <td className="px-4 py-3 font-bold text-primary">{s.sr_id}</td>
-                          <td className="px-4 py-3">
-                            <Badge variant="outline" className="text-xs">{s.area}</Badge>
+                          <td className="px-1.5 py-2 font-bold text-primary text-[11px] truncate">{s.sr_id}</td>
+                          <td className="px-1.5 py-2">
+                            <Badge variant="outline" className="text-[9px]">{s.area}</Badge>
                           </td>
-                          <td className="px-4 py-3 text-muted-foreground text-xs">{tech?.full_name || "—"}</td>
-                          <td className="px-4 py-3">
-                            <Badge variant="outline" className={`text-xs ${sc.color}`}>{sc.label}</Badge>
+                          <td className="px-1.5 py-2 text-muted-foreground text-[11px] truncate">{tech?.full_name || "—"}</td>
+                          <td className="px-1.5 py-2">
+                            <Badge variant="outline" className={`text-[9px] ${sc.color}`}>{sc.label}</Badge>
                           </td>
-                          <td className="px-4 py-3 max-w-[200px]">
+                          <td className="px-1.5 py-2 text-muted-foreground text-[10px] font-bold">
+                            {new Date(s.created_at).toLocaleDateString("el-GR")}
+                          </td>
+                          <td className="px-1.5 py-2 text-center">
+                            {s.email_sent ? (
+                              <Mail className="h-3 w-3 text-green-600 mx-auto" />
+                            ) : (
+                              <span className="text-muted-foreground/30 text-[10px]">—</span>
+                            )}
+                          </td>
+                          <td className="px-1 py-2 text-center" onClick={(e) => e.stopPropagation()}>
+                            <button
+                              onClick={() => setDeleteTarget(s)}
+                              className="text-muted-foreground/40 hover:text-destructive transition-colors p-0.5 rounded"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Desktop Table View */}
+              <div className="hidden lg:block">
+                <table className="w-full text-sm table-fixed">
+                  <thead>
+                    <tr className="bg-muted/50 text-muted-foreground text-[11px] uppercase tracking-wider">
+                      <th className="text-left px-2 py-2.5 font-medium w-[10%]">SR ID</th>
+                      <th className="text-left px-2 py-2.5 font-medium w-[8%]">Περιοχή</th>
+                      <th className="text-left px-2 py-2.5 font-medium w-[13%]">Τεχνικός</th>
+                      <th className="text-left px-2 py-2.5 font-medium w-[13%]">Κατάσταση</th>
+                      <th className="text-left px-2 py-2.5 font-medium w-[20%]">Σχόλια</th>
+                      <th className="text-left px-2 py-2.5 font-medium w-[10%]">Ημερομηνία</th>
+                      <th className="text-center px-2 py-2.5 font-medium w-[6%]">Email</th>
+                      <th className="text-center px-2 py-2.5 font-medium w-[5%]">Ενέργεια</th>
+                      <th className="text-center px-1 py-2.5 w-[4%]"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filtered.map((s) => {
+                      const tech = profileMap[s.technician_id];
+                      const sc = statusConfig[s.status] || statusConfig["submitted"];
+                      return (
+                        <tr
+                          key={s.id}
+                          className="border-t border-border/50 hover:bg-muted/30 cursor-pointer transition-colors"
+                          onClick={() => setSelectedSurvey(s)}
+                        >
+                          <td className="px-2 py-2.5 font-bold text-primary text-xs truncate">{s.sr_id}</td>
+                          <td className="px-2 py-2.5">
+                            <Badge variant="outline" className="text-[10px]">{s.area}</Badge>
+                          </td>
+                          <td className="px-2 py-2.5 text-muted-foreground text-xs truncate">{tech?.full_name || "—"}</td>
+                          <td className="px-2 py-2.5">
+                            <Badge variant="outline" className={`text-[10px] ${sc.color}`}>{sc.label}</Badge>
+                          </td>
+                          <td className="px-2 py-2.5 truncate">
                             {s.comments ? (
-                              <span className="text-xs text-muted-foreground line-clamp-1">{s.comments}</span>
+                              <span className="text-xs text-muted-foreground">{s.comments}</span>
                             ) : (
                               <span className="text-xs text-muted-foreground/40">—</span>
                             )}
                           </td>
-                          <td className="px-4 py-3 text-muted-foreground text-xs font-bold">
+                          <td className="px-2 py-2.5 text-muted-foreground text-xs font-bold">
                             {new Date(s.created_at).toLocaleDateString("el-GR")}
                           </td>
-                          <td className="px-4 py-3 text-center">
+                          <td className="px-2 py-2.5 text-center">
                             {s.email_sent ? (
                               <Mail className="h-3.5 w-3.5 text-green-600 mx-auto" />
                             ) : (
                               <span className="text-muted-foreground/30">—</span>
                             )}
                           </td>
-                          <td className="px-4 py-3 text-center" onClick={(e) => e.stopPropagation()}>
+                          <td className="px-2 py-2.5 text-center" onClick={(e) => e.stopPropagation()}>
                             <Button
                               size="sm"
                               variant="ghost"
@@ -591,11 +648,10 @@ const Surveys = () => {
                               <Eye className="h-4 w-4 text-primary" />
                             </Button>
                           </td>
-                          <td className="px-4 py-3 text-center" onClick={(e) => e.stopPropagation()}>
+                          <td className="px-1 py-2.5 text-center" onClick={(e) => e.stopPropagation()}>
                             <button
                               onClick={() => setDeleteTarget(s)}
-                              className="text-muted-foreground/40 hover:text-destructive transition-colors p-1 rounded"
-                              title="Διαγραφή"
+                              className="text-muted-foreground/40 hover:text-destructive transition-colors p-0.5 rounded"
                             >
                               <Trash2 className="h-3.5 w-3.5" />
                             </button>

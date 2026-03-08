@@ -51,8 +51,8 @@ const ProfitPerSR = () => {
     <AppLayout>
       <div className="space-y-6 max-w-[1400px]">
         <div>
-          <h1 className="text-2xl font-extrabold tracking-tight">Κέρδος ανά SR</h1>
-          <p className="text-sm text-muted-foreground mt-1">
+          <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight">Κέρδος ανά SR</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1">
             Ανάλυση εσόδων & εξόδων ανά Service Request — {records?.length ?? 0} εγγραφές
           </p>
         </div>

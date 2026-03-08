@@ -357,29 +357,84 @@ const ConstructionPage = () => {
                 })}
               </div>
 
-              {/* Desktop Table View */}
-              <div className="hidden md:block overflow-x-auto">
-                <table className="w-full text-sm">
+              {/* Tablet Compact Table View */}
+              <div className="hidden md:block lg:hidden">
+                <table className="w-full text-xs table-fixed">
                   <thead>
                     <tr className="border-b border-border bg-muted/50">
-                      <th className="py-3 px-4 text-left font-medium text-muted-foreground text-xs uppercase tracking-wider cursor-pointer hover:text-foreground" onClick={() => toggleSort("sr")}>
+                      <th className="py-2 px-1.5 text-left font-medium text-muted-foreground text-[10px] uppercase tracking-wider w-[14%] cursor-pointer" onClick={() => toggleSort("sr")}>
                         <span className="flex items-center gap-1">SR ID <SortIcon field="sr" /></span>
                       </th>
-                      <th className="py-3 px-4 text-left font-medium text-muted-foreground text-xs uppercase tracking-wider">SES ID</th>
-                      <th className="py-3 px-4 text-left font-medium text-muted-foreground text-xs uppercase tracking-wider">CAB</th>
-                      <th className="py-3 px-4 text-left font-medium text-muted-foreground text-xs uppercase tracking-wider">Πελάτης</th>
-                      <th className="py-3 px-4 text-left font-medium text-muted-foreground text-xs uppercase tracking-wider">Κατάσταση</th>
-                      <th className="py-3 px-4 text-right font-medium text-muted-foreground text-xs uppercase tracking-wider cursor-pointer hover:text-foreground" onClick={() => toggleSort("revenue")}>
+                      <th className="py-2 px-1.5 text-left font-medium text-muted-foreground text-[10px] uppercase tracking-wider w-[10%]">SES</th>
+                      <th className="py-2 px-1.5 text-left font-medium text-muted-foreground text-[10px] uppercase tracking-wider w-[14%]">Κατάσταση</th>
+                      <th className="py-2 px-1.5 text-right font-medium text-muted-foreground text-[10px] uppercase tracking-wider w-[14%] cursor-pointer" onClick={() => toggleSort("revenue")}>
                         <span className="flex items-center justify-end gap-1">Έσοδα <SortIcon field="revenue" /></span>
                       </th>
-                      <th className="py-3 px-4 text-right font-medium text-muted-foreground text-xs uppercase tracking-wider">Κόστος</th>
-                      <th className="py-3 px-4 text-right font-medium text-muted-foreground text-xs uppercase tracking-wider cursor-pointer hover:text-foreground" onClick={() => toggleSort("profit")}>
+                      <th className="py-2 px-1.5 text-right font-medium text-muted-foreground text-[10px] uppercase tracking-wider w-[14%] cursor-pointer" onClick={() => toggleSort("profit")}>
                         <span className="flex items-center justify-end gap-1">Κέρδος <SortIcon field="profit" /></span>
                       </th>
-                      <th className="py-3 px-4 text-right font-medium text-muted-foreground text-xs uppercase tracking-wider cursor-pointer hover:text-foreground" onClick={() => toggleSort("date")}>
+                      <th className="py-2 px-1.5 text-right font-medium text-muted-foreground text-[10px] uppercase tracking-wider w-[12%] cursor-pointer" onClick={() => toggleSort("date")}>
                         <span className="flex items-center justify-end gap-1">Ημ/νία <SortIcon field="date" /></span>
                       </th>
-                      <th className="py-3 px-4 text-center font-medium text-muted-foreground text-xs uppercase tracking-wider"></th>
+                      <th className="py-2 px-1 w-[5%]"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filtered.map((c) => (
+                      <tr
+                        key={c.id}
+                        className="border-b border-border/30 hover:bg-muted/50 transition-colors cursor-pointer"
+                        onClick={() => setSelectedConstruction(c)}
+                      >
+                        <td className="py-2 px-1.5 font-bold text-primary text-[11px] truncate">{c.srId}</td>
+                        <td className="py-2 px-1.5 text-[11px] font-bold truncate">{c.sesId || '—'}</td>
+                        <td className="py-2 px-1.5">
+                          <Badge variant="outline" className={`text-[9px] ${statusColors[c.status] || ""}`}>
+                            {(constructionStatusLabels as any)[c.status] || c.status}
+                          </Badge>
+                        </td>
+                        <td className="py-2 px-1.5 text-right font-bold text-[11px]">{c.revenue > 0 ? `${c.revenue.toLocaleString('el-GR')}€` : '—'}</td>
+                        <td className={`py-2 px-1.5 text-right font-bold text-[11px] ${c.profit >= 0 ? 'text-green-600' : 'text-destructive'}`}>
+                          {c.profit !== 0 ? `${c.profit >= 0 ? '+' : ''}${c.profit.toLocaleString('el-GR')}€` : '—'}
+                        </td>
+                        <td className="py-2 px-1.5 text-right text-[10px] text-muted-foreground font-bold">{c.date}</td>
+                        <td className="py-2 px-1 text-center">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setDeleteTarget(c); }}
+                            className="text-muted-foreground/40 hover:text-destructive transition-colors p-0.5 rounded"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Desktop Table View */}
+              <div className="hidden lg:block">
+                <table className="w-full text-sm table-fixed">
+                  <thead>
+                    <tr className="border-b border-border bg-muted/50">
+                      <th className="py-2.5 px-2 text-left font-medium text-muted-foreground text-[11px] uppercase tracking-wider w-[11%] cursor-pointer hover:text-foreground" onClick={() => toggleSort("sr")}>
+                        <span className="flex items-center gap-1">SR ID <SortIcon field="sr" /></span>
+                      </th>
+                      <th className="py-2.5 px-2 text-left font-medium text-muted-foreground text-[11px] uppercase tracking-wider w-[9%]">SES ID</th>
+                      <th className="py-2.5 px-2 text-left font-medium text-muted-foreground text-[11px] uppercase tracking-wider w-[8%]">CAB</th>
+                      <th className="py-2.5 px-2 text-left font-medium text-muted-foreground text-[11px] uppercase tracking-wider w-[14%]">Πελάτης</th>
+                      <th className="py-2.5 px-2 text-left font-medium text-muted-foreground text-[11px] uppercase tracking-wider w-[12%]">Κατάσταση</th>
+                      <th className="py-2.5 px-2 text-right font-medium text-muted-foreground text-[11px] uppercase tracking-wider w-[10%] cursor-pointer hover:text-foreground" onClick={() => toggleSort("revenue")}>
+                        <span className="flex items-center justify-end gap-1">Έσοδα <SortIcon field="revenue" /></span>
+                      </th>
+                      <th className="py-2.5 px-2 text-right font-medium text-muted-foreground text-[11px] uppercase tracking-wider w-[10%]">Κόστος</th>
+                      <th className="py-2.5 px-2 text-right font-medium text-muted-foreground text-[11px] uppercase tracking-wider w-[10%] cursor-pointer hover:text-foreground" onClick={() => toggleSort("profit")}>
+                        <span className="flex items-center justify-end gap-1">Κέρδος <SortIcon field="profit" /></span>
+                      </th>
+                      <th className="py-2.5 px-2 text-right font-medium text-muted-foreground text-[11px] uppercase tracking-wider w-[9%] cursor-pointer hover:text-foreground" onClick={() => toggleSort("date")}>
+                        <span className="flex items-center justify-end gap-1">Ημ/νία <SortIcon field="date" /></span>
+                      </th>
+                      <th className="py-2.5 px-1 text-center w-[4%]"></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -391,26 +446,25 @@ const ConstructionPage = () => {
                           className="border-b border-border/30 hover:bg-muted/50 transition-colors cursor-pointer"
                           onClick={() => setSelectedConstruction(c)}
                         >
-                          <td className="py-3 px-4 font-bold text-primary">{c.srId}</td>
-                          <td className="py-3 px-4 text-xs font-bold">{c.sesId || '—'}</td>
-                          <td className="py-3 px-4 text-xs font-bold">{c.cab || '—'}</td>
-                          <td className="py-3 px-4 text-xs">{assignment?.customer_name || '—'}</td>
-                          <td className="py-3 px-4">
-                            <Badge variant="outline" className={statusColors[c.status] || ""}>
+                          <td className="py-2.5 px-2 font-bold text-primary text-xs truncate">{c.srId}</td>
+                          <td className="py-2.5 px-2 text-xs font-bold truncate">{c.sesId || '—'}</td>
+                          <td className="py-2.5 px-2 text-xs font-bold truncate">{c.cab || '—'}</td>
+                          <td className="py-2.5 px-2 text-xs truncate">{assignment?.customer_name || '—'}</td>
+                          <td className="py-2.5 px-2">
+                            <Badge variant="outline" className={`text-[10px] ${statusColors[c.status] || ""}`}>
                               {(constructionStatusLabels as any)[c.status] || c.status}
                             </Badge>
                           </td>
-                          <td className="py-3 px-4 text-right font-bold">{c.revenue > 0 ? `${c.revenue.toLocaleString('el-GR')}€` : '—'}</td>
-                          <td className="py-3 px-4 text-right font-bold text-destructive">{c.materialCost > 0 ? `${c.materialCost.toLocaleString('el-GR')}€` : '—'}</td>
-                          <td className={`py-3 px-4 text-right font-bold ${c.profit >= 0 ? 'text-green-600' : 'text-destructive'}`}>
+                          <td className="py-2.5 px-2 text-right font-bold text-xs">{c.revenue > 0 ? `${c.revenue.toLocaleString('el-GR')}€` : '—'}</td>
+                          <td className="py-2.5 px-2 text-right font-bold text-xs text-destructive">{c.materialCost > 0 ? `${c.materialCost.toLocaleString('el-GR')}€` : '—'}</td>
+                          <td className={`py-2.5 px-2 text-right font-bold text-xs ${c.profit >= 0 ? 'text-green-600' : 'text-destructive'}`}>
                             {c.profit !== 0 ? `${c.profit >= 0 ? '+' : ''}${c.profit.toLocaleString('el-GR')}€` : '—'}
                           </td>
-                          <td className="py-3 px-4 text-right text-xs text-muted-foreground font-bold">{c.date}</td>
-                          <td className="py-3 px-4 text-center">
+                          <td className="py-2.5 px-2 text-right text-[11px] text-muted-foreground font-bold">{c.date}</td>
+                          <td className="py-2.5 px-1 text-center">
                             <button
                               onClick={(e) => { e.stopPropagation(); setDeleteTarget(c); }}
-                              className="text-muted-foreground/40 hover:text-destructive transition-colors p-1 rounded"
-                              title="Διαγραφή"
+                              className="text-muted-foreground/40 hover:text-destructive transition-colors p-0.5 rounded"
                             >
                               <Trash2 className="h-3.5 w-3.5" />
                             </button>

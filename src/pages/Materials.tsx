@@ -507,29 +507,28 @@ const Materials = () => {
     <AppLayout>
       <div className="space-y-6 max-w-[1400px]">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-3">
           <div>
-            <h1 className="text-2xl font-extrabold tracking-tight">Αποθήκη Υλικών</h1>
-            <p className="text-sm text-muted-foreground mt-1">
+            <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight">Αποθήκη Υλικών</h1>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-1">
               Διαχείριση αποθεμάτων OTE & {orgName}
-              
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            <label className={`flex items-center gap-2 rounded-xl border-2 border-primary/40 bg-primary/8 px-4 py-2.5 text-sm font-bold text-primary hover:bg-primary/15 hover:border-primary/60 transition-all cursor-pointer ${uploading ? 'opacity-50 pointer-events-none' : ''}`}>
-              <Upload className={`h-4 w-4 ${uploading ? 'animate-pulse' : ''}`} />
-              {uploading ? 'Ανάγνωση PDF...' : 'Δελτίο OTE'}
+          <div className="flex flex-wrap items-center gap-2">
+            <label className={`flex items-center gap-1.5 rounded-xl border-2 border-primary/40 bg-primary/8 px-3 py-2 text-xs sm:text-sm font-bold text-primary hover:bg-primary/15 hover:border-primary/60 transition-all cursor-pointer ${uploading ? 'opacity-50 pointer-events-none' : ''}`}>
+              <Upload className={`h-3.5 w-3.5 ${uploading ? 'animate-pulse' : ''}`} />
+              {uploading ? 'PDF...' : 'Δελτίο OTE'}
               <input type="file" accept=".pdf" multiple onChange={(e) => handlePdfUpload(e, 'OTE')} className="hidden" disabled={uploading} />
             </label>
-            <label className={`flex items-center gap-2 rounded-xl border-2 border-accent/40 bg-accent/8 px-4 py-2.5 text-sm font-bold text-accent hover:bg-accent/15 hover:border-accent/60 transition-all cursor-pointer ${uploading ? 'opacity-50 pointer-events-none' : ''}`}>
-              <Upload className={`h-4 w-4 ${uploading ? 'animate-pulse' : ''}`} />
-              {uploading ? 'Ανάγνωση PDF...' : `Δελτίο ${orgName}`}
+            <label className={`flex items-center gap-1.5 rounded-xl border-2 border-accent/40 bg-accent/8 px-3 py-2 text-xs sm:text-sm font-bold text-accent hover:bg-accent/15 hover:border-accent/60 transition-all cursor-pointer ${uploading ? 'opacity-50 pointer-events-none' : ''}`}>
+              <Upload className={`h-3.5 w-3.5 ${uploading ? 'animate-pulse' : ''}`} />
+              {uploading ? 'PDF...' : `Δελτίο ${orgName}`}
               <input type="file" accept=".pdf" multiple onChange={(e) => handlePdfUpload(e, 'DELTANETWORK')} className="hidden" disabled={uploading} />
             </label>
             <Dialog open={addOpen} onOpenChange={setAddOpen}>
               <DialogTrigger asChild>
-                <button className="flex items-center gap-2 rounded-xl cosmote-gradient px-4 py-2.5 text-sm font-bold text-white shadow-lg shadow-primary/20 hover:opacity-90 transition-all">
-                  <Plus className="h-4 w-4" />
+                <button className="flex items-center gap-1.5 rounded-xl cosmote-gradient px-3 py-2 text-xs sm:text-sm font-bold text-white shadow-lg shadow-primary/20 hover:opacity-90 transition-all">
+                  <Plus className="h-3.5 w-3.5" />
                   Νέο Υλικό
                 </button>
               </DialogTrigger>

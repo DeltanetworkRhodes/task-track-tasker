@@ -244,13 +244,13 @@ const OrgSettings = () => {
 
   return (
     <AppLayout>
-      <div className="space-y-6">
+      <div className="space-y-6 max-w-[1400px]">
         <div>
-          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-            <Settings className="h-6 w-6" />
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground flex items-center gap-2">
+            <Settings className="h-5 sm:h-6 w-5 sm:w-6" />
             Ρυθμίσεις Εταιρίας
           </h1>
-          <p className="text-sm text-muted-foreground mt-1">
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1">
             Service Account · Google Drive · Email · Φάκελοι Περιοχών
           </p>
         </div>
