@@ -25,6 +25,7 @@ import TechnicianKPIs from "./pages/TechnicianKPIs";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
 import OrgSettings from "./pages/OrgSettings";
 import Calendar from "./pages/Calendar";
+import DocumentGenerator from "./pages/DocumentGenerator";
 import DemoDashboard from "./pages/DemoDashboard";
 
 import NotFound from "./pages/NotFound";
@@ -116,6 +117,7 @@ const App = () => (
                   <Route path="/kpis" element={<ProtectedRoute><RoleGate><AdminRoute><TechnicianKPIs /></AdminRoute></RoleGate></ProtectedRoute>} />
                   
                   <Route path="/calendar" element={<ProtectedRoute><RoleGate><AdminRoute><Calendar /></AdminRoute></RoleGate></ProtectedRoute>} />
+                  <Route path="/documents" element={<ProtectedRoute><RoleGate><AdminRoute><DocumentGenerator /></AdminRoute></RoleGate></ProtectedRoute>} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </BrowserRouter>
