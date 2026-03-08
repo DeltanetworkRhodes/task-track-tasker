@@ -513,7 +513,7 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
               <th className="py-3 px-4 text-left font-medium text-muted-foreground text-xs uppercase tracking-wider">Τεχνικός</th>
               <th className="py-3 px-4 text-left font-medium text-muted-foreground text-xs uppercase tracking-wider">Κατάσταση</th>
               <th className="py-3 px-4 text-left font-medium text-muted-foreground text-xs uppercase tracking-wider">Ημ/νία</th>
-              <th className="py-3 px-4 text-center font-medium text-muted-foreground text-xs uppercase tracking-wider">Φωτο</th>
+              
               <th className="py-3 px-4 text-left font-medium text-muted-foreground text-xs uppercase tracking-wider">Σχόλια</th>
               <th className="py-3 px-4 text-center font-medium text-muted-foreground text-xs uppercase tracking-wider">Drive</th>
               <th className="py-3 px-4 text-center font-medium text-muted-foreground text-xs uppercase tracking-wider"></th>
