@@ -772,14 +772,13 @@ Deno.serve(async (req) => {
                 <p style="font-weight: 700; color: ${textPrimary}; font-size: 13px; margin: 0;">📎 Τα αρχεία αυτοψίας επισυνάπτονται ως ZIP</p>
               </div>` : ""}
 
-              ${showDriveFallback ? `
-              <div style="background: #fffbeb; border-left: 4px solid #f59e0b; padding: 14px 18px; margin: 20px 0; border-radius: 0 8px 8px 0;">
-                <p style="font-weight: 700; color: ${textPrimary}; font-size: 13px; margin: 0 0 6px;">📁 Τα αρχεία είναι πολλά για email</p>
-                <p style="color: ${textSecondary}; font-size: 13px; margin: 0;">Μπορείτε να τα βρείτε στο Google Drive:</p>
+              ${showDownloadLink ? `
+              <div style="text-align: center; margin: 24px 0;">
+                <a href="${zipDownloadUrl}" style="background: ${brandDark}; color: white; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-size: 14px; font-weight: 700; display: inline-block; letter-spacing: 0.3px;">📥 Λήψη Αρχείων (ZIP)</a>
               </div>
-              <div style="text-align: center; margin: 16px 0;">
-                <a href="${driveFolderUrl}" style="background: ${brandDark}; color: white; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-size: 14px; font-weight: 700; display: inline-block; letter-spacing: 0.3px;">📂 Άνοιγμα Φακέλου Google Drive</a>
-              </div>` : ""}
+              <p style="color: ${textMuted}; font-size: 11px; text-align: center; margin-top: 4px;">
+                Ισχύει για 7 ημέρες
+              </p>` : ""}
 
               <p style="color: ${textSecondary}; font-size: 14px; line-height: 1.6; margin-top: 28px;">Με εκτίμηση,</p>
               
