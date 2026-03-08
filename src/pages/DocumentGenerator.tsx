@@ -27,21 +27,23 @@ const DocumentGenerator = () => {
   const [generatingId, setGeneratingId] = useState<string | null>(null);
   const [selectedSrId, setSelectedSrId] = useState<string | null>(null);
 
-  const filteredAssignments = assignments.filter((a: any) => {
+  // Only show assignments that have a construction record
+  const assignmentsWithConstruction = assignments.filter((a: any) =>
+    constructions.some((c: any) => c.sr_id === a.sr_id)
+  );
+
+  const filteredAssignments = assignmentsWithConstruction.filter((a: any) => {
     const matchesSearch = !search ||
       a.sr_id.toLowerCase().includes(search.toLowerCase()) ||
       (a.address || "").toLowerCase().includes(search.toLowerCase()) ||
       (a.area || "").toLowerCase().includes(search.toLowerCase());
 
     const construction = constructions.find((c: any) => c.sr_id === a.sr_id);
-    const hasConstruction = !!construction;
-
     const matchesStatus = statusFilter === "all" ||
       (statusFilter === "ready" && (construction as any)?.status === "completed") ||
-      (statusFilter === "in_progress" && (construction as any)?.status === "in_progress") ||
-      (statusFilter === "no_construction" && !hasConstruction);
+      (statusFilter === "in_progress" && (construction as any)?.status === "in_progress");
 
-    return matchesSearch && (statusFilter === "all" ? true : matchesStatus);
+    return matchesSearch && matchesStatus;
   });
 
   const getConstructionStatus = (srId: string) => {
@@ -116,7 +118,7 @@ const DocumentGenerator = () => {
                 <SelectItem value="all">Όλα</SelectItem>
                 <SelectItem value="ready">Ολοκληρωμένα</SelectItem>
                 <SelectItem value="in_progress">Σε εξέλιξη</SelectItem>
-                <SelectItem value="no_construction">Χωρίς κατασκευή</SelectItem>
+                
               </SelectContent>
             </Select>
           </div>
@@ -155,12 +157,6 @@ const DocumentGenerator = () => {
                       {cStatus === "in_progress" && (
                         <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-500/20 text-[10px]">
                           Σε εξέλιξη
-                        </Badge>
-                      )}
-                      {!cStatus && (
-                        <Badge variant="outline" className="text-[10px]">
-                          <AlertCircle className="h-3 w-3 mr-1" />
-                          Χωρίς κατασκευή
                         </Badge>
                       )}
                     </div>
