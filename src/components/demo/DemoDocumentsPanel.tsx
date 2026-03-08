@@ -149,7 +149,13 @@ const DemoDocumentsPanel = () => {
                 </div>
                 <div className="p-2 bg-background">
                   <img
-                    src={SKETCH_MAP[selectedSr.srId] || demoSketchSr01}
+                    src={generateOteSketch({
+                      conduit: getDemoAsBuiltData(selectedSr.srId).conduit,
+                      cabId: getDemoAsBuiltData(selectedSr.srId).cabId,
+                      distanceFromCabinet: getDemoAsBuiltData(selectedSr.srId).distanceFromCabinet,
+                      address: selectedSr.address,
+                      buildingId: getDemoAsBuiltData(selectedSr.srId).buildingId,
+                    })}
                     alt={`Σκαρίφημα ${selectedSr.srId}`}
                     className="w-full h-auto rounded border border-border"
                   />
