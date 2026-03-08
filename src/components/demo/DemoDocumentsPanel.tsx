@@ -3,15 +3,16 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { FileSpreadsheet, Download, CheckCircle2, Loader2, Eye, MapPin, Building2, FlaskConical } from "lucide-react";
+import { FileSpreadsheet, Download, CheckCircle2, Loader2, Eye, MapPin, Building2, FlaskConical, Image } from "lucide-react";
 import { getDemoAsBuiltData, generateAsBuiltFromData } from "@/lib/generateAsBuilt";
+import demoSketchUrl from "@/assets/demo-sketch-placeholder.png";
 import { toast } from "sonner";
 
 const DEMO_SRS = [
-  { srId: "SR-DEMO-01", area: "Ρόδος Κέντρο", address: "Λεωφ. Ελευθερίας 42", status: "pre_committed", hasConstruction: false },
-  { srId: "SR-DEMO-02", area: "Ιαλυσός", address: "Οδός Ηρώων 15", status: "construction", hasConstruction: true },
-  { srId: "SR-DEMO-03", area: "Φαληράκι", address: "Πλατεία Αγίας Παρασκευής 8", status: "completed", hasConstruction: true },
-  { srId: "2-334066371997", area: "Αθήνα", address: "ΑΓΙΟΥ ΚΩΝΣΤΑΝΤΙΝΟΥ 58", status: "completed", hasConstruction: true },
+  { srId: "SR-DEMO-01", area: "Ρόδος Κέντρο", address: "Λεωφ. Ελευθερίας 42", status: "pre_committed", cab: "CAB-045", floors: 3 },
+  { srId: "SR-DEMO-02", area: "Ιαλυσός", address: "Οδός Ηρώων 15", status: "construction", cab: "CAB-112", floors: 5 },
+  { srId: "SR-DEMO-03", area: "Φαληράκι", address: "Πλατεία Αγίας Παρασκευής 8", status: "completed", cab: "CAB-089", floors: 4 },
+  { srId: "2-334066371997", area: "Αθήνα", address: "ΑΓΙΟΥ ΚΩΝΣΤΑΝΤΙΝΟΥ 58", status: "completed", cab: "G526", floors: 4 },
 ];
 
 const statusLabels: Record<string, string> = {
@@ -40,6 +41,7 @@ const DemoDocumentsPanel = () => {
       }
       toast.success(`AS-BUILD για ${srId} δημιουργήθηκε επιτυχώς!`);
     } catch (err: any) {
+      console.error("AS-BUILD generation error:", err);
       toast.error(err.message || "Σφάλμα κατά τη δημιουργία του AS-BUILD");
     } finally {
       setGeneratingId(null);
@@ -80,7 +82,7 @@ const DemoDocumentsPanel = () => {
                 </Badge>
               </div>
               <p className="text-xs text-muted-foreground mt-0.5 truncate">
-                {sr.area} • {sr.address}
+                {sr.area} • {sr.address} • CAB: {sr.cab} • {sr.floors} όροφοι
               </p>
             </div>
             <Button
@@ -96,8 +98,9 @@ const DemoDocumentsPanel = () => {
         ))}
       </div>
 
+      {/* SR Detail Dialog */}
       <Dialog open={!!selectedSr} onOpenChange={(open) => !open && setSelectedSr(null)}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <FileSpreadsheet className="h-5 w-5 text-primary" />
@@ -107,24 +110,56 @@ const DemoDocumentsPanel = () => {
 
           {selectedSr && (
             <div className="space-y-4">
+              {/* SR Info */}
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div className="flex items-center gap-2 text-muted-foreground">
-                  <MapPin className="h-4 w-4" />
+                  <MapPin className="h-4 w-4 shrink-0" />
                   <span>{selectedSr.address}</span>
                 </div>
                 <div className="flex items-center gap-2 text-muted-foreground">
-                  <Building2 className="h-4 w-4" />
+                  <Building2 className="h-4 w-4 shrink-0" />
                   <span>{selectedSr.area}</span>
                 </div>
               </div>
 
-              <div className="p-3 rounded-lg bg-muted/50">
-                <p className="text-xs text-muted-foreground mb-1">Κατάσταση</p>
-                <Badge variant="outline" className={statusColors[selectedSr.status] || ""}>
-                  {statusLabels[selectedSr.status] || selectedSr.status}
-                </Badge>
+              {/* Details */}
+              <div className="grid grid-cols-3 gap-2">
+                <div className="p-2 rounded-lg bg-muted/50 text-center">
+                  <p className="text-[10px] text-muted-foreground">CAB</p>
+                  <p className="text-sm font-semibold text-foreground">{selectedSr.cab}</p>
+                </div>
+                <div className="p-2 rounded-lg bg-muted/50 text-center">
+                  <p className="text-[10px] text-muted-foreground">Όροφοι</p>
+                  <p className="text-sm font-semibold text-foreground">{selectedSr.floors}</p>
+                </div>
+                <div className="p-2 rounded-lg bg-muted/50 text-center">
+                  <p className="text-[10px] text-muted-foreground">Κατάσταση</p>
+                  <Badge variant="outline" className={`text-[9px] ${statusColors[selectedSr.status] || ""}`}>
+                    {statusLabels[selectedSr.status] || selectedSr.status}
+                  </Badge>
+                </div>
               </div>
 
+              {/* Sketch Preview */}
+              <div className="border border-border rounded-lg overflow-hidden">
+                <div className="flex items-center gap-2 px-3 py-2 bg-muted/30 border-b border-border">
+                  <Image className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-xs font-medium text-foreground">Σκαρίφημα (Preview)</span>
+                  <Badge variant="outline" className="text-[9px] ml-auto">demo placeholder</Badge>
+                </div>
+                <div className="p-2 bg-background">
+                  <img
+                    src={demoSketchUrl}
+                    alt="Demo Sketch - Σκαρίφημα"
+                    className="w-full h-auto rounded border border-border"
+                  />
+                </div>
+                <p className="text-[10px] text-muted-foreground px-3 py-1.5 bg-muted/20">
+                  Αυτή η εικόνα θα ενσωματωθεί στο Excel στη γραμμή 45 (6 ΟΡΙΖΟΝΤΟΓΡΑΦΙΑ)
+                </p>
+              </div>
+
+              {/* Export Button */}
               <Button
                 className="w-full"
                 size="lg"
@@ -140,7 +175,7 @@ const DemoDocumentsPanel = () => {
               </Button>
 
               <p className="text-[10px] text-muted-foreground text-center">
-                Demo Mode: Θα χρησιμοποιηθούν τα demo δεδομένα με placeholder σκαρίφημα
+                Demo Mode: Χρησιμοποιούνται αποκλειστικά τα demo δεδομένα του {selectedSr.srId}
               </p>
             </div>
           )}
