@@ -165,6 +165,50 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
       }
     }
 
+    // Client-side guard: block pre_committed without all required survey files
+    if (newStatus === "pre_committed") {
+      const assignment = assignments.find((a) => a.id === assignmentId);
+      if (assignment) {
+        try {
+          // Find survey for this SR
+          const { data: surveys } = await supabase
+            .from("surveys")
+            .select("id")
+            .eq("sr_id", assignment.sr_id)
+            .order("created_at", { ascending: false })
+            .limit(1);
+
+          if (!surveys || surveys.length === 0) {
+            toast.error("Αδυναμία Προδέσμευσης: Δεν βρέθηκε αυτοψία για αυτό το SR.");
+            return;
+          }
+
+          const { data: files } = await supabase
+            .from("survey_files")
+            .select("file_type")
+            .eq("survey_id", surveys[0].id);
+
+          const uploadedTypes = new Set((files || []).map((f: any) => f.file_type));
+          const requiredTypes = [
+            { key: "building_photo", label: "Φωτογραφίες Κτιρίου" },
+            { key: "screenshot", label: "Screenshots (ΧΕΜΔ & AutoCAD)" },
+            { key: "inspection_pdf", label: "Δελτίο Αυτοψίας" },
+          ];
+          const missing = requiredTypes.filter((t) => !uploadedTypes.has(t.key));
+
+          if (missing.length > 0) {
+            const missingLabels = missing.map((m) => m.label).join(", ");
+            toast.error(`Αδυναμία Προδέσμευσης: Λείπουν υποχρεωτικά αρχεία (${missingLabels}). Ολοκληρώστε πρώτα την αυτοψία.`);
+            return;
+          }
+        } catch (validationErr) {
+          console.error("Survey file validation error:", validationErr);
+          toast.error("Σφάλμα κατά τον έλεγχο αρχείων αυτοψίας.");
+          return;
+        }
+      }
+    }
+
     setUpdating(assignmentId);
 
     // Optimistic update
