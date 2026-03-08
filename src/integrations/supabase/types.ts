@@ -126,6 +126,8 @@ export type Database = {
           drive_promeleti_url: string | null
           google_sheet_row_id: number | null
           id: string
+          latitude: number | null
+          longitude: number | null
           organization_id: string | null
           pdf_url: string | null
           phone: string | null
@@ -148,6 +150,8 @@ export type Database = {
           drive_promeleti_url?: string | null
           google_sheet_row_id?: number | null
           id?: string
+          latitude?: number | null
+          longitude?: number | null
           organization_id?: string | null
           pdf_url?: string | null
           phone?: string | null
@@ -170,6 +174,8 @@ export type Database = {
           drive_promeleti_url?: string | null
           google_sheet_row_id?: number | null
           id?: string
+          latitude?: number | null
+          longitude?: number | null
           organization_id?: string | null
           pdf_url?: string | null
           phone?: string | null
