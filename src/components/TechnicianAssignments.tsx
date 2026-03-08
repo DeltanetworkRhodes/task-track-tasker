@@ -444,30 +444,12 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
             </div>
           )}
           {existingSurvey && existingSurvey.status !== "ΕΛΛΙΠΗΣ ΑΥΤΟΨΙΑ" && (
-            <>
-              <input
-                ref={gisFileInputRef}
-                type="file"
-                accept=".xlsx"
-                className="hidden"
-                onChange={handleGisUpload}
-              />
-              <Button
-                variant="outline"
-                className={`${btnClass} border-blue-500/30 text-blue-600 hover:bg-blue-500/10`}
-                onClick={() => gisFileInputRef.current?.click()}
-                disabled={uploadingGis}
-              >
-                {uploadingGis ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : existingGisData ? (
-                  <FileSpreadsheet className="h-4 w-4" />
-                ) : (
-                  <Upload className="h-4 w-4" />
-                )}
-                {uploadingGis ? "Ανάλυση GIS..." : existingGisData ? "Αντικατάσταση GIS" : "Upload Προδέσμευσης GIS"}
-              </Button>
-            </>
+            <GisUploadCard
+              assignment={assignment}
+              hasExistingGis={!!existingGisData}
+              onUploadSuccess={handleGisUploadSuccess}
+              compact={!!existingGisData}
+            />
           )}
           <Button
             variant="outline"
