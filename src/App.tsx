@@ -27,6 +27,7 @@ import OrgSettings from "./pages/OrgSettings";
 import Calendar from "./pages/Calendar";
 import DocumentGenerator from "./pages/DocumentGenerator";
 import DemoDashboard from "./pages/DemoDashboard";
+import WatermarkTest from "./pages/WatermarkTest";
 
 import NotFound from "./pages/NotFound";
 import HelpChatBot from "./components/HelpChatBot";
