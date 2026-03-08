@@ -10,7 +10,7 @@ const AppLayout = ({ children }: { children: ReactNode }) => {
   const { online, pendingCount, syncAll } = useOfflineSync();
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="flex min-h-screen bg-background safe-top safe-left safe-right">
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div
@@ -30,11 +30,10 @@ const AppLayout = ({ children }: { children: ReactNode }) => {
 
       {/* Main content */}
       <main className="flex-1 lg:ml-64 min-h-screen">
-        {/* Mobile top bar */}
         {/* Offline banner */}
         <OfflineBanner online={online} pendingCount={pendingCount} onSync={syncAll} />
         {/* Mobile top bar */}
-        <div className="sticky top-0 z-30 flex items-center gap-3 border-b border-border bg-background/95 backdrop-blur-sm px-4 py-3 lg:hidden">
+        <div className="sticky top-0 z-30 flex items-center gap-3 border-b border-border bg-background/95 backdrop-blur-sm px-4 py-3 lg:hidden safe-top">
           <button
             onClick={() => setSidebarOpen(true)}
             className="rounded-lg p-2 hover:bg-muted transition-colors"
@@ -44,7 +43,7 @@ const AppLayout = ({ children }: { children: ReactNode }) => {
           <img src={deltaLogoIcon} alt="DeltaNetwork" className="h-7 w-auto object-contain" />
           <span className="text-[9px] text-muted-foreground uppercase tracking-widest">FTTx</span>
         </div>
-        <div className="p-4 sm:p-6 bg-grid min-h-[calc(100vh-56px)] lg:min-h-screen">
+        <div className="p-4 sm:p-6 bg-grid min-h-[calc(100vh-56px)] lg:min-h-screen ios-safe-bottom">
           <div className="mx-auto max-w-7xl">
             {children}
           </div>
