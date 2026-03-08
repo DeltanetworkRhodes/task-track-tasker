@@ -601,7 +601,7 @@ const DEMO_SR_DATA: DemoSRMap = {
       { type: "Α", description: "Τοποθέτηση ενός Floor Box ανά Όροφο", quantity: 5 },
       { type: "Β", description: "Πόρτα-πόρτα", quantity: 8 },
     ],
-    sketchImageUrl: demoSketchSr02, isNewInfrastructure: true, trenchLengthM: 45, cabId: "CAB-112",
+    sketchImageUrl: null, isNewInfrastructure: true, trenchLengthM: 45, cabId: "CAB-112",
   },
   "SR-DEMO-03": {
     srId: "SR-DEMO-03", buildingId: "BLD-FAL-008", areaType: "OTE", floors: 4,
