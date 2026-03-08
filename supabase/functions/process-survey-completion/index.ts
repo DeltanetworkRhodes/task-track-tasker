@@ -354,7 +354,7 @@ function getZipFolder(fileType: string): string {
   }
 }
 
-const MAX_ZIP_SIZE_FOR_EMAIL = 38 * 1024 * 1024; // 38MB safe limit for Resend (under 40MB)
+const MAX_ZIP_SIZE_FOR_EMAIL = 15 * 1024 * 1024; // 15MB safe limit to stay within Edge Function memory
 
 // ─── Main handler ────────────────────────────────────────────────────
 
@@ -604,35 +604,38 @@ Deno.serve(async (req) => {
     let zipBytes: Uint8Array | null = null;
     let zipTooLarge = false;
     
-    try {
-      const zipFiles: { name: string; data: Uint8Array }[] = downloadedFiles.map(({ sf, data }) => ({
-        name: `${getZipFolder(sf.file_type)}/${sf.file_name}`,
-        data,
-      }));
-      
-      // Add inspection PDF to ZIP if generated
-      if (inspectionPdfBytes) {
-        zipFiles.push({
-          name: `ΔΕΛΤΙΟ_ΑΥΤΟΨΙΑΣ/Deltio_Autopsias_${sr_id}.pdf`,
-          data: inspectionPdfBytes,
-        });
-      }
-      
-      if (zipFiles.length > 0) {
-        zipBytes = buildZipStore(zipFiles);
-        console.log(`Built ZIP: ${zipFiles.length} files, ${(zipBytes.length / 1024 / 1024).toFixed(1)}MB`);
+    // First check total size of downloaded files to avoid building a huge ZIP
+    const totalDownloadedSize = downloadedFiles.reduce((s, { data }) => s + data.length, 0);
+    const estimatedZipSize = totalDownloadedSize + (downloadedFiles.length * 100); // STORE zip overhead
+    
+    if (estimatedZipSize > MAX_ZIP_SIZE_FOR_EMAIL) {
+      console.log(`Files too large for email ZIP (${(totalDownloadedSize / 1024 / 1024).toFixed(1)}MB estimated), using Drive link fallback`);
+      zipTooLarge = true;
+    } else {
+      try {
+        const zipFiles: { name: string; data: Uint8Array }[] = downloadedFiles.map(({ sf, data }) => ({
+          name: `${getZipFolder(sf.file_type)}/${sf.file_name}`,
+          data,
+        }));
         
-        if (zipBytes.length > MAX_ZIP_SIZE_FOR_EMAIL) {
-          console.log(`ZIP too large for email (${(zipBytes.length / 1024 / 1024).toFixed(1)}MB > 38MB), will fallback to Drive link`);
-          zipTooLarge = true;
-          zipBytes = null; // Free memory
+        // Add inspection PDF to ZIP if generated
+        if (inspectionPdfBytes) {
+          zipFiles.push({
+            name: `ΔΕΛΤΙΟ_ΑΥΤΟΨΙΑΣ/Deltio_Autopsias_${sr_id}.pdf`,
+            data: inspectionPdfBytes,
+          });
         }
+        
+        if (zipFiles.length > 0) {
+          zipBytes = buildZipStore(zipFiles);
+          console.log(`Built ZIP: ${zipFiles.length} files, ${(zipBytes.length / 1024 / 1024).toFixed(1)}MB`);
+        }
+      } catch (zipErr) {
+        console.error("ZIP build error (non-blocking):", zipErr);
       }
-    } catch (zipErr) {
-      console.error("ZIP build error (non-blocking):", zipErr);
     }
 
-    // Free downloaded files memory
+    // Free downloaded files memory BEFORE base64 conversion
     downloadedFiles.length = 0;
     inspectionPdfBytes = null;
 
