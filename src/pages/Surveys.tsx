@@ -408,12 +408,10 @@ const Surveys = () => {
         </div>
         <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
           <StatCard 
-            title="Προδεσμεύσεις (SR)" 
-            value={preCommittedCount} 
-            subtitle={`${inspectionCount} σε αυτοψία`} 
+            title="Σε Αυτοψία" 
+            value={inspectionCount} 
+            subtitle={`${totalActiveAssignments} ενεργές αναθέσεις`} 
             icon={CheckCircle} 
-            trend={preCommittedCount > 0 ? "up" : "neutral"}
-            trendValue={`${totalActiveAssignments} ενεργές αναθέσεις`}
           />
           <StatCard 
             title="Email Σταλμένα" 
