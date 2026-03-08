@@ -54,11 +54,13 @@ const DocumentGenerator = () => {
     setTestGenerating(true);
     try {
       const mockData = getMockAsBuiltData();
-      await generateAsBuiltFromData(mockData);
+      const result = await generateAsBuiltFromData(mockData);
+      if (result.warnings.length > 0) {
+        result.warnings.forEach(w => toast.warning(w));
+      }
       toast.success("Test AS-BUILD δημιουργήθηκε με mock data!");
     } catch (err: any) {
       toast.error(err.message || "Σφάλμα κατά το test generation");
-      console.error("Test AS-BUILD error:", err);
     } finally {
       setTestGenerating(false);
     }
