@@ -13,7 +13,7 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs
 
 // Sample data that fills all fields so you can see where X/○ marks land
 const PREVIEW_SAMPLE_DATA: Record<string, any> = {
-  // Page 1
+  // Page 1 - Στοιχεία Πελάτη
   customer_name: "ΔΟΚΙΜΑΣΤΙΚΟΣ ΠΕΛΑΤΗΣ",
   customer_father_name: "ΙΩΑΝΝΗΣ",
   customer_mobile: "69012345678",
@@ -34,7 +34,7 @@ const PREVIEW_SAMPLE_DATA: Record<string, any> = {
   service_phone: "21098765432",
   service_email: "service@test.gr",
   technician_name: "ΤΕΧΝΙΚΟΣ ΔΟΚΙΜΗΣ",
-  // Page 2
+  // Page 2 - Τεχνική Περιγραφή
   routing_escalit: true,
   routing_external_pipe: true,
   routing_aerial: true,
@@ -49,13 +49,17 @@ const PREVIEW_SAMPLE_DATA: Record<string, any> = {
   excavation_to_building: true,
   bep_position: "internal,external,pole",
   vertical_routing: "shaft",
-  vertical_routing_other_notes: "Σημείωση κατακόρυφης",
-  routing_aerial_notes: "Εναέρια σημείωση",
-  routing_other_notes: "Άλλη σημείωση",
+  vertical_routing_other_notes: "Σημείωση κατακόρυφης όδευσης",
+  routing_aerial_notes: "Εναέρια σημείωση δοκιμής",
+  routing_other_notes: "Άλλη σημείωση δοκιμής",
   entry_pipe_notes: "Σημείωση σωλήνα εισαγωγής",
-  sketch_notes: "Σημειώσεις σκαριφήματος δοκιμής",
+  sketch_notes: "Σημειώσεις σκαριφήματος δοκιμής για έλεγχο wrapped text στο PDF preview.",
   optical_socket_position: "Σαλόνι",
-  // Page 3
+  // Page 2 - Υπογραφές (dummy signature - small transparent PNG)
+  engineer_signature: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAAAUCAYAAAB7wJiVAAAAfklEQVRoge3QMQ0AIRAAwHLH/p0xcQEkzKDpi2Y2M/P2DvjxOwI2EoYShhKGEoYShhKGEoYShhKGEoYShhKGEoYShhKGEoYShhKGEoYShhKGEoYShhKGEoYShhKGEoYShhKGEoYShhKGEoYShhKGEoYShhKGEoYShhKGEv/fB7Z6BAX0nFGEAAAAAElFTkSuQmCC",
+  customer_signature: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAAAUCAYAAAB7wJiVAAAAfklEQVRoge3QMQ0AIRAAwHLH/p0xcQEkzKDpi2Y2M/P2DvjxOwI2EoYShhKGEoYShhKGEoYShhKGEoYShhKGEoYShhKGEoYShhKGEoYShhKGEoYShhKGEoYShhKGEoYShhKGEoYShhKGEoYShhKGEoYShhKGEoYShhKGEv/fB7Z6BAX0nFGEAAAAAElFTkSuQmCC",
+  manager_signature: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAAAUCAYAAAB7wJiVAAAAfklEQVRoge3QMQ0AIRAAwHLH/p0xcQEkzKDpi2Y2M/P2DvjxOwI2EoYShhKGEoYShhKGEoYShhKGEoYShhKGEoYShhKGEoYShhKGEoYShhKGEoYShhKGEoYShhKGEoYShhKGEoYShhKGEoYShhKGEoYShhKGEoYShhKGEv/fB7Z6BAX0nFGEAAAAAElFTkSuQmCC",
+  // Page 3 - Υπεύθυνη Δήλωση
   declarant_name: "ΔΗΛΩΝ ΔΟΚΙΜΗΣ",
   declarant_id_number: "ΑΒ123456",
   declarant_city: "Αθήνα",
@@ -64,7 +68,8 @@ const PREVIEW_SAMPLE_DATA: Record<string, any> = {
   declarant_postal_code: "105 63",
   cost_option: "ote_covers",
   declaration_date: "07/03/2026",
-  // Page 4
+  declaration_signature: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAAAUCAYAAAB7wJiVAAAAfklEQVRoge3QMQ0AIRAAwHLH/p0xcQEkzKDpi2Y2M/P2DvjxOwI2EoYShhKGEoYShhKGEoYShhKGEoYShhKGEoYShhKGEoYShhKGEoYShhKGEoYShhKGEoYShhKGEoYShhKGEoYShhKGEoYShhKGEoYShhKGEoYShhKGEv/fB7Z6BAX0nFGEAAAAAElFTkSuQmCC",
+  // Page 4 - Στοιχεία Κτιρίου / Εξοπλισμός
   building_address: "Λεωφ. Αλεξάνδρας 15, Αθήνα 114 73",
   building_id: "BLD-12345",
   customer_floor_select: "3ος",
@@ -226,6 +231,18 @@ const FIELD_LABELS: Record<string, string> = {
   building_address: "Διεύθυνση Κτιρίου",
   building_id: "Κωδ. Κτιρίου",
   customer_floor_select: "Όροφος Πελάτη (Επιλογή)",
+  "customer_floor_select.basement": "Υπόγειο",
+  "customer_floor_select.semi-basement": "Ημιυπόγειο",
+  "customer_floor_select.ground": "Ισόγειο",
+  "customer_floor_select.half-floor": "Ημιόροφος",
+  "customer_floor_select.1": "1ος Όροφος",
+  "customer_floor_select.2": "2ος Όροφος",
+  "customer_floor_select.3": "3ος Όροφος",
+  "customer_floor_select.4": "4ος Όροφος",
+  "customer_floor_select.5": "5ος Όροφος",
+  "customer_floor_select.6": "6ος Όροφος",
+  "customer_floor_select.7": "7ος Όροφος",
+  "customer_floor_select.8": "8ος Όροφος",
   total_floors: "Σύνολο Ορόφων",
   total_apartments: "Σύνολο Διαμερισμάτων",
   total_shops: "Σύνολο Καταστημάτων",

@@ -40,8 +40,10 @@
         { "key": "excavation_to_pipe_no", "type": "check_if", "x": 159, "y": 660, "sourceKey": "excavation_to_pipe", "match": false },
         { "key": "excavation_to_rg_yes", "type": "check_if", "x": 292, "y": 667, "sourceKey": "excavation_to_rg", "match": true },
         { "key": "excavation_to_rg_no", "type": "check_if", "x": 321, "y": 660, "sourceKey": "excavation_to_rg", "match": false },
+        { "key": "pipe_placement", "type": "check", "x": 310, "y": 622 },
         { "key": "wall_mount", "type": "check", "x": 310, "y": 636 },
         { "key": "fence_building_mount", "type": "check", "x": 312, "y": 607 },
+        { "key": "excavation_to_building", "type": "check", "x": 312, "y": 593 },
         {
           "key": "bep_position",
           "type": "check_map_multi",
