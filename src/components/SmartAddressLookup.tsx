@@ -1,46 +1,47 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { MapPin, Building2, Navigation, AlertTriangle, CheckCircle2, Loader2 } from "lucide-react";
+import { MapPin, Navigation, Loader2, MousePointerClick, X } from "lucide-react";
 
-interface BuildingResult {
-  id: string;
+interface PlacePrediction {
+  place_id: string;
+  description: string;
+  structured_formatting: {
+    main_text: string;
+    secondary_text: string;
+  };
+}
+
+export interface AddressResult {
   address: string;
-  street: string | null;
-  number: string | null;
-  city: string | null;
   latitude: number | null;
   longitude: number | null;
-  building_id: string | null;
-  nearby_bcp: string | null;
-  branch: string | null;
-  cabinet: string | null;
-  area: string | null;
 }
 
 interface SmartAddressLookupProps {
   value: string;
   onChange: (address: string) => void;
-  onBuildingSelect: (building: BuildingResult | null) => void;
-  organizationId?: string | null;
+  onLocationSelect: (result: AddressResult) => void;
   className?: string;
 }
+
+const GOOGLE_MAPS_EMBED_KEY = "AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8";
 
 const SmartAddressLookup = ({
   value,
   onChange,
-  onBuildingSelect,
-  organizationId,
+  onLocationSelect,
   className = "",
 }: SmartAddressLookupProps) => {
   const [query, setQuery] = useState(value);
-  const [results, setResults] = useState<BuildingResult[]>([]);
+  const [predictions, setPredictions] = useState<PlacePrediction[]>([]);
   const [loading, setLoading] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
-  const [selectedBuilding, setSelectedBuilding] = useState<BuildingResult | null>(null);
-  const [isManual, setIsManual] = useState(false);
+  const [selectedLocation, setSelectedLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [showMapPicker, setShowMapPicker] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -51,7 +52,7 @@ const SmartAddressLookup = ({
     }
   }, [value]);
 
-  // Click outside to close
+  // Click outside to close dropdown
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
@@ -62,197 +63,248 @@ const SmartAddressLookup = ({
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
-  const searchBuildings = async (term: string) => {
-    if (term.length < 2) {
-      setResults([]);
+  const searchPlaces = useCallback(async (term: string) => {
+    if (term.length < 3) {
+      setPredictions([]);
       return;
     }
-
     setLoading(true);
     try {
-      const { data, error } = await supabase.rpc("search_buildings", {
-        search_term: term,
-        org_id: organizationId || null,
+      const { data, error } = await supabase.functions.invoke("places-autocomplete", {
+        body: { action: "autocomplete", input: term },
       });
-
-      if (error) {
-        console.error("Building search error:", error);
-        setResults([]);
-      } else {
-        setResults((data as BuildingResult[]) || []);
-      }
+      if (error) throw error;
+      setPredictions(data?.predictions || []);
     } catch (err) {
-      console.error("Building search error:", err);
-      setResults([]);
+      console.error("Places autocomplete error:", err);
+      setPredictions([]);
     } finally {
       setLoading(false);
     }
+  }, []);
+
+  const getPlaceDetails = async (placeId: string) => {
+    try {
+      const { data, error } = await supabase.functions.invoke("places-autocomplete", {
+        body: { action: "details", placeId },
+      });
+      if (error) throw error;
+      const result = data?.result;
+      if (result?.geometry?.location) {
+        return {
+          lat: result.geometry.location.lat,
+          lng: result.geometry.location.lng,
+          address: result.formatted_address || "",
+        };
+      }
+    } catch (err) {
+      console.error("Place details error:", err);
+    }
+    return null;
   };
 
   const handleInputChange = (val: string) => {
     setQuery(val);
     onChange(val);
-    setSelectedBuilding(null);
-    setIsManual(false);
-    onBuildingSelect(null);
+    setSelectedLocation(null);
 
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
-      searchBuildings(val);
+      searchPlaces(val);
       setShowDropdown(true);
-    }, 300);
+    }, 350);
   };
 
-  const handleSelect = (building: BuildingResult) => {
-    setQuery(building.address);
-    onChange(building.address);
-    setSelectedBuilding(building);
-    setIsManual(false);
+  const handleSelectPrediction = async (prediction: PlacePrediction) => {
     setShowDropdown(false);
-    onBuildingSelect(building);
+    setLoading(true);
+
+    const details = await getPlaceDetails(prediction.place_id);
+    if (details) {
+      const addr = details.address || prediction.description;
+      setQuery(addr);
+      onChange(addr);
+      setSelectedLocation({ lat: details.lat, lng: details.lng });
+      onLocationSelect({ address: addr, latitude: details.lat, longitude: details.lng });
+    } else {
+      setQuery(prediction.description);
+      onChange(prediction.description);
+    }
+    setLoading(false);
   };
 
-  const handleManualEntry = () => {
-    setIsManual(true);
-    setShowDropdown(false);
-    setSelectedBuilding(null);
-    onBuildingSelect(null);
+  const handleManualPin = () => {
+    setShowMapPicker(true);
   };
+
+  // Listen for postMessage from the map iframe for click coordinates
+  useEffect(() => {
+    if (!showMapPicker) return;
+
+    const handler = (e: MessageEvent) => {
+      if (e.data?.type === "map-click") {
+        const { lat, lng } = e.data;
+        setSelectedLocation({ lat, lng });
+        setShowMapPicker(false);
+        onLocationSelect({ address: query, latitude: lat, longitude: lng });
+      }
+    };
+    window.addEventListener("message", handler);
+    return () => window.removeEventListener("message", handler);
+  }, [showMapPicker, query, onLocationSelect]);
 
   return (
     <div ref={containerRef} className={`space-y-2 relative ${className}`}>
-      {/* Input */}
+      {/* Search input */}
       <div className="relative">
         <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
         <Input
           value={query}
           onChange={(e) => handleInputChange(e.target.value)}
-          onFocus={() => query.length >= 2 && setShowDropdown(true)}
-          placeholder="Αναζήτηση διεύθυνσης ή building ID..."
-          className="pl-9 text-sm"
+          onFocus={() => query.length >= 3 && predictions.length > 0 && setShowDropdown(true)}
+          placeholder="Αναζήτηση διεύθυνσης στην Ελλάδα..."
+          className="pl-9 pr-9 text-sm"
         />
         {loading && (
           <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 animate-spin text-muted-foreground" />
         )}
       </div>
 
-      {/* Dropdown results */}
-      {showDropdown && query.length >= 2 && (
-        <Card className="absolute z-50 w-[calc(100%-2rem)] max-h-60 overflow-y-auto shadow-lg border border-border">
-          {results.length > 0 ? (
-            <>
-              {results.map((b) => (
-                <button
-                  key={b.id}
-                  type="button"
-                  onClick={() => handleSelect(b)}
-                  className="w-full text-left px-3 py-2.5 hover:bg-accent/50 transition-colors border-b border-border/50 last:border-0"
-                >
-                  <div className="flex items-start gap-2">
-                    <Building2 className="h-4 w-4 text-primary mt-0.5 shrink-0" />
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-foreground truncate">{b.address}</p>
-                      <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                        {b.building_id && (
-                          <span className="text-[10px] text-muted-foreground">ID: {b.building_id}</span>
-                        )}
-                        {b.cabinet && (
-                          <span className="text-[10px] text-muted-foreground">CAB: {b.cabinet}</span>
-                        )}
-                        {b.nearby_bcp && (
-                          <span className="text-[10px] text-primary/70">BCP: {b.nearby_bcp}</span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </button>
-              ))}
-            </>
+      {/* Autocomplete dropdown */}
+      {showDropdown && query.length >= 3 && (
+        <Card className="absolute z-50 left-0 right-0 max-h-60 overflow-y-auto shadow-lg border border-border bg-card">
+          {predictions.length > 0 ? (
+            predictions.map((p) => (
+              <button
+                key={p.place_id}
+                type="button"
+                onClick={() => handleSelectPrediction(p)}
+                className="w-full text-left px-3 py-2.5 hover:bg-accent/50 transition-colors border-b border-border/50 last:border-0"
+              >
+                <p className="text-sm font-medium text-foreground">
+                  {p.structured_formatting.main_text}
+                </p>
+                <p className="text-[11px] text-muted-foreground">
+                  {p.structured_formatting.secondary_text}
+                </p>
+              </button>
+            ))
           ) : !loading ? (
             <div className="p-3 text-center">
-              <p className="text-xs text-muted-foreground mb-2">
-                Δεν βρέθηκε κτήριο στο μητρώο ΧΕΜΔ
-              </p>
+              <p className="text-xs text-muted-foreground mb-2">Δεν βρέθηκαν αποτελέσματα</p>
               <button
                 type="button"
-                onClick={handleManualEntry}
-                className="text-xs text-primary hover:underline"
+                onClick={handleManualPin}
+                className="text-xs text-primary hover:underline flex items-center gap-1 mx-auto"
               >
-                Χρήση χειροκίνητης καταχώρησης →
+                <MousePointerClick className="h-3 w-3" />
+                Επιλογή στον χάρτη
               </button>
             </div>
           ) : null}
         </Card>
       )}
 
-      {/* Selected building info */}
-      {selectedBuilding && (
-        <Card className="p-3 bg-primary/5 border-primary/20">
-          <div className="flex items-center gap-2 mb-2">
-            <CheckCircle2 className="h-4 w-4 text-green-600" />
-            <span className="text-xs font-semibold text-foreground">Κτήριο ΧΕΜΔ</span>
-            {selectedBuilding.building_id && (
-              <Badge variant="outline" className="text-[9px] ml-auto">
-                {selectedBuilding.building_id}
-              </Badge>
-            )}
-          </div>
-          
-          <div className="grid grid-cols-2 gap-2 text-[11px]">
-            {selectedBuilding.latitude && selectedBuilding.longitude && (
-              <div className="flex items-center gap-1 text-muted-foreground">
-                <Navigation className="h-3 w-3" />
-                <span>{Number(selectedBuilding.latitude).toFixed(6)}, {Number(selectedBuilding.longitude).toFixed(6)}</span>
-              </div>
-            )}
-            {selectedBuilding.cabinet && (
-              <div className="text-muted-foreground">
-                <span className="font-medium">CAB:</span> {selectedBuilding.cabinet}
-              </div>
-            )}
-          </div>
+      {/* Manual pin button (always visible when no location selected) */}
+      {!selectedLocation && query.length > 0 && !showDropdown && (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={handleManualPin}
+          className="w-full text-xs gap-1.5"
+        >
+          <MousePointerClick className="h-3.5 w-3.5" />
+          Επιλογή τοποθεσίας στον χάρτη
+        </Button>
+      )}
 
-          {/* Suggested infrastructure */}
-          {(selectedBuilding.nearby_bcp || selectedBuilding.branch) && (
-            <div className="mt-2 pt-2 border-t border-border/50">
-              <p className="text-[10px] font-semibold text-foreground mb-1">
-                📡 Προτεινόμενη Υποδομή
-              </p>
-              <div className="grid grid-cols-2 gap-1 text-[10px] text-muted-foreground">
-                {selectedBuilding.nearby_bcp && (
-                  <span>BCP: <strong className="text-foreground">{selectedBuilding.nearby_bcp}</strong></span>
-                )}
-                {selectedBuilding.branch && (
-                  <span>Κλάδος: <strong className="text-foreground">{selectedBuilding.branch}</strong></span>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Mini map */}
-          {selectedBuilding.latitude && selectedBuilding.longitude && (
-            <div className="mt-2 rounded-lg overflow-hidden border border-border h-32">
-              <iframe
-                title="Building location"
-                width="100%"
-                height="100%"
-                style={{ border: 0 }}
-                loading="lazy"
-                src={`https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${selectedBuilding.latitude},${selectedBuilding.longitude}&zoom=17&maptype=satellite`}
-              />
-            </div>
-          )}
+      {/* Map picker for manual pin */}
+      {showMapPicker && (
+        <Card className="overflow-hidden border border-border">
+          <div className="flex items-center justify-between px-3 py-2 bg-muted/30 border-b border-border">
+            <span className="text-xs font-medium text-foreground flex items-center gap-1.5">
+              <MousePointerClick className="h-3.5 w-3.5 text-primary" />
+              Κάνε κλικ στον χάρτη για να ορίσεις τοποθεσία
+            </span>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowMapPicker(false)}
+              className="h-6 w-6 p-0"
+            >
+              <X className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+          <div className="h-48">
+            <iframe
+              title="Pick location"
+              width="100%"
+              height="100%"
+              style={{ border: 0 }}
+              loading="lazy"
+              srcDoc={`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                  <style>html,body,#map{height:100%;margin:0;padding:0;}</style>
+                </head>
+                <body>
+                  <div id="map"></div>
+                  <script>
+                    function initMap() {
+                      const center = { lat: 36.4341, lng: 28.2176 };
+                      const map = new google.maps.Map(document.getElementById("map"), {
+                        zoom: 12,
+                        center: center,
+                        mapTypeId: "hybrid",
+                        disableDefaultUI: true,
+                        zoomControl: true,
+                      });
+                      let marker = null;
+                      map.addListener("click", function(e) {
+                        const lat = e.latLng.lat();
+                        const lng = e.latLng.lng();
+                        if (marker) marker.setMap(null);
+                        marker = new google.maps.Marker({ position: { lat, lng }, map });
+                        window.parent.postMessage({ type: "map-click", lat, lng }, "*");
+                      });
+                    }
+                  </script>
+                  <script src="https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_EMBED_KEY}&callback=initMap" async defer></script>
+                </body>
+                </html>
+              `}
+            />
+          </div>
         </Card>
       )}
 
-      {/* Manual entry badge */}
-      {isManual && query.length > 0 && (
-        <div className="flex items-center gap-2">
-          <Badge variant="outline" className="text-[10px] border-amber-500/30 bg-amber-500/5 text-amber-600">
-            <AlertTriangle className="h-3 w-3 mr-1" />
-            Νέο Κτήριο (Εκτός ΧΕΜΔ)
-          </Badge>
-        </div>
+      {/* Selected location confirmation */}
+      {selectedLocation && (
+        <Card className="p-3 bg-primary/5 border-primary/20">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Navigation className="h-4 w-4 text-primary" />
+              <span className="text-xs font-medium text-foreground">Τοποθεσία επιβεβαιώθηκε</span>
+            </div>
+            <Badge variant="outline" className="text-[9px]">
+              {selectedLocation.lat.toFixed(5)}, {selectedLocation.lng.toFixed(5)}
+            </Badge>
+          </div>
+          {/* Mini confirmation map */}
+          <div className="mt-2 rounded-lg overflow-hidden border border-border h-28">
+            <iframe
+              title="Confirmed location"
+              width="100%"
+              height="100%"
+              style={{ border: 0 }}
+              loading="lazy"
+              src={`https://www.google.com/maps/embed/v1/place?key=${GOOGLE_MAPS_EMBED_KEY}&q=${selectedLocation.lat},${selectedLocation.lng}&zoom=17&maptype=satellite`}
+            />
+          </div>
+        </Card>
       )}
     </div>
   );
