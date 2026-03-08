@@ -653,17 +653,17 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
 
       {/* SR Detail Sheet */}
       <Sheet open={!!selectedAssignment} onOpenChange={(open) => { if (!open) { setSelectedAssignment(null); setShowSurveyForm(false); setShowConstructionForm(false); } }}>
-        <SheetContent side="bottom" className="h-[90vh] p-0">
-          <SheetHeader className="px-4 pt-4 pb-2">
+        <SheetContent side="bottom" className="h-[90vh] p-0 flex flex-col">
+          <SheetHeader className="px-4 pt-4 pb-2 shrink-0">
             <SheetTitle className="text-left">
               SR {selectedAssignment?.sr_id}
             </SheetTitle>
-            <SheetDescription className="text-left">
-              {selectedAssignment?.area} · {selectedAssignment?.customer_name || "—"}
+            <SheetDescription className="text-left text-xs">
+              {selectedAssignment?.area} · {selectedAssignment?.customer_name}
             </SheetDescription>
           </SheetHeader>
 
-          <ScrollArea className="h-[calc(90vh-80px)] px-4 pb-6">
+          <ScrollArea className="flex-1 min-h-0 px-4 pb-4">
             {selectedAssignment && !showSurveyForm && !showConstructionForm && (
               <div className="space-y-4">
                 {/* Status badge */}
@@ -759,7 +759,6 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
                       {existingGisData.smart_readiness && <div><span className="text-muted-foreground">Smart Readiness:</span> <span className="font-medium">Ναι</span></div>}
                     </div>
                     {(existingGisData.floor_details as any[])?.length > 0 && (() => {
-                      // Normalize: if items have a "raw" key, use that instead
                       const rawDetails = (existingGisData.floor_details as any[]).map((fd: any) => {
                         if (fd.raw && typeof fd.raw === 'object') return fd.raw;
                         return fd;
@@ -850,11 +849,6 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
                   <IncompleteSurveys filterSrId={selectedAssignment.sr_id} />
                 )}
 
-                {/* Status-based action */}
-                <div className="pt-2">
-                  {renderStatusAction(selectedAssignment)}
-                </div>
-
                 {/* SR Comments / Chat */}
                 <SRComments assignmentId={selectedAssignment.id} />
               </div>
@@ -882,6 +876,13 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
               />
             )}
           </ScrollArea>
+
+          {/* Sticky action buttons at bottom */}
+          {selectedAssignment && !showSurveyForm && !showConstructionForm && (
+            <div className="shrink-0 border-t border-border bg-background px-4 py-3 safe-bottom">
+              {renderStatusAction(selectedAssignment)}
+            </div>
+          )}
         </SheetContent>
       </Sheet>
 

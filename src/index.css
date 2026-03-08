@@ -193,4 +193,7 @@
   .cosmote-gradient {
     background: linear-gradient(135deg, hsl(185 70% 42%), hsl(160 55% 45%), hsl(140 50% 42%));
   }
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
 }
