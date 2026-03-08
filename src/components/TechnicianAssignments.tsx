@@ -851,6 +851,11 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
 
                 {/* SR Comments / Chat */}
                 <SRComments assignmentId={selectedAssignment.id} />
+
+                {/* Action buttons — inside scroll, mobile-friendly */}
+                <div className="pt-4 pb-6">
+                  {renderStatusAction(selectedAssignment)}
+                </div>
               </div>
             )}
 
