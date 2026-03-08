@@ -116,6 +116,9 @@ async function fetchAsBuiltData(srId: string): Promise<AsBuiltData> {
     .eq("assignment_id", assignment.id)
     .maybeSingle();
 
+  // For production: use sketch_notes as image URL source; if empty, leave blank
+  const sketchUrl = inspection?.sketch_notes || null;
+
   // Parse GIS JSON fields
   const rawPaths = (gisData?.optical_paths as any[]) || [];
   const floorDetails = (gisData?.floor_details as any[]) || [];
