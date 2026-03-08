@@ -230,7 +230,7 @@ function buildZipStore(files: { name: string; data: Uint8Array }[]): Uint8Array 
     const lv = new DataView(local.buffer);
     lv.setUint32(0, 0x04034b50, true); // signature
     lv.setUint16(4, 20, true); // version needed
-    lv.setUint16(6, 0, true); // flags
+    lv.setUint16(6, 0x0800, true); // flags: bit 11 = UTF-8 filenames
     lv.setUint16(8, 0, true); // compression: STORE
     lv.setUint16(10, 0, true); // mod time
     lv.setUint16(12, 0, true); // mod date
@@ -249,7 +249,7 @@ function buildZipStore(files: { name: string; data: Uint8Array }[]): Uint8Array 
     cv.setUint32(0, 0x02014b50, true);
     cv.setUint16(4, 20, true); // version made by
     cv.setUint16(6, 20, true); // version needed
-    cv.setUint16(8, 0, true); // flags
+    cv.setUint16(8, 0x0800, true); // flags: bit 11 = UTF-8 filenames
     cv.setUint16(10, 0, true); // compression
     cv.setUint16(12, 0, true); // mod time
     cv.setUint16(14, 0, true); // mod date
