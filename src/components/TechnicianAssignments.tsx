@@ -465,15 +465,23 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
     }
 
     if (status === "pending" || status === "inspection") {
+      const checklistBlocks = status === "pending" && !preWorkComplete;
       return (
         <div className="space-y-3">
           <Button
             className={btnClass}
             onClick={() => handleStartSurvey(assignment)}
+            disabled={checklistBlocks}
+            title={checklistBlocks ? "Ολοκληρώστε πρώτα τον Έλεγχο Πριν την Έναρξη" : undefined}
           >
             <FileEdit className="h-4 w-4" />
             {existingSurvey ? "Συνέχεια Αυτοψίας" : "Έναρξη Αυτοψίας"}
           </Button>
+          {checklistBlocks && (
+            <p className="text-[10px] text-amber-600 text-center">
+              ⚠️ Ολοκληρώστε τον Έλεγχο Πριν την Έναρξη για να συνεχίσετε
+            </p>
+          )}
           {existingSurvey && (
             <div className="flex gap-2 w-full">
               <Button
