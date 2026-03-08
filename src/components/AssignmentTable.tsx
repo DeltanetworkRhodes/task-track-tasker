@@ -699,8 +699,19 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
             </div>
           )}
 
+          {/* View Inspection PDF */}
+          {selected && selected.pdfUrl && (
+            <div className="mt-3 pt-3 border-t border-border/30">
+              <button
+                onClick={() => window.open(selected.pdfUrl, "_blank")}
+                className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium bg-primary/5 text-primary hover:bg-primary/10 transition-colors"
+              >
+                <Eye className="h-3.5 w-3.5" />
+                Προβολή Δελτίου Αυτοψίας
+              </button>
+            </div>
+          )}
 
-          {/* Timeline */}
           {history && history.length > 0 && (
             <div className="mt-4 pt-4 border-t border-border/30">
               <div className="flex items-center gap-2 mb-3">
