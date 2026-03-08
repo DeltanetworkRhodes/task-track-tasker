@@ -118,6 +118,31 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
   const handleGisUploadSuccess = async (result: any) => {
     if (!selectedAssignment) return;
     
+    if (isDemo) {
+      // Demo mode: simulate GIS upload + auto-transition
+      const demoGis = {
+        id: `demo-gis-${selectedAssignment.id}`,
+        assignment_id: selectedAssignment.id,
+        sr_id: selectedAssignment.sr_id,
+        floors: result?.floors || 4,
+        bep_type: result?.bep_type || "BEP-4",
+        floor_details: result?.floor_details || [],
+        gis_works: result?.gis_works || [],
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      addDemoGis(selectedAssignment.id, demoGis);
+      
+      if (selectedAssignment.status === "pre_committed") {
+        updateDemoAssignment(selectedAssignment.id, { status: "construction" });
+        setSelectedAssignment({ ...selectedAssignment, status: "construction" });
+        toast.success("🏗️ Η ανάθεση μετέβη αυτόματα σε Κατασκευή! (Λειτουργία Demo)", { duration: 4000 });
+      }
+      queryClient.invalidateQueries({ queryKey: ["gis-assignment-ids"] });
+      queryClient.invalidateQueries({ queryKey: ["assignment-gis"] });
+      return;
+    }
+    
     // Auto-transition to construction if currently pre_committed
     if (selectedAssignment.status === "pre_committed") {
       try {
@@ -135,13 +160,22 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
         queryClient.invalidateQueries({ queryKey: ["technician-assignments"] });
       } catch (err: any) {
         console.error("Auto-transition error:", err);
-        // Non-blocking - GIS was still uploaded successfully
         toast.info("Το GIS ανέβηκε. Αλλάξτε χειροκίνητα σε Κατασκευή.");
       }
     }
   };
 
   const handleStatusChange = async (assignmentId: string, newStatus: string, oldStatus: string) => {
+    if (isDemo) {
+      updateDemoAssignment(assignmentId, { status: newStatus });
+      if (selectedAssignment?.id === assignmentId) {
+        setSelectedAssignment({ ...selectedAssignment, status: newStatus });
+      }
+      toast.success(`Κατάσταση → ${statusLabels[newStatus]} (Λειτουργία Demo)`);
+      setUpdating(null);
+      return;
+    }
+    
     // Client-side guard: block construction without GIS
     if (newStatus === "construction") {
       const hasGis = gisAssignmentIds?.includes(assignmentId);
