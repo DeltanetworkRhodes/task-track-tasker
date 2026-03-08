@@ -5,7 +5,10 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { FileSpreadsheet, Download, CheckCircle2, Loader2, Eye, MapPin, Building2, FlaskConical, Image } from "lucide-react";
 import { getDemoAsBuiltData, generateAsBuiltFromData } from "@/lib/generateAsBuilt";
-import demoSketchUrl from "@/assets/demo-sketch-placeholder.png";
+import demoSketchSr01 from "@/assets/demo-sketch-sr01.png";
+import demoSketchSr02 from "@/assets/demo-sketch-sr02.png";
+import demoSketchSr03 from "@/assets/demo-sketch-sr03.png";
+import demoSketchSr04 from "@/assets/demo-sketch-sr04.png";
 import { toast } from "sonner";
 
 const DEMO_SRS = [
