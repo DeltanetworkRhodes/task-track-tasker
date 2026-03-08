@@ -566,12 +566,24 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
                     </SelectContent>
                   </Select>
                 </td>
-                <td className="py-3 px-4">
-                  <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${statusColors[a.status] || statusColors.pending}`}>
-                    {statusLabels[a.status] || a.status}
-                  </span>
+                <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
+                  <Select
+                    value={a.status}
+                    onValueChange={(val) => handleStatusChange(a.id, val)}
+                  >
+                    <SelectTrigger className="h-7 text-[11px] w-[120px] border-0 bg-transparent hover:bg-muted/50 px-1.5">
+                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${statusColors[a.status] || statusColors.pending}`}>
+                        {statusLabels[a.status] || a.status}
+                      </span>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(statusLabels).map(([key, label]) => (
+                        <SelectItem key={key} value={key} className="text-xs">{label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </td>
-                <td className="py-3 px-4 font-bold text-xs text-muted-foreground">{a.date}</td>
+                <td className="py-3 px-4 font-bold text-xs text-muted-foreground whitespace-nowrap">{a.date}</td>
                 <td className="py-3 px-4 text-center">
                   {a.photos > 0 && (
                     <span className="inline-flex items-center gap-1 text-muted-foreground">
