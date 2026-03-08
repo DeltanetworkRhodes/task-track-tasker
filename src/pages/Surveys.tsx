@@ -402,7 +402,7 @@ const Surveys = () => {
           <StatCard 
             title="Προδεσμεύσεις (SR)" 
             value={preCommittedCount} 
-            subtitle={`${inspectionCount} σε αυτοψία · ${waitingOteCount} αναμονή ΟΤΕ`} 
+            subtitle={`${inspectionCount} σε αυτοψία`} 
             icon={CheckCircle} 
             trend={preCommittedCount > 0 ? "up" : "neutral"}
             trendValue={`${totalActiveAssignments} ενεργές αναθέσεις`}
@@ -424,12 +424,13 @@ const Surveys = () => {
             trendValue={upcomingAppointments.length > 0 ? `${upcomingAppointments.length} προγραμματισμένα` : "Κανένα ενεργό"}
           />
           <StatCard 
-            title="Αναμονή ΟΤΕ" 
-            value={waitingOteCount} 
-            subtitle="αναθέσεις σε αναμονή απάντησης" 
-            icon={Clock} 
-            trend={waitingOteCount > 0 ? "down" : "neutral"}
-            trendValue={waitingOteCount > 0 ? "Εκκρεμούν" : "Καμία αναμονή"}
+            title="Ελλιπή Έγγραφα" 
+            value={incompleteSurveyAssignments + totalIncomplete} 
+            subtitle={`${totalIncomplete} αυτοψίες · ${incompleteSurveyAssignments} αναθέσεις`} 
+            icon={FileWarning} 
+            accent
+            trend={incompleteSurveyAssignments + totalIncomplete > 0 ? "down" : "neutral"}
+            trendValue={incompleteSurveyAssignments + totalIncomplete > 0 ? "Εκκρεμούν έγγραφα" : "Όλα πλήρη"}
           />
         </div>
 
