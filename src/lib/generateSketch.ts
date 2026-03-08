@@ -115,7 +115,7 @@ export function generateOteSketch(input: SketchInput): string {
   ctx.stroke();
 
   // ── Distance annotation above cable ──
-  const distText = `${input.distanceFromCabinet}m`;
+  const distText = `${input.trenchLengthM}m`;
   const midCableX = (cableStartX + cableEndX) / 2;
   ctx.fillStyle = "#000000";
   ctx.font = "bold 18px Arial, sans-serif";

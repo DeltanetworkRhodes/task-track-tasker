@@ -152,7 +152,7 @@ const DemoDocumentsPanel = () => {
                     src={generateOteSketch({
                       conduit: getDemoAsBuiltData(selectedSr.srId).conduit,
                       cabId: getDemoAsBuiltData(selectedSr.srId).cabId,
-                      distanceFromCabinet: getDemoAsBuiltData(selectedSr.srId).distanceFromCabinet,
+                      trenchLengthM: getDemoAsBuiltData(selectedSr.srId).trenchLengthM,
                       address: selectedSr.address,
                       buildingId: getDemoAsBuiltData(selectedSr.srId).buildingId,
                     })}
