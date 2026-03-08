@@ -440,24 +440,39 @@ export async function generateAsBuiltFromData(data: AsBuiltData): Promise<AsBuil
     fillEpimetrisiSheet(epimetrisiSheet, data);
 
     // Sketch image injection at B46→M75 with twoCell anchor
+    let sketchBuf: ArrayBuffer | null = null;
+
     if (data.sketchImageUrl) {
-      const imgBuf = await fetchImageBuffer(data.sketchImageUrl);
-      if (imgBuf) {
-        const ext = data.sketchImageUrl.toLowerCase().includes(".jpg") ||
-          data.sketchImageUrl.toLowerCase().includes(".jpeg")
-          ? "jpeg" as const : "png" as const;
-        const imgId = workbook.addImage({ buffer: imgBuf, extension: ext });
-        // B46 = col 1, row 45 (0-indexed) → M75 = col 12, row 74 (0-indexed)
-        epimetrisiSheet.addImage(imgId, {
-          tl: { col: 1, row: 45, nativeCol: 1, nativeRow: 45, nativeColOff: 0, nativeRowOff: 0 } as any,
-          br: { col: 12, row: 74, nativeCol: 12, nativeRow: 74, nativeColOff: 0, nativeRowOff: 0 } as any,
-          editAs: "twoCell",
-        } as any);
-      } else {
-        warnings.push("Η εικόνα σκαριφήματος δεν μπόρεσε να φορτωθεί.");
+      // Use provided sketch image (from inspection_reports.sketch_notes)
+      sketchBuf = await fetchImageBuffer(data.sketchImageUrl);
+      if (!sketchBuf) {
+        warnings.push("Η εικόνα σκαριφήματος δεν μπόρεσε να φορτωθεί. Δημιουργία αυτόματου σκαριφήματος...");
       }
-    } else {
-      warnings.push("Δεν βρέθηκε εικόνα σκαριφήματος (sketch). Ο χώρος '6 ΟΡΙΖΟΝΤΟΓΡΑΦΙΑ' θα είναι κενός.");
+    }
+
+    // Auto-generate OTE sketch if no image was loaded
+    if (!sketchBuf) {
+      try {
+        sketchBuf = generateSketchBuffer({
+          conduit: data.conduit || data.bepType || "",
+          cabId: data.cabId || "",
+          distanceFromCabinet: data.distanceFromCabinet || 0,
+          address: data.address || "",
+          buildingId: data.buildingId || "",
+        });
+      } catch (e) {
+        console.warn("Auto-sketch generation failed:", e);
+        warnings.push("Δεν ήταν δυνατή η αυτόματη δημιουργία σκαριφήματος.");
+      }
+    }
+
+    if (sketchBuf) {
+      const imgId = workbook.addImage({ buffer: sketchBuf, extension: "png" });
+      epimetrisiSheet.addImage(imgId, {
+        tl: { col: 1, row: 45, nativeCol: 1, nativeRow: 45, nativeColOff: 0, nativeRowOff: 0 } as any,
+        br: { col: 12, row: 74, nativeCol: 12, nativeRow: 74, nativeColOff: 0, nativeRowOff: 0 } as any,
+        editAs: "twoCell",
+      } as any);
     }
   }
 
