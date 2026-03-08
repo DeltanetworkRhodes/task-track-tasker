@@ -349,7 +349,11 @@ const SurveyForm = ({ assignments, prefillSrId, prefillArea, onComplete }: Props
         }
       }
 
-      toast.success("Η αυτοψία υποβλήθηκε! Η επεξεργασία (ZIP, Drive, email) γίνεται στο παρασκήνιο.");
+      toast.success(
+        mergedIntoExisting
+          ? "Τα αρχεία ενημερώθηκαν στον υπάρχοντα φάκελο! Η επεξεργασία γίνεται στο παρασκήνιο."
+          : "Η αυτοψία υποβλήθηκε! Η επεξεργασία (ZIP, Drive, email) γίνεται στο παρασκήνιο."
+      );
       setSubmitted(true);
 
       if (autoStatus === "ΠΡΟΔΕΣΜΕΥΣΗ ΥΛΙΚΩΝ") {
