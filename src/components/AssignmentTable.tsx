@@ -418,17 +418,17 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
         {assignments.map((a) => (
           <div
             key={a.id}
-            className="rounded-xl border border-border bg-card p-3.5 active:bg-secondary/50 transition-colors"
+            className="rounded-xl border border-border bg-card p-3 active:bg-secondary/50 transition-colors"
             onMouseEnter={() => handleRowHover(a)}
             onClick={() => setSelected(a)}
           >
-            <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center justify-between mb-1.5">
               <span className="font-bold text-primary text-sm">{a.srId}</span>
-              <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-medium ${statusColors[a.status] || statusColors.pending}`}>
+              <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${statusColors[a.status] || statusColors.pending}`}>
                 {statusLabels[a.status] || a.status}
               </span>
             </div>
-            <div className="grid grid-cols-2 gap-y-1.5 gap-x-3 text-xs">
+            <div className="grid grid-cols-2 gap-y-1 gap-x-2 text-xs">
               <div className="flex items-center gap-1.5 text-muted-foreground">
                 <MapPin className="h-3 w-3 shrink-0" />
                 <span className="truncate">{a.area}</span>
@@ -452,31 +452,14 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
                 </div>
               )}
             </div>
-            <div className="flex items-center justify-between mt-2 pt-2 border-t border-border/30">
+            <div className="flex items-center justify-between mt-2 pt-1.5 border-t border-border/30">
               <span className="text-[10px] text-muted-foreground font-bold">{a.date}</span>
-              <div className="flex items-center gap-3">
-                {a.photos > 0 && (
-                  <span className="flex items-center gap-1 text-muted-foreground text-[10px]">
-                    <Camera className="h-3 w-3" /> {a.photos}
-                  </span>
-                )}
+              <div className="flex items-center gap-2.5">
                 {(a as any).driveUrl && (
-                  <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                  <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
                     <a href={(a as any).driveUrl} target="_blank" rel="noopener noreferrer" title="Φάκελος">
                       <FolderOpen className="h-3.5 w-3.5 text-primary" />
                     </a>
-                    {(a as any).driveEgrafaUrl && (
-                      <a href={(a as any).driveEgrafaUrl} target="_blank" rel="noopener noreferrer"
-                        className="text-[9px] font-medium text-primary/70 hover:text-primary">
-                        ΕΓΓ
-                      </a>
-                    )}
-                    {(a as any).drivePromeletiUrl && (
-                      <a href={(a as any).drivePromeletiUrl} target="_blank" rel="noopener noreferrer"
-                        className="text-[9px] font-medium text-primary/70 hover:text-primary">
-                        ΠΡΜ
-                      </a>
-                    )}
                   </div>
                 )}
                 <button
@@ -491,8 +474,121 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
         ))}
       </div>
 
+      {/* Tablet Compact Table View */}
+      <div className="hidden md:block lg:hidden">
+        <table className="w-full text-xs table-fixed">
+          <thead>
+            <tr className="border-b border-border/50">
+              {onSelectionChange && (
+                <th className="py-2 px-1 w-7">
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.length === assignments.length && assignments.length > 0}
+                    onChange={toggleAll}
+                    className="h-3.5 w-3.5 rounded border-border accent-primary"
+                  />
+                </th>
+              )}
+              <th className="py-2 px-1.5 text-left font-medium text-muted-foreground text-[10px] uppercase tracking-wider w-[14%]">SR ID</th>
+              <th className="py-2 px-1.5 text-left font-medium text-muted-foreground text-[10px] uppercase tracking-wider w-[12%]">Περιοχή</th>
+              <th className="py-2 px-1.5 text-left font-medium text-muted-foreground text-[10px] uppercase tracking-wider w-[16%]">Πελάτης</th>
+              <th className="py-2 px-1.5 text-left font-medium text-muted-foreground text-[10px] uppercase tracking-wider w-[18%]">Τεχνικός</th>
+              <th className="py-2 px-1.5 text-left font-medium text-muted-foreground text-[10px] uppercase tracking-wider w-[16%]">Κατάσταση</th>
+              <th className="py-2 px-1.5 text-left font-medium text-muted-foreground text-[10px] uppercase tracking-wider w-[12%]">Ημ/νία</th>
+              <th className="py-2 px-1 text-center font-medium text-muted-foreground text-[10px] uppercase tracking-wider w-[6%]">Drive</th>
+              <th className="py-2 px-1 text-center w-[6%]"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {assignments.map((a) => (
+              <tr
+                key={a.id}
+                className={`border-b border-border/30 hover:bg-secondary/50 transition-colors ${selectedIds.includes(a.id) ? 'bg-primary/5' : ''}`}
+                onMouseEnter={() => handleRowHover(a)}
+              >
+                {onSelectionChange && (
+                  <td className="py-2 px-1" onClick={(e) => e.stopPropagation()}>
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.includes(a.id)}
+                      onChange={() => toggleSelect(a.id)}
+                      className="h-3.5 w-3.5 rounded border-border accent-primary"
+                    />
+                  </td>
+                )}
+                <td
+                  className="py-2 px-1.5 font-bold text-primary cursor-pointer text-[11px] truncate"
+                  onClick={() => setSelected(a)}
+                >
+                  {a.srId}
+                </td>
+                <td className="py-2 px-1.5 text-[11px] truncate">{a.area}</td>
+                <td className="py-2 px-1.5 text-muted-foreground text-[11px] truncate">{(a as any).customerName || '—'}</td>
+                <td className="py-2 px-1.5" onClick={(e) => e.stopPropagation()}>
+                  <Select
+                    value={(a as any).technicianId || "__none__"}
+                    onValueChange={(val) => handleAssign(a.id, val)}
+                    disabled={assigning === a.id}
+                  >
+                    <SelectTrigger className="w-full h-6 text-[10px] border-border/50 px-1">
+                      <SelectValue placeholder="Χωρίς" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">
+                        <span className="text-muted-foreground">Χωρίς</span>
+                      </SelectItem>
+                      {(technicians || []).map((t) => (
+                        <SelectItem key={t.user_id} value={t.user_id}>
+                          {t.full_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </td>
+                <td className="py-2 px-1.5" onClick={(e) => e.stopPropagation()}>
+                  <Select
+                    value={a.status}
+                    onValueChange={(val) => handleStatusChange(a.id, val)}
+                  >
+                    <SelectTrigger className="h-6 text-[10px] w-full border-0 bg-transparent hover:bg-muted/50 px-0.5">
+                      <span className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium ${statusColors[a.status] || statusColors.pending}`}>
+                        {statusLabels[a.status] || a.status}
+                      </span>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(statusLabels).map(([key, label]) => (
+                        <SelectItem key={key} value={key} className="text-xs">{label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </td>
+                <td className="py-2 px-1.5 font-bold text-[10px] text-muted-foreground whitespace-nowrap">{a.date}</td>
+                <td className="py-2 px-1 text-center">
+                  {(a as any).driveUrl ? (
+                    <a href={(a as any).driveUrl} target="_blank" rel="noopener noreferrer" className="inline-flex" title="Φάκελος" onClick={(e) => e.stopPropagation()}>
+                      <FolderOpen className="h-3.5 w-3.5 text-primary hover:text-primary/70 transition-colors" />
+                    </a>
+                  ) : (
+                    <FolderOpen className="h-3 w-3 text-muted-foreground/30 mx-auto" />
+                  )}
+                </td>
+                <td className="py-2 px-1 text-center">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setDeleteTarget(a); }}
+                    className="text-muted-foreground/40 hover:text-destructive transition-colors p-0.5 rounded"
+                    title="Διαγραφή"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
       {/* Desktop Table View */}
-      <div className="hidden md:block">
+      <div className="hidden lg:block">
         <table className="w-full text-sm table-fixed">
           <thead>
             <tr className="border-b border-border/50">
