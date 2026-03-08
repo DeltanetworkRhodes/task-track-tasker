@@ -638,7 +638,7 @@ Deno.serve(async (req) => {
 
         // Always upload ZIP to storage for signed URL
         const safeSrId = sr_id.replace(/[^a-zA-Z0-9_-]/g, "_");
-        const zipStoragePath = `surveys/${safeSrId}/Autopsía_${safeSrId}.zip`;
+        const zipStoragePath = `surveys/${safeSrId}/Autopsia_${safeSrId}.zip`;
 
         const { error: uploadErr } = await adminClient.storage
           .from("photos")

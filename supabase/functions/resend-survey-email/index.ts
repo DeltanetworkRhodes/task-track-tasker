@@ -87,7 +87,7 @@ Deno.serve(async (req) => {
 
     // Check if ZIP exists in storage and create signed URL
     const safeSrId = sr_id.replace(/[^a-zA-Z0-9_-]/g, "_");
-    const zipStoragePath = `surveys/${safeSrId}/Autopsía_${safeSrId}.zip`;
+    const zipStoragePath = `surveys/${safeSrId}/Autopsia_${safeSrId}.zip`;
     let zipDownloadUrl = "";
     
     const { data: signedData } = await adminClient.storage
