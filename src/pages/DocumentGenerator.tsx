@@ -118,7 +118,7 @@ const DocumentGenerator = () => {
                 <SelectItem value="all">Όλα</SelectItem>
                 <SelectItem value="ready">Ολοκληρωμένα</SelectItem>
                 <SelectItem value="in_progress">Σε εξέλιξη</SelectItem>
-                <SelectItem value="no_construction">Χωρίς κατασκευή</SelectItem>
+                
               </SelectContent>
             </Select>
           </div>
