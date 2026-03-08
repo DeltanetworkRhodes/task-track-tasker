@@ -1,28 +1,60 @@
 import ExcelJS from "exceljs";
 import { supabase } from "@/integrations/supabase/client";
 
+/* ────────────────────────────────────────────
+   Types
+   ──────────────────────────────────────────── */
+
+interface FloorBox {
+  floor: string | number;
+  fb_id: string;
+}
+
+interface OpticalPathRaw {
+  bep_id?: string; BEP_ID?: string;
+  conduit?: string; CONDUIT?: string;
+  splitter?: string; SPLITTER?: string;
+  port?: string; PORT?: string;
+  bmo_id?: string; BMO_ID?: string;
+  fb_id?: string; FB_ID?: string;
+  index?: number;
+}
+
+interface ConstructionWork {
+  code: string;
+  description: string;
+  quantity: number;
+  unit: string;
+  unit_price: number;
+  subtotal: number;
+}
+
 interface AsBuiltData {
   srId: string;
   address: string;
-  entryType: string;       // Είδος Εισαγωγής -> U25
-  newPipe: string;         // Νέα Σωλήνωση -> U30
-  ballMarker: string;      // Ball Marker -> U26
-  opticalPaths: Array<{
-    bep_id: string;
-    conduit: string;
-    splitter: string;
-    port: string;
-    bmo_id: string;
-    fb_id: string;
-  }>;
+  // GIS fields
+  bepId: string;
+  conduit: string;        // from GIS CONDUIT
+  splitter: string;       // from GIS BEP TEMPLATE
+  bmoId: string;
+  isNewInfrastructure: boolean; // ΝΕΑ ΥΠΟΔΟΜΗ -> U25 = 'ΝΑΙ'
+  trenchLengthM: number;       // -> U30
+  // Floor details for port-to-FB mapping
+  floorBoxes: FloorBox[];
+  // Optical paths (raw, will be expanded with ports 1-12)
+  opticalPathsRaw: OpticalPathRaw[];
+  // Sketch image
   sketchImageUrl: string | null;
+  // Construction works for ΕΡΓΑΣΙΕΣ sheet
+  works: ConstructionWork[];
 }
 
-/**
- * Fetches all necessary data for AS-BUILD generation from Supabase
- */
+/* ────────────────────────────────────────────
+   Data Fetching
+   ──────────────────────────────────────────── */
+
 async function fetchAsBuiltData(srId: string): Promise<AsBuiltData> {
-  // Fetch assignment
+  // 1. Assignment
   const { data: assignment, error: aErr } = await supabase
     .from("assignments")
     .select("*")
@@ -31,7 +63,7 @@ async function fetchAsBuiltData(srId: string): Promise<AsBuiltData> {
   if (aErr) throw new Error(`Assignment fetch error: ${aErr.message}`);
   if (!assignment) throw new Error(`Δεν βρέθηκε ανάθεση για SR: ${srId}`);
 
-  // Fetch GIS data
+  // 2. GIS data
   const { data: gisData, error: gErr } = await supabase
     .from("gis_data")
     .select("*")
@@ -39,164 +71,220 @@ async function fetchAsBuiltData(srId: string): Promise<AsBuiltData> {
     .maybeSingle();
   if (gErr) throw new Error(`GIS data fetch error: ${gErr.message}`);
 
-  // Fetch inspection report for sketch
-  const { data: inspection, error: iErr } = await supabase
-    .from("inspection_reports")
-    .select("sketch_notes, engineer_signature")
+  // 3. Construction + works
+  const { data: construction } = await supabase
+    .from("constructions")
+    .select("*")
     .eq("assignment_id", assignment.id)
     .maybeSingle();
 
-  // Parse optical paths from GIS data
-  const rawPaths = (gisData?.optical_paths as any[]) || [];
-  const opticalPaths = rawPaths.map((p: any) => ({
-    bep_id: p.bep_id || p.BEP_ID || "",
-    conduit: p.conduit || p.CONDUIT || "",
-    splitter: p.splitter || p.SPLITTER || "",
-    port: p.port || p.PORT || "",
-    bmo_id: p.bmo_id || p.BMO_ID || "",
-    fb_id: p.fb_id || p.FB_ID || "",
-  }));
+  let works: ConstructionWork[] = [];
+  if (construction) {
+    const { data: cWorks } = await supabase
+      .from("construction_works")
+      .select("*, work_pricing(*)")
+      .eq("construction_id", construction.id);
 
-  // Parse GIS works for measurement fields
-  const gisWorks = (gisData?.gis_works as any[]) || [];
-  const entryType = gisWorks.find((w: any) => w.key === "entry_type")?.value || gisData?.bep_type || "";
-  const newPipe = gisWorks.find((w: any) => w.key === "new_pipe")?.value || gisData?.conduit || "";
-  const ballMarker = gisWorks.find((w: any) => w.key === "ball_marker")?.value || "";
-
-  // Get sketch image URL from survey files
-  let sketchImageUrl: string | null = null;
-  if (inspection?.sketch_notes) {
-    // sketch_notes might contain a storage path reference
-    sketchImageUrl = inspection.sketch_notes;
+    works = (cWorks || []).map((w: any) => ({
+      code: w.work_pricing?.code || "",
+      description: w.work_pricing?.description || "",
+      quantity: w.quantity || 0,
+      unit: w.work_pricing?.unit || "τεμ.",
+      unit_price: w.unit_price || 0,
+      subtotal: w.subtotal || 0,
+    }));
   }
+
+  // 4. Inspection report (sketch)
+  const { data: inspection } = await supabase
+    .from("inspection_reports")
+    .select("sketch_notes")
+    .eq("assignment_id", assignment.id)
+    .maybeSingle();
+
+  // Parse GIS fields
+  const rawPaths = (gisData?.optical_paths as OpticalPathRaw[]) || [];
+  const floorDetails = (gisData?.floor_details as any[]) || [];
+  const gisWorks = (gisData?.gis_works as any[]) || [];
+
+  const conduit = gisData?.conduit || "";
+  const splitter = gisData?.bep_template || "";
+  const bepId = rawPaths[0]?.bep_id || rawPaths[0]?.BEP_ID || gisData?.associated_bcp || "";
+  const bmoId = rawPaths[0]?.bmo_id || rawPaths[0]?.BMO_ID || gisData?.bmo_type || "";
+
+  // Determine if new infrastructure
+  const areaType = gisData?.area_type || "";
+  const entryWork = gisWorks.find((w: any) => w.key === "entry_type")?.value || "";
+  const isNewInfrastructure =
+    areaType.toUpperCase().includes("ΝΕΑ ΥΠΟΔΟΜΗ") ||
+    entryWork.toUpperCase().includes("ΝΕΑ");
+
+  // Trench length
+  const trenchLengthM = Number(
+    gisWorks.find((w: any) => w.key === "trench_length_m")?.value ||
+    gisData?.distance_from_cabinet ||
+    0
+  );
+
+  // Floor boxes from floor_details
+  const floorBoxes: FloorBox[] = floorDetails.map((fd: any) => ({
+    floor: fd.floor ?? fd.FLOOR ?? "",
+    fb_id: fd.fb_id ?? fd.FB_ID ?? fd.floorbox ?? "",
+  }));
 
   return {
     srId: assignment.sr_id,
     address: assignment.address || "",
-    entryType,
-    newPipe,
-    ballMarker,
-    opticalPaths,
-    sketchImageUrl,
+    bepId,
+    conduit,
+    splitter,
+    bmoId,
+    isNewInfrastructure,
+    trenchLengthM,
+    floorBoxes,
+    opticalPathsRaw: rawPaths,
+    sketchImageUrl: inspection?.sketch_notes || null,
+    works,
   };
 }
 
-/**
- * Composes optical path label string:
- * [BEP_ID]([CONDUIT])_[SPLITTER].[PORT]_[BMO_ID]_[FB_ID]
- */
-function composeOpticalPathLabel(path: AsBuiltData["opticalPaths"][0]): string {
-  return `${path.bep_id}(${path.conduit})_${path.splitter}.${path.port}_${path.bmo_id}_${path.fb_id}`;
+/* ────────────────────────────────────────────
+   Optical Path Label Builder
+   Formula: {BEP_ID}({CONDUIT})_{SPLITTER}.{PORT}_{INDEX}_{BMO_ID}_{FB_ID}
+   Loop ports 1-12, match to floor boxes
+   ──────────────────────────────────────────── */
+
+function buildOpticalPathLabels(data: AsBuiltData): string[] {
+  const labels: string[] = [];
+  const maxPorts = 12;
+
+  for (let port = 1; port <= maxPorts; port++) {
+    // Match port to floor box (by index)
+    const fb = data.floorBoxes[port - 1];
+    const fbId = fb?.fb_id || "";
+
+    const label = [
+      `${data.bepId}(${data.conduit})`,
+      `${data.splitter}.${port}`,
+      `${port}`,
+      data.bmoId,
+      fbId,
+    ].join("_");
+
+    labels.push(label);
+  }
+
+  return labels;
 }
 
-/**
- * Fetches image as ArrayBuffer from a URL or Supabase storage path
- */
+/* ────────────────────────────────────────────
+   Image Fetching
+   ──────────────────────────────────────────── */
+
 async function fetchImageBuffer(urlOrPath: string): Promise<ArrayBuffer | null> {
   try {
-    // If it's a data URL (base64 signature/sketch)
     if (urlOrPath.startsWith("data:")) {
       const base64 = urlOrPath.split(",")[1];
       const binary = atob(base64);
       const bytes = new Uint8Array(binary.length);
-      for (let i = 0; i < binary.length; i++) {
-        bytes[i] = binary.charCodeAt(i);
-      }
+      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
       return bytes.buffer;
     }
 
-    // If it's a supabase storage path
     if (!urlOrPath.startsWith("http")) {
       const { data } = supabase.storage.from("surveys").getPublicUrl(urlOrPath);
       if (data?.publicUrl) {
         const resp = await fetch(data.publicUrl);
-        return resp.arrayBuffer();
+        if (resp.ok) return resp.arrayBuffer();
       }
       return null;
     }
 
-    // Direct URL
     const resp = await fetch(urlOrPath);
-    return resp.arrayBuffer();
+    return resp.ok ? resp.arrayBuffer() : null;
   } catch {
     console.warn("Could not fetch image:", urlOrPath);
     return null;
   }
 }
 
-/**
- * Main AS-BUILD generation function - runs client-side
- * Loads a template from /public/templates/, fills it with data, and triggers download
- */
+/* ────────────────────────────────────────────
+   Main Generator
+   ──────────────────────────────────────────── */
+
 export async function generateAsBuilt(srId: string): Promise<void> {
-  // 1. Fetch data
+  // 1. Fetch all data
   const data = await fetchAsBuiltData(srId);
 
   // 2. Load template
-  const templateUrl = "/templates/construction_template.xlsx";
-  const templateResp = await fetch(templateUrl);
+  const templateResp = await fetch("/templates/construction_template.xlsx");
   if (!templateResp.ok) {
     throw new Error("Δεν βρέθηκε το template AS-BUILD. Βεβαιωθείτε ότι υπάρχει στο /templates/construction_template.xlsx");
   }
-  const templateBuffer = await templateResp.arrayBuffer();
-
-  // 3. Open workbook with ExcelJS
   const workbook = new ExcelJS.Workbook();
-  await workbook.xlsx.load(templateBuffer);
+  await workbook.xlsx.load(await templateResp.arrayBuffer());
 
-  // 4. Fill "Επιμέτρηση" sheet
-  const epimetrisiSheet = workbook.getWorksheet("Επιμέτρηση") || workbook.worksheets[0];
-  if (epimetrisiSheet) {
-    // SR ID -> E4
-    epimetrisiSheet.getCell("E4").value = data.srId;
-    // Address -> F4
-    epimetrisiSheet.getCell("F4").value = data.address;
-    // Είδος Εισαγωγής -> U25
-    epimetrisiSheet.getCell("U25").value = data.entryType;
-    // Ball Marker -> U26
-    epimetrisiSheet.getCell("U26").value = data.ballMarker;
-    // Νέα Σωλήνωση -> U30
-    epimetrisiSheet.getCell("U30").value = data.newPipe;
+  /* ── Sheet 1: AS build-Επιμέτρηση ── */
+  const epSheet =
+    workbook.getWorksheet("AS build-Επιμέτρηση") ||
+    workbook.getWorksheet("Επιμέτρηση") ||
+    workbook.worksheets[0];
 
-    // 5. Image injection (Σκαρίφημα) in "ΟΡΙΖΟΝΤΟΓΡΑΦΙΑ" section
+  if (epSheet) {
+    // Basic fields
+    epSheet.getCell("E4").value = data.srId;
+    epSheet.getCell("F4").value = data.address;
+
+    // U25: ΝΑΙ if ΝΕΑ ΥΠΟΔΟΜΗ
+    epSheet.getCell("U25").value = data.isNewInfrastructure ? "ΝΑΙ" : "";
+
+    // U30: trench length
+    epSheet.getCell("U30").value = data.trenchLengthM || "";
+
+    // Image injection – ΟΡΙΖΟΝΤΟΓΡΑΦΙΑ section
     if (data.sketchImageUrl) {
-      const imgBuffer = await fetchImageBuffer(data.sketchImageUrl);
-      if (imgBuffer) {
-        const imageId = workbook.addImage({
-          buffer: imgBuffer,
-          extension: "png",
-        });
-        // Place in the ΟΡΙΖΟΝΤΟΓΡΑΦΙΑ area (approximate rows 35-55, columns A-T)
-        epimetrisiSheet.addImage(imageId, {
-          tl: { col: 0, row: 34, nativeCol: 0, nativeColOff: 0, nativeRow: 34, nativeRowOff: 0 } as any,
-          br: { col: 19, row: 54, nativeCol: 19, nativeColOff: 0, nativeRow: 54, nativeRowOff: 0 } as any,
+      const imgBuf = await fetchImageBuffer(data.sketchImageUrl);
+      if (imgBuf) {
+        const imgId = workbook.addImage({ buffer: imgBuf, extension: "png" });
+        epSheet.addImage(imgId, {
+          tl: { col: 0, row: 34 } as any,
+          br: { col: 19, row: 54 } as any,
         });
       }
     }
   }
 
-  // 6. Fill "LABELS BEP" sheet
-  const labelsBepSheet = workbook.getWorksheet("LABELS BEP");
-  if (labelsBepSheet && data.opticalPaths.length > 0) {
-    // Find the OPTICAL PATH column (usually column A or B, starting from row 2)
-    const startRow = 2;
-    data.opticalPaths.forEach((path, idx) => {
-      const label = composeOpticalPathLabel(path);
-      labelsBepSheet.getCell(startRow + idx, 1).value = label;
+  /* ── Sheet 2 & 3: LABELS BEP / LABELS BMO ── */
+  const labels = buildOpticalPathLabels(data);
+
+  const fillLabelsSheet = (sheetName: string) => {
+    const sheet = workbook.getWorksheet(sheetName);
+    if (!sheet) return;
+    const startRow = 2; // row 1 = header
+    labels.forEach((label, idx) => {
+      sheet.getCell(startRow + idx, 1).value = label;
+    });
+  };
+
+  fillLabelsSheet("LABELS BEP");
+  fillLabelsSheet("LABELS BMO");
+
+  /* ── Sheet 4: ΕΡΓΑΣΙΕΣ (Auto-Billing works) ── */
+  const worksSheet = workbook.getWorksheet("ΕΡΓΑΣΙΕΣ");
+  if (worksSheet && data.works.length > 0) {
+    const startRow = 2; // row 1 = header assumed
+    data.works.forEach((w, idx) => {
+      const row = startRow + idx;
+      worksSheet.getCell(row, 1).value = w.code;         // A: Κωδικός
+      worksSheet.getCell(row, 2).value = w.description;  // B: Περιγραφή
+      worksSheet.getCell(row, 3).value = w.unit;         // C: ΜΜ
+      worksSheet.getCell(row, 4).value = w.quantity;      // D: Ποσότητα
+      worksSheet.getCell(row, 5).value = w.unit_price;    // E: Τιμή μονάδας
+      worksSheet.getCell(row, 6).value = w.subtotal;      // F: Σύνολο
     });
   }
 
-  // 7. Fill "LABELS BMO" sheet
-  const labelsBmoSheet = workbook.getWorksheet("LABELS BMO");
-  if (labelsBmoSheet && data.opticalPaths.length > 0) {
-    const startRow = 2;
-    data.opticalPaths.forEach((path, idx) => {
-      const label = composeOpticalPathLabel(path);
-      labelsBmoSheet.getCell(startRow + idx, 1).value = label;
-    });
-  }
-
-  // 8. Generate and download
+  /* ── Generate & Download ── */
   const buffer = await workbook.xlsx.writeBuffer();
   const blob = new Blob([buffer], {
     type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",

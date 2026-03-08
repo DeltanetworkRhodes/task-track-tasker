@@ -4,6 +4,7 @@ import StatCard from "@/components/StatCard";
 import { useConstructions, useAssignments } from "@/hooks/useData";
 import { constructionStatusLabels } from "@/data/mockData";
 import { Wrench, TrendingUp, Receipt, DollarSign, Search, Filter, ExternalLink, ChevronDown, ChevronUp, Calendar, MapPin, Layers, Route, Trash2 } from "lucide-react";
+import AsBuiltExporter from "@/components/AsBuiltExporter";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
@@ -510,6 +511,9 @@ const ConstructionPage = () => {
                       </SelectContent>
                     </Select>
                   </div>
+
+                  {/* AS-BUILD Export */}
+                  <AsBuiltExporter srId={c.srId} variant="default" size="default" className="w-full" />
 
                   {/* Technical Details */}
                   <Card className="p-4 space-y-2 text-sm">
