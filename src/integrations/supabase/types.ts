@@ -1103,6 +1103,59 @@ export type Database = {
         }
         Relationships: []
       }
+      pre_work_checklists: {
+        Row: {
+          access_confirmed: boolean
+          access_confirmed_at: string | null
+          assignment_id: string
+          completed: boolean
+          completed_at: string | null
+          created_at: string
+          id: string
+          organization_id: string | null
+          photo_path: string | null
+          photo_uploaded_at: string | null
+          technician_id: string
+          updated_at: string
+        }
+        Insert: {
+          access_confirmed?: boolean
+          access_confirmed_at?: string | null
+          assignment_id: string
+          completed?: boolean
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          organization_id?: string | null
+          photo_path?: string | null
+          photo_uploaded_at?: string | null
+          technician_id: string
+          updated_at?: string
+        }
+        Update: {
+          access_confirmed?: boolean
+          access_confirmed_at?: string | null
+          assignment_id?: string
+          completed?: boolean
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          organization_id?: string | null
+          photo_path?: string | null
+          photo_uploaded_at?: string | null
+          technician_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pre_work_checklists_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: true
+            referencedRelation: "assignments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           area: string | null
