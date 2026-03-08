@@ -161,6 +161,8 @@ Deno.serve(async (req) => {
 
     const emailFrom = orgSettingsMap["email_from"] || "noreply@deltanetwork.gr";
     const emailReplyTo = orgSettingsMap["email_reply_to"] || "info@deltanetwork.gr";
+    const emailSenderName = orgSettingsMap["email_sender_name"] || "DeltaNet FTTH";
+    const emailSignature = orgSettingsMap["email_signature"] || DEFAULT_SIGNATURE;
 
     const toEmails = orgSettingsMap["completion_to_emails"] || orgSettingsMap["report_to_emails"] || emailReplyTo;
     const ccEmails = orgSettingsMap["completion_cc_emails"] || orgSettingsMap["report_cc_emails"] || "";
