@@ -160,12 +160,12 @@ async function fetchAsBuiltData(srId: string): Promise<AsBuiltData> {
   // Auto-build works from gis_works if no construction_works
   if (works.length === 0 && gisWorks.length > 0) {
     works = gisWorks
-      .filter((w: any) => w.description)
+      .filter((w: any) => w.description || w["ΕΡΓΑΣΙΑ"])
       .map((w: any) => ({
-        type: w.type || "Α",
-        description: w.description || "",
-        quantity: Number(w.quantity) || 0,
-        floor: w.floor || "",
+        type: w.type || w["ΤΥΠΟΣ ΕΡΓΑΣΙΑΣ"] || "Α",
+        description: w.description || w["ΕΡΓΑΣΙΑ"] || "",
+        quantity: Number(w.quantity || w["ΠΟΣΟΤΗΤΑ"]) || 0,
+        floor: w.floor || w["ΟΡΟΦΟΣ"] || "",
       }));
   }
 
