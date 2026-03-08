@@ -33,7 +33,7 @@ const STATUS_COLORS: Record<string, string> = {
   pending: "hsl(38 92% 50%)",
   inspection: "hsl(330 100% 44%)",
   pre_committed: "hsl(220 70% 55%)",
-  waiting_ote: "hsl(190 75% 45%)",
+  
   construction: "hsl(280 55% 52%)",
   completed: "hsl(152 60% 42%)",
   cancelled: "hsl(0 60% 50%)",
@@ -106,7 +106,7 @@ const Index = () => {
 
   const activeAssignments = assignments.filter(a => a.status !== 'completed' && a.status !== 'cancelled').length;
   const completedAssignments = assignments.filter(a => a.status === 'completed').length;
-  const waitingOte = assignments.filter(a => a.status === 'waiting_ote').length;
+  
   const totalRevenue = constructions.reduce((sum, c) => sum + c.revenue, 0);
   const totalProfit = constructions.reduce((sum, c) => sum + c.profit, 0);
   const activeConstructions = constructions.filter(c => c.status === 'in_progress').length;
@@ -261,7 +261,7 @@ const Index = () => {
         {/* Stat Cards - responsive grid */}
         <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-6">
           <StatCard title="Ενεργές Αναθέσεις" value={activeAssignments} subtitle={`${completedAssignments} ολοκληρωμένες`} icon={ClipboardCheck} trend="up" trendValue={`${assignments.length} σύνολο`} />
-          <StatCard title="Αναμονή ΟΤΕ" value={waitingOte} subtitle="σε αναμονή" icon={Timer} />
+          <StatCard title="Προδεσμεύσεις" value={assignments.filter(a => a.status === 'pre_committed').length} subtitle="σε αναμονή GIS" icon={Timer} />
           <StatCard title="Κατασκευές" value={activeConstructions} subtitle="σε εξέλιξη" icon={Wrench} accent />
           <StatCard title="Έσοδα" value={`${totalRevenue.toLocaleString('el-GR')}€`} subtitle="κατασκευών" icon={Euro} trend="up" trendValue={`${totalProfit.toLocaleString('el-GR')}€ κέρδος`} />
           <StatCard title="Καθαρό Κέρδος" value={`${totalProfit.toLocaleString('el-GR')}€`} subtitle={`${totalRevenue > 0 ? Math.round((totalProfit / totalRevenue) * 100) : 0}% margin`} icon={TrendingUp} trend={totalProfit > 0 ? 'up' : 'down'} trendValue={`${constructions.length} κατ.`} accent />

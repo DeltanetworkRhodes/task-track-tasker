@@ -15,7 +15,7 @@ const statusColors: Record<string, string> = {
   pending: 'bg-muted text-muted-foreground',
   inspection: 'bg-warning/15 text-warning',
   pre_committed: 'bg-primary/15 text-primary',
-  waiting_ote: 'bg-cyan-500/15 text-cyan-600',
+  
   construction: 'bg-accent/15 text-accent',
   completed: 'bg-success/15 text-success',
   cancelled: 'bg-destructive/15 text-destructive',
