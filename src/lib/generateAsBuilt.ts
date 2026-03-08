@@ -19,20 +19,19 @@ interface FloorBox {
 }
 
 interface OpticalPathEntry {
-  type: string;    // BEP-BMO, BMO-FB, CAB-BEP, BEP
+  type: string;
   path: string;
   gis_id?: string;
 }
 
 interface ConstructionWork {
-  type: string;        // ΤΥΠΟΣ ΕΡΓΑΣΙΑΣ
-  description: string; // ΕΡΓΑΣΙΑ
-  quantity: number;    // ΠΟΣΟΤΗΤΑ
-  floor?: string;      // ΟΡΟΦΟΣ
+  type: string;
+  description: string;
+  quantity: number;
+  floor?: string;
 }
 
 interface AsBuiltData {
-  // Page 1 - ΚΤΗΡΙΟ
   srId: string;
   buildingId: string;
   areaType: string;
@@ -56,17 +55,11 @@ interface AsBuiltData {
   notes: string;
   warning: string;
   failure: string;
-  // Assignment
   address: string;
-  // Page 2 - ΟΡΟΦΟΙ
   floorDetails: FloorBox[];
-  // Page 3 - OPTICAL PATHS
   opticalPaths: OpticalPathEntry[];
-  // Page 4 - ΕΡΓΑΣΙΕΣ
   works: ConstructionWork[];
-  // Sketch image
   sketchImageUrl: string | null;
-  // Επιμέτρηση specific
   isNewInfrastructure: boolean;
   trenchLengthM: number;
   cabId: string;
@@ -77,7 +70,6 @@ interface AsBuiltData {
    ──────────────────────────────────────────── */
 
 async function fetchAsBuiltData(srId: string): Promise<AsBuiltData> {
-  // 1. Assignment
   const { data: assignment, error: aErr } = await supabase
     .from("assignments")
     .select("*")
@@ -86,7 +78,6 @@ async function fetchAsBuiltData(srId: string): Promise<AsBuiltData> {
   if (aErr) throw new Error(`Assignment fetch error: ${aErr.message}`);
   if (!assignment) throw new Error(`Δεν βρέθηκε ανάθεση για SR: ${srId}`);
 
-  // 2. GIS data
   const { data: gisData, error: gErr } = await supabase
     .from("gis_data")
     .select("*")
@@ -94,7 +85,6 @@ async function fetchAsBuiltData(srId: string): Promise<AsBuiltData> {
     .maybeSingle();
   if (gErr) throw new Error(`GIS data fetch error: ${gErr.message}`);
 
-  // 3. Construction works
   const { data: construction } = await supabase
     .from("constructions")
     .select("*")
@@ -116,14 +106,13 @@ async function fetchAsBuiltData(srId: string): Promise<AsBuiltData> {
     }));
   }
 
-  // 4. Inspection report (sketch)
   const { data: inspection } = await supabase
     .from("inspection_reports")
     .select("sketch_notes")
     .eq("assignment_id", assignment.id)
     .maybeSingle();
 
-  // Parse GIS
+  // Parse GIS JSON fields
   const rawPaths = (gisData?.optical_paths as any[]) || [];
   const floorDetails = (gisData?.floor_details as any[]) || [];
   const gisWorks = (gisData?.gis_works as any[]) || [];
@@ -137,13 +126,13 @@ async function fetchAsBuiltData(srId: string): Promise<AsBuiltData> {
   const floorBoxes: FloorBox[] = floorDetails.map((fd: any) => ({
     floor: fd.floor ?? fd["ΟΡΟΦΟΣ"] ?? fd.ΟΡΟΦΟΣ ?? "",
     fb_id: fd.fb_id ?? fd.FB_ID ?? fd["GIS ID"] ?? "",
-    apartments: fd.apartments ?? fd["ΔΙΑΜΕΡΙΣΜΑΤΑ"] ?? fd.ΔΙΑΜΕΡΙΣΜΑΤΑ ?? 0,
-    shops: fd.shops ?? fd["ΚΑΤΑΣΤΗΜΑΤΑ"] ?? fd.ΚΑΤΑΣΤΗΜΑΤΑ ?? 0,
-    fb_count: fd.fb_count ?? fd.FB01 ?? fd["FB01"] ?? 0,
+    apartments: Number(fd.apartments ?? fd["ΔΙΑΜΕΡΙΣΜΑΤΑ"] ?? fd.ΔΙΑΜΕΡΙΣΜΑΤΑ ?? 0),
+    shops: Number(fd.shops ?? fd["ΚΑΤΑΣΤΗΜΑΤΑ"] ?? fd.ΚΑΤΑΣΤΗΜΑΤΑ ?? 0),
+    fb_count: Number(fd.fb_count ?? fd.FB01 ?? fd["FB01"] ?? 0),
     fb_type: fd.fb_type ?? fd.FB01_TYPE ?? fd["FB01 TYPE"] ?? "",
     fb_customer: fd.fb_customer ?? fd["FB ΠΕΛΑΤΗ"] ?? fd.FB_ΠΕΛΑΤΗ ?? "",
     customer_space: fd.customer_space ?? fd["ΑΡΙΘΜΗΣΗ ΧΩΡΟΥ ΠΕΛΑΤΗ"] ?? fd.ΑΡΙΘΜΗΣΗ_ΧΩΡΟΥ_ΠΕΛΑΤΗ ?? "",
-    meters: fd.meters ?? fd["ΜΕΤΡΑ"] ?? fd.ΜΕΤΡΑ ?? 0,
+    meters: Number(fd.meters ?? fd["ΜΕΤΡΑ"] ?? fd.ΜΕΤΡΑ ?? 0),
     pipe_type: fd.pipe_type ?? fd["ΕΙΔΟΣ"] ?? fd.ΕΙΔΟΣ ?? "",
   }));
 
@@ -234,78 +223,151 @@ async function fetchImageBuffer(urlOrPath: string): Promise<ArrayBuffer | null> 
 }
 
 /* ────────────────────────────────────────────
-   Fill Sheet Helpers
+   Sheet 1: ΚΤΗΡΙΟ (row 2)
    ──────────────────────────────────────────── */
 
-function fillKtirioSheet(sheet: ExcelJS.Worksheet, data: AsBuiltData) {
-  // Row 2 (data row after header)
+function fillKtirioSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
   const r = 2;
-  sheet.getCell(r, 1).value = data.srId;
-  sheet.getCell(r, 2).value = data.buildingId;
-  sheet.getCell(r, 3).value = data.areaType;
-  sheet.getCell(r, 4).value = data.floors;
-  sheet.getCell(r, 5).value = data.customerFloor;
-  sheet.getCell(r, 6).value = data.bepFloor;
-  sheet.getCell(r, 7).value = data.adminSignature ? "TRUE" : "FALSE";
-  sheet.getCell(r, 8).value = data.bepOnly ? "TRUE" : "FALSE";
-  sheet.getCell(r, 9).value = data.bepTemplate;
-  sheet.getCell(r, 10).value = data.bepType;
-  sheet.getCell(r, 11).value = data.bmoType;
-  sheet.getCell(r, 12).value = data.nanotronix ? "TRUE" : "FALSE";
-  sheet.getCell(r, 13).value = data.smartReadiness ? "TRUE" : "FALSE";
-  sheet.getCell(r, 14).value = data.associatedBcp;
-  sheet.getCell(r, 15).value = data.nearbyBcp;
-  sheet.getCell(r, 16).value = data.newBcp;
-  sheet.getCell(r, 17).value = data.conduit;
-  sheet.getCell(r, 18).value = data.distanceFromCabinet;
-  sheet.getCell(r, 19).value = data.latitude;
-  sheet.getCell(r, 20).value = data.longitude;
-  sheet.getCell(r, 21).value = data.notes;
-  sheet.getCell(r, 22).value = data.warning;
-  sheet.getCell(r, 23).value = data.failure;
+  const vals = [
+    d.srId, d.buildingId, d.areaType, d.floors, d.customerFloor, d.bepFloor,
+    d.adminSignature ? "TRUE" : "FALSE", d.bepOnly ? "TRUE" : "FALSE",
+    d.bepTemplate, d.bepType, d.bmoType,
+    d.nanotronix ? "TRUE" : "FALSE", d.smartReadiness ? "TRUE" : "FALSE",
+    d.associatedBcp, d.nearbyBcp, d.newBcp, d.conduit,
+    d.distanceFromCabinet, d.latitude, d.longitude, d.notes, d.warning, d.failure,
+  ];
+  vals.forEach((v, i) => { ws.getCell(r, i + 1).value = v as any; });
 }
 
-function fillOrofoiSheet(sheet: ExcelJS.Worksheet, data: AsBuiltData) {
-  const startRow = 2;
-  data.floorDetails.forEach((fd, idx) => {
-    const r = startRow + idx;
-    sheet.getCell(r, 1).value = fd.floor;
-    sheet.getCell(r, 2).value = fd.apartments;
-    sheet.getCell(r, 3).value = fd.shops;
-    sheet.getCell(r, 4).value = fd.fb_count;
-    sheet.getCell(r, 5).value = fd.fb_type;
-    sheet.getCell(r, 6).value = fd.fb_customer || "";
-    sheet.getCell(r, 7).value = fd.customer_space || "";
+/* ────────────────────────────────────────────
+   Sheet 2: ΟΡΟΦΟΙ (row 2+)
+   ──────────────────────────────────────────── */
+
+function fillOrofoiSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
+  d.floorDetails.forEach((fd, idx) => {
+    const r = 2 + idx;
+    ws.getCell(r, 1).value = fd.floor as any;
+    ws.getCell(r, 2).value = fd.apartments;
+    ws.getCell(r, 3).value = fd.shops;
+    ws.getCell(r, 4).value = fd.fb_count;
+    ws.getCell(r, 5).value = fd.fb_type;
+    ws.getCell(r, 6).value = fd.fb_customer || "";
+    ws.getCell(r, 7).value = fd.customer_space || "";
   });
 }
 
-function fillOpticalPathsSheet(sheet: ExcelJS.Worksheet, data: AsBuiltData) {
-  const startRow = 2;
-  data.opticalPaths.forEach((op, idx) => {
-    const r = startRow + idx;
-    sheet.getCell(r, 1).value = op.type;
-    sheet.getCell(r, 2).value = op.path;
-    sheet.getCell(r, 3).value = op.gis_id || "";
+/* ────────────────────────────────────────────
+   Sheet 3: OPTICAL PATHS (row 2+)
+   ──────────────────────────────────────────── */
+
+function fillOpticalPathsSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
+  d.opticalPaths.forEach((op, idx) => {
+    const r = 2 + idx;
+    ws.getCell(r, 1).value = op.type;
+    ws.getCell(r, 2).value = op.path;
+    ws.getCell(r, 3).value = op.gis_id || "";
   });
 }
 
-function fillErgasiesSheet(sheet: ExcelJS.Worksheet, data: AsBuiltData) {
-  const startRow = 2;
-  data.works.forEach((w, idx) => {
-    const r = startRow + idx;
-    sheet.getCell(r, 1).value = w.type;
-    sheet.getCell(r, 2).value = w.description;
-    sheet.getCell(r, 3).value = w.quantity;
-    sheet.getCell(r, 4).value = w.floor || "";
+/* ────────────────────────────────────────────
+   Sheet 4: ΕΡΓΑΣΙΕΣ (row 2+)
+   ──────────────────────────────────────────── */
+
+function fillErgasiesSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
+  d.works.forEach((w, idx) => {
+    const r = 2 + idx;
+    ws.getCell(r, 1).value = w.type;
+    ws.getCell(r, 2).value = w.description;
+    ws.getCell(r, 3).value = w.quantity;
+    ws.getCell(r, 4).value = w.floor || "";
   });
 }
 
-function fillLabelsSheet(sheet: ExcelJS.Worksheet, data: AsBuiltData, filterTypes: string[]) {
-  const startRow = 2;
-  const filtered = data.opticalPaths.filter(op => filterTypes.includes(op.type));
+/* ────────────────────────────────────────────
+   Sheet 5 & 6: LABELS BEP / LABELS BMO
+   Dynamic optical path generation
+   ──────────────────────────────────────────── */
+
+function fillLabelsSheet(ws: ExcelJS.Worksheet, d: AsBuiltData, filterTypes: string[]) {
+  const filtered = d.opticalPaths.filter(op => filterTypes.includes(op.type));
   filtered.forEach((op, idx) => {
-    sheet.getCell(startRow + idx, 1).value = op.path;
+    ws.getCell(2 + idx, 1).value = op.path;
   });
+}
+
+/* ────────────────────────────────────────────
+   Sheet 7: AS build-Επιμέτρηση
+   Exact cell mapping per user specifications
+   ──────────────────────────────────────────── */
+
+function fillEpimetrisiSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
+  // ── 0. ΣΤΟΙΧΕΙΑ ΑΙΤΗΜΑΤΟΣ ──
+  // E4 = SRId, F4 = Address (user-specified cells)
+  ws.getCell("E4").value = d.srId;
+  ws.getCell("F4").value = d.address;
+
+  // Also fill E6/F6 which is where the template visually shows SR/Address
+  ws.getCell("E6").value = d.srId;
+  ws.getCell("F6").value = d.address;
+
+  // ── 1. ΚΤΗΡΙΟ ── Row 9: COPY PASTE VALUES FROM TAB ΚΤΗΡΙΟ
+  const ktRow = 9;
+  ws.getCell(ktRow, 2).value = d.srId;          // B9
+  ws.getCell(ktRow, 3).value = d.buildingId;    // C9
+  ws.getCell(ktRow, 4).value = d.areaType;      // D9
+  ws.getCell(ktRow, 5).value = d.floors;        // E9
+  ws.getCell(ktRow, 6).value = d.customerFloor; // F9
+  ws.getCell(ktRow, 7).value = d.bepFloor;      // G9
+  ws.getCell(ktRow, 8).value = d.adminSignature ? "TRUE" : "FALSE";
+  ws.getCell(ktRow, 9).value = d.bepOnly ? "TRUE" : "FALSE";
+  ws.getCell(ktRow, 10).value = d.bepTemplate;
+  ws.getCell(ktRow, 11).value = d.bepType;
+  ws.getCell(ktRow, 12).value = d.bmoType;
+  ws.getCell(ktRow, 13).value = d.nanotronix ? "TRUE" : "FALSE";
+  ws.getCell(ktRow, 14).value = d.smartReadiness ? "TRUE" : "FALSE";
+  ws.getCell(ktRow, 15).value = d.associatedBcp;
+  ws.getCell(ktRow, 16).value = d.nearbyBcp;
+  ws.getCell(ktRow, 17).value = d.newBcp;
+  ws.getCell(ktRow, 18).value = d.conduit;
+
+  // ── 2. KOI CAB first box ── Row 14
+  ws.getCell("D14").value = "BEP";
+  ws.getCell("E14").value = "4' μ cable";
+  ws.getCell("F14").value = d.distanceFromCabinet;
+
+  // ── 4. BEP-ΟΡΟΦΟΙ ── Row 26+: COPY PASTE VALUES FROM ΤΑΒ ΟΡΟΦΟΙ
+  const orofoiStartRow = 26;
+  d.floorDetails.forEach((fd, idx) => {
+    const r = orofoiStartRow + idx;
+    ws.getCell(r, 2).value = fd.floor as any;       // B = ΟΡΟΦΟΣ
+    ws.getCell(r, 3).value = fd.apartments;          // C = ΔΙΑΜΕΡΙΣΜΑΤΑ
+    ws.getCell(r, 4).value = fd.shops;               // D = ΚΑΤΑΣΤΗΜΑΤΑ
+    ws.getCell(r, 5).value = fd.fb_count;            // E = FB01
+    ws.getCell(r, 6).value = fd.fb_type;             // F = FB01 TYPE
+    ws.getCell(r, 13).value = fd.fb_customer || "";  // M = FB ΠΕΛΑΤΗ
+    ws.getCell(r, 14).value = fd.customer_space || "";// N = ΑΡΙΘΜΗΣΗ ΧΩΡΟΥ ΠΕΛΑΤΗ
+    ws.getCell(r, 16).value = fd.meters || "";       // P = ΜΕΤΡΑ
+    ws.getCell(r, 17).value = fd.pipe_type || "";    // Q = ΕΙΔΟΣ
+  });
+
+  // ── 5. ΣΤΟΙΧΕΙΑ ΚΑΜΠΙΝΑΣ / LABEL BEP ── Row 45+: CAB-BEP optical paths
+  const cabBepPaths = d.opticalPaths.filter(op => op.type === "CAB-BEP");
+  const optStartRow = 45;
+  cabBepPaths.forEach((op, idx) => {
+    const r = optStartRow + idx;
+    ws.getCell(r, 7).value = op.type;  // G = OPTICAL PATH TYPE
+    ws.getCell(r, 8).value = op.path;  // H = OPTICAL PATH
+  });
+
+  // ── 6. ΟΡΙΖΟΝΤΟΓΡΑΦΙΑ ──
+  // U25 = ΝΕΑ ΥΠΟΔΟΜΗ (user-specified)
+  ws.getCell("U25").value = d.isNewInfrastructure ? "ΝΑΙ" : "";
+
+  // U26 = Ball Marker (cable_bcp_bep_m) - use distance as proxy
+  ws.getCell("U26").value = d.distanceFromCabinet || "";
+
+  // U30 = ΝΕΑ ΣΩΛΗΝΩΣΗ / trench_length_m (user-specified)
+  ws.getCell("U30").value = d.trenchLengthM || "";
 }
 
 /* ────────────────────────────────────────────
@@ -322,11 +384,9 @@ export async function generateAsBuilt(srId: string): Promise<AsBuiltResult> {
   return generateAsBuiltFromData(data);
 }
 
-/**
- * Generate from pre-built data (allows testing with mock data)
- */
 export async function generateAsBuiltFromData(data: AsBuiltData): Promise<AsBuiltResult> {
   const warnings: string[] = [];
+
   // Load template
   const templateResp = await fetch("/templates/as_build_template.xlsx");
   if (!templateResp.ok) {
@@ -335,17 +395,16 @@ export async function generateAsBuiltFromData(data: AsBuiltData): Promise<AsBuil
   const workbook = new ExcelJS.Workbook();
   await workbook.xlsx.load(await templateResp.arrayBuffer());
 
-  // Get sheet references (by name or index)
   const sheets = workbook.worksheets;
-  const ktirioSheet = sheets[0];      // Page 1: ΚΤΗΡΙΟ
-  const orofoiSheet = sheets[1];      // Page 2: ΟΡΟΦΟΙ
-  const optPathSheet = sheets[2];     // Page 3: OPTICAL PATHS
-  const ergasiesSheet = sheets[3];    // Page 4: ΕΡΓΑΣΙΕΣ
-  const labelsBepSheet = sheets[4];   // Page 5: LABELS BEP
-  const labelsBmoSheet = sheets[5];   // Page 6: LABELS BMO
-  const epimetrisiSheet = sheets[6];  // Page 7: AS build-Επιμέτρηση
+  const ktirioSheet = sheets[0];       // ΚΤΗΡΙΟ
+  const orofoiSheet = sheets[1];       // ΟΡΟΦΟΙ
+  const optPathSheet = sheets[2];      // OPTICAL PATHS
+  const ergasiesSheet = sheets[3];     // ΕΡΓΑΣΙΕΣ
+  const labelsBepSheet = sheets[4];    // LABELS BEP
+  const labelsBmoSheet = sheets[5];    // LABELS BMO
+  const epimetrisiSheet = sheets[6];   // AS build-Επιμέτρηση
 
-  // Fill each sheet
+  // Fill data sheets
   if (ktirioSheet) fillKtirioSheet(ktirioSheet, data);
   if (orofoiSheet) fillOrofoiSheet(orofoiSheet, data);
   if (optPathSheet) fillOpticalPathsSheet(optPathSheet, data);
@@ -353,106 +412,26 @@ export async function generateAsBuiltFromData(data: AsBuiltData): Promise<AsBuil
   if (labelsBepSheet) fillLabelsSheet(labelsBepSheet, data, ["BEP-BMO", "BEP", "CAB-BEP"]);
   if (labelsBmoSheet) fillLabelsSheet(labelsBmoSheet, data, ["BMO-FB", "BEP-BMO"]);
 
-  // Fill Επιμέτρηση (main sheet)
+  // Fill main Επιμέτρηση sheet
   if (epimetrisiSheet) {
-    // The Επιμέτρηση sheet copies values from other tabs into specific locations
-    // Section 0: SR info - row ~5 area (E4=type, F4=SR, address)
-    // Based on template: row with SR is around row 6 in section "0 ΣΤΟΙΧΕΙΑ ΑΙΤΗΜΑΤΟΣ"
-    // SR -> column E (5), Address -> next position
-    // Let's find by scanning for known markers or use fixed positions from template
-    
-    // From template analysis:
-    // Row ~4-5: SRId, BUILDING ID, etc. mapped in section "COPY PASTE VALUES FROM TAB ΚΤΗΡΙΟ"
-    // The main "Επιμέτρηση" data section positions (from template Page 7):
-    
-    // Section 1 ΚΤΗΡΙΟ - row 9 area: copy paste GIS values
-    const ktRow = 9; // "COPY PASTE VALUES FROM TAB ΚΤΗΡΙΟ" row
-    epimetrisiSheet.getCell(ktRow, 2).value = data.srId;
-    epimetrisiSheet.getCell(ktRow, 3).value = data.buildingId;
-    epimetrisiSheet.getCell(ktRow, 4).value = data.areaType;
-    epimetrisiSheet.getCell(ktRow, 5).value = data.floors;
-    epimetrisiSheet.getCell(ktRow, 6).value = data.customerFloor;
-    epimetrisiSheet.getCell(ktRow, 7).value = data.bepFloor;
-    epimetrisiSheet.getCell(ktRow, 8).value = data.adminSignature ? "TRUE" : "FALSE";
-    epimetrisiSheet.getCell(ktRow, 9).value = data.bepOnly ? "TRUE" : "FALSE";
-    epimetrisiSheet.getCell(ktRow, 10).value = data.bepTemplate;
-    epimetrisiSheet.getCell(ktRow, 11).value = data.bepType;
-    epimetrisiSheet.getCell(ktRow, 12).value = data.bmoType;
-    epimetrisiSheet.getCell(ktRow, 13).value = data.nanotronix ? "TRUE" : "FALSE";
-    epimetrisiSheet.getCell(ktRow, 14).value = data.smartReadiness ? "TRUE" : "FALSE";
-    epimetrisiSheet.getCell(ktRow, 17).value = data.conduit;
+    fillEpimetrisiSheet(epimetrisiSheet, data);
 
-    // Section header info - SR and Address
-    // From template: row 6 has "RETAIL", SR, ΔΙΕΥΘΥΝΣΗ
-    epimetrisiSheet.getCell(6, 5).value = data.srId;       // E6
-    epimetrisiSheet.getCell(6, 6).value = data.address;     // F6
-
-    // Section 2: KOI CAB - first box
-    // Row ~14: FIRST BOX, ΤΥΠΟΣ ΚΟΙ, ΜΗΚΟΣ
-    epimetrisiSheet.getCell(14, 4).value = "BEP";                      // FIRST BOX
-    epimetrisiSheet.getCell(14, 5).value = "4' μ cable";               // ΤΥΠΟΣ ΚΟΙ
-    epimetrisiSheet.getCell(14, 6).value = data.distanceFromCabinet;   // ΜΗΚΟΣ
-
-    // Section 4: BEP-ΟΡΟΦΟΙ - copy from ΟΡΟΦΟΙ tab
-    const orofoiStartRow = 26; // "COPY PASTE VALUES FROM ΤΑΒ ΟΡΟΦΟΙ"
-    data.floorDetails.forEach((fd, idx) => {
-      const r = orofoiStartRow + idx;
-      epimetrisiSheet.getCell(r, 2).value = fd.floor;
-      epimetrisiSheet.getCell(r, 3).value = fd.apartments;
-      epimetrisiSheet.getCell(r, 4).value = fd.shops;
-      epimetrisiSheet.getCell(r, 5).value = fd.fb_count;
-      epimetrisiSheet.getCell(r, 6).value = fd.fb_type;
-      epimetrisiSheet.getCell(r, 14).value = fd.fb_customer || "";
-      epimetrisiSheet.getCell(r, 15).value = fd.customer_space || "";
-      epimetrisiSheet.getCell(r, 16).value = fd.meters || "";
-      epimetrisiSheet.getCell(r, 17).value = fd.pipe_type || "";
-    });
-
-    // Section 5: OPTICAL PATHS - CAB-BEP entries
-    const cabBepPaths = data.opticalPaths.filter(op => op.type === "CAB-BEP");
-    const optStartRow = 45; // "COPY PASTE VALUES FROM TAB OPTICAL PATHS"
-    cabBepPaths.forEach((op, idx) => {
-      const r = optStartRow + idx;
-      epimetrisiSheet.getCell(r, 7).value = op.type;
-      epimetrisiSheet.getCell(r, 8).value = op.path;
-    });
-
-    // Section 6 ΟΡΙΖΟΝΤΟΓΡΑΦΙΑ - sketch image + measurements
-    // "ΕΙΔΟΣ ΕΙΣΑΓΩΓΗΣ" near row 86 (col U = 21)
-    // Based on template structure:
-    const measRow = 86;
-    epimetrisiSheet.getCell(measRow, 22).value = data.isNewInfrastructure ? "ΝΕΑ ΥΠΟΔΟΜΗ" : "";
-    // Ball Marker row
-    epimetrisiSheet.getCell(measRow + 1, 22).value = ""; // Ball Marker value
-    // ΝΕΑ ΣΩΛΗΝΩΣΗ
-    epimetrisiSheet.getCell(measRow + 6, 22).value = data.trenchLengthM || "";
-
-    // Sketch image injection – oneCell anchor at B46, max 800px width, keep aspect ratio
+    // Sketch image injection at B46 with oneCell anchor
     if (data.sketchImageUrl) {
       const imgBuf = await fetchImageBuffer(data.sketchImageUrl);
       if (imgBuf) {
-        // Detect image dimensions to maintain aspect ratio
-        const MAX_WIDTH_PX = 800;
-        const MAX_HEIGHT_PX = 600;
-
-        // Determine extension from URL or default to png
         const ext = data.sketchImageUrl.toLowerCase().includes(".jpg") ||
           data.sketchImageUrl.toLowerCase().includes(".jpeg")
-          ? "jpeg" as const
-          : "png" as const;
-
+          ? "jpeg" as const : "png" as const;
         const imgId = workbook.addImage({ buffer: imgBuf, extension: ext });
-
-        // Use oneCell anchor: image starts at B46 (col 1, row 45) with fixed pixel extents
-        // ExcelJS expects ext in EMUs (1px ≈ 9525 EMU) for oneCell anchor
         const pxToEmu = 9525;
         epimetrisiSheet.addImage(imgId, {
-          tl: { col: 1, row: 45 } as any,
-          ext: { width: MAX_WIDTH_PX * pxToEmu, height: MAX_HEIGHT_PX * pxToEmu },
+          tl: { col: 1, row: 45 } as any,  // B46 (0-indexed: col=1, row=45)
+          ext: { width: 800 * pxToEmu, height: 600 * pxToEmu },
           editAs: "oneCell",
         } as any);
       } else {
-        warnings.push("Η εικόνα σκαριφήματος δεν μπόρεσε να φορτωθεί. Ο χώρος παραμένει κενός.");
+        warnings.push("Η εικόνα σκαριφήματος δεν μπόρεσε να φορτωθεί.");
       }
     } else {
       warnings.push("Δεν βρέθηκε εικόνα σκαριφήματος (sketch). Ο χώρος '6 ΟΡΙΖΟΝΤΟΓΡΑΦΙΑ' θα είναι κενός.");
