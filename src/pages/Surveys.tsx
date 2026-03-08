@@ -266,32 +266,75 @@ const Surveys = () => {
   const inspectionCount = (dbAssignments || []).filter((a) => a.status === "inspection").length;
   const totalActiveAssignments = (dbAssignments || []).filter((a) => a.status !== "cancelled" && a.status !== "completed").length;
 
-  // Status distribution chart
-  const statusCounts = useMemo(() => {
-    const counts: Record<string, number> = {};
-    (surveys || []).forEach(s => {
-      counts[s.status] = (counts[s.status] || 0) + 1;
-    });
-    return Object.entries(counts).map(([status, count]) => ({
-      status,
-      label: statusConfig[status]?.label || status,
-      count,
-      fill: statusConfig[status]?.chartColor || "hsl(220 10% 46%)",
-    }));
-  }, [surveys]);
+  // Status distribution chart — combines surveys + assignment statuses
+  const assignmentStatusLabels: Record<string, string> = {
+    pre_committed: "Προδέσμευση",
+    waiting_ote: "Αναμονή ΟΤΕ",
+    inspection: "Αυτοψία",
+    construction: "Κατασκευή",
+    pending: "Εκκρεμεί",
+  };
+  const assignmentStatusColors: Record<string, string> = {
+    pre_committed: "hsl(152 60% 42%)",
+    waiting_ote: "hsl(38 92% 50%)",
+    inspection: "hsl(220 70% 55%)",
+    construction: "hsl(270 60% 55%)",
+    pending: "hsl(220 10% 46%)",
+  };
 
-  // Area distribution chart
-  const areaCounts = useMemo(() => {
-    const counts: Record<string, number> = {};
+  const statusCounts = useMemo(() => {
+    // Survey statuses
+    const counts: Record<string, { label: string; count: number; fill: string }> = {};
     (surveys || []).forEach(s => {
-      counts[s.area] = (counts[s.area] || 0) + 1;
+      if (!counts[s.status]) {
+        counts[s.status] = {
+          label: statusConfig[s.status]?.label || s.status,
+          count: 0,
+          fill: statusConfig[s.status]?.chartColor || "hsl(220 10% 46%)",
+        };
+      }
+      counts[s.status].count++;
     });
-    return Object.entries(counts).map(([area, count]) => ({
-      area,
-      count,
-      fill: area === "ΡΟΔΟΣ" ? "hsl(220 70% 55%)" : "hsl(152 60% 42%)",
+    // Assignment statuses (active only)
+    (dbAssignments || []).filter(a => a.status !== "cancelled" && a.status !== "completed").forEach(a => {
+      const key = `assign_${a.status}`;
+      if (!counts[key]) {
+        counts[key] = {
+          label: assignmentStatusLabels[a.status] || a.status,
+          count: 0,
+          fill: assignmentStatusColors[a.status] || "hsl(200 10% 60%)",
+        };
+      }
+      counts[key].count++;
+    });
+    return Object.entries(counts).map(([status, data]) => ({
+      status,
+      label: data.label,
+      count: data.count,
+      fill: data.fill,
     }));
-  }, [surveys]);
+  }, [surveys, dbAssignments]);
+
+  // Area distribution chart — combines surveys + assignments
+  const areaCounts = useMemo(() => {
+    const counts: Record<string, { surveys: number; assignments: number }> = {};
+    (surveys || []).forEach(s => {
+      if (!counts[s.area]) counts[s.area] = { surveys: 0, assignments: 0 };
+      counts[s.area].surveys++;
+    });
+    (dbAssignments || []).filter(a => a.status !== "cancelled" && a.status !== "completed").forEach(a => {
+      if (!counts[a.area]) counts[a.area] = { surveys: 0, assignments: 0 };
+      counts[a.area].assignments++;
+    });
+    const palette = ["hsl(220 70% 55%)", "hsl(152 60% 42%)", "hsl(38 92% 50%)", "hsl(270 60% 55%)", "hsl(0 72% 51%)", "hsl(200 70% 50%)"];
+    return Object.entries(counts).map(([area, data], i) => ({
+      area,
+      count: data.surveys + data.assignments,
+      surveys: data.surveys,
+      assignments: data.assignments,
+      fill: palette[i % palette.length],
+    }));
+  }, [surveys, dbAssignments]);
 
   const chartConfig = statusCounts.reduce((acc, s) => {
     acc[s.status] = { label: s.label, color: s.fill };
@@ -444,12 +487,13 @@ const Surveys = () => {
                     </Pie>
                   </PieChart>
                 </ChartContainer>
-                <div className="flex justify-center gap-6 mt-2">
+                <div className="flex flex-wrap justify-center gap-4 mt-2">
                   {areaCounts.map((item, i) => (
                     <div key={i} className="flex items-center gap-2 text-[11px]">
                       <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: item.fill }} />
                       <span className="text-muted-foreground">{item.area}</span>
                       <span className="font-bold text-foreground">{item.count}</span>
+                      <span className="text-muted-foreground/60 text-[9px]">({item.surveys}α · {item.assignments}ανθ)</span>
                     </div>
                   ))}
                 </div>
