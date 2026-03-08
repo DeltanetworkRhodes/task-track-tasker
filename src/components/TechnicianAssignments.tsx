@@ -399,7 +399,7 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
 
     if (status === "pending" || status === "inspection") {
       return (
-        <div className="space-y-2">
+        <div className="space-y-3">
           <Button
             size="sm"
             className="w-full gap-2"
