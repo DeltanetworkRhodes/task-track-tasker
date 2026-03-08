@@ -20,6 +20,7 @@ const MAX_FILES = 10;
 const REQUIRED_TYPES = [
   { key: "building_photo", label: "Φωτογραφίες Κτιρίου" },
   { key: "screenshot", label: "Screenshots (ΧΕΜΔ & AutoCAD)" },
+  { key: "inspection_pdf", label: "Δελτίο Αυτοψίας (PDF)", acceptTypes: ".pdf,application/pdf" },
 ];
 
 const IncompleteSurveys = ({ filterSrId }: { filterSrId?: string }) => {
@@ -245,7 +246,7 @@ const IncompleteSurveys = ({ filterSrId }: { filterSrId?: string }) => {
             <div>
               <h3 className="text-sm font-bold text-foreground">Αρχεία Αυτοψίας</h3>
               <p className="text-[10px] text-muted-foreground">
-                {missingTypes.length > 0 ? `${3 - missingTypes.length}/3 αρχεία` : "Όλα τα αρχεία"}
+                {missingTypes.length > 0 ? `${REQUIRED_TYPES.length - missingTypes.length}/${REQUIRED_TYPES.length} αρχεία` : "Όλα τα αρχεία"}
               </p>
             </div>
           </div>
@@ -288,7 +289,8 @@ const IncompleteSurveys = ({ filterSrId }: { filterSrId?: string }) => {
               const key = `${survey.id}_${mt.key}`;
               const files = uploads[key] || [];
               const inputKey = `input_${key}`;
-              const acceptsCapture = mt.key !== "screenshot";
+              const acceptsCapture = mt.key !== "screenshot" && mt.key !== "inspection_pdf";
+              const acceptTypes = (mt as any).acceptTypes || "image/*";
 
               return (
                 <div key={mt.key} className="space-y-2 rounded-lg border border-dashed border-warning/30 bg-warning/5 p-3">
@@ -356,8 +358,8 @@ const IncompleteSurveys = ({ filterSrId }: { filterSrId?: string }) => {
                       inputRefs.current[inputKey] = el;
                     }}
                     type="file"
-                    accept="image/*"
-                    multiple
+                    accept={acceptTypes}
+                    multiple={mt.key !== "inspection_pdf"}
                     className="hidden"
                     onChange={(e) => {
                       handleFiles(survey.id, mt.key, e.target.files);
@@ -461,7 +463,8 @@ const IncompleteSurveys = ({ filterSrId }: { filterSrId?: string }) => {
                   const key = `${survey.id}_${mt.key}`;
                   const files = uploads[key] || [];
                   const inputKey = `input_${key}`;
-                  const acceptsCapture = mt.key !== "screenshot";
+                  const acceptsCapture = mt.key !== "screenshot" && mt.key !== "inspection_pdf";
+                  const acceptTypes = (mt as any).acceptTypes || "image/*";
 
                   return (
                     <div key={mt.key} className="space-y-2">
@@ -528,8 +531,8 @@ const IncompleteSurveys = ({ filterSrId }: { filterSrId?: string }) => {
                           inputRefs.current[inputKey] = el;
                         }}
                         type="file"
-                        accept="image/*"
-                        multiple
+                        accept={acceptTypes}
+                        multiple={mt.key !== "inspection_pdf"}
                         className="hidden"
                         onChange={(e) => {
                           handleFiles(survey.id, mt.key, e.target.files);
