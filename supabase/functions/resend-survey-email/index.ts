@@ -95,6 +95,8 @@ Deno.serve(async (req) => {
 
     const emailFrom = settingsMap["email_from"] || "noreply@deltanetwork.gr";
     const emailReplyTo = settingsMap["email_reply_to"] || "info@deltanetwork.gr";
+    const emailSenderName = settingsMap["email_sender_name"] || "DeltaNet FTTH";
+    const emailSignature = settingsMap["email_signature"] || DEFAULT_SIGNATURE;
     const surveyComments = survey.comments || "";
 
     const emailHtml = `
