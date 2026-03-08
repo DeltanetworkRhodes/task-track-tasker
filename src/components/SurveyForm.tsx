@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { hapticFeedback } from "@/lib/haptics";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { supabase } from "@/integrations/supabase/client";
