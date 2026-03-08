@@ -104,6 +104,7 @@ const App = () => (
                   <Route path="/login" element={<LoginPage />} />
                   <Route path="/reset-password" element={<ResetPassword />} />
                   <Route path="/demo" element={<DemoDashboard />} />
+                  <Route path="/watermark-test" element={<WatermarkTest />} />
                   <Route path="/" element={<ProtectedRoute><RoleGate><RoleRouter /></RoleGate></ProtectedRoute>} />
                   <Route path="/super-admin" element={<ProtectedRoute><SuperAdminRoute><SuperAdminDashboard /></SuperAdminRoute></ProtectedRoute>} />
                   <Route path="/technician" element={<ProtectedRoute><RoleGate><TechnicianDashboard /></RoleGate></ProtectedRoute>} />
