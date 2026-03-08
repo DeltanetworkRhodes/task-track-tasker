@@ -503,7 +503,7 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
       );
     }
 
-    if (status === "waiting_ote" || status === "construction") {
+    if (status === "construction") {
       return (
         <div className="space-y-3">
           <Button className={btnClass} onClick={() => setShowConstructionForm(true)}>

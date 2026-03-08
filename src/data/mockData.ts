@@ -38,7 +38,7 @@ export interface Construction {
 export const mockAssignments: Assignment[] = [
   { id: '1', srId: 'SR-2024-0891', area: 'Ρόδος Κέντρο', status: 'completed', technician: 'Γ. Παπαδόπουλος', date: '2024-12-15', comments: 'Ολοκληρώθηκε κανονικά', photos: 8 },
   { id: '2', srId: 'SR-2024-0892', area: 'Ιαλυσός', status: 'construction', technician: 'Ν. Κωνσταντίνου', date: '2024-12-18', comments: 'Αναμονή για CAD', photos: 5 },
-  { id: '3', srId: 'SR-2024-0893', area: 'Φαληράκι', status: 'waiting_ote', technician: 'Α. Δημητρίου', date: '2024-12-20', comments: 'Αναμονή απάντησης ΟΤΕ', photos: 3 },
+  { id: '3', srId: 'SR-2024-0893', area: 'Φαληράκι', status: 'construction', technician: 'Α. Δημητρίου', date: '2024-12-20', comments: 'Αναμονή απάντησης ΟΤΕ', photos: 3 },
   { id: '4', srId: 'SR-2024-0894', area: 'Κως Πόλη', status: 'inspection', technician: 'Γ. Παπαδόπουλος', date: '2024-12-22', comments: '', photos: 0 },
   { id: '5', srId: 'SR-2024-0895', area: 'Λίνδος', status: 'pending', technician: 'Ν. Κωνσταντίνου', date: '2024-12-23', comments: 'Νέα ανάθεση', photos: 0 },
   { id: '6', srId: 'SR-2024-0896', area: 'Κρεμαστή', status: 'completed', technician: 'Α. Δημητρίου', date: '2024-12-10', comments: 'PDF εστάλη', photos: 12 },
