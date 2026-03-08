@@ -34,6 +34,26 @@ const SyncButton = () => {
       const total = (data?.synced?.assignments || 0) + (data?.synced?.constructions || 0) + (data?.synced?.materials || 0) + (data?.synced?.rodos || 0) + (data?.synced?.kos || 0) + (data?.synced?.work_pricing || 0);
       const errors = data?.synced?.errors?.length || 0;
 
+      // Also check Drive folders for active assignments
+      let driveCheckResult = null;
+      try {
+        const { data: checkData, error: checkErr } = await supabase.functions.invoke("check-drive-folders", {
+          body: {},
+        });
+        if (!checkErr && checkData) {
+          driveCheckResult = checkData;
+          if (checkData.reverted > 0) {
+            toast({
+              title: "Έλεγχος Drive",
+              description: `${checkData.reverted} αναθέσεις επέστρεψαν σε αυτοψία (λείπει φάκελος Drive)`,
+              variant: "destructive",
+            });
+          }
+        }
+      } catch (driveCheckErr) {
+        console.error("Drive folder check error:", driveCheckErr);
+      }
+
       // Invalidate queries to refresh data
       queryClient.invalidateQueries({ queryKey: ["assignments"] });
       queryClient.invalidateQueries({ queryKey: ["constructions"] });
@@ -42,7 +62,7 @@ const SyncButton = () => {
 
       toast({
         title: "Συγχρονισμός ολοκληρώθηκε",
-        description: `${total} εγγραφές ενημερώθηκαν${errors > 0 ? ` (${errors} σφάλματα)` : ""}`,
+        description: `${total} εγγραφές ενημερώθηκαν${errors > 0 ? ` (${errors} σφάλματα)` : ""}${driveCheckResult?.reverted ? ` · ${driveCheckResult.reverted} επαναφορές` : ""}`,
         variant: errors > 0 ? "destructive" : "default",
       });
     } catch (err: any) {
