@@ -43,6 +43,7 @@ const CreateAssignmentDialog = ({ open, onOpenChange }: Props) => {
   const { data: technicians } = useTechnicians();
   const { organizationId } = useOrganization();
   const [submitting, setSubmitting] = useState(false);
+  const [latLng, setLatLng] = useState<{ lat: number | null; lng: number | null }>({ lat: null, lng: null });
 
   const [form, setForm] = useState({
     sr_id: "",
