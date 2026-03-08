@@ -526,7 +526,7 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
                 onMouseEnter={() => handleRowHover(a)}
               >
                 {onSelectionChange && (
-                  <td className="py-3 px-2" onClick={(e) => e.stopPropagation()}>
+                  <td className="py-2.5 px-1.5" onClick={(e) => e.stopPropagation()}>
                     <input
                       type="checkbox"
                       checked={selectedIds.includes(a.id)}
@@ -536,21 +536,21 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
                   </td>
                 )}
                 <td
-                  className="py-3 px-4 font-bold text-primary cursor-pointer"
+                  className="py-2.5 px-2 font-bold text-primary cursor-pointer text-xs truncate"
                   onClick={() => setSelected(a)}
                 >
                   {a.srId}
                 </td>
-                <td className="py-3 px-4">{a.area}</td>
-                <td className="py-3 px-4 text-muted-foreground max-w-[180px] truncate">{(a as any).customerName || '—'}</td>
-                <td className="py-3 px-4 font-bold text-xs">{(a as any).cab || '—'}</td>
-                <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
+                <td className="py-2.5 px-2 text-xs truncate">{a.area}</td>
+                <td className="py-2.5 px-2 text-muted-foreground text-xs truncate">{(a as any).customerName || '—'}</td>
+                <td className="py-2.5 px-2 font-bold text-xs truncate">{(a as any).cab || '—'}</td>
+                <td className="py-2.5 px-2" onClick={(e) => e.stopPropagation()}>
                   <Select
                     value={(a as any).technicianId || "__none__"}
                     onValueChange={(val) => handleAssign(a.id, val)}
                     disabled={assigning === a.id}
                   >
-                    <SelectTrigger className="w-[140px] h-7 text-xs border-border/50">
+                    <SelectTrigger className="w-full h-7 text-[11px] border-border/50">
                       <SelectValue placeholder="Χωρίς" />
                     </SelectTrigger>
                     <SelectContent>
@@ -565,13 +565,13 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
                     </SelectContent>
                   </Select>
                 </td>
-                <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
+                <td className="py-2.5 px-2" onClick={(e) => e.stopPropagation()}>
                   <Select
                     value={a.status}
                     onValueChange={(val) => handleStatusChange(a.id, val)}
                   >
-                    <SelectTrigger className="h-7 text-[11px] w-[120px] border-0 bg-transparent hover:bg-muted/50 px-1.5">
-                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${statusColors[a.status] || statusColors.pending}`}>
+                    <SelectTrigger className="h-7 text-[11px] w-full border-0 bg-transparent hover:bg-muted/50 px-1">
+                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${statusColors[a.status] || statusColors.pending}`}>
                         {statusLabels[a.status] || a.status}
                       </span>
                     </SelectTrigger>
@@ -582,42 +582,30 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
                     </SelectContent>
                   </Select>
                 </td>
-                <td className="py-3 px-4 font-bold text-xs text-muted-foreground whitespace-nowrap">{a.date}</td>
-                <td className="py-3 px-4 text-xs text-muted-foreground max-w-[200px] truncate">
+                <td className="py-2.5 px-2 font-bold text-[11px] text-muted-foreground whitespace-nowrap">{a.date}</td>
+                <td className="py-2.5 px-2 text-[11px] text-muted-foreground truncate">
                   {a.comments && (
                     <span className="inline-flex items-center gap-1">
                       <MessageSquare className="h-3 w-3 flex-shrink-0" />
-                      {a.comments}
+                      <span className="truncate">{a.comments}</span>
                     </span>
                   )}
                 </td>
-                <td className="py-3 px-4 text-center">
+                <td className="py-2.5 px-1.5 text-center">
                   {(a as any).driveUrl ? (
-                    <div className="flex items-center justify-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex items-center justify-center gap-1" onClick={(e) => e.stopPropagation()}>
                       <a href={(a as any).driveUrl} target="_blank" rel="noopener noreferrer" className="inline-flex" title="Φάκελος">
                         <FolderOpen className="h-3.5 w-3.5 text-primary hover:text-primary/70 transition-colors" />
                       </a>
-                      {(a as any).driveEgrafaUrl && (
-                        <a href={(a as any).driveEgrafaUrl} target="_blank" rel="noopener noreferrer"
-                          className="text-[10px] font-semibold text-primary/60 hover:text-primary transition-colors" title="ΕΓΓΡΑΦΑ">
-                          ΕΓΓ
-                        </a>
-                      )}
-                      {(a as any).drivePromeletiUrl && (
-                        <a href={(a as any).drivePromeletiUrl} target="_blank" rel="noopener noreferrer"
-                          className="text-[10px] font-semibold text-primary/60 hover:text-primary transition-colors" title="ΠΡΟΜΕΛΕΤΗ">
-                          ΠΡΜ
-                        </a>
-                      )}
                     </div>
                   ) : (
                     <FolderOpen className="h-3.5 w-3.5 text-muted-foreground/30 mx-auto" />
                   )}
                 </td>
-                <td className="py-3 px-4 text-center">
+                <td className="py-2.5 px-1.5 text-center">
                   <button
                     onClick={(e) => { e.stopPropagation(); setDeleteTarget(a); }}
-                    className="text-muted-foreground/40 hover:text-destructive transition-colors p-1 rounded"
+                    className="text-muted-foreground/40 hover:text-destructive transition-colors p-0.5 rounded"
                     title="Διαγραφή"
                   >
                     <Trash2 className="h-3.5 w-3.5" />
