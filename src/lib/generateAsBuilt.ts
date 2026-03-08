@@ -193,7 +193,7 @@ async function fetchAsBuiltData(srId: string): Promise<AsBuiltData> {
     floorDetails: floorBoxes,
     opticalPaths,
     works,
-    sketchImageUrl: inspection?.sketch_notes || null,
+    sketchImageUrl: sketchUrl,
     isNewInfrastructure,
     trenchLengthM,
     cabId: assignment.cab || construction?.cab || "",
