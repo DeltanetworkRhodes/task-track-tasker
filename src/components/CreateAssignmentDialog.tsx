@@ -96,7 +96,9 @@ const CreateAssignmentDialog = ({ open, onOpenChange }: Props) => {
         source_tab: form.area,
         status: "pending",
         organization_id: organizationId,
-      });
+        latitude: latLng.lat,
+        longitude: latLng.lng,
+      } as any);
       if (error) {
         if (error.code === '23505') {
           toast.error(`Υπάρχει ήδη ανάθεση με SR ID "${form.sr_id.trim()}"`);
