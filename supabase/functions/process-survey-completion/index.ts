@@ -796,15 +796,6 @@ Deno.serve(async (req) => {
           emailPayload.cc = ccRecipients;
         }
 
-        // Attach ZIP if small enough for email, otherwise signed URL is already in the HTML
-        if (zipBytes && !zipTooLarge && !zipDownloadUrl) {
-          emailPayload.attachments = [{
-            filename: `Autopsía_${sr_id}.zip`,
-            content: uint8ToBase64(zipBytes),
-          }];
-          console.log(`Attaching ZIP to email: ${(zipBytes.length / 1024 / 1024).toFixed(1)}MB`);
-        }
-
         const emailRes = await fetch("https://api.resend.com/emails", {
           method: "POST",
           headers: {
@@ -817,32 +808,8 @@ Deno.serve(async (req) => {
         if (!emailRes.ok) {
           const errText = await emailRes.text();
           console.error("Resend error:", errText);
-          
-          // If email fails due to size, retry without attachment — signed URL is already in the HTML
-          if (zipBytes && errText.includes("size")) {
-            console.log("Retrying email without ZIP attachment, using signed download URL...");
-            delete emailPayload.attachments;
-            if (zipDownloadUrl) {
-              emailPayload.html = emailPayload.html.replace(
-                "📎 Τα αρχεία αυτοψίας επισυνάπτονται ως ZIP",
-                `📥 <a href="${zipDownloadUrl}">Λήψη Αρχείων (ZIP)</a> — Ισχύει 7 ημέρες`
-              );
-            }
-            const retryRes = await fetch("https://api.resend.com/emails", {
-              method: "POST",
-              headers: {
-                Authorization: `Bearer ${resendApiKey}`,
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify(emailPayload),
-            });
-            if (retryRes.ok) {
-              emailSent = true;
-              console.log("Email sent (without ZIP, Drive link fallback)");
-            }
-          }
         } else {
-          console.log(`Email sent to: ${recipients.join(", ")}${zipBytes ? " (with ZIP)" : ""}`);
+          console.log(`Email sent to: ${recipients.join(", ")} (download link: ${showDownloadLink})`);
           emailSent = true;
         }
         
