@@ -69,6 +69,7 @@ const CreateAssignmentDialog = ({ open, onOpenChange }: Props) => {
       comments: "",
       technician_id: "__none__",
     });
+    setLatLng({ lat: null, lng: null });
   };
 
   const handleSubmit = async () => {
