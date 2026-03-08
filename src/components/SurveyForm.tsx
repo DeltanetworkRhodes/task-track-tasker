@@ -45,7 +45,8 @@ const SurveyForm = ({ assignments, prefillSrId, prefillArea, onComplete }: Props
   const [inspectionPdf, setInspectionPdf] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-
+  const [compressing, setCompressing] = useState<Record<string, boolean>>({});
+  const [compressionStats, setCompressionStats] = useState<Record<string, { original: number; compressed: number }>>({});
   const buildingRef = useRef<HTMLInputElement>(null);
   const screenshotRef = useRef<HTMLInputElement>(null);
   const pdfRef = useRef<HTMLInputElement>(null);
