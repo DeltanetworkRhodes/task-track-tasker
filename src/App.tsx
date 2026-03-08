@@ -25,6 +25,7 @@ import TechnicianKPIs from "./pages/TechnicianKPIs";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
 import OrgSettings from "./pages/OrgSettings";
 import Calendar from "./pages/Calendar";
+import DocumentGenerator from "./pages/DocumentGenerator";
 import DemoDashboard from "./pages/DemoDashboard";
 
 import NotFound from "./pages/NotFound";
