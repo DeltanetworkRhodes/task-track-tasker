@@ -108,51 +108,29 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
     enabled: !!selectedAssignment && !!user,
   });
 
-  const handleGisUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !selectedAssignment) return;
-
-    if (!file.name.toLowerCase().endsWith('.xlsx')) {
-      toast.error("Μόνο αρχεία .XLSX γίνονται δεκτά");
-      return;
-    }
-
-    setUploadingGis(true);
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("assignment_id", selectedAssignment.id);
-      formData.append("sr_id", selectedAssignment.sr_id);
-
-      const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData?.session?.access_token;
-
-      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
-      const response = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/parse-gis-excel`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-          body: formData,
-        }
-      );
-
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error || "Upload failed");
-
-      toast.success(
-        `GIS αναλύθηκε: ${result.parsed.floors} όροφοι, ${result.parsed.optical_paths} οπτικές διαδρομές`
-      );
-      queryClient.invalidateQueries({ queryKey: ["technician-assignments"] });
-      queryClient.invalidateQueries({ queryKey: ["assignment-gis"] });
-    } catch (err: any) {
-      console.error("GIS upload error:", err);
-      toast.error("Σφάλμα: " + (err.message || "Δοκιμάστε ξανά"));
-    } finally {
-      setUploadingGis(false);
-      if (gisFileInputRef.current) gisFileInputRef.current.value = "";
+  const handleGisUploadSuccess = async (result: any) => {
+    if (!selectedAssignment) return;
+    
+    // Auto-transition to construction if currently pre_committed
+    if (selectedAssignment.status === "pre_committed") {
+      try {
+        const { error } = await supabase
+          .from("assignments")
+          .update({ status: "construction" })
+          .eq("id", selectedAssignment.id);
+        
+        if (error) throw error;
+        
+        toast.success("🏗️ Η ανάθεση μετέβη αυτόματα σε Κατασκευή!", { duration: 4000 });
+        
+        // Update local state
+        setSelectedAssignment({ ...selectedAssignment, status: "construction" });
+        queryClient.invalidateQueries({ queryKey: ["technician-assignments"] });
+      } catch (err: any) {
+        console.error("Auto-transition error:", err);
+        // Non-blocking - GIS was still uploaded successfully
+        toast.info("Το GIS ανέβηκε. Αλλάξτε χειροκίνητα σε Κατασκευή.");
+      }
     }
   };
 
