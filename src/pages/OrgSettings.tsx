@@ -36,6 +36,7 @@ const SETTING_DEFINITIONS = [
     section: "Email",
     icon: Mail,
     fields: [
+      { key: "email_sender_name", label: "Όνομα Αποστολέα", placeholder: "DeltaNet FTTH", description: "Το όνομα που εμφανίζεται στα email (π.χ. DeltaNet FTTH, COSMOTE Engineering)" },
       { key: "email_from", label: "Email Αποστολέα", placeholder: "noreply@company.gr", description: "Το email που εμφανίζεται ως «Από:» στα emails (πρέπει να είναι verified στο Resend)" },
       { key: "email_reply_to", label: "Reply-To Email", placeholder: "info@company.gr", description: "Το email στο οποίο θα απαντήσει ο παραλήπτης" },
       { key: "report_to_emails", label: "Παραλήπτες Αυτοψιών / Ακυρώσεων (TO)", placeholder: "supervisor@company.gr, manager@company.gr", description: "Emails που λαμβάνουν αναφορές αυτοψιών, ακυρώσεων, blockers ΚΑΙ εβδομαδιαία σύνοψη (χωρισμένα με κόμμα)" },
@@ -43,6 +44,13 @@ const SETTING_DEFINITIONS = [
       { key: "completion_to_emails", label: "Παραλήπτες Ολοκλήρωσης Κατασκευής (TO)", placeholder: "ote@example.com, billing@company.gr", description: "Emails που λαμβάνουν το ZIP ολοκλήρωσης κατασκευής (χωρισμένα με κόμμα)" },
       { key: "completion_cc_emails", label: "Παραλήπτες Ολοκλήρωσης Κατασκευής (CC)", placeholder: "cc@company.gr", description: "CC παραλήπτες για emails ολοκλήρωσης" },
       { key: "low_stock_alert_email", label: "Email Ειδοποίησης Αποθήκης", placeholder: "warehouse@company.gr", description: "Email για ειδοποιήσεις χαμηλού αποθέματος υλικών OTE" },
+    ],
+  },
+  {
+    section: "Υπογραφή Email",
+    icon: Mail,
+    fields: [
+      { key: "email_signature", label: "Υπογραφή Email (HTML)", placeholder: "", description: "Η υπογραφή που εμφανίζεται στο κάτω μέρος κάθε email. Υποστηρίζει HTML.", multiline: true },
     ],
   },
 ];
