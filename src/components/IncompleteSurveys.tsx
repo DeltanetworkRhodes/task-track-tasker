@@ -463,7 +463,8 @@ const IncompleteSurveys = ({ filterSrId }: { filterSrId?: string }) => {
                   const key = `${survey.id}_${mt.key}`;
                   const files = uploads[key] || [];
                   const inputKey = `input_${key}`;
-                  const acceptsCapture = mt.key !== "screenshot";
+                  const acceptsCapture = mt.key !== "screenshot" && mt.key !== "inspection_pdf";
+                  const acceptTypes = (mt as any).acceptTypes || "image/*";
 
                   return (
                     <div key={mt.key} className="space-y-2">
