@@ -78,13 +78,22 @@ Deno.serve(async (req) => {
     const sr_id = survey.sr_id;
     const area = survey.area;
 
-    // Get assignment info (including Drive folder URL)
+    // Get assignment info
     const { data: assignment } = await adminClient
-      .from("assignments").select("customer_name, address, cab, drive_folder_url").eq("sr_id", sr_id).maybeSingle();
+      .from("assignments").select("customer_name, address, cab").eq("sr_id", sr_id).maybeSingle();
     const customerName = assignment?.customer_name || "";
     const address = assignment?.address || "";
     const cab = assignment?.cab || "";
-    const driveFolderUrl = assignment?.drive_folder_url || "";
+
+    // Check if ZIP exists in storage and create signed URL
+    const safeSrId = sr_id.replace(/[^a-zA-Z0-9_-]/g, "_");
+    const zipStoragePath = `surveys/${safeSrId}/Autopsía_${safeSrId}.zip`;
+    let zipDownloadUrl = "";
+    
+    const { data: signedData } = await adminClient.storage
+      .from("photos")
+      .createSignedUrl(zipStoragePath, 7 * 24 * 60 * 60);
+    zipDownloadUrl = signedData?.signedUrl || "";
 
     const isComplete = survey.status === "ΠΡΟΔΕΣΜΕΥΣΗ ΥΛΙΚΩΝ";
     const statusLabel = isComplete ? "ΠΡΟΔΕΣΜΕΥΣΗ ΥΛΙΚΩΝ" : "ΕΛΛΙΠΗΣ ΑΥΤΟΨΙΑ";
@@ -159,10 +168,13 @@ Deno.serve(async (req) => {
             <p style="color: ${textSecondary}; font-size: 14px; margin: 0; line-height: 1.6;">${escapeHtml(surveyComments)}</p>
           </div>` : ""}
 
-          ${driveFolderUrl ? `
+          ${zipDownloadUrl ? `
           <div style="text-align: center; margin: 24px 0;">
-            <a href="${driveFolderUrl}" style="background: ${brandDark}; color: white; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-size: 14px; font-weight: 700; display: inline-block;">📂 Άνοιγμα Φακέλου Google Drive</a>
-          </div>` : ""}
+            <a href="${zipDownloadUrl}" style="background: ${brandDark}; color: white; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-size: 14px; font-weight: 700; display: inline-block;">📥 Λήψη Αρχείων (ZIP)</a>
+          </div>
+          <p style="color: ${textMuted}; font-size: 11px; text-align: center; margin-top: 4px;">
+            Ισχύει για 7 ημέρες
+          </p>` : ""}
           
           <p style="color: ${textSecondary}; font-size: 14px; line-height: 1.6; margin-top: 28px;">Με εκτίμηση,</p>
           
@@ -204,7 +216,7 @@ Deno.serve(async (req) => {
     await adminClient.from("surveys").update({ email_sent: true }).eq("id", survey_id);
 
     return new Response(
-      JSON.stringify({ success: true, has_drive_link: !!driveFolderUrl }),
+      JSON.stringify({ success: true, has_download_link: !!zipDownloadUrl }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err: any) {
