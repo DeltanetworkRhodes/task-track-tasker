@@ -512,6 +512,9 @@ const ConstructionPage = () => {
                     </Select>
                   </div>
 
+                  {/* AS-BUILD Export */}
+                  <AsBuiltExporter srId={c.srId} variant="default" size="default" className="w-full" />
+
                   {/* Technical Details */}
                   <Card className="p-4 space-y-2 text-sm">
                     <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Τεχνικά Στοιχεία</h3>
