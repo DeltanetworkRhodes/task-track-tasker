@@ -262,9 +262,9 @@ const Surveys = () => {
 
   // Assignment stats
   const preCommittedCount = (dbAssignments || []).filter((a) => a.status === "pre_committed").length;
-  const waitingOteCount = (dbAssignments || []).filter((a) => a.status === "waiting_ote").length;
   const inspectionCount = (dbAssignments || []).filter((a) => a.status === "inspection").length;
   const totalActiveAssignments = (dbAssignments || []).filter((a) => a.status !== "cancelled" && a.status !== "completed").length;
+  const incompleteSurveyAssignments = (dbAssignments || []).filter((a) => a.status === "ΕΛΛΙΠΗΣ ΑΥΤΟΨΙΑ" || a.status === "incomplete_survey").length;
 
   // Status distribution chart — combines surveys + assignment statuses
   const assignmentStatusLabels: Record<string, string> = {
