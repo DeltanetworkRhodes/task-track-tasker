@@ -185,7 +185,7 @@ const Assignments = () => {
               <p className="text-sm text-muted-foreground">Δεν βρέθηκαν αναθέσεις σε αυτή τη κατηγορία</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <div>
               <AssignmentTable
                 assignments={filtered}
                 selectedIds={selectedIds}
