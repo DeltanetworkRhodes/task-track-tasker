@@ -66,7 +66,7 @@ export const mockConstructions: Construction[] = [
 export const statusLabels: Record<string, string> = {
   pending: 'Αναμονή',
   inspection: 'Αυτοψία',
-  pre_committed: 'Προδέσμευση',
+  pre_committed: 'Προδέσμευση Υλικών',
   construction: 'Κατασκευή',
   completed: 'Ολοκληρώθηκε',
   cancelled: 'Ακυρωμένο',
