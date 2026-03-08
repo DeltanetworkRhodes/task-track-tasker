@@ -4,7 +4,7 @@ import { useOrganization } from "@/contexts/OrganizationContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Camera, Upload, X, FileImage, CheckCircle, FileText, Loader2 } from "lucide-react";
+import { Camera, Upload, X, FileImage, CheckCircle, FileText, Loader2, WifiOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -13,6 +13,8 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { compressImages, formatFileSize } from "@/lib/imageCompression";
+import { enqueueSurvey, fileToOfflineFile, isOnline } from "@/lib/offlineQueue";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 
 interface Props {
   assignments?: any[];
@@ -37,6 +39,7 @@ const SurveyForm = ({ assignments, prefillSrId, prefillArea, onComplete }: Props
   const { user } = useAuth();
   const { organizationId } = useOrganization();
   const queryClient = useQueryClient();
+  const online = useOnlineStatus();
   const [area, setArea] = useState(prefillArea || "");
   const [srId, setSrId] = useState(prefillSrId || "");
   const [comments, setComments] = useState("");
@@ -45,6 +48,7 @@ const SurveyForm = ({ assignments, prefillSrId, prefillArea, onComplete }: Props
   const [inspectionPdf, setInspectionPdf] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [savedOffline, setSavedOffline] = useState(false);
   const [compressing, setCompressing] = useState<Record<string, boolean>>({});
   const [compressionStats, setCompressionStats] = useState<Record<string, { original: number; compressed: number }>>({});
   const buildingRef = useRef<HTMLInputElement>(null);
@@ -123,11 +127,71 @@ const SurveyForm = ({ assignments, prefillSrId, prefillArea, onComplete }: Props
 
     setSubmitting(true);
     try {
-      // Auto-detect completeness (inspection_form no longer required — generated as PDF)
       const hasAllFiles = buildingPhotos.length > 0 && screenshots.length > 0;
       const autoStatus = hasAllFiles ? "ΠΡΟΔΕΣΜΕΥΣΗ ΥΛΙΚΩΝ" : "ΕΛΛΙΠΗΣ ΑΥΤΟΨΙΑ";
 
-      // Create survey record
+      // === OFFLINE PATH ===
+      if (!isOnline()) {
+        const offlineId = crypto.randomUUID();
+
+        // Find assignment info for later sync
+        const assignmentMatch = assignments?.find((a: any) => a.sr_id === srId.trim());
+
+        // Convert files to storable format
+        const offlineBuildingPhotos = await Promise.all(
+          buildingPhotos.map((f) => fileToOfflineFile(f.file))
+        );
+        const offlineScreenshots = await Promise.all(
+          screenshots.map((f) => fileToOfflineFile(f.file))
+        );
+        const offlineInspectionPdf = inspectionPdf
+          ? await fileToOfflineFile(inspectionPdf)
+          : null;
+
+        await enqueueSurvey({
+          id: offlineId,
+          timestamp: Date.now(),
+          srId: srId.trim(),
+          area,
+          comments: comments.trim(),
+          organizationId,
+          userId: user!.id,
+          autoStatus,
+          buildingPhotos: offlineBuildingPhotos,
+          screenshots: offlineScreenshots,
+          inspectionPdf: offlineInspectionPdf,
+          assignmentId: assignmentMatch?.id,
+          assignmentStatus: assignmentMatch?.status,
+        });
+
+        toast.success("Αποθηκεύτηκε τοπικά! Θα συγχρονιστεί αυτόματα όταν βρεθεί δίκτυο.", {
+          icon: "📱",
+          duration: 5000,
+        });
+
+        setSavedOffline(true);
+
+        // Cleanup previews
+        [...buildingPhotos, ...screenshots].forEach((f) =>
+          URL.revokeObjectURL(f.preview)
+        );
+
+        // Reset form after delay
+        setTimeout(() => {
+          setArea("");
+          setSrId("");
+          setComments("");
+          setBuildingPhotos([]);
+          setScreenshots([]);
+          setInspectionPdf(null);
+          setSavedOffline(false);
+        }, 3000);
+
+        onComplete?.();
+        return;
+      }
+
+      // === ONLINE PATH (existing logic) ===
       const { data: survey, error: surveyError } = await supabase
         .from("surveys")
         .insert({
@@ -143,13 +207,11 @@ const SurveyForm = ({ assignments, prefillSrId, prefillArea, onComplete }: Props
 
       if (surveyError) throw surveyError;
 
-      // Upload all files
       const allFiles = [
         ...(await uploadFiles(buildingPhotos, survey.id, "building_photo")),
         ...(await uploadFiles(screenshots, survey.id, "screenshot")),
       ];
 
-      // Save file records
       if (allFiles.length > 0) {
         const { error: filesError } = await supabase
           .from("survey_files")
@@ -157,7 +219,6 @@ const SurveyForm = ({ assignments, prefillSrId, prefillArea, onComplete }: Props
         if (filesError) console.error("Files record error:", filesError);
       }
 
-      // Upload inspection PDF if provided
       if (inspectionPdf) {
         try {
           const pdfPath = `${user!.id}/${survey.id}/inspection_pdf/${crypto.randomUUID()}.pdf`;
@@ -165,7 +226,6 @@ const SurveyForm = ({ assignments, prefillSrId, prefillArea, onComplete }: Props
             .from("surveys")
             .upload(pdfPath, inspectionPdf, { contentType: "application/pdf" });
           if (!pdfUploadErr) {
-            // Register as survey_file so process-survey-completion uploads it to Drive ΕΓΓΡΑΦΑ
             await supabase.from("survey_files").insert({
               survey_id: survey.id,
               file_path: pdfPath,
@@ -174,7 +234,6 @@ const SurveyForm = ({ assignments, prefillSrId, prefillArea, onComplete }: Props
               organization_id: organizationId,
             });
 
-            // Also update assignment pdf_url
             const assignmentMatch = assignments?.find((a: any) => a.sr_id === srId.trim());
             if (assignmentMatch) {
               const { data: signedData } = await supabase.storage
@@ -194,7 +253,6 @@ const SurveyForm = ({ assignments, prefillSrId, prefillArea, onComplete }: Props
       toast.success("Η αυτοψία υποβλήθηκε! Η επεξεργασία (ZIP, Drive, email) γίνεται στο παρασκήνιο.");
       setSubmitted(true);
 
-      // If survey is complete, auto-advance assignment to pre_committed
       if (autoStatus === "ΠΡΟΔΕΣΜΕΥΣΗ ΥΛΙΚΩΝ") {
         try {
           const { data: assignmentData } = await supabase
@@ -216,18 +274,14 @@ const SurveyForm = ({ assignments, prefillSrId, prefillArea, onComplete }: Props
         }
       }
 
-      // Fire-and-forget: trigger background processing (ZIP, Drive, Email)
-      // Don't await — let it run in background without blocking the UI
       supabase.functions.invoke("process-survey-completion", {
         body: { survey_id: survey.id, sr_id: srId.trim(), area },
       }).catch((err) => console.error("Background processing trigger error:", err));
 
-      // Cleanup previews
       [...buildingPhotos, ...screenshots].forEach((f) =>
         URL.revokeObjectURL(f.preview)
       );
 
-      // Reset form after delay
       setTimeout(() => {
         setArea("");
         setSrId("");
@@ -248,6 +302,18 @@ const SurveyForm = ({ assignments, prefillSrId, prefillArea, onComplete }: Props
       setSubmitting(false);
     }
   };
+
+  if (savedOffline) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-center">
+        <WifiOff className="h-16 w-16 text-amber-500 mb-4" />
+        <h2 className="text-lg font-bold text-foreground">Αποθηκεύτηκε Τοπικά!</h2>
+        <p className="text-sm text-muted-foreground mt-1">
+          Θα συγχρονιστεί αυτόματα όταν επανέλθει η σύνδεση.
+        </p>
+      </div>
+    );
+  }
 
   if (submitted) {
     return (

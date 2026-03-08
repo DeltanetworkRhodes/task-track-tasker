@@ -21,7 +21,21 @@ export default defineConfig(({ mode }) => ({
       includeAssets: ["favicon.png", "pwa-192x192.png", "pwa-512x512.png"],
       workbox: {
         navigateFallbackDenylist: [/^\/~oauth/],
-        globPatterns: ["**/*.{js,css,html,ico,png,svg,jpg,jpeg,woff2}"],
+        globPatterns: ["**/*.{js,css,html,ico,png,svg,jpg,jpeg,woff2,woff,ttf}"],
+        runtimeCaching: [
+          {
+            // Cache Google Fonts
+            urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
+            handler: "CacheFirst",
+            options: { cacheName: "google-fonts-cache", expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 * 365 } },
+          },
+          {
+            // Cache API calls with network-first strategy
+            urlPattern: /^https:\/\/.*\.supabase\.co\/rest\/.*/i,
+            handler: "NetworkFirst",
+            options: { cacheName: "api-cache", expiration: { maxEntries: 50, maxAgeSeconds: 60 * 5 }, networkTimeoutSeconds: 5 },
+          },
+        ],
       },
       manifest: {
         name: "Delta Fiber - Διαχείριση Τεχνικών",
