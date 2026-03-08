@@ -111,7 +111,6 @@ const App = () => (
                 <Route path="/kpis" element={<ProtectedRoute><RoleGate><AdminRoute><TechnicianKPIs /></AdminRoute></RoleGate></ProtectedRoute>} />
                 
                 <Route path="/calendar" element={<ProtectedRoute><RoleGate><AdminRoute><Calendar /></AdminRoute></RoleGate></ProtectedRoute>} />
-                <Route path="/pdf-editor" element={<ProtectedRoute><RoleGate><AdminRoute><PdfCoordinateEditor /></AdminRoute></RoleGate></ProtectedRoute>} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>
