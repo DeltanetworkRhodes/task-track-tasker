@@ -34,6 +34,7 @@ const ICON_MAP: Record<string, React.ElementType> = {
   
   '/kpis': BarChart3,
   '/calendar': CalendarDays,
+  '/documents': FileSpreadsheet,
   '/users': UserCog,
   '/settings': Settings,
 };
