@@ -58,9 +58,7 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
   const [cancelReason, setCancelReason] = useState("");
   const [cancelling, setCancelling] = useState(false);
   const [uploadingGis, setUploadingGis] = useState(false);
-  const [uploadingPdf, setUploadingPdf] = useState(false);
   const gisFileInputRef = useRef<HTMLInputElement>(null);
-  const pdfFileInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
 
   // Fetch existing survey for selected assignment
@@ -237,37 +235,6 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
     setShowSurveyForm(true);
   };
 
-  const handlePdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !selectedAssignment) return;
-    e.target.value = "";
-    setUploadingPdf(true);
-    try {
-      const filePath = `inspection-pdfs/${selectedAssignment.organization_id || "default"}/${selectedAssignment.sr_id}_${Date.now()}.pdf`;
-      const { error: uploadError } = await supabase.storage
-        .from("surveys")
-        .upload(filePath, file, { contentType: "application/pdf", upsert: true });
-      if (uploadError) throw uploadError;
-
-      const { data: signedData } = await supabase.storage
-        .from("surveys")
-        .createSignedUrl(filePath, 60 * 60 * 24 * 365);
-
-      const { error: updateError } = await supabase
-        .from("assignments")
-        .update({ pdf_url: signedData?.signedUrl || filePath })
-        .eq("id", selectedAssignment.id);
-      if (updateError) throw updateError;
-
-      queryClient.invalidateQueries({ queryKey: ["technician-assignments"] });
-      toast.success("Το δελτίο αυτοψίας ανέβηκε επιτυχώς");
-    } catch (err: any) {
-      console.error("PDF upload error:", err);
-      toast.error("Σφάλμα κατά το ανέβασμα: " + err.message);
-    } finally {
-      setUploadingPdf(false);
-    }
-  };
 
   const handleSurveyComplete = () => {
     setShowSurveyForm(false);
