@@ -1,6 +1,7 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 import { hapticFeedback } from "@/lib/haptics";
 import { compressImage } from "@/lib/imageCompression";
+import { applyWatermark, type WatermarkData } from "@/lib/watermark";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
