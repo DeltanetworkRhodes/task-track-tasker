@@ -823,14 +823,14 @@ Deno.serve(async (req) => {
           const errText = await emailRes.text();
           console.error("Resend error:", errText);
           
-          // If email fails due to size, retry without attachment + Drive link
+          // If email fails due to size, retry without attachment — signed URL is already in the HTML
           if (zipBytes && errText.includes("size")) {
-            console.log("Retrying email without ZIP attachment, using Drive link fallback...");
+            console.log("Retrying email without ZIP attachment, using signed download URL...");
             delete emailPayload.attachments;
-            if (driveFolderUrl) {
+            if (zipDownloadUrl) {
               emailPayload.html = emailPayload.html.replace(
                 "📎 Τα αρχεία αυτοψίας επισυνάπτονται ως ZIP",
-                `📁 <a href="${driveFolderUrl}">Άνοιγμα Φακέλου Google Drive</a>`
+                `📥 <a href="${zipDownloadUrl}">Λήψη Αρχείων (ZIP)</a> — Ισχύει 7 ημέρες`
               );
             }
             const retryRes = await fetch("https://api.resend.com/emails", {
