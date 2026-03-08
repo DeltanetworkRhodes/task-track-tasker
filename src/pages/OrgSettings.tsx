@@ -385,16 +385,31 @@ const OrgSettings = () => {
                     <div key={field.key} className="space-y-1.5">
                       <Label className="text-xs font-medium">{field.label}</Label>
                       {(field as any).multiline ? (
-                        <Textarea
-                          value={values[field.key] || ""}
-                          onChange={(e) => setValues({ ...values, [field.key]: e.target.value })}
-                          placeholder={field.placeholder || `<div style="font-size:12px;color:#718096;">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                          <div className="space-y-1.5">
+                            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">HTML Κώδικας</span>
+                            <Textarea
+                              value={values[field.key] || ""}
+                              onChange={(e) => setValues({ ...values, [field.key]: e.target.value })}
+                              placeholder={`<div style="font-size:12px;color:#718096;">
 <p style="margin:0;font-weight:700;">Όνομα Υπεύθυνου</p>
 <p style="margin:2px 0;">Τίτλος | Τμήμα</p>
 <p style="margin:2px 0;">Τηλ: +30 ... | Email: info@company.gr</p>
 </div>`}
-                          className="text-xs font-mono min-h-[160px]"
-                        />
+                              className="text-xs font-mono min-h-[200px]"
+                            />
+                          </div>
+                          <div className="space-y-1.5">
+                            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Προεπισκόπηση</span>
+                            <div className="rounded-lg border border-border bg-white p-4 min-h-[200px] overflow-auto">
+                              {values[field.key] ? (
+                                <div dangerouslySetInnerHTML={{ __html: values[field.key] }} />
+                              ) : (
+                                <p className="text-xs text-muted-foreground italic">Εισάγετε HTML για προεπισκόπηση...</p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
                       ) : (
                         <Input
                           value={values[field.key] || ""}
