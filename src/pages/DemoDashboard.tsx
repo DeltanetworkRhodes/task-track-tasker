@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { FileSpreadsheet } from "lucide-react";
 import { useDemo } from "@/contexts/DemoContext";
 import { useNavigate } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -8,6 +9,7 @@ import {
   DemoWorkPricingPanel, DemoProfitPanel, DemoKPIsPanel, DemoSurveysPanel,
   DemoCalendarPanel, DemoUsersPanel, DemoSettingsPanel
 } from "@/components/demo/DemoSectionPanels";
+import DemoDocumentsPanel from "@/components/demo/DemoDocumentsPanel";
 import TechnicianAssignments from "@/components/TechnicianAssignments";
 import StatCard from "@/components/StatCard";
 import { statusLabels } from "@/data/mockData";
@@ -50,6 +52,7 @@ const DEMO_NAV_ITEMS = [
   { key: "assignments", label: "Αναθέσεις", icon: ClipboardList },
   { key: "surveys", label: "Αυτοψίες", icon: Search },
   { key: "construction", label: "Κατασκευές", icon: Wrench },
+  { key: "documents", label: "AS-BUILD", icon: FileSpreadsheet },
   { key: "materials", label: "Αποθήκη", icon: Package },
   { key: "work-pricing", label: "Τιμοκατάλογος", icon: FileText },
   { key: "profit", label: "Κέρδος/SR", icon: TrendingUp },
@@ -183,6 +186,7 @@ const DemoSectionRouter = ({ section }: { section: string }) => {
     case "calendar": return <DemoCalendarPanel />;
     case "users": return <DemoUsersPanel />;
     case "settings": return <DemoSettingsPanel />;
+    case "documents": return <DemoDocumentsPanel />;
     default: return null;
   }
 };
