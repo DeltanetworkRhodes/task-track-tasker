@@ -1,10 +1,13 @@
 import { ReactNode, useState } from "react";
 import AppSidebar from "./AppSidebar";
+import OfflineBanner from "./OfflineBanner";
+import { useOfflineSync } from "@/hooks/useOfflineSync";
 import { Menu, X } from "lucide-react";
 import deltaLogoIcon from "@/assets/delta-logo-icon.png";
 
 const AppLayout = ({ children }: { children: ReactNode }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { online, pendingCount, syncAll } = useOfflineSync();
 
   return (
     <div className="flex min-h-screen bg-background">
