@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 
-import { MapPin, Phone, Calendar, MessageSquare, Loader2, Eye, FileEdit, CheckCircle, Clock, HardHat, XCircle, Ban, Upload, FileSpreadsheet, FileText } from "lucide-react";
+import { MapPin, Phone, Calendar, MessageSquare, Loader2, Eye, FileEdit, CheckCircle, Clock, HardHat, XCircle, Ban, Upload, FileSpreadsheet, FileText, ExternalLink } from "lucide-react";
 import GisUploadCard from "@/components/GisUploadCard";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
