@@ -57,7 +57,7 @@ const TechnicianMap = ({ assignments }: Props) => {
               variant="outline"
               size="sm"
               className="gap-1.5 text-xs flex-1"
-              onClick={() => openInMaps(a.address)}
+              onClick={() => openInMaps(a)}
             >
               <MapPin className="h-3.5 w-3.5" />
               Χάρτης
@@ -65,12 +65,23 @@ const TechnicianMap = ({ assignments }: Props) => {
             <Button
               size="sm"
               className="gap-1.5 text-xs flex-1"
-              onClick={() => navigateTo(a.address)}
+              onClick={() => navigateTo(a)}
             >
               <Navigation className="h-3.5 w-3.5" />
               Πλοήγηση
             </Button>
           </div>
+          {a.building_id_hemd && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full gap-1.5 text-xs"
+              onClick={() => window.open(`https://hemd.cosmote.gr/hemd/index.html#/building/${a.building_id_hemd}`, "_blank")}
+            >
+              <ExternalLink className="h-3.5 w-3.5" />
+              Προβολή στο ΧΕΜΔ
+            </Button>
+          )}
         </Card>
       ))}
     </div>
