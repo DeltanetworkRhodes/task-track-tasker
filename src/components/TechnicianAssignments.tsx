@@ -645,8 +645,8 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
 
       {/* SR Detail Sheet */}
       <Sheet open={!!selectedAssignment} onOpenChange={(open) => { if (!open) { setSelectedAssignment(null); setShowSurveyForm(false); setShowConstructionForm(false); } }}>
-        <SheetContent side="bottom" className="h-[90vh] p-0 flex flex-col">
-          <SheetHeader className="px-4 pt-4 pb-2 shrink-0">
+        <SheetContent side="bottom" className="h-[92vh] sm:h-[90vh] p-0 rounded-t-2xl overflow-hidden">
+          <SheetHeader className="px-4 pt-4 pb-2">
             <SheetTitle className="text-left">
               SR {selectedAssignment?.sr_id}
             </SheetTitle>
@@ -655,7 +655,7 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
             </SheetDescription>
           </SheetHeader>
 
-          <ScrollArea className="flex-1 min-h-0 px-4 pb-4">
+          <div className="overflow-y-auto overscroll-contain px-4 pb-8 safe-bottom" style={{ height: 'calc(92vh - 80px)' }}>
             {selectedAssignment && !showSurveyForm && !showConstructionForm && (
               <div className="space-y-4">
                 {/* Status badge */}
@@ -843,6 +843,11 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
 
                 {/* SR Comments / Chat */}
                 <SRComments assignmentId={selectedAssignment.id} />
+
+                {/* Action buttons — inside scroll */}
+                <div className="pt-2 pb-4">
+                  {renderStatusAction(selectedAssignment)}
+                </div>
               </div>
             )}
 
@@ -867,14 +872,7 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
                 }}
               />
             )}
-          </ScrollArea>
-
-          {/* Fixed action buttons at bottom — scrollable if many */}
-          {selectedAssignment && !showSurveyForm && !showConstructionForm && (
-            <div className="shrink-0 border-t border-border bg-card px-4 py-3 safe-bottom max-h-[40vh] overflow-y-auto">
-              {renderStatusAction(selectedAssignment)}
-            </div>
-          )}
+          </div>
         </SheetContent>
       </Sheet>
 
