@@ -262,9 +262,9 @@ const Surveys = () => {
 
   // Assignment stats
   const preCommittedCount = (dbAssignments || []).filter((a) => a.status === "pre_committed").length;
-  const waitingOteCount = (dbAssignments || []).filter((a) => a.status === "waiting_ote").length;
   const inspectionCount = (dbAssignments || []).filter((a) => a.status === "inspection").length;
   const totalActiveAssignments = (dbAssignments || []).filter((a) => a.status !== "cancelled" && a.status !== "completed").length;
+  const incompleteSurveyAssignments = (dbAssignments || []).filter((a) => a.status === "ΕΛΛΙΠΗΣ ΑΥΤΟΨΙΑ" || a.status === "incomplete_survey").length;
 
   // Status distribution chart — combines surveys + assignment statuses
   const assignmentStatusLabels: Record<string, string> = {
@@ -402,7 +402,7 @@ const Surveys = () => {
           <StatCard 
             title="Προδεσμεύσεις (SR)" 
             value={preCommittedCount} 
-            subtitle={`${inspectionCount} σε αυτοψία · ${waitingOteCount} αναμονή ΟΤΕ`} 
+            subtitle={`${inspectionCount} σε αυτοψία`} 
             icon={CheckCircle} 
             trend={preCommittedCount > 0 ? "up" : "neutral"}
             trendValue={`${totalActiveAssignments} ενεργές αναθέσεις`}
@@ -424,12 +424,13 @@ const Surveys = () => {
             trendValue={upcomingAppointments.length > 0 ? `${upcomingAppointments.length} προγραμματισμένα` : "Κανένα ενεργό"}
           />
           <StatCard 
-            title="Αναμονή ΟΤΕ" 
-            value={waitingOteCount} 
-            subtitle="αναθέσεις σε αναμονή απάντησης" 
-            icon={Clock} 
-            trend={waitingOteCount > 0 ? "down" : "neutral"}
-            trendValue={waitingOteCount > 0 ? "Εκκρεμούν" : "Καμία αναμονή"}
+            title="Ελλιπή Έγγραφα" 
+            value={incompleteSurveyAssignments + totalIncomplete} 
+            subtitle={`${totalIncomplete} αυτοψίες · ${incompleteSurveyAssignments} αναθέσεις`} 
+            icon={FileWarning} 
+            accent
+            trend={incompleteSurveyAssignments + totalIncomplete > 0 ? "down" : "neutral"}
+            trendValue={incompleteSurveyAssignments + totalIncomplete > 0 ? "Εκκρεμούν έγγραφα" : "Όλα πλήρη"}
           />
         </div>
 
