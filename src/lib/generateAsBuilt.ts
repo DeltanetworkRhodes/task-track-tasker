@@ -439,7 +439,7 @@ export async function generateAsBuiltFromData(data: AsBuiltData): Promise<AsBuil
   if (epimetrisiSheet) {
     fillEpimetrisiSheet(epimetrisiSheet, data);
 
-    // Sketch image injection at B46 with oneCell anchor
+    // Sketch image injection at B46→M75 with twoCell anchor
     if (data.sketchImageUrl) {
       const imgBuf = await fetchImageBuffer(data.sketchImageUrl);
       if (imgBuf) {
@@ -447,11 +447,11 @@ export async function generateAsBuiltFromData(data: AsBuiltData): Promise<AsBuil
           data.sketchImageUrl.toLowerCase().includes(".jpeg")
           ? "jpeg" as const : "png" as const;
         const imgId = workbook.addImage({ buffer: imgBuf, extension: ext });
-        const pxToEmu = 9525;
+        // B46 = col 1, row 45 (0-indexed) → M75 = col 12, row 74 (0-indexed)
         epimetrisiSheet.addImage(imgId, {
-          tl: { col: 1, row: 45 } as any,  // B46 (0-indexed: col=1, row=45)
-          ext: { width: 800 * pxToEmu, height: 600 * pxToEmu },
-          editAs: "oneCell",
+          tl: { col: 1, row: 45, nativeCol: 1, nativeRow: 45, nativeColOff: 0, nativeRowOff: 0 } as any,
+          br: { col: 12, row: 74, nativeCol: 12, nativeRow: 74, nativeColOff: 0, nativeRowOff: 0 } as any,
+          editAs: "twoCell",
         } as any);
       } else {
         warnings.push("Η εικόνα σκαριφήματος δεν μπόρεσε να φορτωθεί.");
