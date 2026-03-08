@@ -7,7 +7,7 @@ interface Props {
 }
 
 const TechnicianMap = ({ assignments }: Props) => {
-  const withAddress = assignments.filter((a) => a.address);
+  const withAddress = assignments.filter((a) => a.address || (a.latitude && a.longitude));
 
   if (withAddress.length === 0) {
     return (
@@ -18,13 +18,23 @@ const TechnicianMap = ({ assignments }: Props) => {
     );
   }
 
-  const openInMaps = (address: string) => {
-    const encoded = encodeURIComponent(address);
+  const getMapQuery = (a: any): string => {
+    // Prefer lat/lng when available for accuracy
+    if (a.latitude && a.longitude) {
+      return `${a.latitude},${a.longitude}`;
+    }
+    return a.address || "";
+  };
+
+  const openInMaps = (a: any) => {
+    const query = getMapQuery(a);
+    const encoded = encodeURIComponent(query);
     window.open(`https://www.google.com/maps/search/?api=1&query=${encoded}`, "_blank");
   };
 
-  const navigateTo = (address: string) => {
-    const encoded = encodeURIComponent(address);
+  const navigateTo = (a: any) => {
+    const query = getMapQuery(a);
+    const encoded = encodeURIComponent(query);
     window.open(`https://www.google.com/maps/dir/?api=1&destination=${encoded}`, "_blank");
   };
 
@@ -47,7 +57,7 @@ const TechnicianMap = ({ assignments }: Props) => {
               variant="outline"
               size="sm"
               className="gap-1.5 text-xs flex-1"
-              onClick={() => openInMaps(a.address)}
+              onClick={() => openInMaps(a)}
             >
               <MapPin className="h-3.5 w-3.5" />
               Χάρτης
@@ -55,12 +65,23 @@ const TechnicianMap = ({ assignments }: Props) => {
             <Button
               size="sm"
               className="gap-1.5 text-xs flex-1"
-              onClick={() => navigateTo(a.address)}
+              onClick={() => navigateTo(a)}
             >
               <Navigation className="h-3.5 w-3.5" />
               Πλοήγηση
             </Button>
           </div>
+          {a.building_id_hemd && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full gap-1.5 text-xs"
+              onClick={() => window.open(`https://hemd.cosmote.gr/hemd/index.html#/building/${a.building_id_hemd}`, "_blank")}
+            >
+              <ExternalLink className="h-3.5 w-3.5" />
+              Προβολή στο ΧΕΜΔ
+            </Button>
+          )}
         </Card>
       ))}
     </div>
