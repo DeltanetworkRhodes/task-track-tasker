@@ -142,6 +142,7 @@ const SurveyForm = ({ assignments, prefillSrId, prefillArea, onComplete }: Props
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    hapticFeedback.medium();
     if (!area || !srId.trim()) {
       toast.error("Συμπληρώστε Περιοχή και SR ID");
       return;
