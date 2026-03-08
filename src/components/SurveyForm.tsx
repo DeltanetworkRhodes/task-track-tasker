@@ -299,10 +299,12 @@ const SurveyForm = ({ assignments, prefillSrId, prefillArea, onComplete }: Props
         required
         files={buildingPhotos}
         inputRef={buildingRef}
-        onAdd={(files) => handleFiles(files, setBuildingPhotos, buildingPhotos)}
+        onAdd={(files) => handleFiles(files, setBuildingPhotos, buildingPhotos, "building")}
         onRemove={(i) => removeFile(i, setBuildingPhotos, buildingPhotos)}
         accept="image/*"
         capture
+        isCompressing={compressing["building"]}
+        compressionStats={compressionStats["building"]}
       />
 
       {/* SCREENSHOTS */}
@@ -310,9 +312,11 @@ const SurveyForm = ({ assignments, prefillSrId, prefillArea, onComplete }: Props
         label="Screenshots (ΧΕΜΔ & AutoCAD)"
         files={screenshots}
         inputRef={screenshotRef}
-        onAdd={(files) => handleFiles(files, setScreenshots, screenshots)}
+        onAdd={(files) => handleFiles(files, setScreenshots, screenshots, "screenshots")}
         onRemove={(i) => removeFile(i, setScreenshots, screenshots)}
         accept="image/*"
+        isCompressing={compressing["screenshots"]}
+        compressionStats={compressionStats["screenshots"]}
       />
 
       {/* ΔΕΛΤΙΟ ΑΥΤΟΨΙΑΣ PDF */}
