@@ -1,8 +1,8 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { useDemo } from "@/contexts/DemoContext";
 import { useNavigate } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { LogOut, ClipboardList, AlertTriangle, Shield, Wrench, Euro, TrendingUp, Timer, FolderOpen, Activity, CalendarDays, PieChart as PieChartIcon } from "lucide-react";
+import { LogOut, ClipboardList, AlertTriangle, Shield, Wrench, Euro, TrendingUp, Timer, FolderOpen, Activity, CalendarDays, PieChart as PieChartIcon, LayoutDashboard, Search, Package, FileText, BarChart3, UserCog, Settings, Menu, X, Sun, Moon } from "lucide-react";
 import TechnicianAssignments from "@/components/TechnicianAssignments";
 import StatCard from "@/components/StatCard";
 import { statusLabels } from "@/data/mockData";
@@ -10,9 +10,11 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/
 import { BarChart, Bar, XAxis, YAxis, Cell, PieChart, Pie, LineChart, Line, CartesianGrid } from "recharts";
 import deltaLogoIcon from "@/assets/delta-logo-icon.png";
 import { Badge } from "@/components/ui/badge";
+import { useTheme } from "next-themes";
+import { toast } from "sonner";
 
 const DemoBanner = () => (
-  <div className="bg-yellow-500 text-yellow-950 text-center text-xs font-bold py-2 px-4 flex items-center justify-center gap-2">
+  <div className="bg-yellow-500 text-yellow-950 text-center text-xs font-bold py-2 px-4 flex items-center justify-center gap-2 safe-top">
     <AlertTriangle className="h-3.5 w-3.5" />
     Περιβάλλον Επίδειξης — Οι αλλαγές δεν αποθηκεύονται
     <AlertTriangle className="h-3.5 w-3.5" />
@@ -37,6 +39,21 @@ const statusColorClasses: Record<string, string> = {
   cancelled: "bg-red-500/10 text-red-600 border-red-500/20",
 };
 
+// Demo sidebar nav items
+const DEMO_NAV_ITEMS = [
+  { key: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { key: "assignments", label: "Αναθέσεις", icon: ClipboardList },
+  { key: "surveys", label: "Αυτοψίες", icon: Search },
+  { key: "construction", label: "Κατασκευές", icon: Wrench },
+  { key: "materials", label: "Αποθήκη", icon: Package },
+  { key: "work-pricing", label: "Τιμοκατάλογος", icon: FileText },
+  { key: "profit", label: "Κέρδος/SR", icon: TrendingUp },
+  { key: "kpis", label: "KPIs Τεχνικών", icon: BarChart3 },
+  { key: "calendar", label: "Ημερολόγιο", icon: CalendarDays },
+  { key: "users", label: "Χρήστες", icon: UserCog },
+  { key: "settings", label: "Ρυθμίσεις", icon: Settings },
+];
+
 // Extended demo data for admin view
 const DEMO_ADMIN_ASSIGNMENTS = [
   { id: "a1", srId: "SR-2025-0101", area: "Ρόδος Κέντρο", status: "completed", customerName: "Δ. Παπαδόπουλος", technician: "Γ. Αλεξίου", date: "2025-03-01", cab: "CAB-045" },
@@ -60,7 +77,120 @@ const DEMO_CONSTRUCTIONS = [
   { srId: "SR-2025-0107", revenue: 0, materialCost: 95, profit: -95, status: "in_progress" },
 ];
 
-const AdminDemoPanel = () => {
+// ─── Demo Sidebar ───
+const DemoSidebar = ({
+  activeSection,
+  onSectionChange,
+  onClose,
+  onExit,
+}: {
+  activeSection: string;
+  onSectionChange: (s: string) => void;
+  onClose?: () => void;
+  onExit: () => void;
+}) => {
+  const { theme, setTheme } = useTheme();
+  const activeConstructions = DEMO_CONSTRUCTIONS.filter(c => c.status === "in_progress").length;
+
+  return (
+    <aside className="flex h-full w-64 flex-col bg-sidebar border-r border-sidebar-border overflow-hidden">
+      <div className="h-0.5 w-full cosmote-gradient shrink-0" />
+      <div className="flex items-center justify-between px-4 py-4 border-b border-sidebar-border">
+        <div className="flex-1 min-w-0">
+          <img src={deltaLogoIcon} alt="DeltaNetwork" className="h-10 w-auto object-contain" />
+          <p className="text-[9px] text-sidebar-foreground/50 uppercase tracking-widest mt-1 pl-0.5">FTTx Operations · Demo</p>
+        </div>
+        <button onClick={onClose} className="rounded-lg p-1.5 hover:bg-sidebar-accent transition-colors lg:hidden">
+          <X className="h-4 w-4 text-sidebar-foreground/60" />
+        </button>
+      </div>
+
+      <nav className="flex-1 space-y-1 px-3 py-4 overflow-y-auto">
+        <p className="text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/40 px-3 pb-2">Μενού</p>
+        {DEMO_NAV_ITEMS.map((item) => {
+          const isActive = activeSection === item.key;
+          const Icon = item.icon;
+          return (
+            <button
+              key={item.key}
+              onClick={() => {
+                onSectionChange(item.key);
+                onClose?.();
+              }}
+              className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-all text-left ${
+                isActive
+                  ? "cosmote-gradient text-white font-semibold shadow-lg shadow-primary/20"
+                  : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+              }`}
+            >
+              <Icon className={`h-[18px] w-[18px] shrink-0 ${isActive ? "text-white" : ""}`} />
+              {item.label}
+              {item.key === "construction" && activeConstructions > 0 && (
+                <span className={`ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded-full ${isActive ? "bg-white/20 text-white" : "bg-primary/10 text-primary"}`}>
+                  {activeConstructions}
+                </span>
+              )}
+              {isActive && !(item.key === "construction" && activeConstructions > 0) && (
+                <div className="ml-auto h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
+              )}
+            </button>
+          );
+        })}
+      </nav>
+
+      <div className="border-t border-sidebar-border px-4 py-4 space-y-3">
+        <div className="flex items-center gap-3">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-sidebar-accent text-[11px] font-bold text-sidebar-accent-foreground uppercase shrink-0">
+            D
+          </div>
+          <p className="text-[11px] text-sidebar-foreground truncate flex-1">demo@deltanetwork.gr</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            className="flex items-center justify-center rounded-lg p-2 text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
+          >
+            {theme === "dark" ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}
+          </button>
+          <button
+            onClick={onExit}
+            className="flex flex-1 items-center gap-2 rounded-lg px-3 py-2 text-xs text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
+          >
+            <LogOut className="h-3.5 w-3.5" />
+            Έξοδος Demo
+          </button>
+        </div>
+      </div>
+    </aside>
+  );
+};
+
+// ─── Demo Admin Content for non-dashboard sections ───
+const DemoSectionPlaceholder = ({ section }: { section: string }) => {
+  const item = DEMO_NAV_ITEMS.find(i => i.key === section);
+  const Icon = item?.icon || LayoutDashboard;
+  return (
+    <div className="flex flex-col items-center justify-center py-20 text-center space-y-4">
+      <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10">
+        <Icon className="h-8 w-8 text-primary" />
+      </div>
+      <h2 className="text-lg font-bold text-foreground">{item?.label || section}</h2>
+      <p className="text-sm text-muted-foreground max-w-md">
+        Αυτή η σελίδα είναι πλήρως λειτουργική στην πραγματική εφαρμογή.
+        Στο Demo Mode εμφανίζεται μόνο η δομή πλοήγησης.
+      </p>
+      <button
+        onClick={() => toast.info("Λειτουργία Demo — Δεν υπάρχουν πραγματικά δεδομένα")}
+        className="rounded-xl border border-border px-4 py-2 text-xs text-muted-foreground hover:bg-muted transition-colors"
+      >
+        Δοκιμή Αλληλεπίδρασης
+      </button>
+    </div>
+  );
+};
+
+// ─── Admin Dashboard Panel ───
+const AdminDashboardPanel = () => {
   const assignments = DEMO_ADMIN_ASSIGNMENTS;
   const constructions = DEMO_CONSTRUCTIONS;
 
@@ -72,21 +202,12 @@ const AdminDemoPanel = () => {
   const preCommitted = assignments.filter(a => a.status === "pre_committed").length;
 
   const statusCounts = Object.entries(
-    assignments.reduce((acc, a) => {
-      acc[a.status] = (acc[a.status] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>)
+    assignments.reduce((acc, a) => { acc[a.status] = (acc[a.status] || 0) + 1; return acc; }, {} as Record<string, number>)
   ).map(([status, count]) => ({
-    status,
-    label: (statusLabels as any)[status] || status,
-    count,
-    fill: STATUS_COLORS[status] || "hsl(220 10% 46%)",
+    status, label: (statusLabels as any)[status] || status, count, fill: STATUS_COLORS[status] || "hsl(220 10% 46%)",
   }));
 
-  const chartConfig = statusCounts.reduce((acc, s) => {
-    acc[s.status] = { label: s.label, color: s.fill };
-    return acc;
-  }, {} as Record<string, { label: string; color: string }>);
+  const chartConfig = statusCounts.reduce((acc, s) => { acc[s.status] = { label: s.label, color: s.fill }; return acc; }, {} as Record<string, { label: string; color: string }>);
 
   const monthlyTrend = [
     { label: "Οκτ", completed: 3, revenue: 4200, profit: 3100 },
@@ -163,11 +284,9 @@ const AdminDemoPanel = () => {
 
       {/* Charts */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {/* Status Bar */}
         <div className="rounded-xl border border-border bg-card p-4 sm:p-5 shadow-sm">
           <h2 className="font-bold text-sm mb-4 flex items-center gap-2 text-foreground">
-            <ClipboardList className="h-4 w-4 text-primary shrink-0" />
-            Κατάσταση Αναθέσεων
+            <ClipboardList className="h-4 w-4 text-primary shrink-0" /> Κατάσταση Αναθέσεων
           </h2>
           <ChartContainer config={chartConfig} className="h-[200px] sm:h-[220px] w-full">
             <BarChart data={statusCounts} margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
@@ -175,19 +294,15 @@ const AdminDemoPanel = () => {
               <YAxis allowDecimals={false} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }} axisLine={false} tickLine={false} width={25} />
               <ChartTooltip content={<ChartTooltipContent />} />
               <Bar dataKey="count" radius={[8, 8, 0, 0]} barSize={28}>
-                {statusCounts.map((entry, i) => (
-                  <Cell key={i} fill={entry.fill} />
-                ))}
+                {statusCounts.map((entry, i) => (<Cell key={i} fill={entry.fill} />))}
               </Bar>
             </BarChart>
           </ChartContainer>
         </div>
 
-        {/* Monthly Trend */}
         <div className="rounded-xl border border-border bg-card p-4 sm:p-5 shadow-sm">
           <h2 className="font-bold text-sm mb-4 flex items-center gap-2 text-foreground">
-            <CalendarDays className="h-4 w-4 text-accent shrink-0" />
-            Μηνιαία Ολοκλήρωση
+            <CalendarDays className="h-4 w-4 text-accent shrink-0" /> Μηνιαία Ολοκλήρωση
           </h2>
           <ChartContainer config={trendConfig} className="h-[200px] sm:h-[220px] w-full">
             <BarChart data={monthlyTrend} margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
@@ -200,19 +315,15 @@ const AdminDemoPanel = () => {
           </ChartContainer>
         </div>
 
-        {/* Revenue Pie */}
         <div className="rounded-xl border border-border bg-card p-4 sm:p-5 shadow-sm md:col-span-2 xl:col-span-1">
           <h2 className="font-bold text-sm mb-4 flex items-center gap-2 text-foreground">
-            <PieChartIcon className="h-4 w-4 text-accent shrink-0" />
-            Έσοδα vs Κόστος Υλικών
+            <PieChartIcon className="h-4 w-4 text-accent shrink-0" /> Έσοδα vs Κόστος Υλικών
           </h2>
           <ChartContainer config={pieConfig} className="h-[160px] sm:h-[180px] w-full">
             <PieChart>
               <ChartTooltip content={<ChartTooltipContent />} />
               <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={40} outerRadius={70} strokeWidth={2} stroke="hsl(var(--card))">
-                {pieData.map((entry, i) => (
-                  <Cell key={i} fill={entry.fill} />
-                ))}
+                {pieData.map((entry, i) => (<Cell key={i} fill={entry.fill} />))}
               </Pie>
             </PieChart>
           </ChartContainer>
@@ -228,17 +339,16 @@ const AdminDemoPanel = () => {
         </div>
       </div>
 
-      {/* Revenue Line + Activity */}
+      {/* Activity + Revenue */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <div className="rounded-xl border border-border bg-card p-4 sm:p-5 shadow-sm">
           <h2 className="font-bold text-sm mb-4 flex items-center gap-2 text-foreground">
-            <Activity className="h-4 w-4 text-accent shrink-0" />
-            Πρόσφατη Δραστηριότητα
+            <Activity className="h-4 w-4 text-accent shrink-0" /> Πρόσφατη Δραστηριότητα
           </h2>
           <div className="space-y-2">
             {assignments.slice(0, 8).map((a, i) => (
               <div key={i} className="flex items-center gap-2 sm:gap-3 text-xs rounded-lg px-2.5 sm:px-3 py-2 sm:py-2.5 bg-muted/50 hover:bg-muted transition-colors">
-                <div className="h-2 w-2 sm:h-2.5 sm:w-2.5 rounded-full shrink-0 ring-2 ring-background" style={{ backgroundColor: STATUS_COLORS[a.status] || "hsl(220 10% 46%)" }} />
+                <div className="h-2 w-2 sm:h-2.5 sm:w-2.5 rounded-full shrink-0 ring-2 ring-background" style={{ backgroundColor: STATUS_COLORS[a.status] }} />
                 <div className="flex-1 min-w-0">
                   <span className="font-bold text-foreground text-[11px] sm:text-xs">{a.srId}</span>
                   <span className="text-muted-foreground ml-1.5 text-[10px] hidden sm:inline">{a.area}</span>
@@ -253,8 +363,7 @@ const AdminDemoPanel = () => {
 
         <div className="rounded-xl border border-border bg-card p-4 sm:p-5 shadow-sm">
           <h2 className="font-bold text-sm mb-4 flex items-center gap-2 text-foreground">
-            <TrendingUp className="h-4 w-4 text-primary shrink-0" />
-            Τάση Εσόδων / Κέρδους
+            <TrendingUp className="h-4 w-4 text-primary shrink-0" /> Τάση Εσόδων / Κέρδους
           </h2>
           <ChartContainer config={trendConfig} className="h-[200px] sm:h-[220px] w-full">
             <LineChart data={monthlyTrend} margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
@@ -311,10 +420,13 @@ const AdminDemoPanel = () => {
   );
 };
 
+// ─── Main Demo Dashboard ───
 const DemoDashboard = () => {
   const { exitDemo, demoAssignments, demoProfile } = useDemo();
   const navigate = useNavigate();
   const [activeView, setActiveView] = useState<"admin" | "technician">("admin");
+  const [adminSection, setAdminSection] = useState("dashboard");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [hideCancelled, setHideCancelled] = useState(true);
 
   const handleExit = () => {
@@ -326,67 +438,85 @@ const DemoDashboard = () => {
     <div className="min-h-screen bg-background">
       <DemoBanner />
 
-      {/* Header */}
-      <header className="sticky top-0 z-50 border-b border-border bg-card/80 backdrop-blur-md">
-        <div className="flex items-center justify-between px-4 py-3">
-          <div className="flex items-center gap-3">
+      {/* Role toggle header */}
+      <div className="border-b border-border bg-card/80 backdrop-blur-md px-4 py-2 flex items-center justify-between">
+        <Tabs value={activeView} onValueChange={(v) => setActiveView(v as any)}>
+          <TabsList className="h-8">
+            <TabsTrigger value="admin" className="gap-1.5 text-[11px] px-3 py-1">
+              <Shield className="h-3 w-3" /> Admin
+            </TabsTrigger>
+            <TabsTrigger value="technician" className="gap-1.5 text-[11px] px-3 py-1">
+              <ClipboardList className="h-3 w-3" /> Τεχνικός
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+        <button onClick={handleExit} className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs text-muted-foreground hover:bg-muted transition-colors">
+          <LogOut className="h-3.5 w-3.5" /> Έξοδος
+        </button>
+      </div>
+
+      {activeView === "admin" ? (
+        <div className="flex min-h-[calc(100vh-80px)]">
+          {/* Mobile overlay */}
+          {sidebarOpen && (
+            <div className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm lg:hidden" onClick={() => setSidebarOpen(false)} />
+          )}
+
+          {/* Sidebar */}
+          <div className={`fixed inset-y-0 left-0 z-50 w-64 transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:relative lg:z-auto ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
+            <DemoSidebar
+              activeSection={adminSection}
+              onSectionChange={setAdminSection}
+              onClose={() => setSidebarOpen(false)}
+              onExit={handleExit}
+            />
+          </div>
+
+          {/* Main content */}
+          <main className="flex-1 min-h-full">
+            {/* Mobile top bar */}
+            <div className="sticky top-0 z-30 flex items-center gap-3 border-b border-border bg-background/95 backdrop-blur-sm px-4 py-3 lg:hidden">
+              <button onClick={() => setSidebarOpen(true)} className="rounded-lg p-2 hover:bg-muted transition-colors">
+                <Menu className="h-5 w-5 text-foreground" />
+              </button>
+              <img src={deltaLogoIcon} alt="DeltaNetwork" className="h-7 w-auto object-contain" />
+              <span className="text-[9px] text-muted-foreground uppercase tracking-widest">FTTx Demo</span>
+            </div>
+
+            <div className="p-4 sm:p-6">
+              <div className="mx-auto max-w-7xl">
+                {adminSection === "dashboard" ? (
+                  <AdminDashboardPanel />
+                ) : (
+                  <DemoSectionPlaceholder section={adminSection} />
+                )}
+              </div>
+            </div>
+          </main>
+        </div>
+      ) : (
+        <div className="px-4 pt-4 pb-20">
+          {/* Technician header */}
+          <div className="mb-4 flex items-center gap-3">
             <img src={deltaLogoIcon} alt="DeltaNetwork" className="h-8 w-auto object-contain" />
             <div>
               <h1 className="text-lg font-bold text-foreground">DeltaNet FTTH</h1>
-              <p className="text-xs text-muted-foreground">
-                {activeView === "admin" ? "Demo Admin" : demoProfile.full_name} · {demoProfile.area}
-              </p>
+              <p className="text-xs text-muted-foreground">{demoProfile.full_name} · {demoProfile.area}</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handleExit}
-              className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs text-muted-foreground hover:bg-muted transition-colors"
-            >
-              <LogOut className="h-3.5 w-3.5" />
-              Έξοδος Demo
-            </button>
+
+          <div className="flex items-center justify-end mb-3">
+            <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
+              <input type="checkbox" checked={hideCancelled} onChange={(e) => setHideCancelled(e.target.checked)} className="rounded border-border" />
+              Απόκρυψη ακυρωμένων
+            </label>
           </div>
+          <TechnicianAssignments
+            assignments={demoAssignments.filter(a => hideCancelled ? a.status !== "cancelled" : true)}
+            loading={false}
+          />
         </div>
-      </header>
-
-      {/* View toggle */}
-      <div className="px-4 pt-4">
-        <Tabs value={activeView} onValueChange={(v) => setActiveView(v as any)}>
-          <TabsList className="grid w-full grid-cols-2 mb-4">
-            <TabsTrigger value="admin" className="gap-1.5 text-xs">
-              <Shield className="h-3.5 w-3.5" />
-              Admin Panel
-            </TabsTrigger>
-            <TabsTrigger value="technician" className="gap-1.5 text-xs">
-              <ClipboardList className="h-3.5 w-3.5" />
-              Τεχνικός
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="admin" className="pb-20">
-            <AdminDemoPanel />
-          </TabsContent>
-
-          <TabsContent value="technician" className="pb-20">
-            <div className="flex items-center justify-end mb-3">
-              <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={hideCancelled}
-                  onChange={(e) => setHideCancelled(e.target.checked)}
-                  className="rounded border-border"
-                />
-                Απόκρυψη ακυρωμένων
-              </label>
-            </div>
-            <TechnicianAssignments
-              assignments={demoAssignments.filter(a => hideCancelled ? a.status !== "cancelled" : true)}
-              loading={false}
-            />
-          </TabsContent>
-        </Tabs>
-      </div>
+      )}
     </div>
   );
 };
