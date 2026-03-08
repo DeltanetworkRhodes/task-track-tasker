@@ -51,14 +51,35 @@ const SurveyForm = ({ assignments, prefillSrId, prefillArea, onComplete }: Props
   const screenshotRef = useRef<HTMLInputElement>(null);
   const pdfRef = useRef<HTMLInputElement>(null);
 
-  const handleFiles = (
+  const handleFiles = async (
     files: FileList | null,
     setter: React.Dispatch<React.SetStateAction<FileUpload[]>>,
-    current: FileUpload[]
+    current: FileUpload[],
+    category: string
   ) => {
     if (!files) return;
     const remaining = MAX_FILES - current.length;
-    const newFiles = Array.from(files).slice(0, remaining).map((file) => ({
+    const rawFiles = Array.from(files).slice(0, remaining);
+
+    // Compress images
+    const hasImages = rawFiles.some((f) => f.type.startsWith("image/"));
+    let processedFiles = rawFiles;
+    if (hasImages) {
+      setCompressing((prev) => ({ ...prev, [category]: true }));
+      const originalSize = rawFiles.reduce((s, f) => s + f.size, 0);
+      processedFiles = await compressImages(rawFiles);
+      const compressedSize = processedFiles.reduce((s, f) => s + f.size, 0);
+      setCompressionStats((prev) => ({
+        ...prev,
+        [category]: {
+          original: (prev[category]?.original || 0) + originalSize,
+          compressed: (prev[category]?.compressed || 0) + compressedSize,
+        },
+      }));
+      setCompressing((prev) => ({ ...prev, [category]: false }));
+    }
+
+    const newFiles = processedFiles.map((file) => ({
       file,
       preview: URL.createObjectURL(file),
     }));
