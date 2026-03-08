@@ -483,7 +483,7 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
 
   // compressImage imported from shared utility
 
-  // Photo handling per category
+  // Photo handling per category with AI QA
   const handleCategoryPhotoSelect = async (category: string, e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
@@ -493,17 +493,36 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
     // Compress all photos in parallel
     const compressed = await Promise.all(files.map((f) => compressImage(f)));
     
-    setCategorizedPhotos((prev) => ({ ...prev, [category]: [...(prev[category] || []), ...compressed] }));
-    compressed.forEach((file) => {
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        setCategorizedPreviews((prev) => ({
-          ...prev,
-          [category]: [...(prev[category] || []), ev.target?.result as string],
-        }));
-      };
-      reader.readAsDataURL(file);
-    });
+    // AI analysis for each photo (only when online)
+    const accepted: File[] = [];
+    const acceptedPreviews: string[] = [];
+
+    for (let i = 0; i < compressed.length; i++) {
+      const file = compressed[i];
+      const existingCount = (categorizedPhotos[category] || []).length;
+      const idx = existingCount + accepted.length;
+
+      if (isOnline()) {
+        const result = await analyzeConstructionPhoto(file, category, idx);
+        if (!result.isApproved || result.qualityScore < 7) {
+          // Photo rejected by AI — don't add
+          continue;
+        }
+      }
+
+      accepted.push(file);
+      const preview = await new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onload = (ev) => resolve(ev.target?.result as string);
+        reader.readAsDataURL(file);
+      });
+      acceptedPreviews.push(preview);
+    }
+
+    if (accepted.length > 0) {
+      setCategorizedPhotos((prev) => ({ ...prev, [category]: [...(prev[category] || []), ...accepted] }));
+      setCategorizedPreviews((prev) => ({ ...prev, [category]: [...(prev[category] || []), ...acceptedPreviews] }));
+    }
   };
 
   const removeCategoryPhoto = (category: string, index: number) => {
