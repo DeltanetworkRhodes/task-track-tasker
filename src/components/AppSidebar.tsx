@@ -18,6 +18,7 @@ const DEFAULT_NAV_ITEMS = [
   
   { to: '/kpis', label: 'KPIs Τεχνικών', icon: BarChart3 },
   { to: '/calendar', label: 'Ημερολόγιο', icon: CalendarDays },
+  { to: '/documents', label: 'Documents', icon: FileSpreadsheet },
   { to: '/users', label: 'Χρήστες', icon: UserCog },
   { to: '/settings', label: 'Ρυθμίσεις', icon: Settings },
 ];
