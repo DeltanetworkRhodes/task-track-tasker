@@ -696,6 +696,12 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
                       <span className="text-muted-foreground">{selectedAssignment.comments}</span>
                     </div>
                   )}
+                  {(selectedAssignment as any).building_id_hemd && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-muted-foreground text-xs font-medium">ΧΕΜΔ ID:</span>
+                      <span className="text-xs font-mono">{(selectedAssignment as any).building_id_hemd}</span>
+                    </div>
+                  )}
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <Calendar className="h-4 w-4 shrink-0" />
                     <span>{new Date(selectedAssignment.created_at).toLocaleDateString("el-GR")}</span>

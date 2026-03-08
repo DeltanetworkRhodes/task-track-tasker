@@ -737,6 +737,45 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
             <DetailRow icon={MessageSquare} label="Σχόλια" value={selected?.comments} />
           </div>
 
+          {/* XEMD Section */}
+          {selected && (
+            <div className="mt-3 pt-3 border-t border-border/30 space-y-2">
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground/70">ΧΕΜΔ (Broadband Assist)</p>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <label className="text-xs text-muted-foreground whitespace-nowrap">Building ID:</label>
+                  <input
+                    type="text"
+                    value={(selected as any).buildingIdHemd || ""}
+                    onChange={(e) => setSelected({ ...selected, buildingIdHemd: e.target.value })}
+                    onBlur={async (e) => {
+                      const val = e.target.value.trim() || null;
+                      await supabase.from("assignments").update({ building_id_hemd: val } as any).eq("id", selected.id);
+                      queryClient.setQueryData(["assignments"], (old: any) =>
+                        old?.map((a: any) => a.id === selected.id ? { ...a, building_id_hemd: val } : a)
+                      );
+                    }}
+                    placeholder="Copy-paste από broadband-assist"
+                    className="flex-1 h-7 rounded-md border border-border bg-background px-2 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+                  />
+                </div>
+                <a
+                  href={
+                    (selected as any).latitude && (selected as any).longitude
+                      ? `https://www.broadband-assist.gov.gr/public/?lat=${(selected as any).latitude}&lng=${(selected as any).longitude}`
+                      : "https://www.broadband-assist.gov.gr/public/"
+                  }
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/20 transition-colors border border-emerald-500/20"
+                >
+                  <ExternalLink className="h-3.5 w-3.5" />
+                  Προβολή στο ΧΕΜΔ
+                </a>
+              </div>
+            </div>
+          )}
+
           {/* Assign in modal */}
           {selected && (
             <div className="mt-3 pt-3 border-t border-border/30">
