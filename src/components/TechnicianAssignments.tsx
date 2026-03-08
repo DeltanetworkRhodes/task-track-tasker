@@ -52,6 +52,7 @@ interface Props {
 
 const TechnicianAssignments = ({ assignments, loading }: Props) => {
   const { user } = useAuth();
+  const { isDemo, demoGisData, updateDemoAssignment, addDemoGis } = useDemo();
   const [updating, setUpdating] = useState<string | null>(null);
   const [selectedAssignment, setSelectedAssignment] = useState<any | null>(null);
   const [showSurveyForm, setShowSurveyForm] = useState(false);
