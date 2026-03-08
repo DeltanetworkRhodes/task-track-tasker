@@ -117,6 +117,7 @@ export type Database = {
         Row: {
           address: string | null
           area: string
+          building_id_hemd: string | null
           cab: string | null
           comments: string | null
           created_at: string
@@ -141,6 +142,7 @@ export type Database = {
         Insert: {
           address?: string | null
           area: string
+          building_id_hemd?: string | null
           cab?: string | null
           comments?: string | null
           created_at?: string
@@ -165,6 +167,7 @@ export type Database = {
         Update: {
           address?: string | null
           area?: string
+          building_id_hemd?: string | null
           cab?: string | null
           comments?: string | null
           created_at?: string
