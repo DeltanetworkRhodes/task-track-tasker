@@ -78,13 +78,22 @@ Deno.serve(async (req) => {
     const sr_id = survey.sr_id;
     const area = survey.area;
 
-    // Get assignment info (including Drive folder URL)
+    // Get assignment info
     const { data: assignment } = await adminClient
-      .from("assignments").select("customer_name, address, cab, drive_folder_url").eq("sr_id", sr_id).maybeSingle();
+      .from("assignments").select("customer_name, address, cab").eq("sr_id", sr_id).maybeSingle();
     const customerName = assignment?.customer_name || "";
     const address = assignment?.address || "";
     const cab = assignment?.cab || "";
-    const driveFolderUrl = assignment?.drive_folder_url || "";
+
+    // Check if ZIP exists in storage and create signed URL
+    const safeSrId = sr_id.replace(/[^a-zA-Z0-9_-]/g, "_");
+    const zipStoragePath = `surveys/${safeSrId}/Autopsía_${safeSrId}.zip`;
+    let zipDownloadUrl = "";
+    
+    const { data: signedData } = await adminClient.storage
+      .from("photos")
+      .createSignedUrl(zipStoragePath, 7 * 24 * 60 * 60);
+    zipDownloadUrl = signedData?.signedUrl || "";
 
     const isComplete = survey.status === "ΠΡΟΔΕΣΜΕΥΣΗ ΥΛΙΚΩΝ";
     const statusLabel = isComplete ? "ΠΡΟΔΕΣΜΕΥΣΗ ΥΛΙΚΩΝ" : "ΕΛΛΙΠΗΣ ΑΥΤΟΨΙΑ";
