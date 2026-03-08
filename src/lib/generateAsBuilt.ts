@@ -164,7 +164,7 @@ async function fetchAsBuiltData(srId: string): Promise<AsBuiltData> {
 
   return {
     srId: assignment.sr_id,
-    buildingId: gisData?.building_id || "",
+    buildingId: (assignment as any).building_id_hemd || gisData?.building_id || "",
     areaType: gisData?.area_type || "",
     floors: gisData?.floors || 0,
     customerFloor: gisData?.customer_floor || "",
