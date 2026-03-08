@@ -428,8 +428,8 @@ export async function generateAsBuiltFromData(data: AsBuiltData): Promise<AsBuil
   if (orofoiSheet) fillOrofoiSheet(orofoiSheet, data);
   if (optPathSheet) fillOpticalPathsSheet(optPathSheet, data);
   if (ergasiesSheet) fillErgasiesSheet(ergasiesSheet, data);
-  if (labelsBepSheet) fillLabelsSheet(labelsBepSheet, data, ["BEP-BMO", "BEP", "CAB-BEP"]);
-  if (labelsBmoSheet) fillLabelsSheet(labelsBmoSheet, data, ["BMO-FB", "BEP-BMO"]);
+  if (labelsBepSheet) fillLabelsBepSheet(labelsBepSheet, data);
+  if (labelsBmoSheet) fillLabelsBmoSheet(labelsBmoSheet, data);
 
   // Fill main Επιμέτρηση sheet
   if (epimetrisiSheet) {
