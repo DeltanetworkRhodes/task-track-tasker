@@ -106,7 +106,7 @@ const Index = () => {
 
   const activeAssignments = assignments.filter(a => a.status !== 'completed' && a.status !== 'cancelled').length;
   const completedAssignments = assignments.filter(a => a.status === 'completed').length;
-  const waitingOte = assignments.filter(a => a.status === 'waiting_ote').length;
+  
   const totalRevenue = constructions.reduce((sum, c) => sum + c.revenue, 0);
   const totalProfit = constructions.reduce((sum, c) => sum + c.profit, 0);
   const activeConstructions = constructions.filter(c => c.status === 'in_progress').length;
