@@ -4,7 +4,7 @@ export interface Assignment {
   id: string;
   srId: string;
   area: string;
-  status: 'pending' | 'inspection' | 'pre_committed' | 'waiting_ote' | 'construction' | 'completed';
+  status: 'pending' | 'inspection' | 'pre_committed' | 'construction' | 'completed';
   technician: string;
   date: string;
   comments: string;
