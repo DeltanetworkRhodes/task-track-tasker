@@ -38,11 +38,13 @@ const DocumentGenerator = () => {
   const handleGenerate = async (srId: string) => {
     setGeneratingId(srId);
     try {
-      await generateAsBuilt(srId);
+      const result = await generateAsBuilt(srId);
+      if (result.warnings.length > 0) {
+        result.warnings.forEach(w => toast.warning(w));
+      }
       toast.success(`AS-BUILD για ${srId} δημιουργήθηκε επιτυχώς!`);
     } catch (err: any) {
       toast.error(err.message || "Σφάλμα κατά τη δημιουργία του AS-BUILD");
-      console.error("AS-BUILD generation error:", err);
     } finally {
       setGeneratingId(null);
     }
