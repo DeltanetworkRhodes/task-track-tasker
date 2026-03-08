@@ -82,7 +82,8 @@ const IncompleteSurveys = ({ filterSrId }: { filterSrId?: string }) => {
   const handleFiles = async (
     surveyId: string,
     fileType: string,
-    files: FileList | null
+    files: FileList | null,
+    srId?: string
   ) => {
     if (!files) return;
     const key = `${surveyId}_${fileType}`;
@@ -95,7 +96,27 @@ const IncompleteSurveys = ({ filterSrId }: { filterSrId?: string }) => {
     if (isImageType && rawFiles.some(f => f.type.startsWith("image/"))) {
       setCompressing(prev => ({ ...prev, [key]: true }));
       const originalSize = rawFiles.reduce((sum, f) => sum + f.size, 0);
-      const compressed = await compressImages(rawFiles);
+      let compressed = await compressImages(rawFiles);
+
+      // Apply watermark if we have SR context
+      if (srId) {
+        // Fetch assignment data for address/GPS
+        const { data: assignmentData } = await supabase
+          .from("assignments")
+          .select("address, latitude, longitude")
+          .eq("sr_id", srId)
+          .maybeSingle();
+
+        const wmData: WatermarkData = {
+          srId,
+          address: assignmentData?.address || undefined,
+          latitude: assignmentData?.latitude,
+          longitude: assignmentData?.longitude,
+          datetime: new Date(),
+        };
+        compressed = await applyWatermarkBatch(compressed, wmData);
+      }
+
       const compressedSize = compressed.reduce((sum, f) => sum + f.size, 0);
       
       setCompressionStats(prev => ({
