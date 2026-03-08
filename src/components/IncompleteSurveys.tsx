@@ -77,8 +77,6 @@ const IncompleteSurveys = ({ filterSrId }: { filterSrId?: string }) => {
 
   const isIncomplete = (survey: any) => survey.status === "ΕΛΛΙΠΗΣ ΑΥΤΟΨΙΑ";
 
-  const [compressing, setCompressing] = useState<Record<string, boolean>>({});
-  const [compressionStats, setCompressionStats] = useState<Record<string, { original: number; compressed: number }>>({});
 
   const handleFiles = async (
     surveyId: string,
