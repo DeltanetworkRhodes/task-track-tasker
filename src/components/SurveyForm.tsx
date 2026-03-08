@@ -187,8 +187,11 @@ const SurveyForm = ({ assignments, prefillSrId, prefillArea, onComplete }: Props
         }
       }
 
-      // Background processing is triggered automatically via database webhook
-      // No need to wait for ZIP/Drive/Email — it happens asynchronously
+      // Fire-and-forget: trigger background processing (ZIP, Drive, Email)
+      // Don't await — let it run in background without blocking the UI
+      supabase.functions.invoke("process-survey-completion", {
+        body: { survey_id: survey.id, sr_id: srId.trim(), area },
+      }).catch((err) => console.error("Background processing trigger error:", err));
 
       // Cleanup previews
       [...buildingPhotos, ...screenshots].forEach((f) =>
