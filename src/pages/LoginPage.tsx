@@ -197,8 +197,19 @@ const LoginPage = () => {
                 </form>
               }
 
-              {/* Mode toggle */}
+              {/* Demo button */}
               <div className="mt-6 pt-6 border-t border-[hsl(215,18%,20%)]">
+                <button
+                  onClick={() => { enterDemo(); navigate("/demo"); }}
+                  className="flex w-full items-center justify-center gap-2.5 rounded-xl border-2 border-dashed border-[hsl(45,90%,50%)]/40 bg-[hsl(45,90%,50%)]/5 px-4 py-3 text-sm font-bold text-[hsl(45,90%,60%)] hover:bg-[hsl(45,90%,50%)]/10 hover:border-[hsl(45,90%,50%)]/60 transition-all"
+                >
+                  <Play className="h-4 w-4" />
+                  Δοκιμαστική Λειτουργία
+                </button>
+              </div>
+
+              {/* Mode toggle */}
+              <div className="mt-4 pt-4 border-t border-[hsl(215,18%,20%)]">
                 <p className="text-center text-xs text-[hsl(210,14%,55%)]">
                   {mode === "forgot" && !forgotSent ?
                   <button onClick={() => {setMode("login");setError("");}} className="text-[hsl(185,70%,50%)] font-semibold hover:underline flex items-center gap-1.5 mx-auto">
