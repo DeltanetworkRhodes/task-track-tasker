@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { LogOut, ClipboardList, MapPin } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { LogOut, ClipboardList, MapPin, Search, X } from "lucide-react";
 import NotificationBell from "@/components/NotificationBell";
 import TechnicianAssignments from "@/components/TechnicianAssignments";
 import TechnicianMap from "@/components/TechnicianMap";
