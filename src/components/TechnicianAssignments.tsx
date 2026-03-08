@@ -269,6 +269,7 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
     }
   };
 
+  const handleSurveyComplete = () => {
     setShowSurveyForm(false);
     setSelectedAssignment(null);
     queryClient.invalidateQueries({ queryKey: ["technician-assignments"] });
