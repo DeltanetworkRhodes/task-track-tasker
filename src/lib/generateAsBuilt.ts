@@ -288,9 +288,28 @@ function fillErgasiesSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
    Dynamic optical path generation
    ──────────────────────────────────────────── */
 
-function fillLabelsSheet(ws: ExcelJS.Worksheet, d: AsBuiltData, filterTypes: string[]) {
-  const filtered = d.opticalPaths.filter(op => filterTypes.includes(op.type));
-  filtered.forEach((op, idx) => {
+function fillLabelsBepSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
+  // Fill 12 rows for ports 1-12
+  // Use BEP-BMO and BEP paths first, then fill remaining with "χωρίς ports"
+  const bepPaths = d.opticalPaths.filter(op => op.type === "BEP-BMO" || op.type === "BEP");
+  for (let port = 0; port < 12; port++) {
+    const r = 2 + port;
+    if (port < bepPaths.length) {
+      ws.getCell(r, 1).value = bepPaths[port].path;
+    } else {
+      ws.getCell(r, 1).value = "χωρίς ports";
+    }
+  }
+  // Also add CAB-BEP paths below
+  const cabBepPaths = d.opticalPaths.filter(op => op.type === "CAB-BEP");
+  cabBepPaths.forEach((op, idx) => {
+    ws.getCell(14 + idx, 1).value = op.path;
+  });
+}
+
+function fillLabelsBmoSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
+  const bmoPaths = d.opticalPaths.filter(op => op.type === "BMO-FB" || op.type === "BEP-BMO");
+  bmoPaths.forEach((op, idx) => {
     ws.getCell(2 + idx, 1).value = op.path;
   });
 }
@@ -409,8 +428,8 @@ export async function generateAsBuiltFromData(data: AsBuiltData): Promise<AsBuil
   if (orofoiSheet) fillOrofoiSheet(orofoiSheet, data);
   if (optPathSheet) fillOpticalPathsSheet(optPathSheet, data);
   if (ergasiesSheet) fillErgasiesSheet(ergasiesSheet, data);
-  if (labelsBepSheet) fillLabelsSheet(labelsBepSheet, data, ["BEP-BMO", "BEP", "CAB-BEP"]);
-  if (labelsBmoSheet) fillLabelsSheet(labelsBmoSheet, data, ["BMO-FB", "BEP-BMO"]);
+  if (labelsBepSheet) fillLabelsBepSheet(labelsBepSheet, data);
+  if (labelsBmoSheet) fillLabelsBmoSheet(labelsBmoSheet, data);
 
   // Fill main Επιμέτρηση sheet
   if (epimetrisiSheet) {
@@ -459,32 +478,142 @@ export async function generateAsBuiltFromData(data: AsBuiltData): Promise<AsBuil
    Mock Data for Testing
    ──────────────────────────────────────────── */
 
-export function getMockAsBuiltData(): AsBuiltData {
-  return {
-    srId: "2-334066371997",
-    buildingId: "667102934",
-    areaType: "OTE",
-    floors: 4,
-    customerFloor: "+01",
-    bepFloor: "+00",
-    adminSignature: true,
-    bepOnly: false,
-    bepTemplate: "BEP 1SP 1:8(01..12) ΚΔ",
-    bepType: "MEDIUM/12/ZTT (01..12)",
-    bmoType: "SMALL/16/RAYCAP",
-    nanotronix: false,
-    smartReadiness: true,
-    associatedBcp: "",
-    nearbyBcp: "",
-    newBcp: "",
-    conduit: "b04",
-    distanceFromCabinet: 134,
-    latitude: 37939475,
-    longitude: 23743480,
-    notes: "",
-    warning: "",
-    failure: "",
-    address: "ΑΓΙΟΥ ΚΩΝΣΤΑΝΤΙΝΟΥ 58",
+export function getMockAsBuiltData() {
+  return getDemoAsBuiltData("2-334066371997");
+}
+
+/* ────────────────────────────────────────────
+   Demo Data - Isolated per SR
+   ──────────────────────────────────────────── */
+
+interface DemoSRMap {
+  [key: string]: {
+    srId: string; buildingId: string; areaType: string; floors: number;
+    customerFloor: string; bepFloor: string; adminSignature: boolean; bepOnly: boolean;
+    bepTemplate: string; bepType: string; bmoType: string; nanotronix: boolean;
+    smartReadiness: boolean; associatedBcp: string; nearbyBcp: string; newBcp: string;
+    conduit: string; distanceFromCabinet: number; latitude: number; longitude: number;
+    notes: string; warning: string; failure: string; address: string;
+    floorDetails: FloorBox[]; opticalPaths: OpticalPathEntry[]; works: ConstructionWork[];
+    sketchImageUrl: string | null; isNewInfrastructure: boolean; trenchLengthM: number; cabId: string;
+  };
+}
+
+function generateDemoBepLabels(conduit: string, floorCount: number): OpticalPathEntry[] {
+  const paths: OpticalPathEntry[] = [];
+  const bmoIndexMap = [1, 2, 5, 7, 9, 10, 13, 15];
+  
+  for (let port = 1; port <= 12; port++) {
+    const padPort = String(port).padStart(2, "0");
+    const wireIdx = port + 4;
+    if (port <= floorCount && port <= bmoIndexMap.length) {
+      const bmoId = String(bmoIndexMap[port - 1]).padStart(2, "0");
+      paths.push({
+        type: "BEP-BMO",
+        path: `BEP01(${conduit})_SB01(1:8).${padPort}_${wireIdx}a_BMO01_${bmoId}a`,
+      });
+    } else {
+      paths.push({
+        type: "BEP",
+        path: `BEP01(${conduit})_SB01(1:8).${padPort}_${wireIdx}a`,
+      });
+    }
+  }
+
+  let bmoPortCounter = 1;
+  for (let floor = 0; floor < floorCount; floor++) {
+    const floorStr = `+${String(floor).padStart(2, "0")}`;
+    for (let fb = 1; fb <= 2; fb++) {
+      const bmoIdx = String(bmoPortCounter).padStart(2, "0");
+      paths.push({
+        type: "BMO-FB",
+        path: `BMO01_${bmoIdx}a_FB(${floorStr}).1_${String(fb).padStart(2, "0")}`,
+      });
+      bmoPortCounter++;
+    }
+  }
+
+  paths.push({ type: "CAB-BEP", path: `G479_SGB03(1:8).02_141_BEP01(${conduit})_01_SB01(1:8)` });
+  paths.push({ type: "CAB-BEP", path: `G479_142_BEP01(${conduit})_02` });
+  paths.push({ type: "CAB-BEP", path: `G479_143_BEP01(${conduit})_03` });
+
+  return paths;
+}
+
+const DEMO_SR_DATA: DemoSRMap = {
+  "SR-DEMO-01": {
+    srId: "SR-DEMO-01", buildingId: "BLD-ROD-042", areaType: "OTE", floors: 3,
+    customerFloor: "+02", bepFloor: "+00", adminSignature: false, bepOnly: false,
+    bepTemplate: "BEP 1SP 1:8(01..12) ΚΔ", bepType: "MEDIUM/12/ZTT (01..12)",
+    bmoType: "SMALL/16/RAYCAP", nanotronix: false, smartReadiness: false,
+    associatedBcp: "", nearbyBcp: "", newBcp: "", conduit: "a15",
+    distanceFromCabinet: 95, latitude: 36.4345, longitude: 28.2176,
+    notes: "", warning: "", failure: "", address: "Λεωφ. Ελευθερίας 42",
+    floorDetails: [
+      { floor: "+00", apartments: 1, shops: 1, fb_count: 1, fb_type: "FB 4 PORTS", fb_id: "FB(+00).1", meters: 8, pipe_type: '4"' },
+      { floor: "+01", apartments: 2, shops: 0, fb_count: 1, fb_type: "FB 4 PORTS", fb_id: "FB(+01).1", meters: 15, pipe_type: '2"' },
+      { floor: "+02", apartments: 1, shops: 0, fb_count: 1, fb_type: "FB 4 PORTS", fb_id: "FB(+02).1", fb_customer: "FB(+02).1", customer_space: "Α1", meters: 20, pipe_type: '2"' },
+    ],
+    opticalPaths: generateDemoBepLabels("a15", 3),
+    works: [
+      { type: "Α", description: "Τοποθέτηση ενός Floor Box ανά Όροφο", quantity: 3 },
+      { type: "Α", description: "Υλοποίηση Υποδομής Εισαγωγής", quantity: 1, floor: "+00" },
+    ],
+    sketchImageUrl: null, isNewInfrastructure: false, trenchLengthM: 0, cabId: "CAB-045",
+  },
+  "SR-DEMO-02": {
+    srId: "SR-DEMO-02", buildingId: "BLD-IAL-015", areaType: "OTE", floors: 5,
+    customerFloor: "+03", bepFloor: "+00", adminSignature: true, bepOnly: false,
+    bepTemplate: "BEP 1SP 1:8(01..12) ΚΔ", bepType: "MEDIUM/12/ZTT (01..12)",
+    bmoType: "SMALL/16/RAYCAP", nanotronix: false, smartReadiness: true,
+    associatedBcp: "", nearbyBcp: "", newBcp: "", conduit: "b04",
+    distanceFromCabinet: 320, latitude: 36.4112, longitude: 28.1543,
+    notes: "", warning: "", failure: "", address: "Οδός Ηρώων 15",
+    floorDetails: [
+      { floor: "+00", apartments: 0, shops: 2, fb_count: 2, fb_type: "FB 4 PORTS", fb_id: "FB(+00).1", meters: 10, pipe_type: '4"' },
+      { floor: "+01", apartments: 2, shops: 0, fb_count: 1, fb_type: "FB 4 PORTS", fb_id: "FB(+01).1", meters: 18, pipe_type: '2"' },
+      { floor: "+02", apartments: 2, shops: 0, fb_count: 1, fb_type: "FB 4 PORTS", fb_id: "FB(+02).1", meters: 22, pipe_type: '2"' },
+      { floor: "+03", apartments: 2, shops: 0, fb_count: 1, fb_type: "FB 4 PORTS", fb_id: "FB(+03).1", fb_customer: "FB(+03).1", customer_space: "Β2", meters: 26, pipe_type: '2"' },
+      { floor: "+04", apartments: 1, shops: 0, fb_count: 1, fb_type: "FB 4 PORTS", fb_id: "FB(+04).1", meters: 30, pipe_type: '2"' },
+    ],
+    opticalPaths: generateDemoBepLabels("b04", 5),
+    works: [
+      { type: "Α", description: "Εγκατάσταση BEP", quantity: 1, floor: "+00" },
+      { type: "Α", description: "Τοποθέτηση ενός Floor Box ανά Όροφο", quantity: 5 },
+      { type: "Β", description: "Πόρτα-πόρτα", quantity: 8 },
+    ],
+    sketchImageUrl: null, isNewInfrastructure: true, trenchLengthM: 45, cabId: "CAB-112",
+  },
+  "SR-DEMO-03": {
+    srId: "SR-DEMO-03", buildingId: "BLD-FAL-008", areaType: "OTE", floors: 4,
+    customerFloor: "+01", bepFloor: "+00", adminSignature: true, bepOnly: false,
+    bepTemplate: "BEP 1SP 1:8(01..12) ΚΔ", bepType: "MEDIUM/12/ZTT (01..12)",
+    bmoType: "SMALL/16/RAYCAP", nanotronix: false, smartReadiness: false,
+    associatedBcp: "", nearbyBcp: "", newBcp: "", conduit: "c12",
+    distanceFromCabinet: 180, latitude: 36.3876, longitude: 28.2098,
+    notes: "", warning: "", failure: "", address: "Πλατεία Αγίας Παρασκευής 8",
+    floorDetails: [
+      { floor: "+00", apartments: 1, shops: 0, fb_count: 1, fb_type: "FB 4 PORTS", fb_id: "FB(+00).1", meters: 6, pipe_type: '4"' },
+      { floor: "+01", apartments: 2, shops: 0, fb_count: 1, fb_type: "FB 4 PORTS", fb_id: "FB(+01).1", fb_customer: "FB(+01).1", customer_space: "Α1", meters: 14, pipe_type: '2"' },
+      { floor: "+02", apartments: 2, shops: 0, fb_count: 1, fb_type: "FB 4 PORTS", fb_id: "FB(+02).1", meters: 18, pipe_type: '2"' },
+      { floor: "+03", apartments: 1, shops: 0, fb_count: 1, fb_type: "FB 4 PORTS", fb_id: "FB(+03).1", meters: 22, pipe_type: '2"' },
+    ],
+    opticalPaths: generateDemoBepLabels("c12", 4),
+    works: [
+      { type: "Α", description: "Εγκατάσταση BEP", quantity: 1, floor: "+00" },
+      { type: "Α", description: "Τοποθέτηση ενός Floor Box ανά Όροφο", quantity: 4 },
+      { type: "Β", description: "Πόρτα-πόρτα", quantity: 6 },
+    ],
+    sketchImageUrl: null, isNewInfrastructure: false, trenchLengthM: 0, cabId: "CAB-089",
+  },
+  "2-334066371997": {
+    srId: "2-334066371997", buildingId: "667102934", areaType: "OTE", floors: 4,
+    customerFloor: "+01", bepFloor: "+00", adminSignature: true, bepOnly: false,
+    bepTemplate: "BEP 1SP 1:8(01..12) ΚΔ", bepType: "MEDIUM/12/ZTT (01..12)",
+    bmoType: "SMALL/16/RAYCAP", nanotronix: false, smartReadiness: true,
+    associatedBcp: "", nearbyBcp: "", newBcp: "", conduit: "b04",
+    distanceFromCabinet: 134, latitude: 37939475, longitude: 23743480,
+    notes: "", warning: "", failure: "", address: "ΑΓΙΟΥ ΚΩΝΣΤΑΝΤΙΝΟΥ 58",
     floorDetails: [
       { floor: "+00", apartments: 1, shops: 1, fb_count: 2, fb_type: "FB 4 PORTS", fb_id: "FB(+00).1", customer_space: "", meters: 10, pipe_type: '4"' },
       { floor: "+01", apartments: 1, shops: 0, fb_count: 1, fb_type: "FB 4 PORTS", fb_id: "FB(+01).1", fb_customer: "FB(+01).1", customer_space: "Α1", meters: 23, pipe_type: '2"' },
@@ -520,9 +649,14 @@ export function getMockAsBuiltData(): AsBuiltData {
       { type: "Α", description: "Υλοποίηση Υποδομής Εισαγωγής και Τοποθέτηση Κεντρικού Κατανεμητή", quantity: 1, floor: "+00" },
       { type: "Β", description: "Διασύνδεση των μετρητών κατανάλωσης ρεύματος", quantity: 1, floor: "+00" },
     ],
-    sketchImageUrl: null,
-    isNewInfrastructure: true,
-    trenchLengthM: 156,
-    cabId: "G526",
-  };
+    sketchImageUrl: null, isNewInfrastructure: true, trenchLengthM: 156, cabId: "G526",
+  },
+};
+
+export function getDemoAsBuiltData(srId: string) {
+  const data = DEMO_SR_DATA[srId];
+  if (data) return { ...data };
+  const fallback = { ...DEMO_SR_DATA["2-334066371997"] };
+  fallback.srId = srId;
+  return fallback;
 }
