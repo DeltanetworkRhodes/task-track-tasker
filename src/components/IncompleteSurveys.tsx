@@ -518,25 +518,43 @@ const IncompleteSurveys = ({ filterSrId }: { filterSrId?: string }) => {
                         ↑ {mt.label}
                       </Label>
 
-                      {files.length > 0 && (
-                        <div className="grid grid-cols-4 gap-2">
-                          {files.map((f, i) => (
-                            <div key={i} className="relative group">
-                              <img
-                                src={f.preview}
-                                alt={f.file.name}
-                                className="h-16 w-full object-cover rounded-lg border border-border"
-                              />
-                              <button
-                                type="button"
-                                onClick={() => removeFile(survey.id, mt.key, i)}
-                                className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                              >
-                                <X className="h-3 w-3" />
-                              </button>
-                            </div>
-                          ))}
+                      {compressing[key] && (
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                          Συμπίεση φωτογραφιών...
                         </div>
+                      )}
+
+                      {files.length > 0 && (
+                        <>
+                          <div className="grid grid-cols-4 gap-2">
+                            {files.map((f, i) => (
+                              <div key={i} className="relative group">
+                                <img
+                                  src={f.preview}
+                                  alt={f.file.name}
+                                  className="h-16 w-full object-cover rounded-lg border border-border"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => removeFile(survey.id, mt.key, i)}
+                                  className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                                >
+                                  <X className="h-3 w-3" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                          {compressionStats[key] && (
+                            <div className="flex items-center gap-1.5 text-[10px] text-accent">
+                              <Shrink className="h-3 w-3" />
+                              <span>
+                                {formatFileSize(compressionStats[key].original)} → {formatFileSize(compressionStats[key].compressed)}
+                                {" "}({Math.round((1 - compressionStats[key].compressed / compressionStats[key].original) * 100)}% μείωση)
+                              </span>
+                            </div>
+                          )}
+                        </>
                       )}
 
                       <div className="flex gap-2">
