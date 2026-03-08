@@ -663,6 +663,8 @@ Deno.serve(async (req) => {
 
         const emailFrom = emailSettingsMap["email_from"] || "noreply@deltanetwork.gr";
         const emailReplyTo = emailSettingsMap["email_reply_to"] || "info@deltanetwork.gr";
+        const emailSenderName = emailSettingsMap["email_sender_name"] || "DeltaNet FTTH";
+        const emailSignature = emailSettingsMap["email_signature"] || DEFAULT_SIGNATURE;
         const surveyComments = survey?.comments || "";
 
         // Determine if we show Drive fallback or ZIP info
