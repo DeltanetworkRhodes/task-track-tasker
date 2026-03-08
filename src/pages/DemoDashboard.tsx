@@ -9,6 +9,7 @@ import {
   DemoWorkPricingPanel, DemoProfitPanel, DemoKPIsPanel, DemoSurveysPanel,
   DemoCalendarPanel, DemoUsersPanel, DemoSettingsPanel
 } from "@/components/demo/DemoSectionPanels";
+import DemoDocumentsPanel from "@/components/demo/DemoDocumentsPanel";
 import TechnicianAssignments from "@/components/TechnicianAssignments";
 import StatCard from "@/components/StatCard";
 import { statusLabels } from "@/data/mockData";
