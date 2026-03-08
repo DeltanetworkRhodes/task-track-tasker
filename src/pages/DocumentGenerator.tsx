@@ -5,9 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { FileSpreadsheet, Download, Search, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
+import { FileSpreadsheet, Download, Search, CheckCircle2, AlertCircle, Loader2, FlaskConical } from "lucide-react";
 import { useAssignments, useConstructions } from "@/hooks/useData";
-import { generateAsBuilt } from "@/lib/generateAsBuilt";
+import { generateAsBuilt, generateAsBuiltFromData, getMockAsBuiltData } from "@/lib/generateAsBuilt";
 import { toast } from "sonner";
 
 const DocumentGenerator = () => {
@@ -16,9 +16,7 @@ const DocumentGenerator = () => {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [generatingId, setGeneratingId] = useState<string | null>(null);
-
-  // Only show assignments that have constructions (completed or in_progress)
-  const constructionSrIds = new Set(constructions?.map(c => c.sr_id) || []);
+  const [testGenerating, setTestGenerating] = useState(false);
 
   const filteredAssignments = (assignments || []).filter(a => {
     const matchesSearch = !search || 
@@ -50,10 +48,22 @@ const DocumentGenerator = () => {
     }
   };
 
+  const handleTestGenerate = async () => {
+    setTestGenerating(true);
+    try {
+      const mockData = getMockAsBuiltData();
+      await generateAsBuiltFromData(mockData);
+      toast.success("Test AS-BUILD δημιουργήθηκε με mock data!");
+    } catch (err: any) {
+      toast.error(err.message || "Σφάλμα κατά το test generation");
+      console.error("Test AS-BUILD error:", err);
+    } finally {
+      setTestGenerating(false);
+    }
+  };
+
   const getConstructionStatus = (srId: string) => {
-    const c = constructions?.find(x => x.sr_id === srId);
-    if (!c) return null;
-    return c.status;
+    return constructions?.find(x => x.sr_id === srId)?.status || null;
   };
 
   return (
@@ -70,6 +80,19 @@ const DocumentGenerator = () => {
               Εξαγωγή τελικών AS-BUILD Excel αρχείων ανά SR
             </p>
           </div>
+          <Button
+            variant="outline"
+            onClick={handleTestGenerate}
+            disabled={testGenerating}
+            className="shrink-0"
+          >
+            {testGenerating ? (
+              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+            ) : (
+              <FlaskConical className="h-4 w-4 mr-2" />
+            )}
+            Test AS-BUILD (Mock Data)
+          </Button>
         </div>
 
         {/* Filters */}
@@ -107,12 +130,12 @@ const DocumentGenerator = () => {
           <Card className="p-8 text-center text-muted-foreground">
             <FileSpreadsheet className="h-10 w-10 mx-auto mb-3 opacity-40" />
             <p className="text-sm">Δεν βρέθηκαν αναθέσεις</p>
+            <p className="text-xs mt-2">Χρησιμοποιήστε το κουμπί "Test AS-BUILD" για δοκιμαστική εξαγωγή με ψεύτικα δεδομένα</p>
           </Card>
         ) : (
           <div className="grid gap-3">
             {filteredAssignments.map(assignment => {
               const cStatus = getConstructionStatus(assignment.sr_id);
-              const isReady = cStatus === "completed";
               const isGenerating = generatingId === assignment.sr_id;
 
               return (
@@ -132,7 +155,7 @@ const DocumentGenerator = () => {
                         </Badge>
                       )}
                       {!cStatus && (
-                        <Badge variant="outline" className="bg-muted text-muted-foreground text-[10px]">
+                        <Badge variant="outline" className="text-[10px]">
                           <AlertCircle className="h-3 w-3 mr-1" />
                           Χωρίς κατασκευή
                         </Badge>
@@ -144,7 +167,7 @@ const DocumentGenerator = () => {
                   </div>
                   <Button
                     size="sm"
-                    variant={isReady ? "default" : "outline"}
+                    variant={cStatus === "completed" ? "default" : "outline"}
                     disabled={isGenerating || !cStatus}
                     onClick={() => handleGenerate(assignment.sr_id)}
                     className="shrink-0"
