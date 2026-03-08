@@ -170,7 +170,7 @@ const CreateAssignmentDialog = ({ open, onOpenChange }: Props) => {
               onChange={(addr) => update("address", addr)}
               onLocationSelect={(result) => {
                 update("address", result.address);
-                if (result.latitude) setLatLng({ lat: result.latitude, lng: result.longitude });
+                setLatLng({ lat: result.latitude, lng: result.longitude });
               }}
             />
           </div>
