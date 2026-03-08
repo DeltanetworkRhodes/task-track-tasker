@@ -159,12 +159,6 @@ const DocumentGenerator = () => {
                           Σε εξέλιξη
                         </Badge>
                       )}
-                      {!cStatus && (
-                        <Badge variant="outline" className="text-[10px]">
-                          <AlertCircle className="h-3 w-3 mr-1" />
-                          Χωρίς κατασκευή
-                        </Badge>
-                      )}
                     </div>
                     <p className="text-xs text-muted-foreground mt-0.5 truncate">
                       {assignment.area}{assignment.address ? ` • ${assignment.address}` : ""}
