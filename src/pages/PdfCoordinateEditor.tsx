@@ -66,7 +66,7 @@ const PREVIEW_SAMPLE_DATA: Record<string, any> = {
   declarant_postal_code: "105 63",
   cost_option: "ote_covers",
   declaration_date: "07/03/2026",
-  declaration_signature: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAAAUCAYAAAB7wJiVAAAAfklEQVRoge3QMQ0AIRAAwHLH/p0xcQEkzKDpi2Y2M/P2DvjxOwI2EoYShhKGEoYShhKGEoYShhKGEoYShhKGEoYShhKGEoYShhKGEoYShhKGEoYShhKGEoYShhKGEoYShhKGEoYShhKGEoYShhKGEoYShhKGEoYShhKGEv/fB7Z6BAX0nFGEAAAAAElFTkSuQmCC",
+  // declaration_signature handled by editor marker
   // Page 4 - Στοιχεία Κτιρίου / Εξοπλισμός
   building_address: "Λεωφ. Αλεξάνδρας 15, Αθήνα 114 73",
   building_id: "BLD-12345",
