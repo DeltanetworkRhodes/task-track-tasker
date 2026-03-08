@@ -408,16 +408,6 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
             <FileEdit className="h-4 w-4" />
             {existingSurvey ? "Συνέχεια Αυτοψίας" : "Έναρξη Αυτοψίας"}
           </Button>
-          {assignment.pdf_url && (
-            <Button
-              variant="outline"
-              className={btnClass}
-              onClick={() => window.open(assignment.pdf_url, "_blank")}
-            >
-              <Eye className="h-4 w-4" />
-              Προβολή Δελτίου
-            </Button>
-          )}
           {existingSurvey && (
             <div className="flex gap-2 w-full">
               <Button
