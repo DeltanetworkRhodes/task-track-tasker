@@ -256,6 +256,11 @@ const Surveys = () => {
   const totalIncomplete = (surveys || []).filter((s) => s.status === "ΕΛΛΙΠΗΣ ΑΥΤΟΨΙΑ").length;
   const totalBlockers = (surveys || []).filter((s) => s.status === "BLOCKER" || s.status === "ΑΠΑΙΤΕΙΤΑΙ ΕΝΕΡΓΕΙΑ").length;
   const totalAppointments = (surveys || []).filter((s) => s.status === "ΡΑΝΤΕΒΟΥ").length;
+  const totalEmailsSent = (surveys || []).filter((s) => s.email_sent).length;
+
+  // Assignment stats for pre_committed
+  const preCommittedCount = (dbAssignments || []).filter((a) => a.status === "pre_committed").length;
+  const waitingOteCount = (dbAssignments || []).filter((a) => a.status === "waiting_ote").length;
 
   // Status distribution chart
   const statusCounts = useMemo(() => {
