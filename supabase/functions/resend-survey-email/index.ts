@@ -168,10 +168,13 @@ Deno.serve(async (req) => {
             <p style="color: ${textSecondary}; font-size: 14px; margin: 0; line-height: 1.6;">${escapeHtml(surveyComments)}</p>
           </div>` : ""}
 
-          ${driveFolderUrl ? `
+          ${zipDownloadUrl ? `
           <div style="text-align: center; margin: 24px 0;">
-            <a href="${driveFolderUrl}" style="background: ${brandDark}; color: white; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-size: 14px; font-weight: 700; display: inline-block;">📂 Άνοιγμα Φακέλου Google Drive</a>
-          </div>` : ""}
+            <a href="${zipDownloadUrl}" style="background: ${brandDark}; color: white; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-size: 14px; font-weight: 700; display: inline-block;">📥 Λήψη Αρχείων (ZIP)</a>
+          </div>
+          <p style="color: ${textMuted}; font-size: 11px; text-align: center; margin-top: 4px;">
+            Ισχύει για 7 ημέρες
+          </p>` : ""}
           
           <p style="color: ${textSecondary}; font-size: 14px; line-height: 1.6; margin-top: 28px;">Με εκτίμηση,</p>
           
