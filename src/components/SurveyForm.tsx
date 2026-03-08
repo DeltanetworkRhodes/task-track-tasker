@@ -128,6 +128,30 @@ const SurveyForm = ({ assignments, prefillSrId, prefillArea, onComplete }: Props
         if (filesError) console.error("Files record error:", filesError);
       }
 
+      // Upload inspection PDF if provided
+      if (inspectionPdf) {
+        try {
+          const assignmentMatch = assignments?.find((a: any) => a.sr_id === srId.trim());
+          if (assignmentMatch) {
+            const pdfPath = `inspection-pdfs/${organizationId || "default"}/${srId.trim()}_${Date.now()}.pdf`;
+            const { error: pdfUploadErr } = await supabase.storage
+              .from("surveys")
+              .upload(pdfPath, inspectionPdf, { contentType: "application/pdf", upsert: true });
+            if (!pdfUploadErr) {
+              const { data: signedData } = await supabase.storage
+                .from("surveys")
+                .createSignedUrl(pdfPath, 60 * 60 * 24 * 365);
+              await supabase
+                .from("assignments")
+                .update({ pdf_url: signedData?.signedUrl || pdfPath })
+                .eq("id", assignmentMatch.id);
+            }
+          }
+        } catch (pdfErr) {
+          console.error("Inspection PDF upload error:", pdfErr);
+        }
+      }
+
       toast.success("Η αυτοψία υποβλήθηκε επιτυχώς!");
       setSubmitted(true);
 
