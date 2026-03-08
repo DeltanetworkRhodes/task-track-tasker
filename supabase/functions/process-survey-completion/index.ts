@@ -354,7 +354,7 @@ function getZipFolder(fileType: string): string {
   }
 }
 
-const MAX_ZIP_SIZE_FOR_EMAIL = 15 * 1024 * 1024; // 15MB safe limit to stay within Edge Function memory
+const MAX_ZIP_SIZE_FOR_EMAIL = 15 * 1024 * 1024; // kept for logging reference
 
 // ─── Main handler ────────────────────────────────────────────────────
 
