@@ -13,6 +13,7 @@ const TechnicianDashboard = () => {
   const { user, signOut } = useAuth();
   const [activeTab, setActiveTab] = useState("assignments");
   const [hideCancelled, setHideCancelled] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const { data: profile } = useQuery({
     queryKey: ["profile", user?.id],
