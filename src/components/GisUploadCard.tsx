@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
+import { useDemo } from "@/contexts/DemoContext";
 
 interface GisUploadCardProps {
   assignment: any;
@@ -18,6 +19,7 @@ const GisUploadCard = ({ assignment, hasExistingGis, onUploadSuccess, compact = 
   const [success, setSuccess] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
+  const { isDemo } = useDemo();
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
