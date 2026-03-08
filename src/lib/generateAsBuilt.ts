@@ -312,15 +312,21 @@ function fillLabelsSheet(sheet: ExcelJS.Worksheet, data: AsBuiltData, filterType
    Main AS-BUILD Generator
    ──────────────────────────────────────────── */
 
-export async function generateAsBuilt(srId: string): Promise<void> {
+export interface AsBuiltResult {
+  success: boolean;
+  warnings: string[];
+}
+
+export async function generateAsBuilt(srId: string): Promise<AsBuiltResult> {
   const data = await fetchAsBuiltData(srId);
-  await generateAsBuiltFromData(data);
+  return generateAsBuiltFromData(data);
 }
 
 /**
  * Generate from pre-built data (allows testing with mock data)
  */
-export async function generateAsBuiltFromData(data: AsBuiltData): Promise<void> {
+export async function generateAsBuiltFromData(data: AsBuiltData): Promise<AsBuiltResult> {
+  const warnings: string[] = [];
   // Load template
   const templateResp = await fetch("/templates/as_build_template.xlsx");
   if (!templateResp.ok) {
@@ -421,16 +427,35 @@ export async function generateAsBuiltFromData(data: AsBuiltData): Promise<void> 
     // ΝΕΑ ΣΩΛΗΝΩΣΗ
     epimetrisiSheet.getCell(measRow + 6, 22).value = data.trenchLengthM || "";
 
-    // Sketch image injection
+    // Sketch image injection – oneCell anchor at B46, max 800px width, keep aspect ratio
     if (data.sketchImageUrl) {
       const imgBuf = await fetchImageBuffer(data.sketchImageUrl);
       if (imgBuf) {
-        const imgId = workbook.addImage({ buffer: imgBuf, extension: "png" });
+        // Detect image dimensions to maintain aspect ratio
+        const MAX_WIDTH_PX = 800;
+        const MAX_HEIGHT_PX = 600;
+
+        // Determine extension from URL or default to png
+        const ext = data.sketchImageUrl.toLowerCase().includes(".jpg") ||
+          data.sketchImageUrl.toLowerCase().includes(".jpeg")
+          ? "jpeg" as const
+          : "png" as const;
+
+        const imgId = workbook.addImage({ buffer: imgBuf, extension: ext });
+
+        // Use oneCell anchor: image starts at B46 (col 1, row 45) with fixed pixel extents
+        // ExcelJS expects ext in EMUs (1px ≈ 9525 EMU) for oneCell anchor
+        const pxToEmu = 9525;
         epimetrisiSheet.addImage(imgId, {
-          tl: { col: 2, row: 82 } as any,
-          br: { col: 18, row: 100 } as any,
-        });
+          tl: { col: 1, row: 45 } as any,
+          ext: { width: MAX_WIDTH_PX * pxToEmu, height: MAX_HEIGHT_PX * pxToEmu },
+          editAs: "oneCell",
+        } as any);
+      } else {
+        warnings.push("Η εικόνα σκαριφήματος δεν μπόρεσε να φορτωθεί. Ο χώρος παραμένει κενός.");
       }
+    } else {
+      warnings.push("Δεν βρέθηκε εικόνα σκαριφήματος (sketch). Ο χώρος '6 ΟΡΙΖΟΝΤΟΓΡΑΦΙΑ' θα είναι κενός.");
     }
   }
 
@@ -447,6 +472,8 @@ export async function generateAsBuiltFromData(data: AsBuiltData): Promise<void> 
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
+
+  return { success: true, warnings };
 }
 
 /* ────────────────────────────────────────────
