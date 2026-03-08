@@ -36,23 +36,11 @@ Deno.serve(async (req) => {
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const resendApiKey = Deno.env.get("RESEND_API_KEY");
     if (!resendApiKey) {
       return new Response(JSON.stringify({ error: "RESEND_API_KEY not configured" }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
-
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -63,7 +51,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
     // Get survey
@@ -77,6 +64,7 @@ Deno.serve(async (req) => {
 
     const sr_id = survey.sr_id;
     const area = survey.area;
+    const orgId = survey.organization_id;
 
     // Get assignment info
     const { data: assignment } = await adminClient
@@ -85,11 +73,38 @@ Deno.serve(async (req) => {
     const address = assignment?.address || "";
     const cab = assignment?.cab || "";
 
-    // Check if ZIP exists in storage and create signed URL
+    // Get technician name
+    const { data: techProfile } = await adminClient
+      .from("profiles").select("full_name").eq("user_id", survey.technician_id).single();
+    const technicianName = techProfile?.full_name || "Τεχνικός";
+
+    // Get org email settings
+    const { data: orgSettings } = await adminClient
+      .from("org_settings")
+      .select("setting_key, setting_value")
+      .eq("organization_id", orgId);
+
+    const settingsMap: Record<string, string> = {};
+    (orgSettings || []).forEach((s: any) => {
+      settingsMap[s.setting_key] = s.setting_value;
+    });
+
+    const toEmails = settingsMap["report_to_emails"] || "";
+    const ccEmails = settingsMap["report_cc_emails"] || "";
+    const recipients = toEmails.split(",").map((e: string) => e.trim()).filter(Boolean);
+    const ccRecipients = ccEmails.split(",").map((e: string) => e.trim()).filter(Boolean);
+
+    if (recipients.length === 0) {
+      return new Response(JSON.stringify({ error: "No recipients configured" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Create signed URL for ZIP
     const safeSrId = sr_id.replace(/[^a-zA-Z0-9_-]/g, "_");
     const zipStoragePath = `surveys/${safeSrId}/Autopsia_${safeSrId}.zip`;
     let zipDownloadUrl = "";
-    
+
     const { data: signedData } = await adminClient.storage
       .from("photos")
       .createSignedUrl(zipStoragePath, 7 * 24 * 60 * 60);
@@ -100,9 +115,8 @@ Deno.serve(async (req) => {
     const headerIcon = isComplete ? "📋" : "⚠️";
 
     const brandTeal = "#1a9a8a";
-    const brandGreen = "#2d8a4e";
     const brandDark = "#1a2332";
-    const headerBg = isComplete ? `linear-gradient(135deg, ${brandTeal}, ${brandGreen})` : "linear-gradient(135deg, #ea580c, #dc2626)";
+    const headerBg = isComplete ? `linear-gradient(135deg, ${brandTeal}, #2d8a4e)` : "linear-gradient(135deg, #ea580c, #dc2626)";
     const textPrimary = "#1a2332";
     const textSecondary = "#4a5568";
     const textMuted = "#718096";
@@ -211,7 +225,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    console.log(`Email sent for SR: ${sr_id} to: ${recipients.join(", ")}`);
+    console.log(`Email resent for SR: ${sr_id} to: ${recipients.join(", ")} (download: ${!!zipDownloadUrl})`);
 
     await adminClient.from("surveys").update({ email_sent: true }).eq("id", survey_id);
 
