@@ -4,10 +4,22 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { LogOut, ClipboardList, MapPin, Search, X } from "lucide-react";
 import NotificationBell from "@/components/NotificationBell";
 import TechnicianAssignments from "@/components/TechnicianAssignments";
 import TechnicianMap from "@/components/TechnicianMap";
+
+const statusFilters = [
+  { value: "all", label: "Όλα" },
+  { value: "pending", label: "Αναμονή", color: "bg-yellow-500/10 text-yellow-600 border-yellow-500/20" },
+  { value: "inspection", label: "Αυτοψία", color: "bg-orange-500/10 text-orange-600 border-orange-500/20" },
+  { value: "pre_committed", label: "Προδέσμευση", color: "bg-blue-500/10 text-blue-600 border-blue-500/20" },
+  { value: "construction", label: "Κατασκευή", color: "bg-purple-500/10 text-purple-600 border-purple-500/20" },
+  { value: "completed", label: "Ολοκληρώθηκε", color: "bg-green-500/10 text-green-600 border-green-500/20" },
+  { value: "cancelled", label: "Ακυρωμένο", color: "bg-red-500/10 text-red-600 border-red-500/20" },
+];
 
 const TechnicianDashboard = () => {
   const { user, signOut } = useAuth();
