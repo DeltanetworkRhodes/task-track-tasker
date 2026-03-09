@@ -26,6 +26,7 @@ const TechnicianDashboard = () => {
   const [activeTab, setActiveTab] = useState("assignments");
   const [hideCancelled, setHideCancelled] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
 
   const { data: profile } = useQuery({
     queryKey: ["profile", user?.id],
