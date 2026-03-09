@@ -145,21 +145,56 @@ const TechnicianDashboard = () => {
             )}
           </div>
 
+          {/* Status Filter Chips */}
+          <ScrollArea className="w-full mb-3">
+            <div className="flex gap-2 pb-2">
+              {statusFilters
+                .filter(s => s.value === "all" || statusFilter === s.value || (statusCounts[s.value] || 0) > 0)
+                .map(s => {
+                  const isActive = statusFilter === s.value;
+                  const count = statusCounts[s.value] || 0;
+                  return (
+                    <button
+                      key={s.value}
+                      onClick={() => setStatusFilter(s.value)}
+                      className={`flex-shrink-0 inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-all ${
+                        isActive
+                          ? s.value === "all"
+                            ? "bg-primary text-primary-foreground border-primary"
+                            : s.color + " border-current font-bold ring-1 ring-current/30"
+                          : "bg-muted/50 text-muted-foreground border-border hover:bg-muted"
+                      }`}
+                    >
+                      {s.label}
+                      <span className={`text-[10px] rounded-full px-1.5 py-0.5 min-w-[18px] text-center ${
+                        isActive ? "bg-background/20" : "bg-muted-foreground/10"
+                      }`}>
+                        {count}
+                      </span>
+                    </button>
+                  );
+                })}
+            </div>
+            <ScrollBar orientation="horizontal" />
+          </ScrollArea>
+
           <div className="flex items-center justify-between mb-3">
             {searchQuery && (
               <span className="text-xs text-muted-foreground">
                 {filteredAssignments.length} αποτέλεσμα{filteredAssignments.length !== 1 ? "τα" : ""}
               </span>
             )}
-            <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer ml-auto">
-              <input
-                type="checkbox"
-                checked={hideCancelled}
-                onChange={(e) => setHideCancelled(e.target.checked)}
-                className="rounded border-border"
-              />
-              Απόκρυψη ακυρωμένων
-            </label>
+            {statusFilter === "all" && (
+              <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer ml-auto">
+                <input
+                  type="checkbox"
+                  checked={hideCancelled}
+                  onChange={(e) => setHideCancelled(e.target.checked)}
+                  className="rounded border-border"
+                />
+                Απόκρυψη ακυρωμένων
+              </label>
+            )}
           </div>
 
           {searchQuery && filteredAssignments.length === 0 && !isLoading ? (
