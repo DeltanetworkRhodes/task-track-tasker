@@ -56,7 +56,16 @@ const TechnicianDashboard = () => {
   });
 
   const filteredAssignments = useMemo(() => {
-    let list = (assignments || []).filter(a => hideCancelled ? a.status !== "cancelled" : true);
+    let list = (assignments || []);
+    
+    // Status filter
+    if (statusFilter !== "all") {
+      list = list.filter(a => a.status === statusFilter);
+    } else if (hideCancelled) {
+      list = list.filter(a => a.status !== "cancelled");
+    }
+    
+    // Search
     const q = searchQuery.trim().toLowerCase();
     if (q) {
       list = list.filter(a =>
@@ -67,7 +76,17 @@ const TechnicianDashboard = () => {
       );
     }
     return list;
-  }, [assignments, hideCancelled, searchQuery]);
+  }, [assignments, hideCancelled, searchQuery, statusFilter]);
+
+  // Count per status for chips
+  const statusCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    (assignments || []).forEach(a => {
+      counts[a.status] = (counts[a.status] || 0) + 1;
+    });
+    counts["all"] = (assignments || []).filter(a => hideCancelled ? a.status !== "cancelled" : true).length;
+    return counts;
+  }, [assignments, hideCancelled]);
 
   return (
     <div className="min-h-screen bg-background">
