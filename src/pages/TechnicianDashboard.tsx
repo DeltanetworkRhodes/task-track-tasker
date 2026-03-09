@@ -17,8 +17,6 @@ const statusFilters = [
   { value: "inspection", label: "Αυτοψία", color: "bg-orange-500/10 text-orange-600 border-orange-500/20" },
   { value: "pre_committed", label: "Προδέσμευση", color: "bg-blue-500/10 text-blue-600 border-blue-500/20" },
   { value: "construction", label: "Κατασκευή", color: "bg-purple-500/10 text-purple-600 border-purple-500/20" },
-  { value: "completed", label: "Ολοκληρώθηκε", color: "bg-green-500/10 text-green-600 border-green-500/20" },
-  { value: "cancelled", label: "Ακυρωμένο", color: "bg-red-500/10 text-red-600 border-red-500/20" },
 ];
 
 const TechnicianDashboard = () => {
