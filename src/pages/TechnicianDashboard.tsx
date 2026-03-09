@@ -17,8 +17,6 @@ const statusFilters = [
   { value: "inspection", label: "Αυτοψία", color: "bg-orange-500/10 text-orange-600 border-orange-500/20" },
   { value: "pre_committed", label: "Προδέσμευση", color: "bg-blue-500/10 text-blue-600 border-blue-500/20" },
   { value: "construction", label: "Κατασκευή", color: "bg-purple-500/10 text-purple-600 border-purple-500/20" },
-  { value: "completed", label: "Ολοκληρώθηκε", color: "bg-green-500/10 text-green-600 border-green-500/20" },
-  { value: "cancelled", label: "Ακυρωμένο", color: "bg-red-500/10 text-red-600 border-red-500/20" },
 ];
 
 const TechnicianDashboard = () => {
@@ -27,6 +25,8 @@ const TechnicianDashboard = () => {
   const [hideCancelled, setHideCancelled] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+
+  const hiddenStatuses = ["cancelled", "completed"];
 
   const { data: profile } = useQuery({
     queryKey: ["profile", user?.id],
@@ -56,13 +56,12 @@ const TechnicianDashboard = () => {
   });
 
   const filteredAssignments = useMemo(() => {
-    let list = (assignments || []);
+    // Always hide cancelled and completed
+    let list = (assignments || []).filter(a => !hiddenStatuses.includes(a.status));
     
     // Status filter
     if (statusFilter !== "all") {
       list = list.filter(a => a.status === statusFilter);
-    } else if (hideCancelled) {
-      list = list.filter(a => a.status !== "cancelled");
     }
     
     // Search
@@ -76,17 +75,18 @@ const TechnicianDashboard = () => {
       );
     }
     return list;
-  }, [assignments, hideCancelled, searchQuery, statusFilter]);
+  }, [assignments, searchQuery, statusFilter]);
 
   // Count per status for chips
   const statusCounts = useMemo(() => {
     const counts: Record<string, number> = {};
-    (assignments || []).forEach(a => {
+    const activeList = (assignments || []).filter(a => !hiddenStatuses.includes(a.status));
+    activeList.forEach(a => {
       counts[a.status] = (counts[a.status] || 0) + 1;
     });
-    counts["all"] = (assignments || []).filter(a => hideCancelled ? a.status !== "cancelled" : true).length;
+    counts["all"] = activeList.length;
     return counts;
-  }, [assignments, hideCancelled]);
+  }, [assignments]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -178,22 +178,11 @@ const TechnicianDashboard = () => {
             <ScrollBar orientation="horizontal" />
           </ScrollArea>
 
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center mb-3">
             {searchQuery && (
               <span className="text-xs text-muted-foreground">
                 {filteredAssignments.length} αποτέλεσμα{filteredAssignments.length !== 1 ? "τα" : ""}
               </span>
-            )}
-            {statusFilter === "all" && (
-              <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer ml-auto">
-                <input
-                  type="checkbox"
-                  checked={hideCancelled}
-                  onChange={(e) => setHideCancelled(e.target.checked)}
-                  className="rounded border-border"
-                />
-                Απόκρυψη ακυρωμένων
-              </label>
             )}
           </div>
 
