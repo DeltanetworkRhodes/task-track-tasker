@@ -178,22 +178,11 @@ const TechnicianDashboard = () => {
             <ScrollBar orientation="horizontal" />
           </ScrollArea>
 
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center mb-3">
             {searchQuery && (
               <span className="text-xs text-muted-foreground">
                 {filteredAssignments.length} αποτέλεσμα{filteredAssignments.length !== 1 ? "τα" : ""}
               </span>
-            )}
-            {statusFilter === "all" && (
-              <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer ml-auto">
-                <input
-                  type="checkbox"
-                  checked={hideCancelled}
-                  onChange={(e) => setHideCancelled(e.target.checked)}
-                  className="rounded border-border"
-                />
-                Απόκρυψη ακυρωμένων
-              </label>
             )}
           </div>
 
