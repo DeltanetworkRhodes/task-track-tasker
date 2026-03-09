@@ -197,11 +197,11 @@ const TechnicianDashboard = () => {
             )}
           </div>
 
-          {searchQuery && filteredAssignments.length === 0 && !isLoading ? (
+          {(searchQuery || statusFilter !== "all") && filteredAssignments.length === 0 && !isLoading ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <Search className="h-10 w-10 text-muted-foreground/40 mb-3" />
-              <p className="text-sm font-medium text-muted-foreground">Δεν βρέθηκαν έργα με αυτά τα στοιχεία</p>
-              <p className="text-xs text-muted-foreground/60 mt-1">Δοκιμάστε διαφορετικούς όρους αναζήτησης</p>
+              <p className="text-sm font-medium text-muted-foreground">Δεν βρέθηκαν έργα με αυτά τα κριτήρια</p>
+              <p className="text-xs text-muted-foreground/60 mt-1">Δοκιμάστε διαφορετικούς όρους ή φίλτρα</p>
             </div>
           ) : (
             <TechnicianAssignments
