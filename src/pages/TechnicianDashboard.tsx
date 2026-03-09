@@ -4,16 +4,29 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { LogOut, ClipboardList, MapPin, Search, X } from "lucide-react";
 import NotificationBell from "@/components/NotificationBell";
 import TechnicianAssignments from "@/components/TechnicianAssignments";
 import TechnicianMap from "@/components/TechnicianMap";
+
+const statusFilters = [
+  { value: "all", label: "Όλα" },
+  { value: "pending", label: "Αναμονή", color: "bg-yellow-500/10 text-yellow-600 border-yellow-500/20" },
+  { value: "inspection", label: "Αυτοψία", color: "bg-orange-500/10 text-orange-600 border-orange-500/20" },
+  { value: "pre_committed", label: "Προδέσμευση", color: "bg-blue-500/10 text-blue-600 border-blue-500/20" },
+  { value: "construction", label: "Κατασκευή", color: "bg-purple-500/10 text-purple-600 border-purple-500/20" },
+  { value: "completed", label: "Ολοκληρώθηκε", color: "bg-green-500/10 text-green-600 border-green-500/20" },
+  { value: "cancelled", label: "Ακυρωμένο", color: "bg-red-500/10 text-red-600 border-red-500/20" },
+];
 
 const TechnicianDashboard = () => {
   const { user, signOut } = useAuth();
   const [activeTab, setActiveTab] = useState("assignments");
   const [hideCancelled, setHideCancelled] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
 
   const { data: profile } = useQuery({
     queryKey: ["profile", user?.id],
@@ -43,7 +56,16 @@ const TechnicianDashboard = () => {
   });
 
   const filteredAssignments = useMemo(() => {
-    let list = (assignments || []).filter(a => hideCancelled ? a.status !== "cancelled" : true);
+    let list = (assignments || []);
+    
+    // Status filter
+    if (statusFilter !== "all") {
+      list = list.filter(a => a.status === statusFilter);
+    } else if (hideCancelled) {
+      list = list.filter(a => a.status !== "cancelled");
+    }
+    
+    // Search
     const q = searchQuery.trim().toLowerCase();
     if (q) {
       list = list.filter(a =>
@@ -54,7 +76,17 @@ const TechnicianDashboard = () => {
       );
     }
     return list;
-  }, [assignments, hideCancelled, searchQuery]);
+  }, [assignments, hideCancelled, searchQuery, statusFilter]);
+
+  // Count per status for chips
+  const statusCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    (assignments || []).forEach(a => {
+      counts[a.status] = (counts[a.status] || 0) + 1;
+    });
+    counts["all"] = (assignments || []).filter(a => hideCancelled ? a.status !== "cancelled" : true).length;
+    return counts;
+  }, [assignments, hideCancelled]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -113,28 +145,63 @@ const TechnicianDashboard = () => {
             )}
           </div>
 
+          {/* Status Filter Chips */}
+          <ScrollArea className="w-full mb-3">
+            <div className="flex gap-2 pb-2">
+              {statusFilters
+                .filter(s => s.value === "all" || statusFilter === s.value || (statusCounts[s.value] || 0) > 0)
+                .map(s => {
+                  const isActive = statusFilter === s.value;
+                  const count = statusCounts[s.value] || 0;
+                  return (
+                    <button
+                      key={s.value}
+                      onClick={() => setStatusFilter(s.value)}
+                      className={`flex-shrink-0 inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-all ${
+                        isActive
+                          ? s.value === "all"
+                            ? "bg-primary text-primary-foreground border-primary"
+                            : s.color + " border-current font-bold ring-1 ring-current/30"
+                          : "bg-muted/50 text-muted-foreground border-border hover:bg-muted"
+                      }`}
+                    >
+                      {s.label}
+                      <span className={`text-[10px] rounded-full px-1.5 py-0.5 min-w-[18px] text-center ${
+                        isActive ? "bg-background/20" : "bg-muted-foreground/10"
+                      }`}>
+                        {count}
+                      </span>
+                    </button>
+                  );
+                })}
+            </div>
+            <ScrollBar orientation="horizontal" />
+          </ScrollArea>
+
           <div className="flex items-center justify-between mb-3">
             {searchQuery && (
               <span className="text-xs text-muted-foreground">
                 {filteredAssignments.length} αποτέλεσμα{filteredAssignments.length !== 1 ? "τα" : ""}
               </span>
             )}
-            <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer ml-auto">
-              <input
-                type="checkbox"
-                checked={hideCancelled}
-                onChange={(e) => setHideCancelled(e.target.checked)}
-                className="rounded border-border"
-              />
-              Απόκρυψη ακυρωμένων
-            </label>
+            {statusFilter === "all" && (
+              <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer ml-auto">
+                <input
+                  type="checkbox"
+                  checked={hideCancelled}
+                  onChange={(e) => setHideCancelled(e.target.checked)}
+                  className="rounded border-border"
+                />
+                Απόκρυψη ακυρωμένων
+              </label>
+            )}
           </div>
 
-          {searchQuery && filteredAssignments.length === 0 && !isLoading ? (
+          {(searchQuery || statusFilter !== "all") && filteredAssignments.length === 0 && !isLoading ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <Search className="h-10 w-10 text-muted-foreground/40 mb-3" />
-              <p className="text-sm font-medium text-muted-foreground">Δεν βρέθηκαν έργα με αυτά τα στοιχεία</p>
-              <p className="text-xs text-muted-foreground/60 mt-1">Δοκιμάστε διαφορετικούς όρους αναζήτησης</p>
+              <p className="text-sm font-medium text-muted-foreground">Δεν βρέθηκαν έργα με αυτά τα κριτήρια</p>
+              <p className="text-xs text-muted-foreground/60 mt-1">Δοκιμάστε διαφορετικούς όρους ή φίλτρα</p>
             </div>
           ) : (
             <TechnicianAssignments
