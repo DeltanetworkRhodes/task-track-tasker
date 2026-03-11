@@ -1,13 +1,19 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
 import StatCard from "@/components/StatCard";
 import { statusLabels, constructionStatusLabels } from "@/data/mockData";
 import { toast } from "sonner";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import {
   ClipboardList, Wrench, Euro, TrendingUp, Package, FileText,
   BarChart3, CalendarDays, UserCog, Settings, Search, AlertTriangle,
-  Check, Clock, Users, Phone, MapPin, Hash, Layers, Eye
+  Check, Clock, Users, Phone, MapPin, Hash, Layers, Eye, Plus,
+  ListChecks, UserX, CheckCircle2, XCircle, ClipboardCheck, Filter
 } from "lucide-react";
 
 // ═══ Shared mock data ═══
@@ -27,7 +33,7 @@ const DEMO_ASSIGNMENTS_FULL = [
   { id: "a3", srId: "SR-2025-0103", area: "Φαληράκι", status: "completed", customerName: "Α. Ιωάννου", technician: "Γ. Αλεξίου", phone: "6945678901", address: "Πλ. Αγ. Παρασκευής 8", cab: "CAB-089", date: "2025-02-20" },
   { id: "a4", srId: "SR-2025-0104", area: "Κρεμαστή", status: "pre_committed", customerName: "Ε. Νικολάου", technician: "Ν. Δημητρίου", phone: "6932456789", address: "Κεντρική 22", cab: "CAB-067", date: "2025-03-05" },
   { id: "a5", srId: "SR-2025-0105", area: "Λίνδος", status: "inspection", customerName: "Κ. Βασιλείου", technician: "Γ. Αλεξίου", phone: "6978123456", address: "Αρχαία Λίνδος 3", cab: "CAB-201", date: "2025-03-06" },
-  { id: "a6", srId: "SR-2025-0106", area: "Κως Πόλη", status: "pending", customerName: "Σ. Γεωργίου", technician: "—", phone: "6955567890", address: "Ιπποκράτους 11", cab: "CAB-310", date: "2025-03-07" },
+  { id: "a6", srId: "SR-2025-0106", area: "Κως Πόλη", status: "pending", customerName: "Σ. Γεωργίου", technician: "", phone: "6955567890", address: "Ιπποκράτους 11", cab: "CAB-310", date: "2025-03-07" },
   { id: "a7", srId: "SR-2025-0107", area: "Καρδάμαινα", status: "construction", customerName: "Π. Μαρκόπουλος", technician: "Ν. Δημητρίου", phone: "6944321098", address: "Παραλία 5", cab: "CAB-155", date: "2025-02-28" },
   { id: "a8", srId: "SR-2025-0108", area: "Αρχάγγελος", status: "completed", customerName: "Θ. Καραγιάννης", technician: "Γ. Αλεξίου", phone: "6911223344", address: "Μοναστηρίου 7", cab: "CAB-078", date: "2025-02-15" },
   { id: "a9", srId: "SR-2025-0109", area: "Πεταλούδες", status: "cancelled", customerName: "Λ. Στεφάνου", technician: "Ν. Δημητρίου", phone: "6966778899", address: "Δασική 14", cab: "CAB-044", date: "2025-02-25" },
@@ -101,270 +107,543 @@ const DEMO_USERS = [
   { id: "u4", name: "Δημήτρης Αντωνίου", email: "d.antoniou@delta.gr", role: "technician", area: "Ρόδος", assignments: 0 },
 ];
 
-const DEMO_TECHNICIAN_KPIS = [
-  { name: "Γ. Αλεξίου", completed: 4, active: 1, avgDays: 8.2, revenue: 8100, profit: 6695, rate: 80 },
-  { name: "Ν. Δημητρίου", completed: 0, active: 3, avgDays: 0, revenue: 0, profit: -275, rate: 0 },
-];
-
-// ═══ Section Components ═══
-
 const cStatusColors: Record<string, string> = {
   in_progress: "bg-yellow-500/10 text-yellow-600 border-yellow-500/20",
   completed: "bg-green-500/10 text-green-600 border-green-500/20",
   invoiced: "bg-blue-500/10 text-blue-600 border-blue-500/20",
 };
 
+// ═══════════════════════════════════════════
+//  PANEL 1: Assignments (matches Assignments.tsx)
+// ═══════════════════════════════════════════
+
+const assignmentTabs = [
+  { key: "active", label: "Ενεργές", icon: ListChecks },
+  { key: "unassigned", label: "Χωρίς Ανάθεση", icon: UserX },
+  { key: "completed", label: "Ολοκληρωμένες", icon: CheckCircle2 },
+  { key: "cancelled", label: "Ακυρωμένες", icon: XCircle },
+  { key: "all", label: "Όλες", icon: ClipboardCheck },
+] as const;
+
 export const DemoAssignmentsPanel = () => {
   const [search, setSearch] = useState("");
-  const [tab, setTab] = useState("all");
+  const [activeTab, setActiveTab] = useState("active");
+  const [areaFilter, setAreaFilter] = useState("all");
 
-  const tabs = [
-    { key: "all", label: "Όλα" },
-    { key: "active", label: "Ενεργά" },
-    { key: "completed", label: "Ολοκληρωμένα" },
-    { key: "cancelled", label: "Ακυρωμένα" },
-  ];
+  const areas = [...new Set(DEMO_ASSIGNMENTS_FULL.map(a => a.area))].sort();
 
-  const filtered = DEMO_ASSIGNMENTS_FULL.filter(a => {
-    if (search && !a.srId.toLowerCase().includes(search.toLowerCase()) && !a.customerName.toLowerCase().includes(search.toLowerCase()) && !a.area.toLowerCase().includes(search.toLowerCase())) return false;
-    if (tab === "active") return !["completed", "cancelled"].includes(a.status);
-    if (tab === "completed") return a.status === "completed";
-    if (tab === "cancelled") return a.status === "cancelled";
-    return true;
-  });
+  const tabCounts = useMemo(() => ({
+    active: DEMO_ASSIGNMENTS_FULL.filter(a => !["completed", "cancelled"].includes(a.status)).length,
+    unassigned: DEMO_ASSIGNMENTS_FULL.filter(a => !a.technician).length,
+    completed: DEMO_ASSIGNMENTS_FULL.filter(a => a.status === "completed").length,
+    cancelled: DEMO_ASSIGNMENTS_FULL.filter(a => a.status === "cancelled").length,
+    all: DEMO_ASSIGNMENTS_FULL.length,
+  }), []);
+
+  const filtered = useMemo(() => {
+    return DEMO_ASSIGNMENTS_FULL.filter(a => {
+      // Tab filter
+      if (activeTab === "active" && ["completed", "cancelled"].includes(a.status)) return false;
+      if (activeTab === "unassigned" && a.technician) return false;
+      if (activeTab === "completed" && a.status !== "completed") return false;
+      if (activeTab === "cancelled" && a.status !== "cancelled") return false;
+      // Area filter
+      if (areaFilter !== "all" && a.area !== areaFilter) return false;
+      // Search
+      if (search) {
+        const s = search.toLowerCase();
+        if (!a.srId.toLowerCase().includes(s) && !a.address.toLowerCase().includes(s) && !a.customerName.toLowerCase().includes(s)) return false;
+      }
+      return true;
+    });
+  }, [activeTab, areaFilter, search]);
 
   return (
     <div className="space-y-4">
+      {/* Header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold text-foreground flex items-center gap-2"><ClipboardList className="h-5 w-5 text-primary" /> Αναθέσεις</h1>
-        <button onClick={() => toast.info("Demo Mode — Η δημιουργία δεν είναι διαθέσιμη")} className="rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors">+ Νέα Ανάθεση</button>
+        <h1 className="text-xl font-bold text-foreground flex items-center gap-2">
+          <ClipboardList className="h-5 w-5 text-primary" /> Αναθέσεις
+        </h1>
+        <Button size="sm" onClick={() => toast.info("Demo mode — οι αλλαγές δεν αποθηκεύονται")}>
+          <Plus className="h-4 w-4 mr-1" /> Νέα Ανάθεση
+        </Button>
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        {tabs.map(t => (
-          <button key={t.key} onClick={() => setTab(t.key)} className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${tab === t.key ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}>
-            {t.label}
-          </button>
+      {/* Tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="w-full justify-start overflow-x-auto">
+          {assignmentTabs.map(t => (
+            <TabsTrigger key={t.key} value={t.key} className="gap-1.5 text-xs">
+              <t.icon className="h-3.5 w-3.5" />
+              {t.label}
+              <Badge variant="secondary" className="ml-1 h-5 min-w-[20px] justify-center text-[10px]">
+                {tabCounts[t.key]}
+              </Badge>
+            </TabsTrigger>
+          ))}
+        </TabsList>
+      </Tabs>
+
+      {/* Search + Area Chips */}
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Αναζήτηση SR ID ή διεύθυνση..."
+            className="pl-9"
+          />
+        </div>
+      </div>
+
+      <div className="flex flex-wrap gap-1.5">
+        <Button
+          size="sm"
+          variant={areaFilter === "all" ? "default" : "outline"}
+          className="h-7 text-xs"
+          onClick={() => setAreaFilter("all")}
+        >
+          Όλες
+        </Button>
+        {areas.map(area => (
+          <Button
+            key={area}
+            size="sm"
+            variant={areaFilter === area ? "default" : "outline"}
+            className="h-7 text-xs"
+            onClick={() => setAreaFilter(area)}
+          >
+            {area}
+          </Button>
         ))}
       </div>
 
-      <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Αναζήτηση SR, πελάτη, περιοχή..." className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30" />
-
-      <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-xs">
-            <thead>
-              <tr className="border-b border-border bg-muted/30">
-                <th className="px-4 py-3 text-left font-semibold text-muted-foreground">SR ID</th>
-                <th className="px-4 py-3 text-left font-semibold text-muted-foreground">Περιοχή</th>
-                <th className="px-4 py-3 text-left font-semibold text-muted-foreground hidden sm:table-cell">Πελάτης</th>
-                <th className="px-4 py-3 text-left font-semibold text-muted-foreground hidden md:table-cell">Τεχνικός</th>
-                <th className="px-4 py-3 text-left font-semibold text-muted-foreground hidden lg:table-cell">CAB</th>
-                <th className="px-4 py-3 text-left font-semibold text-muted-foreground">Κατάσταση</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map(a => (
-                <tr key={a.id} className="border-b border-border/50 hover:bg-muted/30 transition-colors cursor-pointer" onClick={() => toast.info(`${a.srId} — ${a.customerName}`)}>
-                  <td className="px-4 py-3 font-bold text-primary">{a.srId}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{a.area}</td>
-                  <td className="px-4 py-3 text-muted-foreground hidden sm:table-cell">{a.customerName}</td>
-                  <td className="px-4 py-3 text-muted-foreground hidden md:table-cell">{a.technician}</td>
-                  <td className="px-4 py-3 text-muted-foreground hidden lg:table-cell">{a.cab}</td>
-                  <td className="px-4 py-3">
+      {/* Table */}
+      <Card>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="text-xs">SR ID</TableHead>
+              <TableHead className="text-xs">Περιοχή</TableHead>
+              <TableHead className="text-xs hidden sm:table-cell">Πελάτης</TableHead>
+              <TableHead className="text-xs hidden md:table-cell">Τεχνικός</TableHead>
+              <TableHead className="text-xs">Κατάσταση</TableHead>
+              <TableHead className="text-xs hidden lg:table-cell">Ημερομηνία</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filtered.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground text-sm">
+                  Δεν βρέθηκαν αναθέσεις
+                </TableCell>
+              </TableRow>
+            ) : (
+              filtered.map(a => (
+                <TableRow
+                  key={a.id}
+                  className="cursor-pointer"
+                  onClick={() => toast.info(`${a.srId} — ${a.customerName}\n${a.address}`)}
+                >
+                  <TableCell className="font-bold text-primary text-xs">{a.srId}</TableCell>
+                  <TableCell className="text-xs">{a.area}</TableCell>
+                  <TableCell className="text-xs hidden sm:table-cell">{a.customerName}</TableCell>
+                  <TableCell className="text-xs hidden md:table-cell">{a.technician || "—"}</TableCell>
+                  <TableCell>
                     <Badge variant="outline" className={`text-[10px] ${statusColorClasses[a.status] || ""}`}>
                       {(statusLabels as any)[a.status] || a.status}
                     </Badge>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                  </TableCell>
+                  <TableCell className="text-xs text-muted-foreground hidden lg:table-cell">{a.date}</TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+        <div className="px-4 py-3 border-t border-border text-xs text-muted-foreground">
+          {filtered.length} εγγραφές
         </div>
-        <div className="px-4 py-3 border-t border-border text-xs text-muted-foreground">{filtered.length} εγγραφές</div>
-      </div>
+      </Card>
     </div>
   );
 };
 
+// ═══════════════════════════════════════════
+//  PANEL 2: Constructions (matches Construction.tsx)
+// ═══════════════════════════════════════════
+
 export const DemoConstructionsPanel = () => {
-  const totalRevenue = DEMO_CONSTRUCTIONS_FULL.reduce((s, c) => s + c.revenue, 0);
-  const totalCost = DEMO_CONSTRUCTIONS_FULL.reduce((s, c) => s + c.materialCost, 0);
-  const totalProfit = DEMO_CONSTRUCTIONS_FULL.reduce((s, c) => s + c.profit, 0);
+  const [tab, setTab] = useState("all");
+
+  const filtered = useMemo(() => {
+    if (tab === "in_progress") return DEMO_CONSTRUCTIONS_FULL.filter(c => c.status === "in_progress");
+    if (tab === "completed") return DEMO_CONSTRUCTIONS_FULL.filter(c => c.status === "completed");
+    if (tab === "invoiced") return DEMO_CONSTRUCTIONS_FULL.filter(c => c.status === "invoiced");
+    return DEMO_CONSTRUCTIONS_FULL;
+  }, [tab]);
+
+  const totalRevenue = filtered.reduce((s, c) => s + c.revenue, 0);
+  const totalCost = filtered.reduce((s, c) => s + c.materialCost, 0);
+  const totalProfit = filtered.reduce((s, c) => s + c.profit, 0);
+
+  const tabCounts = {
+    all: DEMO_CONSTRUCTIONS_FULL.length,
+    in_progress: DEMO_CONSTRUCTIONS_FULL.filter(c => c.status === "in_progress").length,
+    completed: DEMO_CONSTRUCTIONS_FULL.filter(c => c.status === "completed").length,
+    invoiced: DEMO_CONSTRUCTIONS_FULL.filter(c => c.status === "invoiced").length,
+  };
 
   return (
     <div className="space-y-4">
-      <h1 className="text-xl font-bold text-foreground flex items-center gap-2"><Wrench className="h-5 w-5 text-primary" /> Κατασκευές</h1>
+      <h1 className="text-xl font-bold text-foreground flex items-center gap-2">
+        <Wrench className="h-5 w-5 text-primary" /> Κατασκευές
+      </h1>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <StatCard title="Σύνολο" value={DEMO_CONSTRUCTIONS_FULL.length} icon={Wrench} />
+        <StatCard title="Σύνολο" value={filtered.length} icon={Wrench} />
         <StatCard title="Έσοδα" value={`${totalRevenue.toLocaleString("el-GR")}€`} icon={Euro} />
-        <StatCard title="Κόστος" value={`${totalCost.toLocaleString("el-GR")}€`} icon={AlertTriangle} />
+        <StatCard title="Κόστος Υλικών" value={`${totalCost.toLocaleString("el-GR")}€`} icon={AlertTriangle} />
         <StatCard title="Κέρδος" value={`${totalProfit.toLocaleString("el-GR")}€`} icon={TrendingUp} accent />
       </div>
 
-      {/* Mobile cards */}
-      <div className="block md:hidden space-y-2">
-        {DEMO_CONSTRUCTIONS_FULL.map(c => (
-          <Card key={c.id} className="cursor-pointer" onClick={() => toast.info(`${c.srId} — Demo Mode`)}>
-            <CardContent className="p-3.5">
-              <div className="flex items-center justify-between mb-2">
-                <span className="font-bold text-primary text-sm">{c.srId}</span>
-                <Badge variant="outline" className={`text-[10px] ${cStatusColors[c.status] || ""}`}>
-                  {(constructionStatusLabels as any)[c.status] || c.status}
-                </Badge>
+      <Tabs value={tab} onValueChange={setTab}>
+        <TabsList>
+          <TabsTrigger value="all" className="text-xs gap-1">
+            Όλες <Badge variant="secondary" className="text-[10px] h-5">{tabCounts.all}</Badge>
+          </TabsTrigger>
+          <TabsTrigger value="in_progress" className="text-xs gap-1">
+            Σε Εξέλιξη <Badge variant="secondary" className="text-[10px] h-5">{tabCounts.in_progress}</Badge>
+          </TabsTrigger>
+          <TabsTrigger value="completed" className="text-xs gap-1">
+            Ολοκληρωμένες <Badge variant="secondary" className="text-[10px] h-5">{tabCounts.completed}</Badge>
+          </TabsTrigger>
+          <TabsTrigger value="invoiced" className="text-xs gap-1">
+            Τιμολογημένες <Badge variant="secondary" className="text-[10px] h-5">{tabCounts.invoiced}</Badge>
+          </TabsTrigger>
+        </TabsList>
+      </Tabs>
+
+      <Card>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="text-xs">SR ID</TableHead>
+              <TableHead className="text-xs">SES ID</TableHead>
+              <TableHead className="text-xs hidden sm:table-cell">Α/Κ</TableHead>
+              <TableHead className="text-xs hidden sm:table-cell">CAB</TableHead>
+              <TableHead className="text-xs text-center hidden md:table-cell">Όροφοι</TableHead>
+              <TableHead className="text-xs text-right">Έσοδα</TableHead>
+              <TableHead className="text-xs text-right hidden sm:table-cell">Κόστος</TableHead>
+              <TableHead className="text-xs text-right">Κέρδος</TableHead>
+              <TableHead className="text-xs">Κατάσταση</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filtered.map(c => (
+              <TableRow
+                key={c.id}
+                className="cursor-pointer"
+                onClick={() => toast.info(`${c.srId} — Demo mode — οι αλλαγές δεν αποθηκεύονται`)}
+              >
+                <TableCell className="font-bold text-primary text-xs">{c.srId}</TableCell>
+                <TableCell className="font-bold text-xs">{c.sesId}</TableCell>
+                <TableCell className="text-xs hidden sm:table-cell">{c.ak}</TableCell>
+                <TableCell className="text-xs hidden sm:table-cell">{c.cab}</TableCell>
+                <TableCell className="text-xs text-center hidden md:table-cell">{c.floors}</TableCell>
+                <TableCell className="text-xs text-right font-bold">
+                  {c.revenue > 0 ? `${c.revenue.toLocaleString()}€` : "—"}
+                </TableCell>
+                <TableCell className="text-xs text-right font-bold text-destructive hidden sm:table-cell">
+                  {c.materialCost}€
+                </TableCell>
+                <TableCell className={`text-xs text-right font-bold ${c.profit >= 0 ? "text-green-600" : "text-destructive"}`}>
+                  {c.profit >= 0 ? "+" : ""}{c.profit.toLocaleString()}€
+                </TableCell>
+                <TableCell>
+                  <Badge variant="outline" className={`text-[10px] ${cStatusColors[c.status] || ""}`}>
+                    {(constructionStatusLabels as any)[c.status] || c.status}
+                  </Badge>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+          <TableFooter>
+            <TableRow className="font-bold">
+              <TableCell colSpan={5} className="text-xs">Σύνολα</TableCell>
+              <TableCell className="text-xs text-right">{totalRevenue.toLocaleString()}€</TableCell>
+              <TableCell className="text-xs text-right text-destructive hidden sm:table-cell">{totalCost.toLocaleString()}€</TableCell>
+              <TableCell className={`text-xs text-right ${totalProfit >= 0 ? "text-green-600" : "text-destructive"}`}>
+                {totalProfit >= 0 ? "+" : ""}{totalProfit.toLocaleString()}€
+              </TableCell>
+              <TableCell />
+            </TableRow>
+          </TableFooter>
+        </Table>
+      </Card>
+    </div>
+  );
+};
+
+// ═══════════════════════════════════════════
+//  PANEL 3: Materials (matches Materials.tsx)
+// ═══════════════════════════════════════════
+
+export const DemoMaterialsPanel = () => {
+  const [search, setSearch] = useState("");
+  const [tab, setTab] = useState("OTE");
+
+  const oteMaterials = DEMO_MATERIALS.filter(m => m.source === "OTE");
+  const deltaMaterials = DEMO_MATERIALS.filter(m => m.source === "DELTANETWORK");
+
+  const materials = useMemo(() => {
+    const source = tab === "OTE" ? oteMaterials : deltaMaterials;
+    if (!search) return source;
+    const s = search.toLowerCase();
+    return source.filter(m => m.code.toLowerCase().includes(s) || m.name.toLowerCase().includes(s));
+  }, [tab, search]);
+
+  const lowStockCount = DEMO_MATERIALS.filter(m => m.stock < 50).length;
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h1 className="text-xl font-bold text-foreground flex items-center gap-2">
+          <Package className="h-5 w-5 text-primary" /> Αποθήκη Υλικών
+        </h1>
+        <Button size="sm" onClick={() => toast.info("Demo mode — οι αλλαγές δεν αποθηκεύονται")}>
+          <Plus className="h-4 w-4 mr-1" /> Νέο Υλικό
+        </Button>
+      </div>
+
+      <div className="grid grid-cols-3 gap-3">
+        <StatCard title="Σύνολο Υλικών" value={DEMO_MATERIALS.length} icon={Package} />
+        <StatCard title="OTE" value={oteMaterials.length} icon={Package} />
+        <StatCard title="Χαμηλό Απόθεμα" value={lowStockCount} icon={AlertTriangle} accent />
+      </div>
+
+      <Tabs value={tab} onValueChange={setTab}>
+        <TabsList>
+          <TabsTrigger value="OTE" className="text-xs gap-1">
+            OTE Υλικά <Badge variant="secondary" className="text-[10px] h-5">{oteMaterials.length}</Badge>
+          </TabsTrigger>
+          <TabsTrigger value="DELTA" className="text-xs gap-1">
+            DELTANETWORK Υλικά <Badge variant="secondary" className="text-[10px] h-5">{deltaMaterials.length}</Badge>
+          </TabsTrigger>
+        </TabsList>
+      </Tabs>
+
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="Αναζήτηση κωδικού ή ονόματος..."
+          className="pl-9"
+        />
+      </div>
+
+      <Card>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="text-xs">Κωδικός</TableHead>
+              <TableHead className="text-xs">Περιγραφή</TableHead>
+              <TableHead className="text-xs text-right">Απόθεμα</TableHead>
+              <TableHead className="text-xs text-center hidden sm:table-cell">Μονάδα</TableHead>
+              <TableHead className="text-xs text-right">Τιμή</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {materials.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center py-8 text-muted-foreground text-sm">
+                  Δεν βρέθηκαν υλικά
+                </TableCell>
+              </TableRow>
+            ) : (
+              materials.map(m => (
+                <TableRow key={m.id}>
+                  <TableCell className="font-bold text-primary text-xs">{m.code}</TableCell>
+                  <TableCell className="text-xs">{m.name}</TableCell>
+                  <TableCell className="text-xs text-right">
+                    <span className="inline-flex items-center gap-1.5">
+                      {m.stock}
+                      {m.stock < 50 && (
+                        <Badge variant="outline" className="text-[9px] bg-amber-500/10 text-amber-600 border-amber-500/20">
+                          Χαμηλό
+                        </Badge>
+                      )}
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-xs text-center text-muted-foreground hidden sm:table-cell">{m.unit}</TableCell>
+                  <TableCell className="text-xs text-right font-bold">
+                    {m.price === 0 ? "—" : `${m.price.toFixed(2)}€`}
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </Card>
+    </div>
+  );
+};
+
+// ═══════════════════════════════════════════
+//  PANEL 4: KPIs (matches TechnicianKPIs.tsx)
+// ═══════════════════════════════════════════
+
+export const DemoKPIsPanel = () => {
+  // Derive KPI data from assignments + constructions
+  const techKpis = useMemo(() => {
+    const technicians = [...new Set(DEMO_ASSIGNMENTS_FULL.map(a => a.technician).filter(Boolean))];
+    return technicians.map(name => {
+      const assignments = DEMO_ASSIGNMENTS_FULL.filter(a => a.technician === name);
+      const completed = assignments.filter(a => a.status === "completed").length;
+      const active = assignments.filter(a => !["completed", "cancelled"].includes(a.status)).length;
+      const techSrIds = new Set(assignments.map(a => a.srId));
+      const constructions = DEMO_CONSTRUCTIONS_FULL.filter(c => techSrIds.has(c.srId));
+      const totalRevenue = constructions.reduce((s, c) => s + c.revenue, 0);
+      const totalProfit = constructions.reduce((s, c) => s + c.profit, 0);
+      const avgPerSr = completed > 0 ? Math.round(totalProfit / completed) : 0;
+      return { name, completed, active, totalRevenue, totalProfit, avgPerSr, total: assignments.length };
+    });
+  }, []);
+
+  const chartData = techKpis.map(t => ({
+    name: t.name,
+    profit: t.totalProfit,
+    revenue: t.totalRevenue,
+  }));
+
+  return (
+    <div className="space-y-4">
+      <h1 className="text-xl font-bold text-foreground flex items-center gap-2">
+        <BarChart3 className="h-5 w-5 text-primary" /> KPIs Τεχνικών
+      </h1>
+
+      {/* Stat cards per technician */}
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        {techKpis.map(t => (
+          <Card key={t.name}>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+                  {t.name.charAt(0)}
+                </div>
+                {t.name}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-4 gap-3 text-center">
+                <div>
+                  <p className="text-2xl font-extrabold text-foreground">{t.completed}</p>
+                  <p className="text-[10px] text-muted-foreground uppercase">Ολοκληρωμένα</p>
+                </div>
+                <div>
+                  <p className={`text-2xl font-extrabold ${t.totalProfit >= 0 ? "text-green-600" : "text-destructive"}`}>
+                    {t.totalProfit.toLocaleString()}€
+                  </p>
+                  <p className="text-[10px] text-muted-foreground uppercase">Κέρδος</p>
+                </div>
+                <div>
+                  <p className="text-2xl font-extrabold text-foreground">{t.avgPerSr}€</p>
+                  <p className="text-[10px] text-muted-foreground uppercase">Μ.Τιμή/SR</p>
+                </div>
+                <div>
+                  <p className="text-2xl font-extrabold text-foreground">{t.active}</p>
+                  <p className="text-[10px] text-muted-foreground uppercase">Ενεργές</p>
+                </div>
               </div>
-              <div className="grid grid-cols-2 gap-y-1.5 text-xs text-muted-foreground">
-                <div className="flex items-center gap-1.5"><Hash className="h-3 w-3" /><span className="font-bold">{c.sesId}</span></div>
-                <div className="flex items-center gap-1.5"><Layers className="h-3 w-3" /><span>{c.floors} όροφοι</span></div>
-              </div>
-              <div className="flex items-center justify-between mt-2.5 pt-2 border-t border-border/30 text-xs">
-                <span className="font-bold">{c.revenue > 0 ? `${c.revenue.toLocaleString()}€` : "—"}</span>
-                <span className="text-destructive font-bold">-{c.materialCost}€</span>
-                <span className={`font-bold ${c.profit >= 0 ? "text-green-600" : "text-destructive"}`}>{c.profit >= 0 ? "+" : ""}{c.profit.toLocaleString()}€</span>
+              <div className="mt-3 pt-3 border-t border-border/50">
+                <div className="flex justify-between text-[10px] text-muted-foreground mb-1">
+                  <span>Completion Rate</span>
+                  <span className="font-bold">{t.total > 0 ? Math.round((t.completed / t.total) * 100) : 0}%</span>
+                </div>
+                <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-primary transition-all"
+                    style={{ width: `${t.total > 0 ? (t.completed / t.total) * 100 : 0}%` }}
+                  />
+                </div>
               </div>
             </CardContent>
           </Card>
         ))}
       </div>
 
-      {/* Desktop table */}
-      <div className="hidden md:block rounded-xl border border-border bg-card shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-xs">
-            <thead>
-              <tr className="border-b border-border bg-muted/30">
-                <th className="px-4 py-3 text-left font-semibold text-muted-foreground">SR ID</th>
-                <th className="px-4 py-3 text-left font-semibold text-muted-foreground">SES ID</th>
-                <th className="px-4 py-3 text-left font-semibold text-muted-foreground">Α/Κ</th>
-                <th className="px-4 py-3 text-left font-semibold text-muted-foreground">CAB</th>
-                <th className="px-4 py-3 text-center font-semibold text-muted-foreground">Όροφοι</th>
-                <th className="px-4 py-3 text-left font-semibold text-muted-foreground">Κατάσταση</th>
-                <th className="px-4 py-3 text-right font-semibold text-muted-foreground">Έσοδα</th>
-                <th className="px-4 py-3 text-right font-semibold text-muted-foreground">Κόστος</th>
-                <th className="px-4 py-3 text-right font-semibold text-muted-foreground">Κέρδος</th>
-              </tr>
-            </thead>
-            <tbody>
-              {DEMO_CONSTRUCTIONS_FULL.map(c => (
-                <tr key={c.id} className="border-b border-border/50 hover:bg-muted/30 transition-colors cursor-pointer" onClick={() => toast.info(`${c.srId} — Demo Mode`)}>
-                  <td className="px-4 py-3 font-bold text-primary">{c.srId}</td>
-                  <td className="px-4 py-3 font-bold">{c.sesId}</td>
-                  <td className="px-4 py-3">{c.ak}</td>
-                  <td className="px-4 py-3">{c.cab}</td>
-                  <td className="px-4 py-3 text-center">{c.floors}</td>
-                  <td className="px-4 py-3">
-                    <Badge variant="outline" className={`text-[10px] ${cStatusColors[c.status] || ""}`}>
-                      {(constructionStatusLabels as any)[c.status] || c.status}
-                    </Badge>
-                  </td>
-                  <td className="px-4 py-3 text-right font-bold">{c.revenue > 0 ? `${c.revenue.toLocaleString()}€` : "—"}</td>
-                  <td className="px-4 py-3 text-right font-bold text-destructive">{c.materialCost}€</td>
-                  <td className={`px-4 py-3 text-right font-bold ${c.profit >= 0 ? "text-green-600" : "text-destructive"}`}>{c.profit >= 0 ? "+" : ""}{c.profit.toLocaleString()}€</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {/* Bar Chart: Profit per Technician */}
+      <Card className="p-4">
+        <h3 className="text-sm font-semibold text-foreground mb-4">Κέρδος ανά Τεχνικό</h3>
+        <div className="h-64">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+              <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+              <XAxis dataKey="name" tick={{ fontSize: 11 }} className="fill-muted-foreground" />
+              <YAxis tick={{ fontSize: 11 }} className="fill-muted-foreground" />
+              <Tooltip
+                formatter={(value: number) => [`${value.toLocaleString()}€`]}
+                contentStyle={{ fontSize: 12, borderRadius: 8 }}
+              />
+              <Bar dataKey="profit" name="Κέρδος" radius={[6, 6, 0, 0]}>
+                {chartData.map((entry, index) => (
+                  <Cell
+                    key={`cell-${index}`}
+                    className={entry.profit >= 0 ? "fill-green-500" : "fill-destructive"}
+                  />
+                ))}
+              </Bar>
+              <Bar dataKey="revenue" name="Έσοδα" radius={[6, 6, 0, 0]} className="fill-primary/40" />
+            </BarChart>
+          </ResponsiveContainer>
         </div>
-      </div>
+      </Card>
     </div>
   );
 };
 
-export const DemoMaterialsPanel = () => {
-  const [tab, setTab] = useState<"OTE" | "DELTA">("OTE");
-  const oteMaterials = DEMO_MATERIALS.filter(m => m.source === "OTE");
-  const deltaMaterials = DEMO_MATERIALS.filter(m => m.source === "DELTANETWORK");
-  const lowStock = DEMO_MATERIALS.filter(m => m.stock < 100).length;
-  const materials = tab === "OTE" ? oteMaterials : deltaMaterials;
-
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold text-foreground flex items-center gap-2"><Package className="h-5 w-5 text-primary" /> Αποθήκη Υλικών</h1>
-        <button onClick={() => toast.info("Demo Mode — Η προσθήκη δεν είναι διαθέσιμη")} className="rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors">+ Νέο Υλικό</button>
-      </div>
-
-      <div className="grid grid-cols-3 gap-3">
-        <StatCard title="Σύνολο Υλικών" value={DEMO_MATERIALS.length} icon={Package} />
-        <StatCard title="OTE" value={oteMaterials.length} icon={Package} />
-        <StatCard title="Χαμηλό Απόθεμα" value={lowStock} icon={AlertTriangle} accent />
-      </div>
-
-      <div className="flex gap-2">
-        <button onClick={() => setTab("OTE")} className={`rounded-lg px-4 py-1.5 text-xs font-medium transition-colors ${tab === "OTE" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>OTE ({oteMaterials.length})</button>
-        <button onClick={() => setTab("DELTA")} className={`rounded-lg px-4 py-1.5 text-xs font-medium transition-colors ${tab === "DELTA" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>DELTANETWORK ({deltaMaterials.length})</button>
-      </div>
-
-      <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-xs">
-            <thead>
-              <tr className="border-b border-border bg-muted/30">
-                <th className="px-4 py-3 text-left font-semibold text-muted-foreground">Κωδικός</th>
-                <th className="px-4 py-3 text-left font-semibold text-muted-foreground">Περιγραφή</th>
-                <th className="px-4 py-3 text-right font-semibold text-muted-foreground">Απόθεμα</th>
-                <th className="px-4 py-3 text-right font-semibold text-muted-foreground">Τιμή</th>
-              </tr>
-            </thead>
-            <tbody>
-              {materials.map(m => (
-                <tr key={m.id} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
-                  <td className="px-4 py-3 font-bold text-primary">{m.code}</td>
-                  <td className="px-4 py-3 text-foreground">{m.name}</td>
-                  <td className="px-4 py-3 text-right font-bold">
-                    <span className="inline-flex items-center gap-1">
-                      {m.stock < 100 && <AlertTriangle className="h-3 w-3 text-destructive" />}
-                      {m.stock} {/^τεμ/i.test(m.unit) ? "τεμάχια" : m.unit}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-right font-bold text-muted-foreground">{m.price === 0 ? "—" : `${m.price.toFixed(2)}€`}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  );
-};
+// ═══════════════════════════════════════════
+//  Remaining panels (unchanged logic, kept as-is)
+// ═══════════════════════════════════════════
 
 export const DemoWorkPricingPanel = () => {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold text-foreground flex items-center gap-2"><FileText className="h-5 w-5 text-primary" /> Τιμοκατάλογος Εργασιών</h1>
-        <span className="text-xs text-muted-foreground bg-muted px-3 py-1.5 rounded-full font-bold">{DEMO_WORK_PRICING.length} εργασίες</span>
+        <h1 className="text-xl font-bold text-foreground flex items-center gap-2">
+          <FileText className="h-5 w-5 text-primary" /> Τιμοκατάλογος Εργασιών
+        </h1>
+        <Badge variant="secondary" className="text-xs">{DEMO_WORK_PRICING.length} εργασίες</Badge>
       </div>
 
-      <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-xs">
-            <thead>
-              <tr className="border-b border-border bg-muted/30">
-                <th className="px-4 py-3 text-left font-semibold text-muted-foreground">Κωδικός</th>
-                <th className="px-4 py-3 text-left font-semibold text-muted-foreground">Περιγραφή</th>
-                <th className="px-4 py-3 text-left font-semibold text-muted-foreground hidden sm:table-cell">Κατηγορία</th>
-                <th className="px-4 py-3 text-center font-semibold text-muted-foreground">Μονάδα</th>
-                <th className="px-4 py-3 text-right font-semibold text-muted-foreground">Τιμή Μον.</th>
-              </tr>
-            </thead>
-            <tbody>
-              {DEMO_WORK_PRICING.map(w => (
-                <tr key={w.id} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
-                  <td className="px-4 py-3 font-bold text-primary">{w.code}</td>
-                  <td className="px-4 py-3 text-foreground">{w.description}</td>
-                  <td className="px-4 py-3 hidden sm:table-cell">
-                    <Badge variant="outline" className="text-[10px]">{w.category}</Badge>
-                  </td>
-                  <td className="px-4 py-3 text-center text-muted-foreground">{w.unit}</td>
-                  <td className="px-4 py-3 text-right font-bold">{w.unitPrice.toFixed(2)}€</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <Card>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="text-xs">Κωδικός</TableHead>
+              <TableHead className="text-xs">Περιγραφή</TableHead>
+              <TableHead className="text-xs hidden sm:table-cell">Κατηγορία</TableHead>
+              <TableHead className="text-xs text-center">Μονάδα</TableHead>
+              <TableHead className="text-xs text-right">Τιμή Μον.</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {DEMO_WORK_PRICING.map(w => (
+              <TableRow key={w.id}>
+                <TableCell className="font-bold text-primary text-xs">{w.code}</TableCell>
+                <TableCell className="text-xs">{w.description}</TableCell>
+                <TableCell className="text-xs hidden sm:table-cell">
+                  <Badge variant="outline" className="text-[10px]">{w.category}</Badge>
+                </TableCell>
+                <TableCell className="text-xs text-center text-muted-foreground">{w.unit}</TableCell>
+                <TableCell className="text-xs text-right font-bold">{w.unitPrice.toFixed(2)}€</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </Card>
     </div>
   );
 };
@@ -376,7 +655,9 @@ export const DemoProfitPanel = () => {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-xl font-bold text-foreground flex items-center gap-2"><TrendingUp className="h-5 w-5 text-primary" /> Κέρδος ανά SR</h1>
+      <h1 className="text-xl font-bold text-foreground flex items-center gap-2">
+        <TrendingUp className="h-5 w-5 text-primary" /> Κέρδος ανά SR
+      </h1>
 
       <div className="grid grid-cols-3 gap-3">
         <StatCard title="Συν. Έσοδα" value={`${totalRevenue.toLocaleString("el-GR")}€`} icon={Euro} />
@@ -384,91 +665,39 @@ export const DemoProfitPanel = () => {
         <StatCard title="Καθαρό Κέρδος" value={`${totalProfit.toLocaleString("el-GR")}€`} icon={TrendingUp} accent />
       </div>
 
-      <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-xs">
-            <thead>
-              <tr className="border-b border-border bg-muted/30">
-                <th className="px-4 py-3 text-left font-semibold text-muted-foreground">SR ID</th>
-                <th className="px-4 py-3 text-right font-semibold text-muted-foreground">Έσοδα</th>
-                <th className="px-4 py-3 text-right font-semibold text-muted-foreground">Έξοδα</th>
-                <th className="px-4 py-3 text-right font-semibold text-muted-foreground">Κέρδος</th>
-                <th className="px-4 py-3 text-right font-semibold text-muted-foreground">Margin</th>
-              </tr>
-            </thead>
-            <tbody>
-              {DEMO_PROFIT_PER_SR.map(p => (
-                <tr key={p.srId} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
-                  <td className="px-4 py-3 font-bold text-primary">{p.srId}</td>
-                  <td className="px-4 py-3 text-right font-bold">{p.revenue.toLocaleString()}€</td>
-                  <td className="px-4 py-3 text-right font-bold text-destructive">{p.expenses}€</td>
-                  <td className="px-4 py-3 text-right font-bold text-green-600">+{p.profit.toLocaleString()}€</td>
-                  <td className="px-4 py-3 text-right font-bold">{Math.round((p.profit / p.revenue) * 100)}%</td>
-                </tr>
-              ))}
-            </tbody>
-            <tfoot>
-              <tr className="bg-muted/50 font-bold">
-                <td className="px-4 py-3">Σύνολα</td>
-                <td className="px-4 py-3 text-right">{totalRevenue.toLocaleString()}€</td>
-                <td className="px-4 py-3 text-right text-destructive">{totalExpenses.toLocaleString()}€</td>
-                <td className="px-4 py-3 text-right text-green-600">+{totalProfit.toLocaleString()}€</td>
-                <td className="px-4 py-3 text-right">{Math.round((totalProfit / totalRevenue) * 100)}%</td>
-              </tr>
-            </tfoot>
-          </table>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-export const DemoKPIsPanel = () => {
-  return (
-    <div className="space-y-4">
-      <h1 className="text-xl font-bold text-foreground flex items-center gap-2"><BarChart3 className="h-5 w-5 text-primary" /> KPIs Τεχνικών</h1>
-
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        {DEMO_TECHNICIAN_KPIS.map(t => (
-          <Card key={t.name}>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">{t.name.charAt(0)}</div>
-                {t.name}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-3 gap-3 text-center">
-                <div>
-                  <p className="text-2xl font-extrabold text-foreground">{t.completed}</p>
-                  <p className="text-[10px] text-muted-foreground uppercase">Ολοκληρωμένα</p>
-                </div>
-                <div>
-                  <p className="text-2xl font-extrabold text-foreground">{t.active}</p>
-                  <p className="text-[10px] text-muted-foreground uppercase">Ενεργά</p>
-                </div>
-                <div>
-                  <p className="text-2xl font-extrabold text-foreground">{t.avgDays > 0 ? t.avgDays : "—"}</p>
-                  <p className="text-[10px] text-muted-foreground uppercase">Μ.Ο. Ημέρες</p>
-                </div>
-              </div>
-              <div className="mt-3 pt-3 border-t border-border/50 flex justify-between text-xs">
-                <span className="text-muted-foreground">Έσοδα: <strong className="text-foreground">{t.revenue.toLocaleString()}€</strong></span>
-                <span className={`font-bold ${t.profit >= 0 ? "text-green-600" : "text-destructive"}`}>{t.profit >= 0 ? "+" : ""}{t.profit.toLocaleString()}€</span>
-              </div>
-              <div className="mt-2">
-                <div className="flex justify-between text-[10px] text-muted-foreground mb-1">
-                  <span>Completion Rate</span>
-                  <span className="font-bold">{t.rate}%</span>
-                </div>
-                <div className="h-1.5 rounded-full bg-muted overflow-hidden">
-                  <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${t.rate}%` }} />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      <Card>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="text-xs">SR ID</TableHead>
+              <TableHead className="text-xs text-right">Έσοδα</TableHead>
+              <TableHead className="text-xs text-right">Έξοδα</TableHead>
+              <TableHead className="text-xs text-right">Κέρδος</TableHead>
+              <TableHead className="text-xs text-right">Margin</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {DEMO_PROFIT_PER_SR.map(p => (
+              <TableRow key={p.srId}>
+                <TableCell className="font-bold text-primary text-xs">{p.srId}</TableCell>
+                <TableCell className="text-xs text-right font-bold">{p.revenue.toLocaleString()}€</TableCell>
+                <TableCell className="text-xs text-right font-bold text-destructive">{p.expenses}€</TableCell>
+                <TableCell className="text-xs text-right font-bold text-green-600">+{p.profit.toLocaleString()}€</TableCell>
+                <TableCell className="text-xs text-right font-bold">{Math.round((p.profit / p.revenue) * 100)}%</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+          <TableFooter>
+            <TableRow className="font-bold">
+              <TableCell className="text-xs">Σύνολα</TableCell>
+              <TableCell className="text-xs text-right">{totalRevenue.toLocaleString()}€</TableCell>
+              <TableCell className="text-xs text-right text-destructive">{totalExpenses.toLocaleString()}€</TableCell>
+              <TableCell className="text-xs text-right text-green-600">+{totalProfit.toLocaleString()}€</TableCell>
+              <TableCell className="text-xs text-right">{Math.round((totalProfit / totalRevenue) * 100)}%</TableCell>
+            </TableRow>
+          </TableFooter>
+        </Table>
+      </Card>
     </div>
   );
 };
@@ -476,43 +705,43 @@ export const DemoKPIsPanel = () => {
 export const DemoSurveysPanel = () => {
   return (
     <div className="space-y-4">
-      <h1 className="text-xl font-bold text-foreground flex items-center gap-2"><Search className="h-5 w-5 text-primary" /> Αυτοψίες</h1>
+      <h1 className="text-xl font-bold text-foreground flex items-center gap-2">
+        <Search className="h-5 w-5 text-primary" /> Αυτοψίες
+      </h1>
 
       <div className="grid grid-cols-2 gap-3">
         <StatCard title="Σύνολο" value={DEMO_SURVEYS.length} icon={Search} />
         <StatCard title="Εκκρεμείς" value={DEMO_SURVEYS.filter(s => s.status === "pending").length} icon={Clock} accent />
       </div>
 
-      <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-xs">
-            <thead>
-              <tr className="border-b border-border bg-muted/30">
-                <th className="px-4 py-3 text-left font-semibold text-muted-foreground">SR ID</th>
-                <th className="px-4 py-3 text-left font-semibold text-muted-foreground">Περιοχή</th>
-                <th className="px-4 py-3 text-left font-semibold text-muted-foreground hidden sm:table-cell">Τεχνικός</th>
-                <th className="px-4 py-3 text-left font-semibold text-muted-foreground">Κατάσταση</th>
-                <th className="px-4 py-3 text-left font-semibold text-muted-foreground hidden sm:table-cell">Ημ/νία</th>
-              </tr>
-            </thead>
-            <tbody>
-              {DEMO_SURVEYS.map(s => (
-                <tr key={s.id} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
-                  <td className="px-4 py-3 font-bold text-primary">{s.srId}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{s.area}</td>
-                  <td className="px-4 py-3 text-muted-foreground hidden sm:table-cell">{s.technician}</td>
-                  <td className="px-4 py-3">
-                    <Badge variant="outline" className={`text-[10px] ${s.status === "completed" ? "bg-green-500/10 text-green-600 border-green-500/20" : "bg-yellow-500/10 text-yellow-600 border-yellow-500/20"}`}>
-                      {s.status === "completed" ? "Ολοκληρωμένη" : "Εκκρεμής"}
-                    </Badge>
-                  </td>
-                  <td className="px-4 py-3 text-muted-foreground hidden sm:table-cell">{s.date}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <Card>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="text-xs">SR ID</TableHead>
+              <TableHead className="text-xs">Περιοχή</TableHead>
+              <TableHead className="text-xs hidden sm:table-cell">Τεχνικός</TableHead>
+              <TableHead className="text-xs">Κατάσταση</TableHead>
+              <TableHead className="text-xs hidden sm:table-cell">Ημ/νία</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {DEMO_SURVEYS.map(s => (
+              <TableRow key={s.id}>
+                <TableCell className="font-bold text-primary text-xs">{s.srId}</TableCell>
+                <TableCell className="text-xs">{s.area}</TableCell>
+                <TableCell className="text-xs hidden sm:table-cell">{s.technician}</TableCell>
+                <TableCell>
+                  <Badge variant="outline" className={`text-[10px] ${s.status === "completed" ? "bg-green-500/10 text-green-600 border-green-500/20" : "bg-yellow-500/10 text-yellow-600 border-yellow-500/20"}`}>
+                    {s.status === "completed" ? "Ολοκληρωμένη" : "Εκκρεμής"}
+                  </Badge>
+                </TableCell>
+                <TableCell className="text-xs text-muted-foreground hidden sm:table-cell">{s.date}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </Card>
     </div>
   );
 };
@@ -520,7 +749,9 @@ export const DemoSurveysPanel = () => {
 export const DemoCalendarPanel = () => {
   return (
     <div className="space-y-4">
-      <h1 className="text-xl font-bold text-foreground flex items-center gap-2"><CalendarDays className="h-5 w-5 text-primary" /> Ημερολόγιο</h1>
+      <h1 className="text-xl font-bold text-foreground flex items-center gap-2">
+        <CalendarDays className="h-5 w-5 text-primary" /> Ημερολόγιο
+      </h1>
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {DEMO_CALENDAR_EVENTS.map((ev, i) => (
@@ -552,8 +783,12 @@ export const DemoUsersPanel = () => {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold text-foreground flex items-center gap-2"><UserCog className="h-5 w-5 text-primary" /> Χρήστες</h1>
-        <button onClick={() => toast.info("Demo Mode — Η δημιουργία δεν είναι διαθέσιμη")} className="rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors">+ Νέος Χρήστης</button>
+        <h1 className="text-xl font-bold text-foreground flex items-center gap-2">
+          <UserCog className="h-5 w-5 text-primary" /> Χρήστες
+        </h1>
+        <Button size="sm" onClick={() => toast.info("Demo mode — οι αλλαγές δεν αποθηκεύονται")}>
+          <Plus className="h-4 w-4 mr-1" /> Νέος Χρήστης
+        </Button>
       </div>
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -568,11 +803,13 @@ export const DemoUsersPanel = () => {
                   <p className="font-bold text-sm text-foreground truncate">{u.name}</p>
                   <p className="text-[11px] text-muted-foreground truncate">{u.email}</p>
                 </div>
-                <Badge variant="outline" className={`text-[10px] ${roleColors[u.role] || ""}`}>{roleLabels[u.role] || u.role}</Badge>
+                <Badge variant="outline" className={`text-[10px] shrink-0 ${roleColors[u.role] || ""}`}>
+                  {roleLabels[u.role] || u.role}
+                </Badge>
               </div>
-              <div className="mt-3 pt-3 border-t border-border/50 flex justify-between text-xs text-muted-foreground">
+              <div className="mt-3 pt-2 border-t border-border/30 flex items-center justify-between text-xs text-muted-foreground">
                 <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{u.area}</span>
-                <span className="flex items-center gap-1"><ClipboardList className="h-3 w-3" />{u.assignments} αναθέσεις</span>
+                <span>{u.assignments} αναθέσεις</span>
               </div>
             </CardContent>
           </Card>
@@ -583,33 +820,17 @@ export const DemoUsersPanel = () => {
 };
 
 export const DemoSettingsPanel = () => {
-  const settings = [
-    { label: "Όνομα Οργανισμού", value: "DELTANETWORK" },
-    { label: "Email Ειδοποιήσεων", value: "ops@deltanetwork.gr" },
-    { label: "Google Drive Sync", value: "Ενεργό" },
-    { label: "Auto-pricing", value: "Ενεργό" },
-    { label: "Low Stock Alerts", value: "< 100 τεμάχια" },
-    { label: "Πλάνο", value: "Professional" },
-  ];
-
   return (
     <div className="space-y-4">
-      <h1 className="text-xl font-bold text-foreground flex items-center gap-2"><Settings className="h-5 w-5 text-primary" /> Ρυθμίσεις</h1>
-
+      <h1 className="text-xl font-bold text-foreground flex items-center gap-2">
+        <Settings className="h-5 w-5 text-primary" /> Ρυθμίσεις
+      </h1>
       <Card>
-        <CardContent className="p-0">
-          {settings.map((s, i) => (
-            <div key={i} className={`flex items-center justify-between px-4 py-3.5 ${i < settings.length - 1 ? "border-b border-border/50" : ""}`}>
-              <span className="text-sm text-muted-foreground">{s.label}</span>
-              <span className="text-sm font-bold text-foreground">{s.value}</span>
-            </div>
-          ))}
+        <CardContent className="p-6 text-center text-muted-foreground">
+          <Settings className="h-10 w-10 mx-auto mb-3 opacity-30" />
+          <p className="text-sm">Οι ρυθμίσεις δεν είναι διαθέσιμες σε Demo Mode</p>
         </CardContent>
       </Card>
-
-      <button onClick={() => toast.info("Demo Mode — Οι ρυθμίσεις δεν αποθηκεύονται")} className="w-full rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors">
-        Αποθήκευση Ρυθμίσεων
-      </button>
     </div>
   );
 };
