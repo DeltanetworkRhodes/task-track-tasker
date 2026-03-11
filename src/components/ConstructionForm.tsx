@@ -75,7 +75,11 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
   const { organizationId, organization } = useOrganization();
   const orgName = organization?.name || "DELTANETWORK";
   const queryClient = useQueryClient();
-  const { analyzeConstructionPhoto, getConstructionResult, isConstructionAnalyzing, hasRejectedPhotos } = useConstructionPhotoAnalysis();
+  const { analyzeConstructionPhoto, getConstructionResult, isConstructionAnalyzing, hasRejectedPhotos, overrideResult } = useConstructionPhotoAnalysis();
+
+  // Override dialog state
+  const [overrideTarget, setOverrideTarget] = useState<{ category: string; index: number } | null>(null);
+  const [overrideReason, setOverrideReason] = useState("");
 
   // Form state
   const [sesId, setSesId] = useState("");
@@ -514,11 +518,8 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
       const idx = existingCount + accepted.length;
 
       if (isOnline()) {
-        const result = await analyzeConstructionPhoto(file, category, idx);
-        if (!result.isApproved || result.qualityScore < 7) {
-          // Photo rejected by AI — don't add
-          continue;
-        }
+        await analyzeConstructionPhoto(file, category, idx);
+        // Always keep the photo — rejected ones can be overridden
       }
 
       accepted.push(file);
@@ -1208,17 +1209,42 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
                   <div className="grid grid-cols-4 gap-1.5">
                     {catPreviews.map((preview, i) => {
                       const result = getConstructionResult(cat.key, i);
+                      const isRejected = result && !result.skipped && !result.overriddenBy && (!result.isApproved || result.qualityScore < 7);
+                      const isOverridden = result && !!result.overriddenBy;
                       return (
                         <div key={i} className="relative group">
                           <img
                             src={preview}
                             alt={`${cat.label} ${i + 1}`}
-                            className="w-full h-16 object-cover rounded border border-border"
+                            className={`w-full h-16 object-cover rounded border ${isRejected ? "border-destructive ring-1 ring-destructive/40" : "border-border"}`}
                           />
                           {/* AI approval badge */}
-                          {result && !result.skipped && (
+                          {result && !result.skipped && !isRejected && !isOverridden && (
                             <div className="absolute top-0.5 left-0.5" title={`Score: ${result.qualityScore}/10`}>
                               <ShieldCheck className="h-4 w-4 text-green-500 drop-shadow" />
+                            </div>
+                          )}
+                          {/* Rejection badge + override button */}
+                          {isRejected && (
+                            <div className="absolute top-0.5 left-0.5 flex items-center gap-0.5">
+                              <ShieldAlert className="h-4 w-4 text-destructive drop-shadow" />
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="h-5 text-[8px] px-1 py-0 border-amber-500/50 text-amber-700 hover:bg-amber-500/10 bg-background/80"
+                                onClick={() => { setOverrideTarget({ category: cat.key, index: i }); setOverrideReason(""); }}
+                              >
+                                Override ⚠️
+                              </Button>
+                            </div>
+                          )}
+                          {/* Override badge */}
+                          {isOverridden && (
+                            <div className="absolute top-0.5 left-0.5" title={result.overriddenBy}>
+                              <Badge className="text-[7px] h-4 px-1 bg-amber-500 text-amber-950 hover:bg-amber-500">
+                                OVERRIDE
+                              </Badge>
                             </div>
                           )}
                           {result && !result.skipped && result.qualityScore && (
@@ -1310,6 +1336,50 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
         </div>
       </Card>
 
+
+      {/* Override Dialog */}
+      {overrideTarget && (
+        <Card className="p-4 space-y-3 border-amber-500/40 bg-amber-500/5">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4 text-amber-600" />
+            <span className="text-sm font-semibold text-amber-700">Override Απόρριψης AI</span>
+          </div>
+          <Label className="text-xs text-muted-foreground">
+            Αιτιολογία override (υποχρεωτικό):
+          </Label>
+          <Textarea
+            value={overrideReason}
+            onChange={(e) => setOverrideReason(e.target.value)}
+            placeholder="π.χ. Η φωτογραφία είναι σωστή, το AI έκανε λάθος αναγνώριση..."
+            className="text-xs min-h-[60px]"
+          />
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setOverrideTarget(null)}
+              className="text-xs"
+            >
+              Ακύρωση
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              disabled={!overrideReason.trim()}
+              className="text-xs bg-amber-600 hover:bg-amber-700 text-white"
+              onClick={() => {
+                overrideResult(overrideTarget.category, overrideTarget.index, overrideReason.trim());
+                toast.warning("⚠️ Override καταγράφηκε");
+                setOverrideTarget(null);
+                setOverrideReason("");
+              }}
+            >
+              Επιβεβαίωση Override
+            </Button>
+          </div>
+        </Card>
+      )}
 
       {/* Submit */}
       <Button onClick={handleSubmit} disabled={submitting} className="w-full py-6 text-sm font-bold gap-2">
