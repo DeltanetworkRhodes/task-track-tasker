@@ -16,6 +16,7 @@ export interface ConstructionPhotoAnalysisResult {
   issuesFound: string[];
   feedbackForTechnician: string;
   skipped?: boolean;
+  overriddenBy?: string;
 }
 
 interface AnalysisState {
