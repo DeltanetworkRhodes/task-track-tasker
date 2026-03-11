@@ -9,6 +9,7 @@ import deltaLogoIcon from "@/assets/delta-logo-icon.png";
 const AppLayout = ({ children }: { children: ReactNode }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { online, pendingCount, pendingSurveyCount, pendingConstructionCount, syncAll } = useOfflineSync();
+  useLocationTracking();
 
   return (
     <div className="flex min-h-screen bg-background safe-top safe-left safe-right">

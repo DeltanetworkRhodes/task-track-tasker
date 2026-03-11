@@ -7,7 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 export function useLocationTracking() {
   const { user } = useAuth();
   const { organizationId } = useOrganization();
-  const { userRole } = useUserRole();
+  const { data: userRole } = useUserRole();
   const intervalRef = useRef<ReturnType<typeof setInterval>>();
 
   const sendLocation = useCallback(async () => {
