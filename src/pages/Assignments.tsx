@@ -123,6 +123,19 @@ const Assignments = () => {
               </button>
             );
           })}
+          {isAdmin && (
+            <button
+              onClick={() => setActiveTab("livemap")}
+              className={`flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium whitespace-nowrap transition-all shrink-0 ${
+                activeTab === "livemap"
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground"
+              }`}
+            >
+              <Radio className="h-3.5 w-3.5 shrink-0" />
+              Live Map
+            </button>
+          )}
         </div>
 
         {/* Filters row */}
