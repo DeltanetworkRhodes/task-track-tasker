@@ -89,8 +89,8 @@ async function driveSearchFolder(
 async function driveFolderHasFiles(
   accessToken: string,
   srId: string,
-  folderIds: string[],
-  sharedDriveId: string
+  folderIds: string[] = DEFAULT_SEARCH_FOLDER_IDS,
+  sharedDriveId: string = DEFAULT_SHARED_DRIVE_ID
 ): Promise<boolean> {
   // First find the folder
   for (const folderId of folderIds) {
