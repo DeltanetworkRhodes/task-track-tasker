@@ -44,9 +44,10 @@ export const usePushNotifications = () => {
       }
 
       const registration = await navigator.serviceWorker.ready;
+      const applicationServerKey = urlBase64ToUint8Array(vapidKey);
       const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(vapidKey),
+        applicationServerKey: applicationServerKey.buffer as ArrayBuffer,
       });
 
       const json = subscription.toJSON();
