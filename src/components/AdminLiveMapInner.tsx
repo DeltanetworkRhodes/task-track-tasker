@@ -72,19 +72,24 @@ const AdminLiveMapInner = () => {
   const markersRef = useRef<Record<string, L.Marker>>({});
 
   const { data: profiles } = useQuery({
-    queryKey: ["technician-profiles-map"],
+    queryKey: ["technician-profiles-map", organizationId],
+    enabled: !!organizationId,
     queryFn: async () => {
+      // Get profiles for this org first, then filter by technician role
+      const { data: orgProfiles } = await supabase
+        .from("profiles")
+        .select("user_id, full_name")
+        .eq("organization_id", organizationId!);
+      if (!orgProfiles?.length) return [];
+      const ids = orgProfiles.map((p) => p.user_id);
       const { data: roles } = await supabase
         .from("user_roles")
         .select("user_id")
-        .eq("role", "technician" as any);
-      if (!roles?.length) return [];
-      const ids = roles.map((r) => r.user_id);
-      const { data } = await supabase
-        .from("profiles")
-        .select("user_id, full_name")
+        .eq("role", "technician" as any)
         .in("user_id", ids);
-      return data || [];
+      if (!roles?.length) return [];
+      const techIds = new Set(roles.map((r) => r.user_id));
+      return orgProfiles.filter((p) => techIds.has(p.user_id));
     },
   });
 
@@ -97,11 +102,13 @@ const AdminLiveMapInner = () => {
   }, [profiles]);
 
   const { data: activeAssignments } = useQuery({
-    queryKey: ["technician-active-assignments-map"],
+    queryKey: ["technician-active-assignments-map", organizationId],
+    enabled: !!organizationId,
     queryFn: async () => {
       const { data } = await supabase
         .from("assignments")
         .select("technician_id, sr_id, status, area")
+        .eq("organization_id", organizationId!)
         .in("status", ["pending", "inspection", "construction"])
         .not("technician_id", "is", null);
       return data || [];
