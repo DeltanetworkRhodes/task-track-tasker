@@ -138,80 +138,88 @@ const Assignments = () => {
           )}
         </div>
 
-        {/* Filters row */}
-        <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
-          <div className="relative flex-1 min-w-0 max-w-xs">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-            <input
-              type="text"
-              placeholder="Αναζήτηση SR ID ή πελάτη..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full rounded-lg border border-border bg-card pl-8 pr-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary placeholder:text-muted-foreground/60 transition-all"
-            />
-          </div>
-          <select
-            value={areaFilter}
-            onChange={(e) => setAreaFilter(e.target.value)}
-            className="rounded-lg border border-border bg-card px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-          >
-            <option value="all">Όλες οι περιοχές</option>
-            {areas.map((area) => (
-              <option key={area} value={area}>{area}</option>
-            ))}
-          </select>
-          {sources.length > 0 && (
-            <select
-              value={sourceFilter}
-              onChange={(e) => setSourceFilter(e.target.value)}
-              className="rounded-lg border border-border bg-card px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-            >
-              <option value="all">Όλες οι πηγές</option>
-              {sources.map((src) => (
-                <option key={src} value={src}>{src}</option>
-              ))}
-            </select>
-          )}
-        </div>
+        {activeTab === "livemap" ? (
+          <Suspense fallback={<div className="p-12 text-center"><Skeleton className="h-[60vh] w-full rounded-xl" /></div>}>
+            <AdminLiveMap />
+          </Suspense>
+        ) : (
+          <>
+            {/* Filters row */}
+            <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+              <div className="relative flex-1 min-w-0 max-w-xs">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                <input
+                  type="text"
+                  placeholder="Αναζήτηση SR ID ή πελάτη..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="w-full rounded-lg border border-border bg-card pl-8 pr-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary placeholder:text-muted-foreground/60 transition-all"
+                />
+              </div>
+              <select
+                value={areaFilter}
+                onChange={(e) => setAreaFilter(e.target.value)}
+                className="rounded-lg border border-border bg-card px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+              >
+                <option value="all">Όλες οι περιοχές</option>
+                {areas.map((area) => (
+                  <option key={area} value={area}>{area}</option>
+                ))}
+              </select>
+              {sources.length > 0 && (
+                <select
+                  value={sourceFilter}
+                  onChange={(e) => setSourceFilter(e.target.value)}
+                  className="rounded-lg border border-border bg-card px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                >
+                  <option value="all">Όλες οι πηγές</option>
+                  {sources.map((src) => (
+                    <option key={src} value={src}>{src}</option>
+                  ))}
+                </select>
+              )}
+            </div>
 
-        {/* Table */}
-        <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
-          <div className="flex items-center gap-2 border-b border-border px-4 sm:px-5 py-3 sm:py-4">
-            <ClipboardCheck className="h-4 w-4 text-primary shrink-0" />
-            <h2 className="font-bold text-sm">
-              {tabs.find(t => t.key === activeTab)?.label || "Αναθέσεις"}
-            </h2>
-            <span className="ml-auto text-[10px] sm:text-xs text-muted-foreground font-bold bg-muted px-2 py-0.5 rounded-full">
-              {filtered.length} / {assignments.length}
-            </span>
-          </div>
-          {isLoading ? (
-            <div className="p-4 space-y-3">
-              {[...Array(6)].map((_, i) => (
-                <div key={i} className="flex items-center gap-4 p-3">
-                  <Skeleton className="h-4 w-20 rounded-lg" />
-                  <Skeleton className="h-4 w-16 rounded-lg" />
-                  <Skeleton className="h-4 w-32 rounded-lg flex-1" />
-                  <Skeleton className="h-6 w-20 rounded-full" />
-                  <Skeleton className="h-4 w-16 rounded-lg" />
+            {/* Table */}
+            <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
+              <div className="flex items-center gap-2 border-b border-border px-4 sm:px-5 py-3 sm:py-4">
+                <ClipboardCheck className="h-4 w-4 text-primary shrink-0" />
+                <h2 className="font-bold text-sm">
+                  {tabs.find(t => t.key === activeTab)?.label || "Αναθέσεις"}
+                </h2>
+                <span className="ml-auto text-[10px] sm:text-xs text-muted-foreground font-bold bg-muted px-2 py-0.5 rounded-full">
+                  {filtered.length} / {assignments.length}
+                </span>
+              </div>
+              {isLoading ? (
+                <div className="p-4 space-y-3">
+                  {[...Array(6)].map((_, i) => (
+                    <div key={i} className="flex items-center gap-4 p-3">
+                      <Skeleton className="h-4 w-20 rounded-lg" />
+                      <Skeleton className="h-4 w-16 rounded-lg" />
+                      <Skeleton className="h-4 w-32 rounded-lg flex-1" />
+                      <Skeleton className="h-6 w-20 rounded-full" />
+                      <Skeleton className="h-4 w-16 rounded-lg" />
+                    </div>
+                  ))}
                 </div>
-              ))}
+              ) : filtered.length === 0 ? (
+                <div className="p-12 text-center">
+                  <AlertCircle className="h-8 w-8 text-muted-foreground/30 mx-auto mb-3" />
+                  <p className="text-sm text-muted-foreground">Δεν βρέθηκαν αναθέσεις σε αυτή τη κατηγορία</p>
+                </div>
+              ) : (
+                <div>
+                  <AssignmentTable
+                    assignments={filtered}
+                    selectedIds={selectedIds}
+                    onSelectionChange={setSelectedIds}
+                  />
+                </div>
+              )}
             </div>
-          ) : filtered.length === 0 ? (
-            <div className="p-12 text-center">
-              <AlertCircle className="h-8 w-8 text-muted-foreground/30 mx-auto mb-3" />
-              <p className="text-sm text-muted-foreground">Δεν βρέθηκαν αναθέσεις σε αυτή τη κατηγορία</p>
-            </div>
-          ) : (
-            <div>
-              <AssignmentTable
-                assignments={filtered}
-                selectedIds={selectedIds}
-                onSelectionChange={setSelectedIds}
-              />
-            </div>
-          )}
-        </div>
+          </>
+        )}
 
         <CreateAssignmentDialog open={showCreate} onOpenChange={setShowCreate} />
       </div>
