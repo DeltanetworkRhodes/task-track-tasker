@@ -33,9 +33,11 @@ const STATUS_COLORS: Record<string, string> = {
   pending: "hsl(38 92% 50%)",
   inspection: "hsl(330 100% 44%)",
   pre_committed: "hsl(220 70% 55%)",
-  
   construction: "hsl(280 55% 52%)",
-  completed: "hsl(152 60% 42%)",
+  completed: "hsl(220 70% 55%)",
+  submitted: "hsl(187 70% 50%)",
+  paid: "hsl(152 60% 42%)",
+  rejected: "hsl(0 60% 50%)",
   cancelled: "hsl(0 60% 50%)",
 };
 
