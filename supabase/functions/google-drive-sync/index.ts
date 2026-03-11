@@ -187,7 +187,7 @@ Deno.serve(async (req) => {
       .from("org_settings")
       .select("setting_key, setting_value")
       .eq("organization_id", targetOrgId)
-      .in("setting_key", ["assignments_sheet_id", "constructions_sheet_id", "shared_drive_id", "area_root_folders"]);
+      .in("setting_key", ["assignments_sheet_id", "constructions_sheet_id", "shared_drive_id", "area_root_folders", "service_account_key"]);
 
     const settingsMap = new Map((orgSettings || []).map((s: any) => [s.setting_key, s.setting_value]));
 
