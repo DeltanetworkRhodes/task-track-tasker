@@ -6,9 +6,10 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { FileSpreadsheet, Download, Search, CheckCircle2, AlertCircle, Loader2, FlaskConical, Eye, MapPin, Building2 } from "lucide-react";
+import { FileSpreadsheet, Download, Search, CheckCircle2, Loader2, FlaskConical, Eye, MapPin, Building2, FolderArchive } from "lucide-react";
 import { useAssignments, useConstructions } from "@/hooks/useData";
 import { generateAsBuilt, generateAsBuiltFromData, getDemoAsBuiltData } from "@/lib/generateAsBuilt";
+import { generateConstructionZip } from "@/lib/generateConstructionZip";
 import { useDemo } from "@/contexts/DemoContext";
 import { toast } from "sonner";
 
@@ -25,6 +26,7 @@ const DocumentGenerator = () => {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [generatingId, setGeneratingId] = useState<string | null>(null);
+  const [zippingId, setZippingId] = useState<string | null>(null);
   const [selectedSrId, setSelectedSrId] = useState<string | null>(null);
 
   // Only show assignments that have a construction record
@@ -58,21 +60,60 @@ const DocumentGenerator = () => {
     try {
       let result;
       if (isDemo) {
-        // Demo mode: use isolated demo data for this specific SR
         const demoData = getDemoAsBuiltData(srId);
         result = await generateAsBuiltFromData(demoData);
       } else {
-        // Production: fetch from database
         result = await generateAsBuilt(srId);
       }
       if (result.warnings.length > 0) {
         result.warnings.forEach(w => toast.warning(w));
+        toast.warning(`AS-BUILD δημιουργήθηκε με ${result.warnings.length} προειδοποιήσεις`);
+      } else {
+        toast.success(`AS-BUILD για ${srId} δημιουργήθηκε επιτυχώς!`);
       }
-      toast.success(`AS-BUILD για ${srId} δημιουργήθηκε επιτυχώς!`);
     } catch (err: any) {
       toast.error(err.message || "Σφάλμα κατά τη δημιουργία του AS-BUILD");
     } finally {
       setGeneratingId(null);
+    }
+  };
+
+  const handleZipExport = async (srId: string) => {
+    if (isDemo) {
+      toast.error("Η εξαγωγή ZIP δεν είναι διαθέσιμη σε Demo Mode");
+      return;
+    }
+
+    const assignment = assignments.find((a: any) => a.sr_id === srId);
+    const construction = constructions.find((c: any) => c.sr_id === srId);
+    if (!assignment || !construction) {
+      toast.error("Δεν βρέθηκαν δεδομένα κατασκευής");
+      return;
+    }
+
+    setZippingId(srId);
+    try {
+      const result = await generateConstructionZip(
+        srId,
+        (assignment as any).address || "",
+        (construction as any).id,
+        null // AS-BUILD Excel could be included separately if needed
+      );
+
+      if (result.warnings.length > 0) {
+        result.warnings.forEach(w => toast.warning(w));
+      }
+
+      if (result.fileCount > 0) {
+        toast.success(`ZIP εξήχθη με ${result.fileCount} αρχεία`);
+      } else {
+        toast.warning("Το ZIP δημιουργήθηκε αλλά δεν περιέχει αρχεία");
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Σφάλμα κατά τη δημιουργία ZIP");
+      console.error("ZIP export error:", err);
+    } finally {
+      setZippingId(null);
     }
   };
 
@@ -118,7 +159,6 @@ const DocumentGenerator = () => {
                 <SelectItem value="all">Όλα</SelectItem>
                 <SelectItem value="ready">Ολοκληρωμένα</SelectItem>
                 <SelectItem value="in_progress">Σε εξέλιξη</SelectItem>
-                
               </SelectContent>
             </Select>
           </div>
@@ -182,7 +222,7 @@ const DocumentGenerator = () => {
           </div>
         )}
 
-        {/* SR Detail Dialog with Export Button */}
+        {/* SR Detail Dialog with Export Buttons */}
         <Dialog open={!!selectedSrId} onOpenChange={(open) => !open && setSelectedSrId(null)}>
           <DialogContent className="max-w-lg">
             <DialogHeader>
@@ -230,20 +270,39 @@ const DocumentGenerator = () => {
                   )}
                 </div>
 
-                {/* Export Button - INSIDE the dialog */}
-                <Button
-                  className="w-full"
-                  size="lg"
-                  disabled={generatingId === selectedSrId}
-                  onClick={() => selectedSrId && handleGenerate(selectedSrId)}
-                >
-                  {generatingId === selectedSrId ? (
-                    <Loader2 className="h-5 w-5 animate-spin mr-2" />
-                  ) : (
-                    <Download className="h-5 w-5 mr-2" />
+                {/* Export Buttons */}
+                <div className="space-y-2">
+                  <Button
+                    className="w-full"
+                    size="lg"
+                    disabled={generatingId === selectedSrId}
+                    onClick={() => selectedSrId && handleGenerate(selectedSrId)}
+                  >
+                    {generatingId === selectedSrId ? (
+                      <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                    ) : (
+                      <Download className="h-5 w-5 mr-2" />
+                    )}
+                    Εξαγωγή AS-BUILD
+                  </Button>
+
+                  {!isDemo && (
+                    <Button
+                      className="w-full"
+                      size="lg"
+                      variant="outline"
+                      disabled={zippingId === selectedSrId}
+                      onClick={() => selectedSrId && handleZipExport(selectedSrId)}
+                    >
+                      {zippingId === selectedSrId ? (
+                        <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                      ) : (
+                        <FolderArchive className="h-5 w-5 mr-2" />
+                      )}
+                      Εξαγωγή ZIP (Φωτογραφίες + Μετρήσεις)
+                    </Button>
                   )}
-                  Εξαγωγή AS-BUILD
-                </Button>
+                </div>
 
                 {isDemo && (
                   <p className="text-[10px] text-muted-foreground text-center">
