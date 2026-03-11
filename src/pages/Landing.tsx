@@ -421,10 +421,7 @@ const Landing = () => {
         {/* FOOTER */}
         <footer className="dn-footer">
           <a href="#" className="dn-flogo">
-            <svg width="22" height="22" viewBox="0 0 40 40" fill="none">
-              <circle cx="20" cy="20" r="18" stroke="url(#fg)" strokeWidth="2.5" fill="none" />
-              <defs><linearGradient id="fg" x1="0" y1="0" x2="40" y2="40"><stop stopColor="#00c9b1"/><stop offset="1" stopColor="#3ddc84"/></linearGradient></defs>
-            </svg>
+            <img src="/assets/delta-icon-glossy.png" alt="Delta Network" style={{width:'24px',height:'24px',objectFit:'contain'}} />
             <span className="dn-flt">DELTANETWORK</span>
           </a>
           <div className="dn-flinks">
