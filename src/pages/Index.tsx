@@ -108,8 +108,12 @@ const Index = () => {
     }));
   }, [dbConstructions]);
 
-  const activeAssignments = assignments.filter(a => a.status !== 'completed' && a.status !== 'cancelled').length;
-  const completedAssignments = assignments.filter(a => a.status === 'completed').length;
+  const activeAssignments = assignments.filter(a => !["completed", "cancelled", "submitted", "paid", "rejected"].includes(a.status)).length;
+  const completedAssignments = assignments.filter(a => a.status === "completed" || a.status === "submitted" || a.status === "paid").length;
+  const pendingPayments = assignments.filter(a => a.status === "submitted");
+  const pendingPaymentTotal = (dbAssignments || [])
+    .filter((a: any) => a.status === "submitted")
+    .reduce((s: number, a: any) => s + (Number((a as any).payment_amount) || 0), 0);
   
   const totalRevenue = constructions.reduce((sum, c) => sum + c.revenue, 0);
   const totalProfit = constructions.reduce((sum, c) => sum + c.profit, 0);
