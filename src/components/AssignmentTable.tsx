@@ -162,6 +162,19 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
         .eq("id", assignmentId);
       if (error) throw error;
       toast.success(newValue ? `Ανατέθηκε σε ${techMap[newValue] || "τεχνικό"}` : "Αφαιρέθηκε η ανάθεση");
+
+      // Fire-and-forget push notification
+      if (newValue) {
+        const assignment = assignments.find((a: any) => a.id === assignmentId) as any;
+        supabase.functions.invoke("send-push-notification", {
+          body: {
+            userId: newValue,
+            title: "🔧 Νέα Ανάθεση",
+            body: `SR ${assignment?.sr_id || assignment?.srId || ""} — ${assignment?.address || assignment?.area || ""}`,
+            data: { srId: assignment?.sr_id || assignment?.srId, url: "/technician" },
+          },
+        }).catch(console.error);
+      }
     } catch (err: any) {
       queryClient.invalidateQueries({ queryKey: ["assignments"] });
       toast.error(err.message);
