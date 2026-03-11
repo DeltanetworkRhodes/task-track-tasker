@@ -15,7 +15,10 @@ const AdminLiveMap = lazy(() => import("@/components/AdminLiveMap"));
 const tabs = [
   { key: "active", label: "Ενεργές", icon: ListChecks },
   { key: "unassigned", label: "Χωρίς Ανάθεση", icon: UserX },
-  { key: "completed", label: "Ολοκληρωμένες", icon: CheckCircle2 },
+  { key: "completed", label: "AS-BUILD", icon: CheckCircle2 },
+  { key: "submitted", label: "Παραδόθηκαν", icon: Radio },
+  { key: "paid", label: "Πληρωμένες", icon: CheckCircle2 },
+  { key: "rejected", label: "Απορρίφθηκαν", icon: AlertCircle },
   { key: "cancelled", label: "Ακυρωμένες", icon: XCircle },
   { key: "all", label: "Όλες", icon: ClipboardCheck },
 ] as const;
