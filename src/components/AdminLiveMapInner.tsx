@@ -102,11 +102,13 @@ const AdminLiveMapInner = () => {
   }, [profiles]);
 
   const { data: activeAssignments } = useQuery({
-    queryKey: ["technician-active-assignments-map"],
+    queryKey: ["technician-active-assignments-map", organizationId],
+    enabled: !!organizationId,
     queryFn: async () => {
       const { data } = await supabase
         .from("assignments")
         .select("technician_id, sr_id, status, area")
+        .eq("organization_id", organizationId!)
         .in("status", ["pending", "inspection", "construction"])
         .not("technician_id", "is", null);
       return data || [];
