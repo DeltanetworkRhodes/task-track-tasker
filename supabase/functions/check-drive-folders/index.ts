@@ -68,8 +68,8 @@ const DEFAULT_SEARCH_FOLDER_IDS = [
 async function driveSearchFolder(
   accessToken: string,
   srId: string,
-  folderIds: string[],
-  sharedDriveId: string
+  folderIds: string[] = DEFAULT_SEARCH_FOLDER_IDS,
+  sharedDriveId: string = DEFAULT_SHARED_DRIVE_ID
 ): Promise<boolean> {
   for (const folderId of folderIds) {
     const query = `name contains '${srId}' and '${folderId}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`;
