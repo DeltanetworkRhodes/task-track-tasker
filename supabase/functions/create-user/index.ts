@@ -70,13 +70,15 @@ Deno.serve(async (req) => {
 
     const userId = newUser.user.id;
 
-    // Update profile with organization_id
-    if (targetOrgId) {
-      await supabaseAdmin
-        .from("profiles")
-        .update({ organization_id: targetOrgId })
-        .eq("user_id", userId);
-    }
+    // Upsert profile with organization_id, full_name, email
+    await supabaseAdmin
+      .from("profiles")
+      .upsert({
+        user_id: userId,
+        full_name: full_name || "",
+        email,
+        organization_id: targetOrgId || null,
+      }, { onConflict: "user_id" });
 
     // Assign role
     if (role) {
