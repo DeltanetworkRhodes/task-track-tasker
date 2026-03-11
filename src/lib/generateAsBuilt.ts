@@ -402,13 +402,30 @@ export interface AsBuiltResult {
   warnings: string[];
 }
 
+export function validateAsBuiltData(data: AsBuiltData): string[] {
+  const warnings: string[] = [];
+  if (!data.srId) warnings.push("Λείπει SR ID");
+  if (!data.address) warnings.push("Λείπει διεύθυνση");
+  if (!data.buildingId) warnings.push("Λείπει Building ID (ΧΕΜΔ)");
+  if (data.floorDetails.length === 0) warnings.push("Δεν υπάρχουν δεδομένα ορόφων (Floor Details)");
+  if (data.opticalPaths.length === 0) warnings.push("Δεν υπάρχουν Optical Paths");
+  if (data.floors === 0) warnings.push("Αριθμός ορόφων είναι 0");
+  if (!data.cabId) warnings.push("Λείπει CAB ID");
+  return warnings;
+}
+
 export async function generateAsBuilt(srId: string): Promise<AsBuiltResult> {
   const data = await fetchAsBuiltData(srId);
   return generateAsBuiltFromData(data);
 }
 
+export async function preValidateAsBuilt(srId: string): Promise<string[]> {
+  const data = await fetchAsBuiltData(srId);
+  return validateAsBuiltData(data);
+}
+
 export async function generateAsBuiltFromData(data: AsBuiltData): Promise<AsBuiltResult> {
-  const warnings: string[] = [];
+  const warnings: string[] = [...validateAsBuiltData(data)];
 
   // Load template
   const templateResp = await fetch("/templates/as_build_template.xlsx");
