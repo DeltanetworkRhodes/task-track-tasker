@@ -222,10 +222,12 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
     if (!gisData || !materials || gisAutoFilled || materialItems.length > 0) return;
     
     const oteMaterials = materials.filter((m) => m.source === "OTE");
+    const allMaterials = materials;
     const autoItems: MaterialItem[] = [];
 
-    const addMaterial = (match: (m: any) => boolean, qty: number) => {
-      const found = oteMaterials.find(match);
+    const addMaterial = (match: (m: any) => boolean, qty: number, sourceFilter?: string) => {
+      const pool = sourceFilter ? allMaterials.filter((m) => m.source === sourceFilter) : oteMaterials;
+      const found = pool.find(match);
       if (found && qty > 0 && !autoItems.some((a) => a.material_id === found.id)) {
         autoItems.push({
           material_id: found.id,
@@ -239,17 +241,28 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
       }
     };
 
+    // Helper: flexible material name matching (case-insensitive, multiple patterns)
+    const nameMatches = (name: string, ...patterns: string[]) => {
+      const upper = name.toUpperCase();
+      return patterns.every((p) => upper.includes(p.toUpperCase()));
+    };
+
     // 1. BEP - match size from bep_type (e.g. "MEDIUM/12/ZTT (01..12)")
     if (gisData.bep_type) {
       const bepSize = gisData.bep_type.toUpperCase();
       if (bepSize.includes("SMALL")) {
-        addMaterial((m) => m.name.includes("Small BEP") && m.name.includes("splitter"), 1);
+        addMaterial((m) => nameMatches(m.name, "SMALL", "BEP"), 1);
       } else if (bepSize.includes("MEDIUM")) {
-        addMaterial((m) => m.name.includes("Medium BEP") && m.name.includes("splitter"), 1);
+        addMaterial((m) => nameMatches(m.name, "MEDIUM", "BEP"), 1);
       } else if (bepSize.includes("X-LARGE") || bepSize.includes("XLARGE")) {
-        addMaterial((m) => m.name.includes("X-Large BEP"), 1);
+        addMaterial((m) => nameMatches(m.name, "X-LARGE", "BEP") || nameMatches(m.name, "XLARGE", "BEP"), 1);
       } else if (bepSize.includes("LARGE")) {
-        addMaterial((m) => m.name.includes("Large BEP") && m.name.includes("splitter"), 1);
+        addMaterial((m) => nameMatches(m.name, "LARGE", "BEP") && !nameMatches(m.name, "X-LARGE") && !nameMatches(m.name, "XLARGE"), 1);
+      }
+      // Also try matching by capacity number
+      const capMatch = bepSize.match(/\/(\d+)\//);
+      if (capMatch && autoItems.length === 0) {
+        addMaterial((m) => nameMatches(m.name, "BEP") && m.name.includes(capMatch[1]), 1);
       }
     }
 
@@ -257,57 +270,125 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
     if (gisData.bmo_type) {
       const bmoSize = gisData.bmo_type.toUpperCase();
       if (bmoSize.includes("SMALL")) {
-        addMaterial((m) => m.name === "Small BMO", 1);
+        addMaterial((m) => nameMatches(m.name, "SMALL", "BMO"), 1);
       } else if (bmoSize.includes("MEDIUM")) {
-        addMaterial((m) => m.name === "Medium BMO", 1);
+        addMaterial((m) => nameMatches(m.name, "MEDIUM", "BMO"), 1);
+      } else if (bmoSize.includes("X-LARGE") || bmoSize.includes("XLARGE")) {
+        addMaterial((m) => nameMatches(m.name, "X-LARGE", "BMO") || nameMatches(m.name, "XLARGE", "BMO"), 1);
       } else if (bmoSize.includes("LARGE")) {
-        addMaterial((m) => m.name === "Large BMO", 1);
+        addMaterial((m) => nameMatches(m.name, "LARGE", "BMO") && !nameMatches(m.name, "X-LARGE") && !nameMatches(m.name, "XLARGE"), 1);
       }
     }
 
-    // 3. Floor Boxes - count from floor_details
+    // 3. Floor Boxes - count from floor_details (scan ALL keys for FB patterns)
     const floorDetails = (gisData.floor_details as any[]) || [];
     let fb4Total = 0;
     let fb12Total = 0;
+    let fbGenericTotal = 0;
+
     for (const fd of floorDetails) {
       const row = fd.raw && typeof fd.raw === "object" ? fd.raw : fd;
-      // Check FB01 through FB04
-      for (let i = 1; i <= 4; i++) {
-        const fbKey = `FB0${i}`;
-        const fbTypeKey = `FB0${i} TYPE`;
-        const fbCount = parseInt(row[fbKey]) || 0;
-        const fbType = (row[fbTypeKey] || "").toUpperCase();
-        if (fbCount > 0) {
+      const keys = Object.keys(row);
+      
+      // Scan all keys for FB-related columns
+      for (const key of keys) {
+        const upperKey = key.toUpperCase().trim();
+        
+        // Match keys like "FB01", "FB 01", "FB1", "FB02", "FLOOR BOX", etc.
+        const isFbKey = /^FB\s?\d+$/i.test(upperKey) || upperKey === "FB" || upperKey === "FLOOR BOX" || upperKey === "FLOORBOX";
+        const isFbCountKey = /^(FB\s?\d+|FLOOR\s?BOX)$/i.test(upperKey);
+        
+        if (isFbKey || isFbCountKey) {
+          const val = parseInt(String(row[key])) || 0;
+          if (val <= 0) continue;
+          
+          // Find corresponding TYPE key
+          const typeKey = keys.find((k) => {
+            const uk = k.toUpperCase().trim();
+            return uk === upperKey + " TYPE" || uk === upperKey + "_TYPE" || uk === upperKey + " ΤΥΠΟΣ";
+          });
+          const fbType = typeKey ? String(row[typeKey] || "").toUpperCase() : "";
+          
           if (fbType.includes("12")) {
-            fb12Total += fbCount;
+            fb12Total += val;
+          } else if (fbType.includes("4")) {
+            fb4Total += val;
           } else {
-            fb4Total += fbCount; // Default to 4-port
+            fbGenericTotal += val; // Will default to 4-port
+          }
+        }
+      }
+      
+      // Fallback: if no specific FB keys found, check if this floor row has any FB indication
+      if (fb4Total === 0 && fb12Total === 0 && fbGenericTotal === 0) {
+        for (const key of keys) {
+          const upperKey = key.toUpperCase().trim();
+          if (upperKey.includes("FB") && !upperKey.includes("TYPE") && !upperKey.includes("ΤΥΠΟΣ")) {
+            const val = parseInt(String(row[key])) || 0;
+            if (val > 0) fbGenericTotal += val;
           }
         }
       }
     }
+
+    // If no FB counts found from columns, count floors that have FB data (1 FB per floor as minimum)
+    if (fb4Total === 0 && fb12Total === 0 && fbGenericTotal === 0 && floorDetails.length > 0) {
+      // Each floor typically gets at least 1 FB
+      fbGenericTotal = floorDetails.length;
+    }
+
+    fb4Total += fbGenericTotal; // Default generic FBs to 4-port
+    
     if (fb4Total > 0) {
-      addMaterial((m) => m.name.includes("Floor Box with 4 adapters"), fb4Total);
+      addMaterial((m) => nameMatches(m.name, "FLOOR", "BOX", "4") || nameMatches(m.name, "FB", "4"), fb4Total);
+      // Fallback: any floor box material
+      if (!autoItems.some((a) => nameMatches(a.name, "FLOOR") || nameMatches(a.name, "FB"))) {
+        addMaterial((m) => nameMatches(m.name, "FLOOR", "BOX") || (nameMatches(m.name, "FB") && !nameMatches(m.name, "BEP")), fb4Total);
+      }
     }
     if (fb12Total > 0) {
-      addMaterial((m) => m.name.includes("Floor Box with 12 adapters"), fb12Total);
+      addMaterial((m) => nameMatches(m.name, "FLOOR", "BOX", "12") || nameMatches(m.name, "FB", "12"), fb12Total);
+      if (!autoItems.some((a) => (nameMatches(a.name, "FLOOR") || nameMatches(a.name, "FB")) && a.name.includes("12"))) {
+        addMaterial((m) => nameMatches(m.name, "FLOOR", "BOX") || (nameMatches(m.name, "FB") && !nameMatches(m.name, "BEP")), fb12Total);
+      }
     }
 
     // 4. Splitter from bep_template (e.g. "BEP 1SP 1:8(01..12)")
     if (gisData.bep_template) {
       const tmpl = gisData.bep_template.toUpperCase();
       if (tmpl.includes("1:8")) {
-        addMaterial((m) => m.name.includes("SPLITTERS") && m.name.includes("1:8"), 1);
+        addMaterial((m) => nameMatches(m.name, "SPLITTER") && m.name.includes("1:8"), 1);
+      } else if (tmpl.includes("1:4")) {
+        addMaterial((m) => nameMatches(m.name, "SPLITTER") && m.name.includes("1:4"), 1);
       } else if (tmpl.includes("1:2")) {
-        addMaterial((m) => m.name.includes("SPLITTERS") && m.name.includes("1:2"), 1);
+        addMaterial((m) => nameMatches(m.name, "SPLITTER") && m.name.includes("1:2"), 1);
+      } else if (tmpl.includes("1:16")) {
+        addMaterial((m) => nameMatches(m.name, "SPLITTER") && m.name.includes("1:16"), 1);
       }
+    }
+
+    // 5. BCP from GIS (nearby_bcp, new_bcp, associated_bcp)
+    if (gisData.nearby_bcp || gisData.new_bcp) {
+      addMaterial((m) => nameMatches(m.name, "BCP"), 1);
+    }
+
+    // 6. Nanotronix / Smart readiness
+    if (gisData.nanotronix) {
+      addMaterial((m) => nameMatches(m.name, "NANOTRONIX") || nameMatches(m.name, "NANO"), 1);
     }
 
     if (autoItems.length > 0) {
       setMaterialItems(autoItems);
       setMaterialTab("OTE");
       setGisAutoFilled(true);
-      toast.success(`Αυτόματη συμπλήρωση ${autoItems.length} υλικών ΟΤΕ από GIS`);
+      toast.success(`✅ Αυτόματη χρέωση ${autoItems.length} υλικών από GIS (${fb4Total + fb12Total} FB, ${gisData.bep_type ? 'BEP: ' + gisData.bep_type : ''} ${gisData.bmo_type ? 'BMO: ' + gisData.bmo_type : ''})`, { duration: 6000 });
+    } else if (gisData) {
+      console.log("GIS auto-fill: no matching materials found. GIS data:", {
+        bep_type: gisData.bep_type,
+        bmo_type: gisData.bmo_type,
+        bep_template: gisData.bep_template,
+        floor_details: gisData.floor_details,
+      });
     }
   }, [gisData, materials, gisAutoFilled, materialItems.length]);
 
