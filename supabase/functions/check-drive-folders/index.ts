@@ -54,9 +54,9 @@ async function getAccessToken(serviceAccountKey: any): Promise<string> {
   return tokenData.access_token;
 }
 
-const SHARED_DRIVE_ID = "0AN9VpmNEa7QBUk9PVA";
+const DEFAULT_SHARED_DRIVE_ID = "0AN9VpmNEa7QBUk9PVA";
 
-const SEARCH_FOLDER_IDS = [
+const DEFAULT_SEARCH_FOLDER_IDS = [
   "1JvcSG3tiOplSujXhb3yj_ELQLjfrgOzO", // ΡΟΔΟΣ
   "1X1mtK4tV_sgGM9IdizNSK7AS19qX1nYl", // ΚΩΣ
   "1dal55zb0uv5__e1pDk2fLFMB0ogi1OnZ", // ΠΡΟΔΕΣΜΕΥΣΗ ΓΙΑ ΚΑΤΑΣΚΕΥΗ
@@ -65,10 +65,15 @@ const SEARCH_FOLDER_IDS = [
   "1pIRjzexYG_JVFkoqfaG2_o_YfziGoFy_", // ΜΑΡΤΙΟΣ
 ];
 
-async function driveSearchFolder(accessToken: string, srId: string): Promise<boolean> {
-  for (const folderId of SEARCH_FOLDER_IDS) {
+async function driveSearchFolder(
+  accessToken: string,
+  srId: string,
+  folderIds: string[] = DEFAULT_SEARCH_FOLDER_IDS,
+  sharedDriveId: string = DEFAULT_SHARED_DRIVE_ID
+): Promise<boolean> {
+  for (const folderId of folderIds) {
     const query = `name contains '${srId}' and '${folderId}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`;
-    const url = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&fields=files(id)&pageSize=1&supportsAllDrives=true&includeItemsFromAllDrives=true&corpora=drive&driveId=${SHARED_DRIVE_ID}`;
+    const url = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&fields=files(id)&pageSize=1&supportsAllDrives=true&includeItemsFromAllDrives=true&corpora=drive&driveId=${sharedDriveId}`;
     
     const res = await fetch(url, {
       headers: { Authorization: `Bearer ${accessToken}` },
@@ -81,11 +86,16 @@ async function driveSearchFolder(accessToken: string, srId: string): Promise<boo
 }
 
 // Check if a Drive folder has any files (not just subfolders)
-async function driveFolderHasFiles(accessToken: string, srId: string): Promise<boolean> {
+async function driveFolderHasFiles(
+  accessToken: string,
+  srId: string,
+  folderIds: string[] = DEFAULT_SEARCH_FOLDER_IDS,
+  sharedDriveId: string = DEFAULT_SHARED_DRIVE_ID
+): Promise<boolean> {
   // First find the folder
-  for (const folderId of SEARCH_FOLDER_IDS) {
+  for (const folderId of folderIds) {
     const query = `name contains '${srId}' and '${folderId}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`;
-    const url = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&fields=files(id)&pageSize=1&supportsAllDrives=true&includeItemsFromAllDrives=true&corpora=drive&driveId=${SHARED_DRIVE_ID}`;
+    const url = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&fields=files(id)&pageSize=1&supportsAllDrives=true&includeItemsFromAllDrives=true&corpora=drive&driveId=${sharedDriveId}`;
     
     const res = await fetch(url, {
       headers: { Authorization: `Bearer ${accessToken}` },
@@ -96,7 +106,7 @@ async function driveFolderHasFiles(accessToken: string, srId: string): Promise<b
       const srFolderId = data.files[0].id;
       // Check for any files recursively inside this folder (files + subfolders' files)
       const filesQuery = `'${srFolderId}' in parents and trashed = false`;
-      const filesUrl = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(filesQuery)}&fields=files(id,mimeType)&pageSize=5&supportsAllDrives=true&includeItemsFromAllDrives=true&corpora=drive&driveId=${SHARED_DRIVE_ID}`;
+      const filesUrl = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(filesQuery)}&fields=files(id,mimeType)&pageSize=5&supportsAllDrives=true&includeItemsFromAllDrives=true&corpora=drive&driveId=${sharedDriveId}`;
       const filesRes = await fetch(filesUrl, {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
@@ -119,27 +129,54 @@ Deno.serve(async (req) => {
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
-    // Check if called with auth (manual trigger) or as cron
+    // Auth check - admin only, scoped to caller organization
     const authHeader = req.headers.get("Authorization");
-    if (authHeader?.startsWith("Bearer ")) {
-      const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-      const supabaseAuth = createClient(supabaseUrl, anonKey, {
-        global: { headers: { Authorization: authHeader } },
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
-      const token = authHeader.replace("Bearer ", "");
-      const { data: claimsData, error: claimsError } = await supabaseAuth.auth.getClaims(token);
-      if (claimsError || !claimsData?.claims) {
-        return new Response(JSON.stringify({ error: "Unauthorized" }), {
-          status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      const userId = claimsData.claims.sub;
-      const { data: roleData } = await supabase.from("user_roles").select("role").eq("user_id", userId).single();
-      if (!roleData || (roleData.role !== "admin" && roleData.role !== "super_admin")) {
-        return new Response(JSON.stringify({ error: "Forbidden" }), {
-          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
+    }
+
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const supabaseAuth = createClient(supabaseUrl, anonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsError } = await supabaseAuth.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const userId = claimsData.claims.sub;
+    const { data: roleRows, error: roleError } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId);
+
+    if (roleError) throw roleError;
+
+    const roles = new Set((roleRows || []).map((r: any) => r.role));
+    if (!roles.has("admin") && !roles.has("super_admin")) {
+      return new Response(JSON.stringify({ error: "Forbidden" }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const { data: callerProfile, error: profileError } = await supabase
+      .from("profiles")
+      .select("organization_id")
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (profileError) throw profileError;
+
+    const targetOrgId = callerProfile?.organization_id;
+    if (!targetOrgId) {
+      return new Response(JSON.stringify({ error: "Missing organization context" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // Get Google Drive access token
@@ -158,6 +195,7 @@ Deno.serve(async (req) => {
     const { data: advancedAssignments, error: fetchErr1 } = await supabase
       .from("assignments")
       .select("id, sr_id, status, area, customer_name, technician_id, organization_id, comments")
+      .eq("organization_id", targetOrgId)
       .in("status", revertStatuses);
 
     if (fetchErr1) throw fetchErr1;
@@ -209,6 +247,7 @@ Deno.serve(async (req) => {
     const { data: earlyAssignments, error: fetchErr2 } = await supabase
       .from("assignments")
       .select("id, sr_id, status, area, customer_name, technician_id, organization_id, comments, drive_folder_url, drive_egrafa_url, drive_promeleti_url")
+      .eq("organization_id", targetOrgId)
       .in("status", promoteStatuses);
 
     if (fetchErr2) throw fetchErr2;

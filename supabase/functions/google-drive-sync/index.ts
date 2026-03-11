@@ -126,12 +126,16 @@ Deno.serve(async (req) => {
         status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    let body: any = {};
+    try { body = await req.json(); } catch { /* empty body */ }
+
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
     const token = authHeader.replace("Bearer ", "");
-    
+
     const supabaseAuth = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: authHeader } },
     });
@@ -141,18 +145,67 @@ Deno.serve(async (req) => {
         status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
     const userId = claimsData.claims.sub;
-    const { data: roleData } = await adminClient.from("user_roles").select("role").eq("user_id", userId).single();
-    if (!roleData || (roleData.role !== "admin" && roleData.role !== "super_admin")) {
+    const { data: roleRows, error: roleError } = await adminClient
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId);
+
+    if (roleError) throw roleError;
+
+    const roles = new Set((roleRows || []).map((r: any) => r.role));
+    const isSuperAdmin = roles.has("super_admin");
+    const isAdmin = isSuperAdmin || roles.has("admin");
+
+    if (!isAdmin) {
       return new Response(JSON.stringify({ error: "Forbidden" }), {
         status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    let body: any = {};
-    try { body = await req.json(); } catch { /* empty body */ }
+    const { data: callerProfile, error: callerProfileError } = await adminClient
+      .from("profiles")
+      .select("organization_id")
+      .eq("user_id", userId)
+      .maybeSingle();
 
-    const serviceAccountKeyStr = Deno.env.get("GOOGLE_SERVICE_ACCOUNT_KEY");
+    if (callerProfileError) throw callerProfileError;
+
+    const targetOrgId = isSuperAdmin
+      ? (body.organization_id || callerProfile?.organization_id || null)
+      : (callerProfile?.organization_id || null);
+
+    if (!targetOrgId) {
+      return new Response(JSON.stringify({ error: "Missing organization context" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const { data: orgSettings } = await adminClient
+      .from("org_settings")
+      .select("setting_key, setting_value")
+      .eq("organization_id", targetOrgId)
+      .in("setting_key", ["assignments_sheet_id", "constructions_sheet_id", "shared_drive_id", "area_root_folders", "service_account_key"]);
+
+    const settingsMap = new Map((orgSettings || []).map((s: any) => [s.setting_key, s.setting_value]));
+
+    const assignmentsSheetId = extractSheetId(
+      body.assignments_sheet_id ||
+      settingsMap.get("assignments_sheet_id") ||
+      Deno.env.get("GOOGLE_SHEET_ASSIGNMENTS_ID") ||
+      ""
+    );
+
+    const constructionsSheetId = extractSheetId(
+      body.constructions_sheet_id ||
+      settingsMap.get("constructions_sheet_id") ||
+      Deno.env.get("GOOGLE_SHEET_CONSTRUCTIONS_ID") ||
+      ""
+    );
+
+    const serviceAccountKeyStr = settingsMap.get("service_account_key") || Deno.env.get("GOOGLE_SERVICE_ACCOUNT_KEY");
     if (!serviceAccountKeyStr) {
       return new Response(
         JSON.stringify({ error: "GOOGLE_SERVICE_ACCOUNT_KEY not configured", setup_required: true }),
@@ -163,12 +216,32 @@ Deno.serve(async (req) => {
     const serviceAccountKey = JSON.parse(serviceAccountKeyStr);
     const accessToken = await getAccessToken(serviceAccountKey);
 
-    const assignmentsSheetId = extractSheetId(
-      body.assignments_sheet_id || Deno.env.get("GOOGLE_SHEET_ASSIGNMENTS_ID") || ""
-    );
-    const constructionsSheetId = extractSheetId(
-      body.constructions_sheet_id || Deno.env.get("GOOGLE_SHEET_CONSTRUCTIONS_ID") || ""
-    );
+    const sharedDriveId = settingsMap.get("shared_drive_id") || "0AN9VpmNEa7QBUk9PVA";
+
+    let driveFolderIds = [
+      "1JvcSG3tiOplSujXhb3yj_ELQLjfrgOzO",
+      "1X1mtK4tV_sgGM9IdizNSK7AS19qX1nYl",
+      "1dal55zb0uv5__e1pDk2fLFMB0ogi1OnZ",
+      "16Dr_1g6AkaypkyoePwcfZ8IanPX5TXeZ",
+      "1azAHjT8LS8R3JOq0jYNh1UdBx4SYn-iM",
+      "1pIRjzexYG_JVFkoqfaG2_o_YfziGoFy_",
+      "1C2E70l0PkCETaMPqywysYNMrDUcKMO5k",
+    ];
+
+    const areaRootFoldersRaw = settingsMap.get("area_root_folders");
+    if (areaRootFoldersRaw) {
+      try {
+        const parsed = JSON.parse(areaRootFoldersRaw);
+        const parsedIds = (Array.isArray(parsed) ? parsed : [])
+          .map((x: any) => x?.folderId)
+          .filter((id: any) => typeof id === "string" && id.trim() && !id.includes("placeholder"));
+        if (parsedIds.length > 0) {
+          driveFolderIds = [...new Set(parsedIds)];
+        }
+      } catch {
+        // keep fallback driveFolderIds
+      }
+    }
 
     // Debug mode
     if (body.debug) {
@@ -225,6 +298,7 @@ Deno.serve(async (req) => {
 
             const { error } = await supabase.from("assignments").upsert(
               {
+                organization_id: targetOrgId,
                 sr_id: srId.trim(),
                 area: "ΡΟΔΟΣ",
                 status: status ? status.trim().toLowerCase() : "pending",
@@ -234,7 +308,7 @@ Deno.serve(async (req) => {
                 source_tab: "ΡΟΔΟΣ",
                 google_sheet_row_id: 10000 + i,
               },
-              { onConflict: "google_sheet_row_id" }
+              { onConflict: "organization_id,google_sheet_row_id" }
             );
             if (error) results.errors.push(`ΡΟΔΟΣ row ${i}: ${error.message}`);
             else results.rodos++;
@@ -259,6 +333,7 @@ Deno.serve(async (req) => {
 
             const { error } = await supabase.from("assignments").upsert(
               {
+                organization_id: targetOrgId,
                 sr_id: srId.trim(),
                 area: "ΚΩΣ",
                 status: "pending",
@@ -268,7 +343,7 @@ Deno.serve(async (req) => {
                 source_tab: "ΚΩΣ",
                 google_sheet_row_id: 20000 + i,
               },
-              { onConflict: "google_sheet_row_id" }
+              { onConflict: "organization_id,google_sheet_row_id" }
             );
             if (error) results.errors.push(`ΚΩΣ row ${i}: ${error.message}`);
             else results.kos++;
@@ -279,22 +354,13 @@ Deno.serve(async (req) => {
 
     // ===== DRIVE FOLDER MATCHING =====
     try {
-      const driveFolderIds = [
-        "1JvcSG3tiOplSujXhb3yj_ELQLjfrgOzO", // ΡΟΔΟΣ
-        "1X1mtK4tV_sgGM9IdizNSK7AS19qX1nYl", // ΚΩΣ
-        "1dal55zb0uv5__e1pDk2fLFMB0ogi1OnZ", // ΡΟΔΟΣ/ΜΑΡΤΙΟΣ/ΠΡΟΔΕΣΜΕΥΣΗ
-        "16Dr_1g6AkaypkyoePwcfZ8IanPX5TXeZ", // ΡΟΔΟΣ/ΜΑΡΤΙΟΣ/ΟΛΟΚΛΗΡΩΜΕΝΕΣ
-        "1azAHjT8LS8R3JOq0jYNh1UdBx4SYn-iM", // ΡΟΔΟΣ/ΜΑΡΤΙΟΣ/ΠΑΡΑΔΩΤΕΑ
-        "1pIRjzexYG_JVFkoqfaG2_o_YfziGoFy_", // ΡΟΔΟΣ/ΜΑΡΤΙΟΣ
-        "1C2E70l0PkCETaMPqywysYNMrDUcKMO5k", // ΠΑΡΑΔΕΙΓΜΑΤΑ
-      ];
-
+      // Use organization-scoped Drive folders (fallbacks already prepared above)
       const srFolderMap: Record<string, string> = {};
 
       for (const parentId of driveFolderIds) {
         const url = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(
           `'${parentId}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`
-        )}&fields=files(id,name,webViewLink)&pageSize=200&supportsAllDrives=true&includeItemsFromAllDrives=true&corpora=drive&driveId=0AN9VpmNEa7QBUk9PVA`;
+        )}&fields=files(id,name,webViewLink)&pageSize=200&supportsAllDrives=true&includeItemsFromAllDrives=true&corpora=drive&driveId=${sharedDriveId}`;
         const res = await fetch(url, {
           headers: { Authorization: `Bearer ${accessToken}` },
         });
@@ -314,6 +380,7 @@ Deno.serve(async (req) => {
         const { error } = await supabase
           .from("assignments")
           .update({ drive_folder_url: driveUrl })
+          .eq("organization_id", targetOrgId)
           .eq("sr_id", srId);
         if (!error) results.drive_matched++;
       }
@@ -340,6 +407,7 @@ Deno.serve(async (req) => {
 
             const { error } = await supabase.from("constructions").upsert(
               {
+                organization_id: targetOrgId,
                 sr_id: srId.trim(),
                 ses_id: sesId.trim() || null,
                 ak: ak.trim() || null,
@@ -350,7 +418,7 @@ Deno.serve(async (req) => {
                 status: "in_progress",
                 google_sheet_row_id: i,
               },
-              { onConflict: "google_sheet_row_id" }
+              { onConflict: "organization_id,google_sheet_row_id" }
             );
             if (error) results.errors.push(`Construction row ${i}: ${error.message}`);
             else results.constructions++;
@@ -373,8 +441,8 @@ Deno.serve(async (req) => {
             if (!code) continue;
 
             const { error } = await supabase.from("materials").upsert(
-              { code, name, stock, unit, source: "OTE", price },
-              { onConflict: "code" }
+              { organization_id: targetOrgId, code, name, stock, unit, source: "OTE", price },
+              { onConflict: "organization_id,code" }
             );
             if (error) results.errors.push(`Material row ${i}: ${error.message}`);
             else results.materials++;
@@ -399,12 +467,13 @@ Deno.serve(async (req) => {
 
             const { error } = await supabase.from("work_pricing").upsert(
               {
+                organization_id: targetOrgId,
                 code: code.trim(),
                 description: description.trim(),
                 unit: unit.trim() || "τεμ.",
                 unit_price: unitPrice,
               },
-              { onConflict: "code" }
+              { onConflict: "organization_id,code" }
             );
             if (error) results.errors.push(`Work pricing row ${i}: ${error.message}`);
             else results.work_pricing++;
