@@ -28,6 +28,7 @@ import Calendar from "./pages/Calendar";
 import DocumentGenerator from "./pages/DocumentGenerator";
 import DemoDashboard from "./pages/DemoDashboard";
 import WatermarkTest from "./pages/WatermarkTest";
+import Landing from "./pages/Landing";
 
 import NotFound from "./pages/NotFound";
 import HelpChatBot from "./components/HelpChatBot";
@@ -87,6 +88,13 @@ const RoleRouter = () => {
   return <Index />;
 };
 
+const LandingOrDashboard = () => {
+  const { user, loading } = useAuth();
+  if (loading) return <div className="flex min-h-screen items-center justify-center bg-background"><div className="text-muted-foreground">Φόρτωση...</div></div>;
+  if (user) return <Navigate to="/dashboard" replace />;
+  return <Landing />;
+};
+
 // App component
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -105,7 +113,8 @@ const App = () => (
                   <Route path="/reset-password" element={<ResetPassword />} />
                   <Route path="/demo" element={<DemoDashboard />} />
                   <Route path="/watermark-test" element={<WatermarkTest />} />
-                  <Route path="/" element={<ProtectedRoute><RoleGate><RoleRouter /></RoleGate></ProtectedRoute>} />
+                  <Route path="/" element={<LandingOrDashboard />} />
+                  <Route path="/dashboard" element={<ProtectedRoute><RoleGate><RoleRouter /></RoleGate></ProtectedRoute>} />
                   <Route path="/super-admin" element={<ProtectedRoute><SuperAdminRoute><SuperAdminDashboard /></SuperAdminRoute></ProtectedRoute>} />
                   <Route path="/technician" element={<ProtectedRoute><RoleGate><TechnicianDashboard /></RoleGate></ProtectedRoute>} />
                   <Route path="/assignments" element={<ProtectedRoute><RoleGate><AdminRoute><Assignments /></AdminRoute></RoleGate></ProtectedRoute>} />
