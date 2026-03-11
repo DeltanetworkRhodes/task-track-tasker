@@ -834,10 +834,27 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
                       );
                     })()}
                     {(existingGisData.optical_paths as any[])?.length > 0 && (() => {
-                      const paths = existingGisData.optical_paths as Record<string, any>[];
+                      const rawPaths = existingGisData.optical_paths as Record<string, any>[];
                       const opKeysSet = new Set<string>();
-                      paths.forEach((p: any) => Object.keys(p).forEach((k) => opKeysSet.add(k)));
+                      rawPaths.forEach((p: any) => Object.keys(p).forEach((k) => opKeysSet.add(k)));
                       const opKeys = ["OPTICAL PATH TYPE", ...Array.from(opKeysSet).filter(k => k !== "OPTICAL PATH TYPE")];
+                      
+                      // Sort by floor: extract floor from values like BMO01_1_FB(+00).1_01 → +00
+                      const extractFloor = (p: Record<string, any>): number => {
+                        const vals = Object.values(p).join(" ");
+                        const match = vals.match(/\(\+?(-?\d+)\)/);
+                        return match ? parseInt(match[1], 10) : 999;
+                      };
+                      const extractIndex = (p: Record<string, any>): number => {
+                        const vals = Object.values(p).join(" ");
+                        // e.g. BMO01_3_FB(+00).1_03 → extract the number after BMO01_
+                        const match = vals.match(/BMO\d+_(\d+)_/i);
+                        return match ? parseInt(match[1], 10) : 999;
+                      };
+                      const paths = [...rawPaths].sort((a, b) => {
+                        const floorDiff = extractFloor(a) - extractFloor(b);
+                        return floorDiff !== 0 ? floorDiff : extractIndex(a) - extractIndex(b);
+                      });
                       return (
                         <div className="text-xs space-y-1">
                           <span className="font-semibold text-foreground">🔗 Οπτικές Διαδρομές ({paths.length}):</span>
