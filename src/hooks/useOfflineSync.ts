@@ -306,10 +306,16 @@ async function syncConstruction(payload: OfflineConstructionPayload) {
     }
   }
 
-  // 7. Update assignment status → completed
+  // 7. Calculate payment amount and update assignment status → submitted
+  const paymentAmount = payload.workItems?.reduce((sum: number, w: any) => sum + (w.quantity * w.unit_price), 0) || 0;
   await supabase
     .from("assignments")
-    .update({ status: "completed", cab: payload.cab.trim() })
+    .update({ 
+      status: "submitted", 
+      cab: payload.cab.trim(),
+      payment_amount: paymentAmount,
+      submitted_at: new Date().toISOString(),
+    } as any)
     .eq("id", payload.assignmentId);
 
   // 8. Fire-and-forget: docs generation + email
