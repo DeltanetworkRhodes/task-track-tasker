@@ -2,6 +2,7 @@ import { ReactNode, useState } from "react";
 import AppSidebar from "./AppSidebar";
 import OfflineBanner from "./OfflineBanner";
 import { useOfflineSync } from "@/hooks/useOfflineSync";
+import { useLocationTracking } from "@/hooks/useLocationTracking";
 import { Menu, X } from "lucide-react";
 import deltaLogoIcon from "@/assets/delta-logo-icon.png";
 
