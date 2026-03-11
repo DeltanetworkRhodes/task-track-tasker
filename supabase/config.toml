@@ -41,3 +41,6 @@ verify_jwt = false
 
 [functions.analyze-photo]
 verify_jwt = false
+
+[functions.parse-payment-doc]
+verify_jwt = false
