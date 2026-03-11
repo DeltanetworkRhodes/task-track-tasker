@@ -126,12 +126,16 @@ Deno.serve(async (req) => {
         status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    let body: any = {};
+    try { body = await req.json(); } catch { /* empty body */ }
+
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
     const token = authHeader.replace("Bearer ", "");
-    
+
     const supabaseAuth = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: authHeader } },
     });
@@ -141,33 +145,64 @@ Deno.serve(async (req) => {
         status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
     const userId = claimsData.claims.sub;
-    const { data: roleData } = await adminClient.from("user_roles").select("role").eq("user_id", userId).single();
-    if (!roleData || (roleData.role !== "admin" && roleData.role !== "super_admin")) {
+    const { data: roleRows, error: roleError } = await adminClient
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId);
+
+    if (roleError) throw roleError;
+
+    const roles = new Set((roleRows || []).map((r: any) => r.role));
+    const isSuperAdmin = roles.has("super_admin");
+    const isAdmin = isSuperAdmin || roles.has("admin");
+
+    if (!isAdmin) {
       return new Response(JSON.stringify({ error: "Forbidden" }), {
         status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    let body: any = {};
-    try { body = await req.json(); } catch { /* empty body */ }
+    const { data: callerProfile, error: callerProfileError } = await adminClient
+      .from("profiles")
+      .select("organization_id")
+      .eq("user_id", userId)
+      .maybeSingle();
 
-    const serviceAccountKeyStr = Deno.env.get("GOOGLE_SERVICE_ACCOUNT_KEY");
-    if (!serviceAccountKeyStr) {
-      return new Response(
-        JSON.stringify({ error: "GOOGLE_SERVICE_ACCOUNT_KEY not configured", setup_required: true }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    if (callerProfileError) throw callerProfileError;
+
+    const targetOrgId = isSuperAdmin
+      ? (body.organization_id || callerProfile?.organization_id || null)
+      : (callerProfile?.organization_id || null);
+
+    if (!targetOrgId) {
+      return new Response(JSON.stringify({ error: "Missing organization context" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    const serviceAccountKey = JSON.parse(serviceAccountKeyStr);
-    const accessToken = await getAccessToken(serviceAccountKey);
+    const { data: orgSettings } = await adminClient
+      .from("org_settings")
+      .select("setting_key, setting_value")
+      .eq("organization_id", targetOrgId)
+      .in("setting_key", ["assignments_sheet_id", "constructions_sheet_id", "shared_drive_id", "area_root_folders"]);
+
+    const settingsMap = new Map((orgSettings || []).map((s: any) => [s.setting_key, s.setting_value]));
 
     const assignmentsSheetId = extractSheetId(
-      body.assignments_sheet_id || Deno.env.get("GOOGLE_SHEET_ASSIGNMENTS_ID") || ""
+      body.assignments_sheet_id ||
+      settingsMap.get("assignments_sheet_id") ||
+      Deno.env.get("GOOGLE_SHEET_ASSIGNMENTS_ID") ||
+      ""
     );
+
     const constructionsSheetId = extractSheetId(
-      body.constructions_sheet_id || Deno.env.get("GOOGLE_SHEET_CONSTRUCTIONS_ID") || ""
+      body.constructions_sheet_id ||
+      settingsMap.get("constructions_sheet_id") ||
+      Deno.env.get("GOOGLE_SHEET_CONSTRUCTIONS_ID") ||
+      ""
     );
 
     // Debug mode
