@@ -17,7 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useConstructionPhotoAnalysis } from "@/hooks/usePhotoAnalysis";
-import { isOnline } from "@/lib/offlineQueue";
+import { isOnline, enqueueConstruction, fileToOfflineFile, type OfflineConstructionPayload } from "@/lib/offlineQueue";
 
 interface WorkItem {
   work_pricing_id: string;
