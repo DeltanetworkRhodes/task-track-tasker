@@ -128,12 +128,16 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
         .select("completed")
         .eq("assignment_id", selectedAssignment!.id)
         .maybeSingle();
-      const completed = !!(data as any)?.completed;
-      setPreWorkComplete(completed);
       return data;
     },
     enabled: !!selectedAssignment && !isDemo && !!user,
   });
+
+  // Sync preWorkComplete from query result (avoids stale false init)
+  const preWorkCompleteFromDb = !!(preWorkChecklist as any)?.completed;
+  if (preWorkCompleteFromDb && !preWorkComplete) {
+    setPreWorkComplete(true);
+  }
 
   const handleGisUploadSuccess = async (result: any) => {
     if (!selectedAssignment) return;
