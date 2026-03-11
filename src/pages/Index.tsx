@@ -266,14 +266,27 @@ const Index = () => {
           <SetupWizard onDismiss={() => setWizardDismissed(true)} />
         )}
 
+        {/* Dashboard Tabs */}
+        <Tabs defaultValue="overview" className="space-y-5">
+          <TabsList>
+            <TabsTrigger value="overview">📊 Επισκόπηση</TabsTrigger>
+            <TabsTrigger value="payments">💰 Πληρωμές</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="payments">
+            <PaymentTracker />
+          </TabsContent>
+
+          <TabsContent value="overview" className="space-y-5">
         {/* Stat Cards - responsive grid */}
-        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-6">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-7">
           <StatCard title="Ενεργές Αναθέσεις" value={activeAssignments} subtitle={`${completedAssignments} ολοκληρωμένες`} icon={ClipboardCheck} trend="up" trendValue={`${assignments.length} σύνολο`} />
           <StatCard title="Προδεσμεύσεις" value={assignments.filter(a => a.status === 'pre_committed').length} subtitle="σε αναμονή GIS" icon={Timer} />
           <StatCard title="Κατασκευές" value={activeConstructions} subtitle="σε εξέλιξη" icon={Wrench} accent />
           <StatCard title="Έσοδα" value={`${totalRevenue.toLocaleString('el-GR')}€`} subtitle="κατασκευών" icon={Euro} trend="up" trendValue={`${totalProfit.toLocaleString('el-GR')}€ κέρδος`} />
           <StatCard title="Καθαρό Κέρδος" value={`${totalProfit.toLocaleString('el-GR')}€`} subtitle={`${totalRevenue > 0 ? Math.round((totalProfit / totalRevenue) * 100) : 0}% margin`} icon={TrendingUp} trend={totalProfit > 0 ? 'up' : 'down'} trendValue={`${constructions.length} κατ.`} accent />
           <StatCard title="Drive Folders" value={withDrive} subtitle={`από ${assignments.length}`} icon={FolderOpen} />
+          <StatCard title="Εκκρεμείς Πληρωμές" value={`${pendingPaymentTotal.toLocaleString('el-GR')}€`} subtitle={`${pendingPayments.length} SR`} icon={Wallet} accent />
         </div>
 
         {/* Charts Row - stack on mobile */}
