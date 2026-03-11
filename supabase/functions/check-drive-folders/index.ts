@@ -65,10 +65,15 @@ const DEFAULT_SEARCH_FOLDER_IDS = [
   "1pIRjzexYG_JVFkoqfaG2_o_YfziGoFy_", // ΜΑΡΤΙΟΣ
 ];
 
-async function driveSearchFolder(accessToken: string, srId: string): Promise<boolean> {
-  for (const folderId of SEARCH_FOLDER_IDS) {
+async function driveSearchFolder(
+  accessToken: string,
+  srId: string,
+  folderIds: string[],
+  sharedDriveId: string
+): Promise<boolean> {
+  for (const folderId of folderIds) {
     const query = `name contains '${srId}' and '${folderId}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`;
-    const url = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&fields=files(id)&pageSize=1&supportsAllDrives=true&includeItemsFromAllDrives=true&corpora=drive&driveId=${SHARED_DRIVE_ID}`;
+    const url = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&fields=files(id)&pageSize=1&supportsAllDrives=true&includeItemsFromAllDrives=true&corpora=drive&driveId=${sharedDriveId}`;
     
     const res = await fetch(url, {
       headers: { Authorization: `Bearer ${accessToken}` },
