@@ -467,12 +467,13 @@ Deno.serve(async (req) => {
 
             const { error } = await supabase.from("work_pricing").upsert(
               {
+                organization_id: targetOrgId,
                 code: code.trim(),
                 description: description.trim(),
                 unit: unit.trim() || "τεμ.",
                 unit_price: unitPrice,
               },
-              { onConflict: "code" }
+              { onConflict: "organization_id,code" }
             );
             if (error) results.errors.push(`Work pricing row ${i}: ${error.message}`);
             else results.work_pricing++;
