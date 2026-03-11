@@ -205,6 +205,44 @@ Deno.serve(async (req) => {
       ""
     );
 
+    const serviceAccountKeyStr = settingsMap.get("service_account_key") || Deno.env.get("GOOGLE_SERVICE_ACCOUNT_KEY");
+    if (!serviceAccountKeyStr) {
+      return new Response(
+        JSON.stringify({ error: "GOOGLE_SERVICE_ACCOUNT_KEY not configured", setup_required: true }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const serviceAccountKey = JSON.parse(serviceAccountKeyStr);
+    const accessToken = await getAccessToken(serviceAccountKey);
+
+    const sharedDriveId = settingsMap.get("shared_drive_id") || "0AN9VpmNEa7QBUk9PVA";
+
+    let driveFolderIds = [
+      "1JvcSG3tiOplSujXhb3yj_ELQLjfrgOzO",
+      "1X1mtK4tV_sgGM9IdizNSK7AS19qX1nYl",
+      "1dal55zb0uv5__e1pDk2fLFMB0ogi1OnZ",
+      "16Dr_1g6AkaypkyoePwcfZ8IanPX5TXeZ",
+      "1azAHjT8LS8R3JOq0jYNh1UdBx4SYn-iM",
+      "1pIRjzexYG_JVFkoqfaG2_o_YfziGoFy_",
+      "1C2E70l0PkCETaMPqywysYNMrDUcKMO5k",
+    ];
+
+    const areaRootFoldersRaw = settingsMap.get("area_root_folders");
+    if (areaRootFoldersRaw) {
+      try {
+        const parsed = JSON.parse(areaRootFoldersRaw);
+        const parsedIds = (Array.isArray(parsed) ? parsed : [])
+          .map((x: any) => x?.folderId)
+          .filter((id: any) => typeof id === "string" && id.trim() && !id.includes("placeholder"));
+        if (parsedIds.length > 0) {
+          driveFolderIds = [...new Set(parsedIds)];
+        }
+      } catch {
+        // keep fallback driveFolderIds
+      }
+    }
+
     // Debug mode
     if (body.debug) {
       const debugInfo: any = {};
