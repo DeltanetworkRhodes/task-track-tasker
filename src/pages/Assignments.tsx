@@ -1,13 +1,16 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, lazy, Suspense } from "react";
 import AppLayout from "@/components/AppLayout";
 import AssignmentTable from "@/components/AssignmentTable";
 import CreateAssignmentDialog from "@/components/CreateAssignmentDialog";
 import SyncButton from "@/components/SyncButton";
 import { useAssignments } from "@/hooks/useData";
+import { useUserRole } from "@/hooks/useUserRole";
 import { statusLabels } from "@/data/mockData";
-import { ClipboardCheck, Filter, Search, Plus, UserX, CheckCircle2, XCircle, ListChecks, AlertCircle } from "lucide-react";
+import { ClipboardCheck, Filter, Search, Plus, UserX, CheckCircle2, XCircle, ListChecks, AlertCircle, Radio } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+
+const AdminLiveMap = lazy(() => import("@/components/AdminLiveMap"));
 
 const tabs = [
   { key: "active", label: "Ενεργές", icon: ListChecks },
