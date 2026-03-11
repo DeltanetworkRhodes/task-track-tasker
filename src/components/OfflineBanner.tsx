@@ -1,14 +1,30 @@
-import { WifiOff, CloudUpload, Loader2 } from "lucide-react";
+import { WifiOff, CloudUpload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface Props {
   online: boolean;
   pendingCount: number;
+  pendingSurveyCount?: number;
+  pendingConstructionCount?: number;
   onSync: () => void;
 }
 
-const OfflineBanner = ({ online, pendingCount, onSync }: Props) => {
+const OfflineBanner = ({ online, pendingCount, pendingSurveyCount = 0, pendingConstructionCount = 0, onSync }: Props) => {
   if (online && pendingCount === 0) return null;
+
+  const buildPendingText = () => {
+    const parts: string[] = [];
+    if (pendingSurveyCount > 0) {
+      parts.push(`${pendingSurveyCount} αυτοψ${pendingSurveyCount === 1 ? "ία" : "ίες"}`);
+    }
+    if (pendingConstructionCount > 0) {
+      parts.push(`${pendingConstructionCount} κατασκευ${pendingConstructionCount === 1 ? "ή" : "ές"}`);
+    }
+    if (parts.length === 0 && pendingCount > 0) {
+      return `${pendingCount} εγγραφές αναμένουν συγχρονισμό`;
+    }
+    return `${parts.join(" + ")} αναμέν${pendingCount === 1 ? "ει" : "ουν"} συγχρονισμό`;
+  };
 
   return (
     <div
@@ -27,7 +43,7 @@ const OfflineBanner = ({ online, pendingCount, onSync }: Props) => {
         ) : (
           <>
             <CloudUpload className="h-4 w-4" />
-            <span>{pendingCount} αυτοψ{pendingCount === 1 ? "ία" : "ίες"} αναμένουν συγχρονισμό</span>
+            <span>{buildPendingText()}</span>
           </>
         )}
       </div>

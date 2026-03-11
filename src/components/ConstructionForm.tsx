@@ -17,7 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useConstructionPhotoAnalysis } from "@/hooks/usePhotoAnalysis";
-import { isOnline } from "@/lib/offlineQueue";
+import { isOnline, enqueueConstruction, fileToOfflineFile, type OfflineConstructionPayload } from "@/lib/offlineQueue";
 
 interface WorkItem {
   work_pricing_id: string;
@@ -585,6 +585,76 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
       return;
     }
 
+    // ═══════ OFFLINE BRANCH ═══════
+    if (!isOnline()) {
+      try {
+        setSubmitting(true);
+        setSubmitProgress("Αποθήκευση τοπικά...");
+
+        // Convert all photos to OfflineFiles
+        const offlinePhotos: Record<string, import("@/lib/offlineQueue").OfflineFile[]> = {};
+        for (const [category, files] of Object.entries(categorizedPhotos)) {
+          if (files.length > 0) {
+            offlinePhotos[category] = await Promise.all(files.map(fileToOfflineFile));
+          }
+        }
+
+        const offlineOtdr: Record<string, import("@/lib/offlineQueue").OfflineFile[]> = {};
+        for (const [category, files] of Object.entries(otdrFiles)) {
+          if (files.length > 0) {
+            offlineOtdr[category] = await Promise.all(files.map(fileToOfflineFile));
+          }
+        }
+
+        // Build category maps for storage paths
+        const photoCategoryMap: Record<string, string> = {};
+        for (const cat of ALL_PHOTO_CATEGORIES) {
+          photoCategoryMap[cat.key] = cat.storageName;
+        }
+        const otdrCategoryMap: Record<string, string> = {};
+        for (const cat of OTDR_CATEGORIES) {
+          otdrCategoryMap[cat.key] = cat.storageName;
+        }
+
+        const payload: OfflineConstructionPayload = {
+          id: crypto.randomUUID(),
+          timestamp: Date.now(),
+          assignmentId: assignment.id,
+          srId: assignment.sr_id,
+          organizationId: organizationId || null,
+          userId: user?.id || "",
+          sesId,
+          ak,
+          cab,
+          floors,
+          routingType,
+          pendingNote,
+          routes,
+          workItems,
+          materialItems,
+          totalRevenue,
+          totalMaterialCost,
+          categorizedPhotos: offlinePhotos,
+          otdrFiles: offlineOtdr,
+          photoCategoryMap,
+          otdrCategoryMap,
+        };
+
+        await enqueueConstruction(payload);
+        toast.success("Αποθηκεύτηκε τοπικά — θα συγχρονιστεί αυτόματα όταν επανέλθει η σύνδεση");
+        setSubmitted(true);
+        setTimeout(() => onComplete(), 1500);
+      } catch (err: any) {
+        console.error("Offline save error:", err);
+        toast.error("Σφάλμα τοπικής αποθήκευσης: " + (err.message || ""));
+      } finally {
+        setSubmitting(false);
+        setSubmitProgress("");
+      }
+      return;
+    }
+
+    // ═══════ ONLINE BRANCH (unchanged) ═══════
     setSubmitting(true);
     try {
       setSubmitProgress("Καταχώρηση κατασκευής...");
