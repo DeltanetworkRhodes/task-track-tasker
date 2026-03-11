@@ -104,6 +104,19 @@ const CreateAssignmentDialog = ({ open, onOpenChange }: Props) => {
 
       toast.success("Η ανάθεση δημιουργήθηκε επιτυχώς");
       queryClient.invalidateQueries({ queryKey: ["assignments"] });
+
+      // Fire-and-forget push notification
+      if (form.technician_id !== "__none__") {
+        supabase.functions.invoke("send-push-notification", {
+          body: {
+            userId: form.technician_id,
+            title: "🔧 Νέα Ανάθεση",
+            body: `SR ${form.sr_id.trim()} — ${form.address?.trim() || form.area}`,
+            data: { srId: form.sr_id.trim(), url: "/technician" },
+          },
+        }).catch(console.error);
+      }
+
       resetForm();
       onOpenChange(false);
     } catch (err: any) {

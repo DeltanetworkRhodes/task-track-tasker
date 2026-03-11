@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { LogOut, ClipboardList, MapPin, Search, X } from "lucide-react";
 import NotificationBell from "@/components/NotificationBell";
+import NotificationPermissionCard from "@/components/NotificationPermissionCard";
 import TechnicianAssignments from "@/components/TechnicianAssignments";
 import TechnicianMap from "@/components/TechnicianMap";
 
@@ -126,6 +127,7 @@ const TechnicianDashboard = () => {
         </TabsList>
 
         <TabsContent value="assignments">
+          <NotificationPermissionCard />
           {/* Search Bar */}
           <div className="relative mb-3">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
