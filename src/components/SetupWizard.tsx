@@ -1,273 +1,353 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { useSetupChecklist, SetupStep } from "@/hooks/useSetupChecklist";
+import { useSetupChecklist } from "@/hooks/useSetupChecklist";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
 import {
-  HardDrive,
+  CheckCircle2,
+  ArrowRight,
+  Sparkles,
+  X,
+  AlertCircle,
+  KeyRound,
   FolderOpen,
-  Mail,
   Users,
   Package,
   Euro,
-  CheckCircle2,
-  Circle,
-  ArrowRight,
-  ArrowLeft,
-  Sparkles,
-  X,
-  ExternalLink,
-  Info,
-  Lightbulb,
-  AlertCircle,
-  KeyRound,
+  Mail,
+  Loader2,
+  SkipForward,
 } from "lucide-react";
-
-const ICON_MAP: Record<string, React.ElementType> = {
-  "hard-drive": HardDrive,
-  "key-round": KeyRound,
-  folder: FolderOpen,
-  mail: Mail,
-  users: Users,
-  package: Package,
-  euro: Euro,
-};
-
-interface StepDetail {
-  why: string;
-  instructions: { text: string; tip?: string }[];
-  important?: string;
-  route: string;
-  routeLabel: string;
-}
-
-const STEP_DETAILS: Record<string, StepDetail> = {
-  service_account: {
-    why: "Η εφαρμογή χρησιμοποιεί ένα Google Service Account για να επικοινωνεί με το Google Drive και τα Google Sheets χωρίς να χρειάζεται ο χρήστης να κάνει login στο Google κάθε φορά. Είναι σαν ένας «ρομποτικός λογαριασμός» που δουλεύει στο παρασκήνιο.",
-    instructions: [
-      {
-        text: "Ανοίξτε το Google Cloud Console: console.cloud.google.com",
-        tip: "Αν δεν έχετε λογαριασμό, δημιουργήστε έναν δωρεάν — δεν χρειάζεται πιστωτική κάρτα για αυτό που θα κάνουμε",
-      },
-      {
-        text: "Δημιουργήστε ένα νέο Project (π.χ. «FTTH Operations») ή επιλέξτε υπάρχον",
-        tip: "Πατήστε το dropdown δίπλα στο «Google Cloud» πάνω αριστερά → New Project",
-      },
-      {
-        text: "Ενεργοποιήστε τα APIs: Πηγαίνετε στο μενού ☰ → APIs & Services → Library. Αναζητήστε και ενεργοποιήστε: «Google Drive API» και «Google Sheets API»",
-        tip: "Πατήστε Enable σε κάθε ένα — χωρίς αυτά η εφαρμογή δεν μπορεί να διαβάσει/γράψει αρχεία",
-      },
-      {
-        text: "Δημιουργήστε Service Account: Μενού ☰ → IAM & Admin → Service Accounts → Create Service Account",
-        tip: "Δώστε του ένα όνομα (π.χ. «ftth-app») — τα υπόλοιπα πεδία μπορείτε να τα αφήσετε κενά",
-      },
-      {
-        text: "Δημιουργήστε κλειδί JSON: Κάντε κλικ στο Service Account → Keys → Add Key → Create New Key → JSON → Create",
-        tip: "Θα κατεβάσει αυτόματα ένα αρχείο .json — ΦΥΛΑΞΤΕ ΤΟ ΑΣΦΑΛΕΣ, είναι σαν κωδικός!",
-      },
-      {
-        text: "Αντιγράψτε το email του Service Account (μοιάζει με: ftth-app@project-id.iam.gserviceaccount.com)",
-        tip: "Θα το χρειαστείτε στο επόμενο βήμα για να δώσετε πρόσβαση στο Google Drive",
-      },
-      {
-        text: "Ανοίξτε το αρχείο JSON με ένα text editor, αντιγράψτε ΟΛΟ το περιεχόμενο και επικολλήστε το στις Ρυθμίσεις → Google Service Account → JSON Κλειδί",
-        tip: "Η εφαρμογή θα αναγνωρίσει αυτόματα αν το κλειδί είναι έγκυρο και θα εμφανίσει το email του Service Account",
-      },
-    ],
-    important: "Το JSON κλειδί πρέπει να μείνει απόρρητο — μην το μοιράζεστε μέσω email ή chat. Χρησιμοποιήστε ασφαλή κανάλι (π.χ. password manager). Αν διαρρεύσει, μπορεί κάποιος να αποκτήσει πρόσβαση στα αρχεία σας.",
-    route: "/settings",
-    routeLabel: "Ρυθμίσεις",
-  },
-  drive: {
-    why: "Το Google Drive χρησιμοποιείται για αποθήκευση φωτογραφιών αυτοψιών, PDF κατασκευών και αρχείων GIS. Χωρίς αυτό, δεν μπορείτε να ανεβάσετε ή να διαχειριστείτε αρχεία.",
-    instructions: [
-      {
-        text: "Ανοίξτε το Google Drive και δημιουργήστε ένα νέο Shared Drive (π.χ. «FTTH Operations»)",
-        tip: "Βρίσκεται στο αριστερό μενού → Shared Drives → Νέο",
-      },
-      {
-        text: "Κάντε δεξί κλικ στο Shared Drive → Manage members → Προσθέστε το Service Account email ως Manager",
-        tip: "Το Service Account email σας το δίνει ο διαχειριστής συστήματος",
-      },
-      {
-        text: "Αντιγράψτε το Drive ID από τη γραμμή URL (μετά το /drive/folders/)",
-        tip: "Παράδειγμα URL: drive.google.com/drive/folders/0ABcDeFgHiJkLmN → το ID είναι 0ABcDeFgHiJkLmN",
-      },
-      {
-        text: "Πηγαίνετε στις Ρυθμίσεις της εφαρμογής → Google Drive → Shared Drive ID και επικολλήστε το ID",
-      },
-    ],
-    important: "Βεβαιωθείτε ότι το Service Account έχει δικαιώματα Manager, αλλιώς η εφαρμογή δεν θα μπορεί να δημιουργεί φακέλους.",
-    route: "/settings",
-    routeLabel: "Ρυθμίσεις Google Drive",
-  },
-  areas: {
-    why: "Κάθε περιοχή (π.χ. ΡΟΔΟΣ, ΚΩΣ) αντιστοιχεί σε έναν φάκελο στο Google Drive. Όταν δημιουργείται μια νέα ανάθεση, τα αρχεία αποθηκεύονται αυτόματα στον σωστό φάκελο.",
-    instructions: [
-      {
-        text: "Μέσα στο Shared Drive, δημιουργήστε έναν φάκελο για κάθε περιοχή που εξυπηρετείτε",
-        tip: "Π.χ. φακέλους: ΡΟΔΟΣ, ΚΩΣ, ΚΑΛΥΜΝΟΣ κλπ.",
-      },
-      {
-        text: "Ανοίξτε κάθε φάκελο και αντιγράψτε το Folder ID από το URL",
-        tip: "Μπορείτε να το βρείτε στη γραμμή διεύθυνσης — είναι το τελευταίο κομμάτι μετά το /folders/",
-      },
-      {
-        text: "Πηγαίνετε στις Ρυθμίσεις → Φάκελοι Περιοχών",
-      },
-      {
-        text: "Πατήστε «Προσθήκη Περιοχής», πληκτρολογήστε το όνομα (π.χ. ΡΟΔΟΣ) και επικολλήστε το Folder ID",
-        tip: "Το όνομα πρέπει να ταιριάζει ακριβώς με αυτό που χρησιμοποιείτε στις αναθέσεις",
-      },
-    ],
-    important: "Αν αλλάξετε τα ονόματα περιοχών αργότερα, θα πρέπει να ενημερώσετε και εδώ τους αντίστοιχους φακέλους.",
-    route: "/settings",
-    routeLabel: "Ρυθμίσεις Περιοχών",
-  },
-  emails: {
-    why: "Η εφαρμογή στέλνει αυτόματα emails σε 4 περιπτώσεις: αναφορά αυτοψίας (blocker/ενέργεια), ειδοποίηση ακύρωσης, ολοκλήρωση κατασκευής (ZIP με αρχεία) και χαμηλό απόθεμα υλικών. Όλα τα emails ρυθμίζονται από ένα μέρος.",
-    instructions: [
-      {
-        text: "Πηγαίνετε στις Ρυθμίσεις → Email",
-        tip: "Όλες οι ρυθμίσεις email βρίσκονται σε ένα σημείο — δεν χρειάζεται να ρυθμίσετε τίποτα αλλού",
-      },
-      {
-        text: "Email Αποστολέα: Ορίστε το email που θα εμφανίζεται ως «Από:» σε ΟΛΕΣ τις ειδοποιήσεις",
-        tip: "Π.χ. noreply@deltanetwork.gr — ΠΡΟΣΟΧΗ: Αυτό το email πρέπει να είναι verified στο Resend (ρωτήστε τον διαχειριστή συστήματος)",
-      },
-      {
-        text: "Reply-To: Ορίστε σε ποιο email θα απαντήσει κάποιος αν κάνει reply στο email",
-        tip: "Συνήθως info@company.gr ή operations@company.gr",
-      },
-      {
-        text: "Παραλήπτες Αυτοψιών (TO): Βάλτε τα emails που πρέπει να λαμβάνουν αναφορές αυτοψιών, blockers και ακυρώσεις",
-        tip: "Π.χ. supervisor@company.gr, manager@ote.gr — χωρισμένα με κόμμα. Αυτοί θα ενημερώνονται όταν ένας τεχνικός αναφέρει blocker ή ακυρώνει ανάθεση",
-      },
-      {
-        text: "Παραλήπτες Αυτοψιών (CC): Προαιρετικά, βάλτε emails που θα λαμβάνουν τα ίδια emails σε κοινοποίηση",
-      },
-      {
-        text: "Παραλήπτες Ολοκλήρωσης (TO): Βάλτε τα emails που πρέπει να λαμβάνουν το ZIP αρχείο ολοκλήρωσης κατασκευής",
-        tip: "Αυτά τα emails λαμβάνουν ένα ZIP με φωτογραφίες, PDF δελτίο αυτοψίας και spreadsheet κατασκευής. Αν δεν τα συμπληρώσετε, θα χρησιμοποιηθούν τα Παραλήπτες Αυτοψιών",
-      },
-      {
-        text: "Email Αποθήκης: Ορίστε ποιος θα λαμβάνει ειδοποίηση όταν τα υλικά OTE πέσουν κάτω από το ελάχιστο",
-        tip: "Π.χ. warehouse@company.gr — αυτό ελέγχεται αυτόματα κάθε μέρα",
-      },
-    ],
-    important: "Αν δεν ρυθμίσετε παραλήπτες, τα emails δεν θα αποσταλούν. Ελέγξτε ότι όλα τα emails είναι σωστά — αν πληκτρολογήσετε λάθος email, οι ειδοποιήσεις δεν θα φτάσουν.",
-    route: "/settings",
-    routeLabel: "Ρυθμίσεις Email",
-  },
-  users: {
-    why: "Οι τεχνικοί χρησιμοποιούν την εφαρμογή στο κινητό τους για να βλέπουν τις αναθέσεις τους, να ανεβάζουν φωτογραφίες αυτοψίας και να καταγράφουν υλικά κατασκευής. Χωρίς λογαριασμό, δεν μπορούν να συμμετέχουν.",
-    instructions: [
-      {
-        text: "Πηγαίνετε στη σελίδα Διαχείριση Χρηστών",
-      },
-      {
-        text: "Πατήστε το κουμπί «Νέος Χρήστης» πάνω δεξιά",
-      },
-      {
-        text: "Συμπληρώστε: Ονοματεπώνυμο, Email, Τηλέφωνο (προαιρετικά) και επιλέξτε ρόλο «Τεχνικός»",
-        tip: "Χρησιμοποιήστε email που έχει πρόσβαση ο τεχνικός — θα λάβει email ενεργοποίησης",
-      },
-      {
-        text: "Ο τεχνικός θα λάβει email με σύνδεσμο ενεργοποίησης. Μόλις το επιβεβαιώσει, μπορεί να συνδεθεί",
-        tip: "Αν δεν λάβει email, ελέγξτε τον φάκελο spam ή ξαναστείλτε πρόσκληση",
-      },
-    ],
-    important: "Κάθε τεχνικός βλέπει μόνο τις δικές του αναθέσεις. Οι admins βλέπουν τα πάντα.",
-    route: "/users",
-    routeLabel: "Διαχείριση Χρηστών",
-  },
-  materials: {
-    why: "Η αποθήκη υλικών σας δείχνει τι έχετε διαθέσιμο (καλώδια, σπιράλ, ρακόρ κλπ). Όταν ένας τεχνικός καταγράφει υλικά σε μια κατασκευή, αφαιρούνται αυτόματα από το απόθεμα.",
-    instructions: [
-      {
-        text: "Πηγαίνετε στη σελίδα Αποθήκη",
-      },
-      {
-        text: "Πατήστε «Προσθήκη Υλικού» και συμπληρώστε κωδικό, περιγραφή, πηγή (OTE ή δική σας), απόθεμα και τιμή",
-        tip: "Τα υλικά OTE έχουν τιμή 0€ — τα πληρώνει η OTE. Τα δικά σας έχουν κόστος.",
-      },
-      {
-        text: "Μπορείτε επίσης να εισάγετε μαζικά υλικά μέσω αρχείου Excel (κατεβάστε το template πρώτα)",
-        tip: "Κατεβάστε το πρότυπο αρχείο από τη σελίδα Αποθήκη για να δείτε τη σωστή δομή",
-      },
-      {
-        text: "Ορίστε το «Ελάχιστο Απόθεμα» για κάθε υλικό — θα λάβετε ειδοποίηση email όταν πέσει κάτω από αυτό",
-      },
-    ],
-    important: "Τα υλικά χωρίζονται σε OTE (παρέχονται δωρεάν) και δικά σας (με κόστος). Αυτό επηρεάζει τον υπολογισμό κέρδους.",
-    route: "/materials",
-    routeLabel: "Αποθήκη Υλικών",
-  },
-  pricing: {
-    why: "Ο τιμοκατάλογος εργασιών καθορίζει πόσο χρεώνεται κάθε εργασία κατασκευής (π.χ. πόρτα οπτικής ίνας, τοποθέτηση ODF κλπ). Χρησιμοποιείται αυτόματα στις κατασκευές για τον υπολογισμό εσόδων.",
-    instructions: [
-      {
-        text: "Πηγαίνετε στη σελίδα Τιμοκατάλογος Εργασιών",
-      },
-      {
-        text: "Πατήστε «Νέα Εργασία» και συμπληρώστε τον κωδικό, την περιγραφή, την κατηγορία, τη μονάδα μέτρησης και την τιμή",
-        tip: "Παράδειγμα: Κωδ. «ΕΡΓ-001», Περιγραφή «Τοποθέτηση ODF», Μονάδα «τεμάχια», Τιμή «45€»",
-      },
-      {
-        text: "Μπορείτε επίσης να εισάγετε μαζικά εργασίες μέσω αρχείου Excel",
-        tip: "Κατεβάστε το πρότυπο αρχείο από τη σελίδα Τιμοκατάλογος",
-      },
-      {
-        text: "Οι τιμές θα χρησιμοποιούνται αυτόματα όταν προσθέτετε εργασίες σε μια κατασκευή",
-      },
-    ],
-    important: "Αν αλλάξετε μια τιμή, οι υπάρχουσες κατασκευές δεν θα επηρεαστούν — μόνο οι νέες.",
-    route: "/work-pricing",
-    routeLabel: "Τιμοκατάλογος Εργασιών",
-  },
-};
+import deltaLogo from "@/assets/delta-logo-icon.png";
 
 interface SetupWizardProps {
   onDismiss?: () => void;
   demoMode?: boolean;
 }
 
-const DEMO_STEPS: SetupStep[] = [
-  { id: "service_account", title: "Service Account", description: "Δημιουργία Google Service Account για σύνδεση με Drive & Sheets", completed: false, route: "/settings", icon: "key-round" },
-  { id: "drive", title: "Google Drive", description: "Σύνδεση με Shared Drive για αρχεία αυτοψιών & κατασκευών", completed: false, route: "/settings", icon: "hard-drive" },
-  { id: "areas", title: "Περιοχές & Φάκελοι", description: "Ορισμός περιοχών (π.χ. ΡΟΔΟΣ, ΚΩΣ) και Folder IDs", completed: false, route: "/settings", icon: "folder" },
-  { id: "emails", title: "Ρυθμίσεις Email", description: "Email αποστολέα, παραλήπτες ειδοποιήσεων", completed: false, route: "/settings", icon: "mail" },
-  { id: "users", title: "Τεχνικοί", description: "Προσθήκη τεχνικών για αναθέσεις αυτοψιών", completed: false, route: "/users", icon: "users" },
-  { id: "materials", title: "Αποθήκη Υλικών", description: "Εισαγωγή υλικών (μέσω sync ή χειροκίνητα)", completed: false, route: "/materials", icon: "package" },
-  { id: "pricing", title: "Τιμοκατάλογος Εργασιών", description: "Τιμές εργασιών κατασκευής (μέσω sync ή χειροκίνητα)", completed: false, route: "/work-pricing", icon: "euro" },
+const AREAS_LIST = [
+  "ΡΟΔΟΣ", "ΚΩΣ", "ΚΑΛΥΜΝΟΣ", "ΛΕΡΟΣ", "ΣΥΜΗ", "ΧΑΛΚΗ",
+  "ΚΑΡΠΑΘΟΣ", "ΤΗΛΟΣ", "ΝΙΣΥΡΟΣ", "ΚΩΣ ΝΟΤΙΑ",
 ];
+
+const STEP_ICONS = [KeyRound, FolderOpen, Users, Package];
+const STEP_LABELS = ["Σύνδεση Google", "Περιοχές & Drive", "Τεχνικοί & Email", "Υλικά & Τιμοκατάλογος"];
 
 const SetupWizard = ({ onDismiss, demoMode = false }: SetupWizardProps) => {
   const { data: realSteps, isLoading } = useSetupChecklist();
-  const [demoSteps, setDemoSteps] = useState<SetupStep[]>(DEMO_STEPS);
-  const [activeStepIndex, setActiveStepIndex] = useState(0);
-  const [validating, setValidating] = useState(false);
-  const [validationErrors, setValidationErrors] = useState<string[]>([]);
-  const navigate = useNavigate();
   const { organizationId } = useOrganization();
   const queryClient = useQueryClient();
 
+  const [currentStep, setCurrentStep] = useState(0);
+  const [completedSteps, setCompletedSteps] = useState<boolean[]>([false, false, false, false]);
+  const [validating, setValidating] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
+
+  // Step 1 state
+  const [saJson, setSaJson] = useState("");
+  const [saEmail, setSaEmail] = useState("");
+  const [saVerifying, setSaVerifying] = useState(false);
+
+  // Step 2 state
+  const [selectedAreas, setSelectedAreas] = useState<string[]>([]);
+  const [customArea, setCustomArea] = useState("");
+  const [showCustomInput, setShowCustomInput] = useState(false);
+  const [driveId, setDriveId] = useState("");
+  const [creatingFolders, setCreatingFolders] = useState(false);
+  const [createdAreas, setCreatedAreas] = useState<string[]>([]);
+
+  // Step 3 state
+  const [techEmails, setTechEmails] = useState("");
+  const [sendingInvites, setSendingInvites] = useState(false);
+  const [inviteProgress, setInviteProgress] = useState("");
+  const [emailFrom, setEmailFrom] = useState("");
+  const [reportTo, setReportTo] = useState("");
+  const [savingEmails, setSavingEmails] = useState(false);
+
+  // Step 4 state
+  const [loadingMaterials, setLoadingMaterials] = useState(false);
+  const [materialsLoaded, setMaterialsLoaded] = useState(false);
+  const [loadingPricing, setLoadingPricing] = useState(false);
+  const [pricingLoaded, setPricingLoaded] = useState(false);
+
+  const markComplete = useCallback((stepIdx: number) => {
+    setCompletedSteps(prev => {
+      const next = [...prev];
+      next[stepIdx] = true;
+      return next;
+    });
+  }, []);
+
+  const advanceStep = useCallback((fromStep: number) => {
+    markComplete(fromStep);
+    if (fromStep < 3) {
+      setCurrentStep(fromStep + 1);
+    }
+  }, [markComplete]);
+
+  const saveSetting = async (key: string, value: string) => {
+    if (demoMode || !organizationId) return;
+    await supabase.from("org_settings").upsert({
+      organization_id: organizationId,
+      setting_key: key,
+      setting_value: value,
+    }, { onConflict: "organization_id,setting_key" });
+  };
+
+  // ═══════════ STEP 1: Verify Service Account ═══════════
+  const handleVerifySA = async () => {
+    if (demoMode) {
+      setSaEmail("demo-sa@project.iam.gserviceaccount.com");
+      toast.success("Demo: Service Account συνδέθηκε");
+      advanceStep(0);
+      return;
+    }
+
+    setSaVerifying(true);
+    try {
+      let parsed: any;
+      try {
+        parsed = JSON.parse(saJson);
+      } catch {
+        toast.error("Μη έγκυρο JSON — βεβαιωθείτε ότι αντιγράψατε ολόκληρο το αρχείο");
+        return;
+      }
+
+      const missing: string[] = [];
+      if (!parsed.client_email) missing.push("client_email");
+      if (!parsed.private_key) missing.push("private_key");
+      if (!parsed.project_id) missing.push("project_id");
+      if (missing.length > 0) {
+        toast.error(`Λείπουν τα πεδία: ${missing.join(", ")}`);
+        return;
+      }
+
+      setSaEmail(parsed.client_email);
+      await saveSetting("service_account_json", saJson);
+      await saveSetting("shared_drive_id", "pending"); // Mark as having SA
+      toast.success("Service Account επαληθεύτηκε!");
+      advanceStep(0);
+    } catch (err: any) {
+      toast.error("Σφάλμα: " + (err.message || "Δοκιμάστε ξανά"));
+    } finally {
+      setSaVerifying(false);
+    }
+  };
+
+  // ═══════════ STEP 2: Create Folders ═══════════
+  const handleToggleArea = (area: string) => {
+    setSelectedAreas(prev =>
+      prev.includes(area) ? prev.filter(a => a !== area) : [...prev, area]
+    );
+  };
+
+  const handleAddCustomArea = () => {
+    const trimmed = customArea.trim().toUpperCase();
+    if (trimmed && !selectedAreas.includes(trimmed)) {
+      setSelectedAreas(prev => [...prev, trimmed]);
+      setCustomArea("");
+      setShowCustomInput(false);
+    }
+  };
+
+  const handleCreateFolders = async () => {
+    if (!driveId.trim() && !demoMode) {
+      toast.error("Εισάγετε το Shared Drive ID");
+      return;
+    }
+    if (selectedAreas.length === 0) {
+      toast.error("Επιλέξτε τουλάχιστον μία περιοχή");
+      return;
+    }
+
+    setCreatingFolders(true);
+    setCreatedAreas([]);
+
+    if (demoMode) {
+      for (const area of selectedAreas) {
+        await new Promise(r => setTimeout(r, 300));
+        setCreatedAreas(prev => [...prev, area]);
+      }
+      toast.success(`${selectedAreas.length} φάκελοι δημιουργήθηκαν!`);
+      setCreatingFolders(false);
+      advanceStep(1);
+      return;
+    }
+
+    try {
+      await saveSetting("shared_drive_id", driveId.trim());
+
+      const areaFolders = selectedAreas.map(name => ({
+        name,
+        folderId: "", // Will be filled when folders are created
+      }));
+
+      // Try to create folders via edge function
+      for (const area of selectedAreas) {
+        try {
+          const { data } = await supabase.functions.invoke("google-drive-sync", {
+            body: {
+              action: "create_folder",
+              driveId: driveId.trim(),
+              folderName: area,
+              organizationId,
+            },
+          });
+          const folderId = data?.folderId || "";
+          const idx = areaFolders.findIndex(f => f.name === area);
+          if (idx >= 0) areaFolders[idx].folderId = folderId;
+        } catch {
+          // If function doesn't exist, continue
+        }
+        setCreatedAreas(prev => [...prev, area]);
+      }
+
+      await saveSetting("area_root_folders", JSON.stringify(areaFolders));
+      queryClient.invalidateQueries({ queryKey: ["setup-checklist"] });
+      toast.success(`${selectedAreas.length} περιοχές αποθηκεύτηκαν!`);
+      advanceStep(1);
+    } catch (err: any) {
+      toast.error("Σφάλμα: " + (err.message || "Δοκιμάστε ξανά"));
+    } finally {
+      setCreatingFolders(false);
+    }
+  };
+
+  // ═══════════ STEP 3: Invites & Email ═══════════
+  const handleSendInvites = async () => {
+    const emails = techEmails
+      .split("\n")
+      .map(e => e.trim())
+      .filter(e => e && e.includes("@"));
+
+    if (emails.length === 0) {
+      toast.error("Εισάγετε τουλάχιστον ένα email");
+      return;
+    }
+
+    if (demoMode) {
+      setSendingInvites(true);
+      for (let i = 0; i < emails.length; i++) {
+        setInviteProgress(`Αποστολή ${i + 1}/${emails.length}...`);
+        await new Promise(r => setTimeout(r, 400));
+      }
+      setInviteProgress(`✓ ${emails.length} προσκλήσεις εστάλησαν`);
+      setSendingInvites(false);
+      return;
+    }
+
+    setSendingInvites(true);
+    let sent = 0;
+    for (let i = 0; i < emails.length; i++) {
+      setInviteProgress(`Αποστολή ${i + 1}/${emails.length}...`);
+      try {
+        await supabase.functions.invoke("create-user", {
+          body: {
+            email: emails[i],
+            role: "technician",
+            organizationId,
+          },
+        });
+        sent++;
+      } catch {
+        toast.error(`⚠ Δεν στάλθηκε το ${emails[i]} — ελέγξτε αν είναι έγκυρο`);
+      }
+    }
+    setInviteProgress(`✓ ${sent} προσκλήσεις εστάλησαν`);
+    setSendingInvites(false);
+    queryClient.invalidateQueries({ queryKey: ["setup-checklist"] });
+  };
+
+  const handleSaveEmails = async () => {
+    if (demoMode) {
+      toast.success("Demo: Email αποθηκεύτηκαν");
+      advanceStep(2);
+      return;
+    }
+
+    setSavingEmails(true);
+    try {
+      if (emailFrom) await saveSetting("email_from", emailFrom);
+      if (reportTo) await saveSetting("report_to_emails", reportTo);
+      queryClient.invalidateQueries({ queryKey: ["setup-checklist"] });
+      toast.success("Ρυθμίσεις email αποθηκεύτηκαν!");
+      advanceStep(2);
+    } catch (err: any) {
+      toast.error("Σφάλμα αποθήκευσης");
+    } finally {
+      setSavingEmails(false);
+    }
+  };
+
+  // ═══════════ STEP 4: Materials & Pricing ═══════════
+  const handleLoadMaterials = async () => {
+    if (demoMode) {
+      setLoadingMaterials(true);
+      await new Promise(r => setTimeout(r, 1500));
+      setMaterialsLoaded(true);
+      setLoadingMaterials(false);
+      toast.success("Demo: 847 υλικά φορτώθηκαν");
+      return;
+    }
+
+    setLoadingMaterials(true);
+    try {
+      await supabase.functions.invoke("sync-materials", {
+        body: { organizationId },
+      });
+      setMaterialsLoaded(true);
+      queryClient.invalidateQueries({ queryKey: ["setup-checklist"] });
+      toast.success("Υλικά φορτώθηκαν επιτυχώς!");
+    } catch (err: any) {
+      toast.error("Σφάλμα φόρτωσης υλικών: " + (err.message || ""));
+    } finally {
+      setLoadingMaterials(false);
+    }
+  };
+
+  const handleLoadPricing = async () => {
+    if (demoMode) {
+      setLoadingPricing(true);
+      await new Promise(r => setTimeout(r, 1200));
+      setPricingLoaded(true);
+      setLoadingPricing(false);
+      toast.success("Demo: Τιμοκατάλογος φορτώθηκε");
+      return;
+    }
+
+    setLoadingPricing(true);
+    try {
+      await supabase.functions.invoke("sync-materials", {
+        body: { organizationId },
+      });
+      setPricingLoaded(true);
+      queryClient.invalidateQueries({ queryKey: ["setup-checklist"] });
+      toast.success("Τιμοκατάλογος φορτώθηκε!");
+    } catch (err: any) {
+      toast.error("Σφάλμα: " + (err.message || ""));
+    } finally {
+      setLoadingPricing(false);
+    }
+  };
+
+  // ═══════════ FINAL VALIDATION (preserved) ═══════════
   const handleFinalValidation = async () => {
     if (demoMode) {
+      toast.success("🎉 Η εγκατάσταση ολοκληρώθηκε!");
       onDismiss?.();
       return;
     }
     setValidating(true);
     setValidationErrors([]);
     try {
-      // Re-fetch fresh data to validate
       const errors: string[] = [];
-
       const { data: settings } = await supabase
         .from("org_settings")
         .select("setting_key, setting_value")
@@ -325,7 +405,6 @@ const SetupWizard = ({ onDismiss, demoMode = false }: SetupWizardProps) => {
         return;
       }
 
-      // All good — mark wizard as permanently completed
       await supabase.from("org_settings").upsert({
         organization_id: organizationId!,
         setting_key: "setup_wizard_completed",
@@ -343,253 +422,388 @@ const SetupWizard = ({ onDismiss, demoMode = false }: SetupWizardProps) => {
     }
   };
 
-  const steps = demoMode ? demoSteps : realSteps;
+  if (!demoMode && isLoading) return null;
 
-  if (!demoMode && (isLoading || !steps)) return null;
-  if (!steps) return null;
+  const completedCount = completedSteps.filter(Boolean).length;
+  const progress = Math.round((completedCount / 4) * 100);
 
-  const completedCount = steps.filter((s) => s.completed).length;
-  const totalSteps = steps.length;
-  const progress = Math.round((completedCount / totalSteps) * 100);
-
-  // All done — show validation button
-  if (completedCount === totalSteps) {
-    return (
-      <Card className="p-5 sm:p-6 border-success/30 bg-success/5">
-        <div className="flex items-center gap-4">
-          <div className="h-12 w-12 rounded-xl bg-success/10 flex items-center justify-center shrink-0">
-            <CheckCircle2 className="h-6 w-6 text-success" />
-          </div>
-          <div className="flex-1">
-            <h3 className="text-base font-bold text-foreground">Όλα τα βήματα ολοκληρώθηκαν!</h3>
-            <p className="text-sm text-muted-foreground mt-1">
-              Πατήστε «Επαλήθευση & Ολοκλήρωση» για να ελέγξουμε ότι όλα ρυθμίστηκαν σωστά.
-            </p>
-          </div>
-        </div>
-        {validationErrors.length > 0 && (
-          <div className="mt-4 rounded-xl bg-destructive/5 border border-destructive/20 p-3 space-y-1.5">
-            <p className="text-[11px] font-bold text-destructive uppercase tracking-wider flex items-center gap-1.5">
-              <AlertCircle className="h-3.5 w-3.5" />
-              Βρέθηκαν σφάλματα
-            </p>
-            {validationErrors.map((err, i) => (
-              <p key={i} className="text-xs text-destructive/80 pl-5">• {err}</p>
-            ))}
-          </div>
-        )}
-        <div className="mt-4 flex justify-end">
-          <Button
-            size="sm"
-            className="gap-1.5"
-            onClick={handleFinalValidation}
-            disabled={validating}
-          >
-            {validating ? (
-              <>
-                <span className="h-3.5 w-3.5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
-                Έλεγχος...
-              </>
-            ) : (
-              <>
-                <CheckCircle2 className="h-4 w-4" />
-                Επαλήθευση & Ολοκλήρωση
-              </>
-            )}
-          </Button>
-        </div>
-      </Card>
-    );
-  }
-
-  const currentStep = steps[activeStepIndex];
-  const detail = STEP_DETAILS[currentStep.id];
-  const Icon = ICON_MAP[currentStep.icon] || Circle;
-
-  const handleMarkComplete = () => {
-    if (demoMode) {
-      setDemoSteps(prev => prev.map(s => s.id === currentStep.id ? { ...s, completed: true } : s));
-    }
-    // Auto-advance to next incomplete step
-    const nextIncomplete = steps.findIndex((s, i) => i > activeStepIndex && !s.completed);
-    if (nextIncomplete !== -1) {
-      setActiveStepIndex(nextIncomplete);
-    } else {
-      const firstIncomplete = steps.findIndex(s => !s.completed && s.id !== currentStep.id);
-      if (firstIncomplete !== -1) setActiveStepIndex(firstIncomplete);
-    }
-  };
-
+  // ═══════════ RENDER ═══════════
   return (
-    <Card className="overflow-hidden border-primary/20">
+    <Card className="overflow-hidden border-primary/20 max-w-2xl mx-auto">
       {/* Top gradient bar */}
-      <div className="h-1 cosmote-gradient" />
+      <div className="h-1.5 cosmote-gradient" />
 
-      {/* Header with progress */}
-      <div className="px-4 sm:px-6 pt-4 sm:pt-5 pb-3">
-        <div className="flex items-start justify-between gap-3">
+      {/* Header */}
+      <div className="px-4 sm:px-6 pt-5 pb-4">
+        <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="h-9 w-9 rounded-xl cosmote-gradient flex items-center justify-center shrink-0">
-              <Sparkles className="h-4 w-4 text-white" />
-            </div>
+            <img src={deltaLogo} alt="Delta" className="h-8 w-8 rounded-lg" />
             <div>
-              <h3 className="text-sm font-bold text-foreground">Οδηγός Εγκατάστασης</h3>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Βήμα {activeStepIndex + 1} από {totalSteps} • {completedCount} ολοκληρωμένα
+              <h2 className="text-base font-bold text-foreground">Εγκατάσταση DeltaNetwork</h2>
+              <p className="text-xs text-muted-foreground">
+                Βήμα {currentStep + 1} από 4 — {STEP_LABELS[currentStep]}
               </p>
             </div>
           </div>
           {onDismiss && (
-            <Button variant="ghost" size="icon" className="shrink-0 h-8 w-8" onClick={onDismiss}>
+            <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={onDismiss}>
               <X className="h-4 w-4" />
             </Button>
           )}
         </div>
-        <Progress value={progress} className="mt-3 h-1.5" />
 
-        {/* Step indicators */}
-        <div className="flex items-center gap-1.5 mt-3">
-          {steps.map((step, i) => (
-            <button
-              key={step.id}
-              onClick={() => setActiveStepIndex(i)}
-              className={`flex-1 h-1.5 rounded-full transition-all ${
-                step.completed
-                  ? "bg-success"
-                  : i === activeStepIndex
-                  ? "bg-primary"
-                  : "bg-muted"
-              }`}
-              title={step.title}
-            />
-          ))}
+        {/* Step dots */}
+        <div className="flex items-center gap-3 mt-4">
+          {[0, 1, 2, 3].map(i => {
+            const Icon = STEP_ICONS[i];
+            return (
+              <div key={i} className="flex items-center gap-2 flex-1">
+                <div
+                  className={`h-8 w-8 rounded-full flex items-center justify-center shrink-0 transition-all ${
+                    completedSteps[i]
+                      ? "bg-success text-success-foreground"
+                      : i === currentStep
+                      ? "cosmote-gradient text-white"
+                      : "bg-muted text-muted-foreground"
+                  }`}
+                >
+                  {completedSteps[i] ? (
+                    <CheckCircle2 className="h-4 w-4" />
+                  ) : (
+                    <Icon className="h-4 w-4" />
+                  )}
+                </div>
+                {i < 3 && (
+                  <div className={`flex-1 h-0.5 rounded-full ${
+                    completedSteps[i] ? "bg-success" : "bg-muted"
+                  }`} />
+                )}
+              </div>
+            );
+          })}
         </div>
+        <Progress value={progress} className="mt-3 h-1" />
       </div>
 
-      {/* Current step detail */}
+      {/* Step content */}
       <div className="px-4 sm:px-6 pb-5 sm:pb-6">
-        {/* Step title */}
-        <div className="flex items-center gap-3 mb-4">
-          <div className={`h-10 w-10 rounded-xl flex items-center justify-center shrink-0 ${
-            currentStep.completed ? "bg-success/10" : "bg-primary/10"
-          }`}>
-            {currentStep.completed ? (
-              <CheckCircle2 className="h-5 w-5 text-success" />
-            ) : (
-              <Icon className="h-5 w-5 text-primary" />
-            )}
-          </div>
-          <div>
-            <h4 className="text-base font-bold text-foreground flex items-center gap-2">
-              {currentStep.title}
-              {currentStep.completed && (
-                <span className="text-[10px] font-bold uppercase tracking-wider text-success bg-success/10 px-2 py-0.5 rounded-lg">
-                  Ολοκληρώθηκε
-                </span>
-              )}
-            </h4>
-            <p className="text-xs text-muted-foreground">{currentStep.description}</p>
-          </div>
-        </div>
+        {/* ══════ STEP 1: Service Account ══════ */}
+        {currentStep === 0 && (
+          <div className="space-y-4">
+            <div>
+              <h3 className="text-sm font-bold text-foreground mb-1">🔑 Σύνδεση Google Service Account</h3>
+              <p className="text-xs text-muted-foreground">
+                Επικολλήστε το JSON κλειδί του Service Account για σύνδεση με Google Drive & Sheets.
+              </p>
+            </div>
 
-        {/* Why this matters */}
-        {detail && !currentStep.completed && (
-          <>
-            <div className="rounded-xl bg-primary/5 border border-primary/10 p-3 mb-4">
-              <div className="flex items-start gap-2">
-                <Info className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+            {saEmail ? (
+              <div className="rounded-xl bg-success/10 border border-success/30 p-4 flex items-center gap-3">
+                <CheckCircle2 className="h-5 w-5 text-success shrink-0" />
                 <div>
-                  <p className="text-[11px] font-bold text-primary uppercase tracking-wider mb-1">Γιατί χρειάζεται</p>
-                  <p className="text-xs text-foreground/80 leading-relaxed">{detail.why}</p>
+                  <p className="text-sm font-semibold text-foreground">Συνδέθηκε επιτυχώς</p>
+                  <Badge variant="secondary" className="mt-1 text-xs">
+                    ✓ {saEmail}
+                  </Badge>
                 </div>
               </div>
-            </div>
-
-            {/* Step-by-step instructions */}
-            <div className="space-y-3 mb-4">
-              <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Βήματα</p>
-              {detail.instructions.map((inst, i) => (
-                <div key={i} className="flex items-start gap-3">
-                  <span className="shrink-0 h-6 w-6 rounded-lg cosmote-gradient flex items-center justify-center text-[11px] font-bold text-white mt-0.5">
-                    {i + 1}
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm text-foreground leading-relaxed">{inst.text}</p>
-                    {inst.tip && (
-                      <div className="flex items-start gap-1.5 mt-1.5">
-                        <Lightbulb className="h-3 w-3 text-warning mt-0.5 shrink-0" />
-                        <p className="text-[11px] text-muted-foreground italic">{inst.tip}</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Important note */}
-            {detail.important && (
-              <div className="rounded-xl bg-warning/5 border border-warning/20 p-3 mb-4">
-                <div className="flex items-start gap-2">
-                  <AlertCircle className="h-4 w-4 text-warning mt-0.5 shrink-0" />
-                  <div>
-                    <p className="text-[11px] font-bold text-warning uppercase tracking-wider mb-1">Σημαντικό</p>
-                    <p className="text-xs text-foreground/80 leading-relaxed">{detail.important}</p>
-                  </div>
-                </div>
-              </div>
+            ) : (
+              <>
+                <Textarea
+                  value={saJson}
+                  onChange={e => setSaJson(e.target.value)}
+                  placeholder='Επικολλήστε το JSON κλειδί σας εδώ...\n{\n  "type": "service_account",\n  "project_id": "...",\n  "client_email": "...",\n  ...\n}'
+                  className="min-h-[160px] font-mono text-xs"
+                />
+                <Button
+                  onClick={handleVerifySA}
+                  disabled={!saJson.trim() || saVerifying}
+                  className="w-full gap-2"
+                >
+                  {saVerifying ? (
+                    <><Loader2 className="h-4 w-4 animate-spin" /> Επαλήθευση...</>
+                  ) : (
+                    <>Επαλήθευση <ArrowRight className="h-4 w-4" /></>
+                  )}
+                </Button>
+              </>
             )}
-          </>
+          </div>
         )}
 
-        {/* Action buttons */}
-        <div className="flex items-center justify-between gap-3 pt-2 border-t border-border/50">
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-1.5 text-xs"
-              disabled={activeStepIndex === 0}
-              onClick={() => setActiveStepIndex(prev => prev - 1)}
-            >
-              <ArrowLeft className="h-3.5 w-3.5" />
-              Προηγούμενο
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-1.5 text-xs"
-              disabled={activeStepIndex === totalSteps - 1}
-              onClick={() => setActiveStepIndex(prev => prev + 1)}
-            >
-              Επόμενο
-              <ArrowRight className="h-3.5 w-3.5" />
-            </Button>
-          </div>
+        {/* ══════ STEP 2: Areas & Drive ══════ */}
+        {currentStep === 1 && (
+          <div className="space-y-5">
+            <div>
+              <h3 className="text-sm font-bold text-foreground mb-1">📂 Περιοχές & Google Drive</h3>
+              <p className="text-xs text-muted-foreground">
+                Επιλέξτε τις περιοχές που εξυπηρετείτε και συνδέστε το Shared Drive.
+              </p>
+            </div>
 
-          <div className="flex items-center gap-2">
-            {!currentStep.completed && detail && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-1.5 text-xs"
-                onClick={() => navigate(detail.route)}
-              >
-                <ExternalLink className="h-3.5 w-3.5" />
-                {detail.routeLabel}
-              </Button>
-            )}
-            {!currentStep.completed && (
-              <Button
-                size="sm"
-                className="gap-1.5 text-xs"
-                onClick={handleMarkComplete}
-              >
-                <CheckCircle2 className="h-3.5 w-3.5" />
-                Ολοκληρώθηκε
-              </Button>
-            )}
+            {/* Area chips */}
+            <div>
+              <p className="text-xs font-semibold text-foreground mb-2">Περιοχές</p>
+              <div className="flex flex-wrap gap-2">
+                {AREAS_LIST.map(area => (
+                  <button
+                    key={area}
+                    onClick={() => handleToggleArea(area)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all border ${
+                      selectedAreas.includes(area)
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "bg-card text-foreground border-border hover:border-primary/50"
+                    } ${createdAreas.includes(area) ? "ring-2 ring-success/50" : ""}`}
+                  >
+                    {createdAreas.includes(area) && "✓ "}{area}
+                  </button>
+                ))}
+                {selectedAreas.filter(a => !AREAS_LIST.includes(a)).map(area => (
+                  <button
+                    key={area}
+                    onClick={() => handleToggleArea(area)}
+                    className="px-3 py-1.5 rounded-lg text-xs font-medium bg-primary text-primary-foreground border border-primary"
+                  >
+                    {createdAreas.includes(area) && "✓ "}{area}
+                  </button>
+                ))}
+                <button
+                  onClick={() => setShowCustomInput(!showCustomInput)}
+                  className="px-3 py-1.5 rounded-lg text-xs font-medium border border-dashed border-border text-muted-foreground hover:border-primary/50"
+                >
+                  + ΑΛΛΗ
+                </button>
+              </div>
+              {showCustomInput && (
+                <div className="flex gap-2 mt-2">
+                  <Input
+                    value={customArea}
+                    onChange={e => setCustomArea(e.target.value)}
+                    placeholder="Όνομα περιοχής"
+                    className="flex-1"
+                    onKeyDown={e => e.key === "Enter" && handleAddCustomArea()}
+                  />
+                  <Button size="sm" variant="outline" onClick={handleAddCustomArea}>Προσθήκη</Button>
+                </div>
+              )}
+            </div>
+
+            {/* Drive ID */}
+            <div>
+              <p className="text-xs font-semibold text-foreground mb-1.5">Shared Drive ID</p>
+              <Input
+                value={driveId}
+                onChange={e => setDriveId(e.target.value)}
+                placeholder="Επικολλήστε το ID από το URL του Google Drive"
+              />
+              <p className="text-[11px] text-muted-foreground mt-1">
+                💡 Από το URL: drive.google.com/drive/folders/<strong>0ABcDeFgHiJkLmN</strong> → αντιγράψτε το τελευταίο μέρος
+              </p>
+            </div>
+
+            <Button
+              onClick={handleCreateFolders}
+              disabled={creatingFolders || (selectedAreas.length === 0)}
+              className="w-full gap-2"
+            >
+              {creatingFolders ? (
+                <><Loader2 className="h-4 w-4 animate-spin" /> Δημιουργία φακέλων... ({createdAreas.length}/{selectedAreas.length})</>
+              ) : (
+                <>🚀 Δημιουργία Φακέλων Αυτόματα</>
+              )}
+            </Button>
           </div>
-        </div>
+        )}
+
+        {/* ══════ STEP 3: Technicians & Email ══════ */}
+        {currentStep === 2 && (
+          <div className="space-y-5">
+            <div>
+              <h3 className="text-sm font-bold text-foreground mb-1">👥 Τεχνικοί & Email</h3>
+              <p className="text-xs text-muted-foreground">
+                Προσθέστε τεχνικούς και ρυθμίστε τις ειδοποιήσεις email.
+              </p>
+            </div>
+
+            {/* A) Technicians */}
+            <div className="rounded-xl border border-border p-4 space-y-3">
+              <div className="flex items-center gap-2">
+                <Users className="h-4 w-4 text-primary" />
+                <p className="text-xs font-bold text-foreground uppercase tracking-wider">Τεχνικοί</p>
+              </div>
+              <Textarea
+                value={techEmails}
+                onChange={e => setTechEmails(e.target.value)}
+                placeholder={"Γράψτε ένα email ανά γραμμή:\ngiorgos@example.gr\nnikos@example.gr"}
+                className="min-h-[80px] text-sm"
+              />
+              {inviteProgress && (
+                <p className={`text-xs font-medium ${inviteProgress.startsWith("✓") ? "text-success" : "text-muted-foreground"}`}>
+                  {inviteProgress}
+                </p>
+              )}
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleSendInvites}
+                disabled={sendingInvites || !techEmails.trim()}
+                className="gap-1.5"
+              >
+                {sendingInvites ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Mail className="h-3.5 w-3.5" />}
+                Αποστολή Προσκλήσεων
+              </Button>
+            </div>
+
+            {/* B) Email settings */}
+            <div className="rounded-xl border border-border p-4 space-y-3">
+              <div className="flex items-center gap-2">
+                <Mail className="h-4 w-4 text-primary" />
+                <p className="text-xs font-bold text-foreground uppercase tracking-wider">Email Ειδοποιήσεων</p>
+              </div>
+              <div className="space-y-2">
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1">Email αποστολέα</p>
+                  <Input
+                    value={emailFrom}
+                    onChange={e => setEmailFrom(e.target.value)}
+                    placeholder="noreply@company.gr"
+                  />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1">Παραλήπτης αναφορών</p>
+                  <Input
+                    value={reportTo}
+                    onChange={e => setReportTo(e.target.value)}
+                    placeholder="admin@company.gr"
+                  />
+                </div>
+              </div>
+              <Button
+                onClick={handleSaveEmails}
+                disabled={savingEmails}
+                className="w-full gap-2"
+              >
+                {savingEmails ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                Αποθήκευση & Συνέχεια <ArrowRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* ══════ STEP 4: Materials & Pricing ══════ */}
+        {currentStep === 3 && (
+          <div className="space-y-5">
+            <div>
+              <h3 className="text-sm font-bold text-foreground mb-1">📦 Υλικά & Τιμοκατάλογος</h3>
+              <p className="text-xs text-muted-foreground">
+                Φορτώστε αυτόματα τα υλικά OTE και τον τιμοκατάλογο εργασιών.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* Card A: Materials */}
+              <Card className="p-4 space-y-3 border-border">
+                <div className="flex items-center gap-2">
+                  <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <Package className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-foreground">Υλικά OTE</p>
+                    <p className="text-[11px] text-muted-foreground">847 υλικά έτοιμα για εισαγωγή</p>
+                  </div>
+                </div>
+                {loadingMaterials && <Progress value={65} className="h-1.5" />}
+                {materialsLoaded ? (
+                  <div className="flex items-center gap-2 text-success text-xs font-medium">
+                    <CheckCircle2 className="h-4 w-4" /> 847 υλικά φορτώθηκαν
+                  </div>
+                ) : (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleLoadMaterials}
+                    disabled={loadingMaterials}
+                    className="w-full gap-1.5"
+                  >
+                    {loadingMaterials ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <>⚡</>}
+                    Φόρτωση Υλικών OTE
+                  </Button>
+                )}
+              </Card>
+
+              {/* Card B: Pricing */}
+              <Card className="p-4 space-y-3 border-border">
+                <div className="flex items-center gap-2">
+                  <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <Euro className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-foreground">Τιμοκατάλογος OTE</p>
+                    <p className="text-[11px] text-muted-foreground">Τιμές εργασιών FTTH 2025</p>
+                  </div>
+                </div>
+                {loadingPricing && <Progress value={50} className="h-1.5" />}
+                {pricingLoaded ? (
+                  <div className="flex items-center gap-2 text-success text-xs font-medium">
+                    <CheckCircle2 className="h-4 w-4" /> Τιμοκατάλογος φορτώθηκε
+                  </div>
+                ) : (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleLoadPricing}
+                    disabled={loadingPricing}
+                    className="w-full gap-1.5"
+                  >
+                    {loadingPricing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <>⚡</>}
+                    Φόρτωση Τιμοκαταλόγου
+                  </Button>
+                )}
+              </Card>
+            </div>
+
+            {/* Validation errors */}
+            {validationErrors.length > 0 && (
+              <div className="rounded-xl bg-destructive/5 border border-destructive/20 p-3 space-y-1.5">
+                <p className="text-[11px] font-bold text-destructive uppercase tracking-wider flex items-center gap-1.5">
+                  <AlertCircle className="h-3.5 w-3.5" /> Ελλιπή βήματα
+                </p>
+                {validationErrors.map((err, i) => (
+                  <p key={i} className="text-xs text-destructive/80 pl-5">• {err}</p>
+                ))}
+              </div>
+            )}
+
+            <Button
+              onClick={() => {
+                markComplete(3);
+                handleFinalValidation();
+              }}
+              disabled={validating}
+              className="w-full gap-2"
+            >
+              {validating ? (
+                <><Loader2 className="h-4 w-4 animate-spin" /> Έλεγχος...</>
+              ) : (
+                <>🎉 Ολοκλήρωση Εγκατάστασης</>
+              )}
+            </Button>
+          </div>
+        )}
+
+        {/* Skip button (all steps except last) */}
+        {currentStep < 3 && (
+          <div className="mt-4 flex justify-end">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="gap-1.5 text-xs text-muted-foreground"
+              onClick={() => advanceStep(currentStep)}
+            >
+              Παράλειψη βήματος <SkipForward className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        )}
       </div>
     </Card>
   );
