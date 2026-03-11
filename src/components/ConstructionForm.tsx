@@ -144,18 +144,31 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
   ];
 
   const floorCount = Math.max(0, parseInt(floors) || 0);
+  
+  // Count total FBs from charged materials (not floors)
+  const totalFbCharged = useMemo(() => {
+    return materialItems
+      .filter((m) => {
+        const upper = m.name.toUpperCase();
+        return (upper.includes("FLOOR") && upper.includes("BOX")) || 
+               (upper.includes("FB") && !upper.includes("BEP") && !upper.includes("BMO"));
+      })
+      .reduce((sum, m) => sum + m.quantity, 0);
+  }, [materialItems]);
+
   const fbOtdrCategories = useMemo(() => {
+    const count = Math.max(0, Math.round(totalFbCharged));
     const cats = [];
-    for (let i = 0; i <= floorCount; i++) {
-      const floorLabel = i.toString().padStart(2, "0");
+    for (let i = 1; i <= count; i++) {
+      const fbLabel = i.toString().padStart(2, "0");
       cats.push({
-        key: `FB_${floorLabel}`,
-        storageName: `OTDR_FB_${floorLabel}`,
-        label: `Floor Box - Όροφος ${floorLabel}`,
+        key: `FB_${fbLabel}`,
+        storageName: `OTDR_FB_${fbLabel}`,
+        label: `Floor Box ${fbLabel}`,
       });
     }
     return cats;
-  }, [floorCount]);
+  }, [totalFbCharged]);
 
   const OTDR_CATEGORIES = useMemo(() => {
     // Insert FB floors after BMO
