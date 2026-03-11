@@ -407,6 +407,7 @@ Deno.serve(async (req) => {
 
             const { error } = await supabase.from("constructions").upsert(
               {
+                organization_id: targetOrgId,
                 sr_id: srId.trim(),
                 ses_id: sesId.trim() || null,
                 ak: ak.trim() || null,
@@ -417,7 +418,7 @@ Deno.serve(async (req) => {
                 status: "in_progress",
                 google_sheet_row_id: i,
               },
-              { onConflict: "google_sheet_row_id" }
+              { onConflict: "organization_id,google_sheet_row_id" }
             );
             if (error) results.errors.push(`Construction row ${i}: ${error.message}`);
             else results.constructions++;
