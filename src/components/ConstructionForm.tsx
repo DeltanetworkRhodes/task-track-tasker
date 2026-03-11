@@ -874,9 +874,17 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
         }
       }
 
+      // Calculate payment amount from construction works
+      const paymentAmount = workItems.reduce((sum, w) => sum + (w.quantity * w.unit_price), 0);
+
       const { error: assignError } = await supabase
         .from("assignments")
-        .update({ status: "completed", cab: cab.trim() })
+        .update({ 
+          status: "submitted", 
+          cab: cab.trim(),
+          payment_amount: paymentAmount,
+          submitted_at: new Date().toISOString(),
+        } as any)
         .eq("id", assignment.id);
       if (assignError) console.error("Assignment update error:", assignError);
 
