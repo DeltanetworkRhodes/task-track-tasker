@@ -22,6 +22,8 @@ const tabs = [
 
 const Assignments = () => {
   const { data: dbAssignments, isLoading } = useAssignments();
+  const { data: userRole } = useUserRole();
+  const isAdmin = userRole === "admin" || userRole === "super_admin";
   const [areaFilter, setAreaFilter] = useState<string>("all");
   const [sourceFilter, setSourceFilter] = useState<string>("all");
   const [activeTab, setActiveTab] = useState<string>("active");
