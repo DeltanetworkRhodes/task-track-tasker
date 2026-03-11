@@ -61,9 +61,12 @@ const Assignments = () => {
 
   // Tab counts
   const tabCounts = useMemo(() => ({
-    active: assignments.filter(a => a.status !== "cancelled" && a.status !== "completed").length,
+    active: assignments.filter(a => !["cancelled", "completed", "submitted", "paid", "rejected"].includes(a.status)).length,
     unassigned: assignments.filter(a => !(a as any).technicianId).length,
     completed: assignments.filter(a => a.status === "completed").length,
+    submitted: assignments.filter(a => a.status === "submitted").length,
+    paid: assignments.filter(a => a.status === "paid").length,
+    rejected: assignments.filter(a => a.status === "rejected").length,
     cancelled: assignments.filter(a => a.status === "cancelled").length,
     all: assignments.length,
   }), [assignments]);
