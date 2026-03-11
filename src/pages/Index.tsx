@@ -8,11 +8,13 @@ import StatCard from "@/components/StatCard";
 import AssignmentTable from "@/components/AssignmentTable";
 import SyncButton from "@/components/SyncButton";
 import SetupWizard from "@/components/SetupWizard";
+import PaymentTracker from "@/components/PaymentTracker";
 import { useAssignments, useConstructions } from "@/hooks/useData";
 import { statusLabels } from "@/data/mockData";
-import { ClipboardCheck, Wrench, TrendingUp, Euro, FolderOpen, Activity, Wifi, PieChartIcon, CalendarDays, Timer, Zap } from "lucide-react";
+import { ClipboardCheck, Wrench, TrendingUp, Euro, FolderOpen, Activity, Wifi, PieChartIcon, CalendarDays, Timer, Zap, Wallet } from "lucide-react";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { BarChart, Bar, XAxis, YAxis, Cell, PieChart, Pie, LineChart, Line, CartesianGrid, ResponsiveContainer } from "recharts";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 
 function getTimeAgo(dateStr: string): string {
@@ -33,9 +35,11 @@ const STATUS_COLORS: Record<string, string> = {
   pending: "hsl(38 92% 50%)",
   inspection: "hsl(330 100% 44%)",
   pre_committed: "hsl(220 70% 55%)",
-  
   construction: "hsl(280 55% 52%)",
-  completed: "hsl(152 60% 42%)",
+  completed: "hsl(220 70% 55%)",
+  submitted: "hsl(187 70% 50%)",
+  paid: "hsl(152 60% 42%)",
+  rejected: "hsl(0 60% 50%)",
   cancelled: "hsl(0 60% 50%)",
 };
 
@@ -104,8 +108,12 @@ const Index = () => {
     }));
   }, [dbConstructions]);
 
-  const activeAssignments = assignments.filter(a => a.status !== 'completed' && a.status !== 'cancelled').length;
-  const completedAssignments = assignments.filter(a => a.status === 'completed').length;
+  const activeAssignments = assignments.filter(a => !["completed", "cancelled", "submitted", "paid", "rejected"].includes(a.status)).length;
+  const completedAssignments = assignments.filter(a => a.status === "completed" || a.status === "submitted" || a.status === "paid").length;
+  const pendingPayments = assignments.filter(a => a.status === "submitted");
+  const pendingPaymentTotal = (dbAssignments || [])
+    .filter((a: any) => a.status === "submitted")
+    .reduce((s: number, a: any) => s + (Number((a as any).payment_amount) || 0), 0);
   
   const totalRevenue = constructions.reduce((sum, c) => sum + c.revenue, 0);
   const totalProfit = constructions.reduce((sum, c) => sum + c.profit, 0);
@@ -258,14 +266,27 @@ const Index = () => {
           <SetupWizard onDismiss={() => setWizardDismissed(true)} />
         )}
 
+        {/* Dashboard Tabs */}
+        <Tabs defaultValue="overview" className="space-y-5">
+          <TabsList>
+            <TabsTrigger value="overview">📊 Επισκόπηση</TabsTrigger>
+            <TabsTrigger value="payments">💰 Πληρωμές</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="payments">
+            <PaymentTracker />
+          </TabsContent>
+
+          <TabsContent value="overview" className="space-y-5">
         {/* Stat Cards - responsive grid */}
-        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-6">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-7">
           <StatCard title="Ενεργές Αναθέσεις" value={activeAssignments} subtitle={`${completedAssignments} ολοκληρωμένες`} icon={ClipboardCheck} trend="up" trendValue={`${assignments.length} σύνολο`} />
           <StatCard title="Προδεσμεύσεις" value={assignments.filter(a => a.status === 'pre_committed').length} subtitle="σε αναμονή GIS" icon={Timer} />
           <StatCard title="Κατασκευές" value={activeConstructions} subtitle="σε εξέλιξη" icon={Wrench} accent />
           <StatCard title="Έσοδα" value={`${totalRevenue.toLocaleString('el-GR')}€`} subtitle="κατασκευών" icon={Euro} trend="up" trendValue={`${totalProfit.toLocaleString('el-GR')}€ κέρδος`} />
           <StatCard title="Καθαρό Κέρδος" value={`${totalProfit.toLocaleString('el-GR')}€`} subtitle={`${totalRevenue > 0 ? Math.round((totalProfit / totalRevenue) * 100) : 0}% margin`} icon={TrendingUp} trend={totalProfit > 0 ? 'up' : 'down'} trendValue={`${constructions.length} κατ.`} accent />
           <StatCard title="Drive Folders" value={withDrive} subtitle={`από ${assignments.length}`} icon={FolderOpen} />
+          <StatCard title="Εκκρεμείς Πληρωμές" value={`${pendingPaymentTotal.toLocaleString('el-GR')}€`} subtitle={`${pendingPayments.length} SR`} icon={Wallet} accent />
         </div>
 
         {/* Charts Row - stack on mobile */}
@@ -426,6 +447,8 @@ const Index = () => {
             <AssignmentTable assignments={[...assignments].sort((a, b) => (b.updatedAt || b.date).localeCompare(a.updatedAt || a.date)).slice(0, 5)} />
           </div>
         </div>
+          </TabsContent>
+        </Tabs>
       </div>
     </AppLayout>
   );

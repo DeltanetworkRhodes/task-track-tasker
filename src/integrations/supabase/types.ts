@@ -130,12 +130,17 @@ export type Database = {
           latitude: number | null
           longitude: number | null
           organization_id: string | null
+          paid_at: string | null
+          payment_amount: number | null
+          payment_date: string | null
+          payment_notes: string | null
           pdf_url: string | null
           phone: string | null
           photos_count: number | null
           source_tab: string | null
           sr_id: string
           status: string
+          submitted_at: string | null
           technician_id: string | null
           updated_at: string
         }
@@ -155,12 +160,17 @@ export type Database = {
           latitude?: number | null
           longitude?: number | null
           organization_id?: string | null
+          paid_at?: string | null
+          payment_amount?: number | null
+          payment_date?: string | null
+          payment_notes?: string | null
           pdf_url?: string | null
           phone?: string | null
           photos_count?: number | null
           source_tab?: string | null
           sr_id: string
           status?: string
+          submitted_at?: string | null
           technician_id?: string | null
           updated_at?: string
         }
@@ -180,12 +190,17 @@ export type Database = {
           latitude?: number | null
           longitude?: number | null
           organization_id?: string | null
+          paid_at?: string | null
+          payment_amount?: number | null
+          payment_date?: string | null
+          payment_notes?: string | null
           pdf_url?: string | null
           phone?: string | null
           photos_count?: number | null
           source_tab?: string | null
           sr_id?: string
           status?: string
+          submitted_at?: string | null
           technician_id?: string | null
           updated_at?: string
         }

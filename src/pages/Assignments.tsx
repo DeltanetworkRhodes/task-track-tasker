@@ -15,7 +15,10 @@ const AdminLiveMap = lazy(() => import("@/components/AdminLiveMap"));
 const tabs = [
   { key: "active", label: "Ενεργές", icon: ListChecks },
   { key: "unassigned", label: "Χωρίς Ανάθεση", icon: UserX },
-  { key: "completed", label: "Ολοκληρωμένες", icon: CheckCircle2 },
+  { key: "completed", label: "AS-BUILD", icon: CheckCircle2 },
+  { key: "submitted", label: "Παραδόθηκαν", icon: Radio },
+  { key: "paid", label: "Πληρωμένες", icon: CheckCircle2 },
+  { key: "rejected", label: "Απορρίφθηκαν", icon: AlertCircle },
   { key: "cancelled", label: "Ακυρωμένες", icon: XCircle },
   { key: "all", label: "Όλες", icon: ClipboardCheck },
 ] as const;
@@ -58,18 +61,24 @@ const Assignments = () => {
 
   // Tab counts
   const tabCounts = useMemo(() => ({
-    active: assignments.filter(a => a.status !== "cancelled" && a.status !== "completed").length,
+    active: assignments.filter(a => !["cancelled", "completed", "submitted", "paid", "rejected"].includes(a.status)).length,
     unassigned: assignments.filter(a => !(a as any).technicianId).length,
     completed: assignments.filter(a => a.status === "completed").length,
+    submitted: assignments.filter(a => a.status === "submitted").length,
+    paid: assignments.filter(a => a.status === "paid").length,
+    rejected: assignments.filter(a => a.status === "rejected").length,
     cancelled: assignments.filter(a => a.status === "cancelled").length,
     all: assignments.length,
   }), [assignments]);
 
   const filtered = assignments.filter((a) => {
     const q = search.toLowerCase();
-    if (activeTab === "active" && (a.status === "cancelled" || a.status === "completed")) return false;
+    if (activeTab === "active" && ["cancelled", "completed", "submitted", "paid", "rejected"].includes(a.status)) return false;
     if (activeTab === "cancelled" && a.status !== "cancelled") return false;
     if (activeTab === "completed" && a.status !== "completed") return false;
+    if (activeTab === "submitted" && a.status !== "submitted") return false;
+    if (activeTab === "paid" && a.status !== "paid") return false;
+    if (activeTab === "rejected" && a.status !== "rejected") return false;
     if (activeTab === "unassigned" && (a as any).technicianId) return false;
     if (areaFilter !== "all" && a.area !== areaFilter) return false;
     if (sourceFilter !== "all" && (a as any).sourceTab !== sourceFilter) return false;

@@ -4,7 +4,7 @@ export interface Assignment {
   id: string;
   srId: string;
   area: string;
-  status: 'pending' | 'inspection' | 'pre_committed' | 'construction' | 'completed';
+  status: 'pending' | 'inspection' | 'pre_committed' | 'construction' | 'completed' | 'submitted' | 'paid' | 'rejected';
   technician: string;
   date: string;
   comments: string;
@@ -68,7 +68,10 @@ export const statusLabels: Record<string, string> = {
   inspection: 'Αυτοψία',
   pre_committed: 'Προδέσμευση Υλικών',
   construction: 'Κατασκευή',
-  completed: 'Ολοκληρώθηκε',
+  completed: 'AS-BUILD',
+  submitted: 'Παραδόθηκε',
+  paid: 'Πληρώθηκε',
+  rejected: 'Απορρίφθηκε',
   cancelled: 'Ακυρωμένο',
 };
 
