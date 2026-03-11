@@ -447,6 +447,8 @@ const Index = () => {
             <AssignmentTable assignments={[...assignments].sort((a, b) => (b.updatedAt || b.date).localeCompare(a.updatedAt || a.date)).slice(0, 5)} />
           </div>
         </div>
+          </TabsContent>
+        </Tabs>
       </div>
     </AppLayout>
   );
