@@ -1,6 +1,7 @@
 import { ExternalLink, MapPin, Navigation } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 interface Props {
   assignments: any[];
@@ -19,7 +20,6 @@ const TechnicianMap = ({ assignments }: Props) => {
   }
 
   const getMapQuery = (a: any): string => {
-    // Prefer lat/lng when available for accuracy
     if (a.latitude && a.longitude) {
       return `${a.latitude},${a.longitude}`;
     }
@@ -36,6 +36,38 @@ const TechnicianMap = ({ assignments }: Props) => {
     const query = getMapQuery(a);
     const encoded = encodeURIComponent(query);
     window.open(`https://www.google.com/maps/dir/?api=1&destination=${encoded}`, "_blank");
+  };
+
+  const openHemd = (assignment: any) => {
+    if (assignment.latitude && assignment.longitude) {
+      const hashData = {
+        "FTTH/B": 1,
+        "a3b_coverpointftthcoax_normal_dist_10th": 1,
+        "Κάλυψη χαλκού": 0,
+        "grid_square1000sql": 0,
+        "Κινητή": 0,
+        "zoom": 18,
+        "center": {
+          "lng": assignment.longitude,
+          "lat": assignment.latitude
+        }
+      };
+      const hash = encodeURIComponent(JSON.stringify(hashData));
+      window.open(
+        `https://www.broadband-assist.gov.gr/public/index_here.html#${hash}`,
+        "_blank"
+      );
+      return;
+    }
+
+    if (assignment.building_id_hemd) {
+      navigator.clipboard.writeText(assignment.building_id_hemd)
+        .then(() => toast.info(
+          `Building ID "${assignment.building_id_hemd}" αντιγράφηκε — κάντε paste στο broadband-assist`
+        ))
+        .catch(() => {});
+    }
+    window.open("https://www.broadband-assist.gov.gr/public/", "_blank");
   };
 
   return (
@@ -71,15 +103,17 @@ const TechnicianMap = ({ assignments }: Props) => {
               Πλοήγηση
             </Button>
           </div>
-          {a.building_id_hemd && (
+          {(a.building_id_hemd || (a.latitude && a.longitude)) && (
             <Button
               variant="outline"
               size="sm"
               className="w-full gap-1.5 text-xs"
-              onClick={() => window.open(`https://hemd.cosmote.gr/hemd/index.html#/building/${a.building_id_hemd}`, "_blank")}
+              onClick={() => openHemd(a)}
             >
               <ExternalLink className="h-3.5 w-3.5" />
-              Προβολή στο ΧΕΜΔ
+              {a.latitude && a.longitude
+                ? "🔗 ΧΕΜΔ — Άνοιγμα στο σημείο"
+                : "🔗 ΧΕΜΔ — Αντιγραφή ID"}
             </Button>
           )}
         </Card>
