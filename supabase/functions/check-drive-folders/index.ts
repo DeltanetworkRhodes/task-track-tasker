@@ -195,6 +195,7 @@ Deno.serve(async (req) => {
     const { data: advancedAssignments, error: fetchErr1 } = await supabase
       .from("assignments")
       .select("id, sr_id, status, area, customer_name, technician_id, organization_id, comments")
+      .eq("organization_id", targetOrgId)
       .in("status", revertStatuses);
 
     if (fetchErr1) throw fetchErr1;
