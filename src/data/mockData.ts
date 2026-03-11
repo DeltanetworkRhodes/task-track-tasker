@@ -68,7 +68,10 @@ export const statusLabels: Record<string, string> = {
   inspection: 'Αυτοψία',
   pre_committed: 'Προδέσμευση Υλικών',
   construction: 'Κατασκευή',
-  completed: 'Ολοκληρώθηκε',
+  completed: 'AS-BUILD',
+  submitted: 'Παραδόθηκε',
+  paid: 'Πληρώθηκε',
+  rejected: 'Απορρίφθηκε',
   cancelled: 'Ακυρωμένο',
 };
 
