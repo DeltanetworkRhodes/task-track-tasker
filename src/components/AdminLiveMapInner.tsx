@@ -124,8 +124,9 @@ const AdminLiveMapInner = () => {
     if (!mapContainerRef.current || mapRef.current) return;
 
     const map = L.map(mapContainerRef.current).setView([36.4341, 28.2176], 12);
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>',
+    L.tileLayer("https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}", {
+      attribution: '&copy; Google Maps',
+      maxZoom: 20,
     }).addTo(map);
 
     mapRef.current = map;
