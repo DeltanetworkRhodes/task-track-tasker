@@ -298,6 +298,7 @@ Deno.serve(async (req) => {
 
             const { error } = await supabase.from("assignments").upsert(
               {
+                organization_id: targetOrgId,
                 sr_id: srId.trim(),
                 area: "ΡΟΔΟΣ",
                 status: status ? status.trim().toLowerCase() : "pending",
@@ -307,7 +308,7 @@ Deno.serve(async (req) => {
                 source_tab: "ΡΟΔΟΣ",
                 google_sheet_row_id: 10000 + i,
               },
-              { onConflict: "google_sheet_row_id" }
+              { onConflict: "organization_id,google_sheet_row_id" }
             );
             if (error) results.errors.push(`ΡΟΔΟΣ row ${i}: ${error.message}`);
             else results.rodos++;
