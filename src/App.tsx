@@ -88,6 +88,13 @@ const RoleRouter = () => {
   return <Index />;
 };
 
+const LandingOrDashboard = () => {
+  const { user, loading } = useAuth();
+  if (loading) return <div className="flex min-h-screen items-center justify-center bg-background"><div className="text-muted-foreground">Φόρτωση...</div></div>;
+  if (user) return <Navigate to="/dashboard" replace />;
+  return <Landing />;
+};
+
 // App component
 const App = () => (
   <QueryClientProvider client={queryClient}>
