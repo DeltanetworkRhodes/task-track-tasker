@@ -380,6 +380,7 @@ Deno.serve(async (req) => {
         const { error } = await supabase
           .from("assignments")
           .update({ drive_folder_url: driveUrl })
+          .eq("organization_id", targetOrgId)
           .eq("sr_id", srId);
         if (!error) results.drive_matched++;
       }
