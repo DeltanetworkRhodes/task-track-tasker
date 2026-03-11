@@ -441,8 +441,8 @@ Deno.serve(async (req) => {
             if (!code) continue;
 
             const { error } = await supabase.from("materials").upsert(
-              { code, name, stock, unit, source: "OTE", price },
-              { onConflict: "code" }
+              { organization_id: targetOrgId, code, name, stock, unit, source: "OTE", price },
+              { onConflict: "organization_id,code" }
             );
             if (error) results.errors.push(`Material row ${i}: ${error.message}`);
             else results.materials++;
