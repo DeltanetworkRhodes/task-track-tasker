@@ -86,11 +86,16 @@ async function driveSearchFolder(
 }
 
 // Check if a Drive folder has any files (not just subfolders)
-async function driveFolderHasFiles(accessToken: string, srId: string): Promise<boolean> {
+async function driveFolderHasFiles(
+  accessToken: string,
+  srId: string,
+  folderIds: string[],
+  sharedDriveId: string
+): Promise<boolean> {
   // First find the folder
-  for (const folderId of SEARCH_FOLDER_IDS) {
+  for (const folderId of folderIds) {
     const query = `name contains '${srId}' and '${folderId}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`;
-    const url = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&fields=files(id)&pageSize=1&supportsAllDrives=true&includeItemsFromAllDrives=true&corpora=drive&driveId=${SHARED_DRIVE_ID}`;
+    const url = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&fields=files(id)&pageSize=1&supportsAllDrives=true&includeItemsFromAllDrives=true&corpora=drive&driveId=${sharedDriveId}`;
     
     const res = await fetch(url, {
       headers: { Authorization: `Bearer ${accessToken}` },
@@ -101,7 +106,7 @@ async function driveFolderHasFiles(accessToken: string, srId: string): Promise<b
       const srFolderId = data.files[0].id;
       // Check for any files recursively inside this folder (files + subfolders' files)
       const filesQuery = `'${srFolderId}' in parents and trashed = false`;
-      const filesUrl = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(filesQuery)}&fields=files(id,mimeType)&pageSize=5&supportsAllDrives=true&includeItemsFromAllDrives=true&corpora=drive&driveId=${SHARED_DRIVE_ID}`;
+      const filesUrl = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(filesQuery)}&fields=files(id,mimeType)&pageSize=5&supportsAllDrives=true&includeItemsFromAllDrives=true&corpora=drive&driveId=${sharedDriveId}`;
       const filesRes = await fetch(filesUrl, {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
