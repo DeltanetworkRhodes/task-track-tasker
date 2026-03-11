@@ -186,10 +186,27 @@ export function useConstructionPhotoAnalysis() {
   const hasRejectedPhotos = () => {
     for (const cat of Object.values(state)) {
       for (const result of cat.results.values()) {
+        if (result.overriddenBy) continue; // overridden = approved
         if (!result.isApproved || result.qualityScore < 7) return true;
       }
     }
     return false;
+  };
+
+  const overrideResult = (category: string, index: number, reason: string) => {
+    setState((prev) => {
+      const catState = prev[category];
+      if (!catState) return prev;
+      const existing = catState.results.get(index);
+      if (!existing) return prev;
+      const newResults = new Map(catState.results);
+      newResults.set(index, {
+        ...existing,
+        isApproved: true,
+        overriddenBy: `supervisor:${reason}`,
+      });
+      return { ...prev, [category]: { ...catState, results: newResults } };
+    });
   };
 
   const getAllResults = () => state;
@@ -199,6 +216,7 @@ export function useConstructionPhotoAnalysis() {
     getConstructionResult,
     isConstructionAnalyzing,
     hasRejectedPhotos,
+    overrideResult,
     getAllResults,
   };
 }
