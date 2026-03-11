@@ -655,6 +655,7 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
     }
 
     // ═══════ ONLINE BRANCH (unchanged) ═══════
+    setSubmitting(true);
     try {
       setSubmitProgress("Καταχώρηση κατασκευής...");
 
