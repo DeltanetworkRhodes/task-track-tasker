@@ -36,8 +36,10 @@ export const applyWatermark = async (
       const lines: string[] = [];
       lines.push(`SR: ${data.srId}`);
       if (data.address) lines.push(data.address);
-      if (data.latitude != null && data.longitude != null) {
+      if (data.latitude && data.longitude && (data.latitude !== 0 || data.longitude !== 0)) {
         lines.push(`GPS: ${Number(data.latitude).toFixed(6)}, ${Number(data.longitude).toFixed(6)}`);
+      } else {
+        lines.push("GPS: N/A");
       }
       const dt = data.datetime || new Date();
       lines.push(dt.toLocaleString("el-GR", {

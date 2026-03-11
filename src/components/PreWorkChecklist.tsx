@@ -42,6 +42,10 @@ const PreWorkChecklist = ({ assignment, onChecklistComplete }: PreWorkChecklistP
             .createSignedUrl((data as any).photo_path, 3600);
           if (urlData?.signedUrl) setPreviewUrl(urlData.signedUrl);
         }
+        // Immediately notify parent if already completed
+        if ((data as any).completed) {
+          onChecklistComplete?.(true);
+        }
       }
       return data as any;
     },
