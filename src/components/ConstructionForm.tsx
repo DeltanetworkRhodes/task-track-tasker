@@ -518,11 +518,8 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
       const idx = existingCount + accepted.length;
 
       if (isOnline()) {
-        const result = await analyzeConstructionPhoto(file, category, idx);
-        if (!result.isApproved || result.qualityScore < 7) {
-          // Photo rejected by AI — don't add
-          continue;
-        }
+        await analyzeConstructionPhoto(file, category, idx);
+        // Always keep the photo — rejected ones can be overridden
       }
 
       accepted.push(file);
