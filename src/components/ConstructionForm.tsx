@@ -75,7 +75,11 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
   const { organizationId, organization } = useOrganization();
   const orgName = organization?.name || "DELTANETWORK";
   const queryClient = useQueryClient();
-  const { analyzeConstructionPhoto, getConstructionResult, isConstructionAnalyzing, hasRejectedPhotos } = useConstructionPhotoAnalysis();
+  const { analyzeConstructionPhoto, getConstructionResult, isConstructionAnalyzing, hasRejectedPhotos, overrideResult } = useConstructionPhotoAnalysis();
+
+  // Override dialog state
+  const [overrideTarget, setOverrideTarget] = useState<{ category: string; index: number } | null>(null);
+  const [overrideReason, setOverrideReason] = useState("");
 
   // Form state
   const [sesId, setSesId] = useState("");
