@@ -54,9 +54,9 @@ async function getAccessToken(serviceAccountKey: any): Promise<string> {
   return tokenData.access_token;
 }
 
-const SHARED_DRIVE_ID = "0AN9VpmNEa7QBUk9PVA";
+const DEFAULT_SHARED_DRIVE_ID = "0AN9VpmNEa7QBUk9PVA";
 
-const SEARCH_FOLDER_IDS = [
+const DEFAULT_SEARCH_FOLDER_IDS = [
   "1JvcSG3tiOplSujXhb3yj_ELQLjfrgOzO", // ΡΟΔΟΣ
   "1X1mtK4tV_sgGM9IdizNSK7AS19qX1nYl", // ΚΩΣ
   "1dal55zb0uv5__e1pDk2fLFMB0ogi1OnZ", // ΠΡΟΔΕΣΜΕΥΣΗ ΓΙΑ ΚΑΤΑΣΚΕΥΗ
