@@ -354,16 +354,7 @@ Deno.serve(async (req) => {
 
     // ===== DRIVE FOLDER MATCHING =====
     try {
-      const driveFolderIds = [
-        "1JvcSG3tiOplSujXhb3yj_ELQLjfrgOzO", // ΡΟΔΟΣ
-        "1X1mtK4tV_sgGM9IdizNSK7AS19qX1nYl", // ΚΩΣ
-        "1dal55zb0uv5__e1pDk2fLFMB0ogi1OnZ", // ΡΟΔΟΣ/ΜΑΡΤΙΟΣ/ΠΡΟΔΕΣΜΕΥΣΗ
-        "16Dr_1g6AkaypkyoePwcfZ8IanPX5TXeZ", // ΡΟΔΟΣ/ΜΑΡΤΙΟΣ/ΟΛΟΚΛΗΡΩΜΕΝΕΣ
-        "1azAHjT8LS8R3JOq0jYNh1UdBx4SYn-iM", // ΡΟΔΟΣ/ΜΑΡΤΙΟΣ/ΠΑΡΑΔΩΤΕΑ
-        "1pIRjzexYG_JVFkoqfaG2_o_YfziGoFy_", // ΡΟΔΟΣ/ΜΑΡΤΙΟΣ
-        "1C2E70l0PkCETaMPqywysYNMrDUcKMO5k", // ΠΑΡΑΔΕΙΓΜΑΤΑ
-      ];
-
+      // Use organization-scoped Drive folders (fallbacks already prepared above)
       const srFolderMap: Record<string, string> = {};
 
       for (const parentId of driveFolderIds) {
