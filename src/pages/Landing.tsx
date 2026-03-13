@@ -425,6 +425,7 @@ const Landing = () => {
             <span className="dn-flt">DELTANETWORK</span>
           </a>
           <div className="dn-flinks">
+            <a href="/login" style={{color:'var(--teal)',fontWeight:600}}>Σύνδεση</a>
             <a href="#">Όροι Χρήσης</a>
             <a href="#">Απόρρητο</a>
             <a href="mailto:info@deltanetwork.app">info@deltanetwork.app</a>
