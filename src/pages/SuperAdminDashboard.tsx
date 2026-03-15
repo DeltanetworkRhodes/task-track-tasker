@@ -1222,9 +1222,9 @@ const SuperAdminDashboard = () => {
                         ) : (
                           <button
                             className="text-sm hover:text-primary transition-colors"
-                            onClick={() => { setEditingPrice(org.id); setPriceValue(String(org.monthly_price || 600)); }}
+                            onClick={() => { setEditingPrice(org.id); setPriceValue(String(org.monthly_price ?? 600)); }}
                           >
-                            {eurFormat(Number(org.monthly_price) || 600)} <Pencil className="inline h-3 w-3 ml-1 text-muted-foreground" />
+                            {eurFormat(Number(org.monthly_price ?? 600))} <Pencil className="inline h-3 w-3 ml-1 text-muted-foreground" />
                           </button>
                         )}
                       </TableCell>
