@@ -183,9 +183,10 @@ const SuperAdminDashboard = () => {
 
   // Revenue calculations
   const activeOrgs = (organizations || []).filter((o: any) => o.status === "active");
-  const mrr = activeOrgs.reduce((sum: number, o: any) => sum + (Number(o.monthly_price) || 0), 0);
+  const paidActiveOrgs = activeOrgs.filter((o: any) => o.plan !== "free");
+  const mrr = paidActiveOrgs.reduce((sum: number, o: any) => sum + (Number(o.monthly_price) || 0), 0);
   const arr = mrr * 12;
-  const payingOrgs = activeOrgs.filter((o: any) => !o.trial_ends_at || new Date(o.trial_ends_at) < new Date());
+  const payingOrgs = paidActiveOrgs.filter((o: any) => !o.trial_ends_at || new Date(o.trial_ends_at) < new Date());
 
   // Usage data
   const usageData = useMemo(() => {
@@ -305,6 +306,8 @@ const SuperAdminDashboard = () => {
       slug: form.slug.toLowerCase().replace(/[^a-z0-9-]/g, ""),
       plan: form.plan,
       max_users: parseInt(form.max_users) || 10,
+      monthly_price: form.plan === "free" ? 0 : 600,
+      payment_status: form.plan === "free" ? "paid" : "paid",
     } as any);
     if (error) return toast.error(error.message);
     toast.success("Εταιρία δημιουργήθηκε");
@@ -322,6 +325,7 @@ const SuperAdminDashboard = () => {
         slug: form.slug.toLowerCase().replace(/[^a-z0-9-]/g, ""),
         plan: form.plan,
         max_users: parseInt(form.max_users) || 10,
+        ...(form.plan === "free" ? { monthly_price: 0 } : {}),
       } as any)
       .eq("id", editingOrg.id);
     if (error) return toast.error(error.message);
@@ -571,6 +575,7 @@ const SuperAdminDashboard = () => {
   };
 
   const planColors: Record<string, string> = {
+    free: "bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400",
     basic: "bg-muted text-muted-foreground",
     pro: "bg-primary/10 text-primary border-primary/20",
     enterprise: "bg-accent/10 text-accent border-accent/20",
@@ -852,6 +857,7 @@ const SuperAdminDashboard = () => {
                         <Select value={form.plan} onValueChange={(v) => setForm({ ...form, plan: v })}>
                           <SelectTrigger><SelectValue /></SelectTrigger>
                           <SelectContent>
+                            <SelectItem value="free">🎁 Δωρεάν</SelectItem>
                             <SelectItem value="basic">Basic</SelectItem>
                             <SelectItem value="pro">Pro</SelectItem>
                             <SelectItem value="enterprise">Enterprise</SelectItem>
@@ -890,6 +896,7 @@ const SuperAdminDashboard = () => {
                       <Select value={form.plan} onValueChange={(v) => setForm({ ...form, plan: v })}>
                         <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>
+                          <SelectItem value="free">🎁 Δωρεάν</SelectItem>
                           <SelectItem value="basic">Basic</SelectItem>
                           <SelectItem value="pro">Pro</SelectItem>
                           <SelectItem value="enterprise">Enterprise</SelectItem>
