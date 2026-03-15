@@ -11,6 +11,7 @@ const AppLayout = ({ children }: { children: ReactNode }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { online, pendingCount, pendingSurveyCount, pendingConstructionCount, syncAll } = useOfflineSync();
   useLocationTracking();
+  useAuditLog(); // Track page views automatically
 
   return (
     <div className="flex min-h-screen bg-background safe-top safe-left safe-right">
