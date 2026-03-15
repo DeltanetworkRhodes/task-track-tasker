@@ -254,7 +254,8 @@ const LoginPage = () => {
             </a>
           </div>
           <p className="text-center text-[10px] text-[hsl(210,14%,35%)]">
-            © {new Date().getFullYear()} DeltaNetwork — "Συνδυάζοντας την Τεχνολογία με Αξίες"
+            © {new Date().getFullYear()} DeltaNetwork. All rights reserved. Με επιφύλαξη παντός δικαιώματος.<br/>
+            Απαγορεύεται η αντιγραφή, αναπαραγωγή ή μεταπώληση χωρίς γραπτή άδεια.
           </p>
         </div>
       </footer>
