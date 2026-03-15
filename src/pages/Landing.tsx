@@ -426,9 +426,12 @@ const Landing = () => {
           </a>
           <div className="dn-flinks">
             <a href="/login" style={{color:'var(--teal)',fontWeight:600}}>Σύνδεση</a>
-            <a href="#">Όροι Χρήσης</a>
-            <a href="#">Απόρρητο</a>
+            <Link to="/terms" style={{color:'inherit'}}>Όροι Χρήσης</Link>
             <a href="mailto:info@deltanetwork.app">info@deltanetwork.app</a>
+          </div>
+          <div style={{marginTop:'16px',fontSize:'11px',color:'rgba(255,255,255,0.35)',textAlign:'center'}}>
+            © {new Date().getFullYear()} DeltaNetwork. All rights reserved. Με επιφύλαξη παντός δικαιώματος.<br/>
+            Απαγορεύεται η αντιγραφή, αναπαραγωγή ή μεταπώληση χωρίς γραπτή άδεια.
           </div>
         </footer>
       </div>

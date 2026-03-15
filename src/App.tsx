@@ -29,6 +29,7 @@ import DocumentGenerator from "./pages/DocumentGenerator";
 import DemoDashboard from "./pages/DemoDashboard";
 import WatermarkTest from "./pages/WatermarkTest";
 import Landing from "./pages/Landing";
+import Terms from "./pages/Terms";
 
 import NotFound from "./pages/NotFound";
 import HelpChatBot from "./components/HelpChatBot";
@@ -114,6 +115,7 @@ const App = () => (
                   <Route path="/demo" element={<DemoDashboard />} />
                   <Route path="/watermark-test" element={<WatermarkTest />} />
                   <Route path="/" element={<LandingOrDashboard />} />
+                  <Route path="/terms" element={<Terms />} />
                   <Route path="/dashboard" element={<ProtectedRoute><RoleGate><RoleRouter /></RoleGate></ProtectedRoute>} />
                   <Route path="/super-admin" element={<ProtectedRoute><SuperAdminRoute><SuperAdminDashboard /></SuperAdminRoute></ProtectedRoute>} />
                   <Route path="/technician" element={<ProtectedRoute><RoleGate><TechnicianDashboard /></RoleGate></ProtectedRoute>} />
