@@ -893,6 +893,7 @@ const SuperAdminDashboard = () => {
                       <Select value={form.plan} onValueChange={(v) => setForm({ ...form, plan: v })}>
                         <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>
+                          <SelectItem value="free">🎁 Δωρεάν</SelectItem>
                           <SelectItem value="basic">Basic</SelectItem>
                           <SelectItem value="pro">Pro</SelectItem>
                           <SelectItem value="enterprise">Enterprise</SelectItem>
