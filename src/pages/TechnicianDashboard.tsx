@@ -72,6 +72,7 @@ const TechnicianDashboard = () => {
         (a.sr_id && a.sr_id.toLowerCase().includes(q)) ||
         (a.address && a.address.toLowerCase().includes(q)) ||
         (a.area && a.area.toLowerCase().includes(q)) ||
+        (a.customer_name && a.customer_name.toLowerCase().includes(q)) ||
         (a.building_id_hemd && a.building_id_hemd.toLowerCase().includes(q))
       );
     }
@@ -132,7 +133,7 @@ const TechnicianDashboard = () => {
           <div className="relative mb-3">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Αναζήτηση SR, Διεύθυνση, Building ID..."
+              placeholder="Αναζήτηση SR, Διεύθυνση, Όνομα, Building ID..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-9 pr-9 h-10 text-sm"
