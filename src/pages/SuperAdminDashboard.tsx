@@ -183,9 +183,10 @@ const SuperAdminDashboard = () => {
 
   // Revenue calculations
   const activeOrgs = (organizations || []).filter((o: any) => o.status === "active");
-  const mrr = activeOrgs.reduce((sum: number, o: any) => sum + (Number(o.monthly_price) || 0), 0);
+  const paidActiveOrgs = activeOrgs.filter((o: any) => o.plan !== "free");
+  const mrr = paidActiveOrgs.reduce((sum: number, o: any) => sum + (Number(o.monthly_price) || 0), 0);
   const arr = mrr * 12;
-  const payingOrgs = activeOrgs.filter((o: any) => !o.trial_ends_at || new Date(o.trial_ends_at) < new Date());
+  const payingOrgs = paidActiveOrgs.filter((o: any) => !o.trial_ends_at || new Date(o.trial_ends_at) < new Date());
 
   // Usage data
   const usageData = useMemo(() => {
