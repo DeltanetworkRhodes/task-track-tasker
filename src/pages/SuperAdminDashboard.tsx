@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/collapsible";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Building2, Plus, Users, Power, PowerOff, Pencil, Trash2, Globe, LogOut, ChevronDown, Shield, User, UserPlus, Mail, MapPin, DollarSign, BarChart3, Activity, Megaphone, Eye, Bell, AlertTriangle, Clock, TrendingUp, Calendar } from "lucide-react";
+import { Building2, Plus, Users, Power, PowerOff, Pencil, Trash2, Globe, LogOut, ChevronDown, Shield, User, UserPlus, Mail, MapPin, DollarSign, BarChart3, Activity, Megaphone, Eye, Bell, AlertTriangle, Clock, TrendingUp, Calendar, CreditCard, Save } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { formatDistanceToNow, differenceInDays, subMonths, startOfMonth, endOfMonth, format } from "date-fns";
 import { el } from "date-fns/locale";
@@ -45,6 +45,9 @@ const SuperAdminDashboard = () => {
   const [impersonating, setImpersonating] = useState<string | null>(null);
   const [activityFilter, setActivityFilter] = useState("all");
   const [activityOrgFilter, setActivityOrgFilter] = useState("all");
+  const [paymentAlertOpen, setPaymentAlertOpen] = useState(false);
+  const [paymentForms, setPaymentForms] = useState<Record<string, { status: string; lastDate: string; nextDate: string; notes: string }>>({});
+
 
   // ── Queries ──
   const { data: organizations, isLoading } = useQuery({
@@ -147,6 +150,36 @@ const SuperAdminDashboard = () => {
       return days >= 0 && days <= 3;
     });
   }, [organizations]);
+
+  // Payment alerts
+  const paymentAlerts = useMemo(() => {
+    const now = new Date();
+    const soonDue = (organizations || []).filter((o: any) => {
+      if (o.payment_status !== "paid" || !o.next_payment_due) return false;
+      const days = differenceInDays(new Date(o.next_payment_due), now);
+      return days >= 0 && days <= 5;
+    });
+    const overdue = (organizations || []).filter((o: any) => o.payment_status === "overdue");
+    return { soonDue, overdue, total: soonDue.length + overdue.length };
+  }, [organizations]);
+
+  // Initialize payment form for an org
+  const getPaymentForm = (org: any) => {
+    if (paymentForms[org.id]) return paymentForms[org.id];
+    return {
+      status: org.payment_status || "paid",
+      lastDate: org.last_payment_date || "",
+      nextDate: org.next_payment_due || "",
+      notes: org.payment_notes || "",
+    };
+  };
+
+  const updatePaymentForm = (orgId: string, field: string, value: string) => {
+    setPaymentForms((prev) => ({
+      ...prev,
+      [orgId]: { ...getPaymentForm(orgMap[orgId]), [field]: value },
+    }));
+  };
 
   // Revenue calculations
   const activeOrgs = (organizations || []).filter((o: any) => o.status === "active");
@@ -491,7 +524,46 @@ const SuperAdminDashboard = () => {
     queryClient.invalidateQueries({ queryKey: ["all-organizations"] });
   };
 
+  const handleSavePayment = async (orgId: string) => {
+    const pf = getPaymentForm(orgMap[orgId]);
+    const today = new Date().toISOString().split("T")[0];
+    
+    const updateData: any = {
+      payment_status: pf.status,
+      payment_notes: pf.notes || null,
+      last_payment_date: pf.lastDate || null,
+      next_payment_due: pf.nextDate || null,
+    };
+
+    if (pf.status === "paid") {
+      updateData.last_payment_date = today;
+      const next = new Date();
+      next.setDate(next.getDate() + 30);
+      updateData.next_payment_due = next.toISOString().split("T")[0];
+      updateData.status = "active";
+    }
+
+    if (pf.status === "suspended") {
+      updateData.status = "suspended";
+    }
+
+    const { error } = await supabase.from("organizations").update(updateData).eq("id", orgId);
+    if (error) return toast.error(error.message);
+
+    if (pf.status === "paid") toast.success("✅ Εταιρία ενεργοποιήθηκε — πληρωμή καταχωρήθηκε");
+    else if (pf.status === "suspended") toast.success("❌ Εταιρία ανεστάλη λόγω πληρωμής");
+    else toast.success("Κατάσταση πληρωμής ενημερώθηκε");
+
+    setPaymentForms((prev) => {
+      const cp = { ...prev };
+      delete cp[orgId];
+      return cp;
+    });
+    queryClient.invalidateQueries({ queryKey: ["all-organizations"] });
+  };
+
   const getTrialStatus = (org: any) => {
+
     if (!org.trial_ends_at) return { label: "✅ Πληρωμένο", color: "text-success" };
     const days = differenceInDays(new Date(org.trial_ends_at), new Date());
     if (days > 0) return { label: `🟡 Trial · ${days} μέρες`, color: "text-warning" };
@@ -592,6 +664,59 @@ const SuperAdminDashboard = () => {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {/* Payment alert bell */}
+          {paymentAlerts.total > 0 && (
+            <Dialog open={paymentAlertOpen} onOpenChange={setPaymentAlertOpen}>
+              <DialogTrigger asChild>
+                <Button variant="ghost" size="icon" className="relative h-9 w-9">
+                  <CreditCard className="h-4 w-4 text-destructive" />
+                  <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[9px] text-white font-bold">
+                    {paymentAlerts.total}
+                  </span>
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2">
+                    <CreditCard className="h-5 w-5 text-destructive" />
+                    Ειδοποιήσεις Πληρωμών
+                  </DialogTitle>
+                </DialogHeader>
+                <div className="space-y-3 pt-2">
+                  {paymentAlerts.overdue.map((org: any) => (
+                    <Card key={org.id} className="p-3 flex items-center justify-between border-destructive/30">
+                      <div>
+                        <p className="text-sm font-semibold text-foreground">{org.name}</p>
+                        <p className="text-xs text-destructive">🔴 Εκπρόθεσμη πληρωμή</p>
+                      </div>
+                      <div className="flex gap-1">
+                        <Button size="sm" variant="outline" className="text-xs h-7" onClick={() => { updatePaymentForm(org.id, "status", "paid"); handleSavePayment(org.id); }}>
+                          ✅ Πληρώθηκε
+                        </Button>
+                        <Button size="sm" variant="destructive" className="text-xs h-7" onClick={() => { updatePaymentForm(org.id, "status", "suspended"); handleSavePayment(org.id); }}>
+                          Suspend
+                        </Button>
+                      </div>
+                    </Card>
+                  ))}
+                  {paymentAlerts.soonDue.map((org: any) => {
+                    const days = differenceInDays(new Date(org.next_payment_due), new Date());
+                    return (
+                      <Card key={org.id} className="p-3 flex items-center justify-between border-warning/30">
+                        <div>
+                          <p className="text-sm font-semibold text-foreground">{org.name}</p>
+                          <p className="text-xs text-warning">⚠️ Πληρώνει σε {days} μέρ{days === 1 ? "α" : "ες"}</p>
+                        </div>
+                        <Button size="sm" variant="outline" className="text-xs h-7" onClick={() => { updatePaymentForm(org.id, "status", "paid"); handleSavePayment(org.id); }}>
+                          ✅ Πληρώθηκε
+                        </Button>
+                      </Card>
+                    );
+                  })}
+                </div>
+              </DialogContent>
+            </Dialog>
+          )}
           {/* Trial alert bell */}
           {expiringTrials.length > 0 && (
             <Dialog open={trialAlertOpen} onOpenChange={setTrialAlertOpen}>
@@ -936,6 +1061,66 @@ const SuperAdminDashboard = () => {
                                 ))}
                               </div>
                             )}
+                          </div>
+                          {/* Payment Section */}
+                          <div className="border-t border-border bg-muted/20 px-4 py-3">
+                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                              <CreditCard className="h-3 w-3" /> Πληρωμή
+                            </p>
+                            {(() => {
+                              const pf = getPaymentForm(org);
+                              return (
+                                <div className="space-y-3">
+                                  <div className="grid grid-cols-2 gap-3">
+                                    <div className="space-y-1">
+                                      <Label className="text-[11px]">Κατάσταση</Label>
+                                      <Select value={pf.status} onValueChange={(v) => updatePaymentForm(org.id, "status", v)}>
+                                        <SelectTrigger className="h-8 text-xs">
+                                          <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          <SelectItem value="paid">✅ Πλήρωσε</SelectItem>
+                                          <SelectItem value="overdue">⚠️ Εκπρόθεσμο</SelectItem>
+                                          <SelectItem value="suspended">❌ Ανεστάλη</SelectItem>
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+                                    <div className="space-y-1">
+                                      <Label className="text-[11px]">Σημειώσεις</Label>
+                                      <Input
+                                        className="h-8 text-xs"
+                                        value={pf.notes}
+                                        onChange={(e) => updatePaymentForm(org.id, "notes", e.target.value)}
+                                        placeholder="π.χ. Τιμολόγιο #123"
+                                      />
+                                    </div>
+                                  </div>
+                                  <div className="grid grid-cols-2 gap-3">
+                                    <div className="space-y-1">
+                                      <Label className="text-[11px]">Τελ. πληρωμή</Label>
+                                      <Input
+                                        type="date"
+                                        className="h-8 text-xs"
+                                        value={pf.lastDate}
+                                        onChange={(e) => updatePaymentForm(org.id, "lastDate", e.target.value)}
+                                      />
+                                    </div>
+                                    <div className="space-y-1">
+                                      <Label className="text-[11px]">Επόμενη</Label>
+                                      <Input
+                                        type="date"
+                                        className="h-8 text-xs"
+                                        value={pf.nextDate}
+                                        onChange={(e) => updatePaymentForm(org.id, "nextDate", e.target.value)}
+                                      />
+                                    </div>
+                                  </div>
+                                  <Button size="sm" className="gap-1.5 text-xs h-7" onClick={() => handleSavePayment(org.id)}>
+                                    <Save className="h-3 w-3" /> Αποθήκευση
+                                  </Button>
+                                </div>
+                              );
+                            })()}
                           </div>
                         </CollapsibleContent>
                       </Collapsible>
