@@ -4,14 +4,52 @@ import OfflineBanner from "./OfflineBanner";
 import { useOfflineSync } from "@/hooks/useOfflineSync";
 import { useLocationTracking } from "@/hooks/useLocationTracking";
 import { useAuditLog } from "@/hooks/useAuditLog";
-import { Menu, X } from "lucide-react";
+import { useOrganization } from "@/contexts/OrganizationContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { Menu, AlertTriangle, LogOut } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import deltaLogoIcon from "@/assets/delta-logo-icon.png";
+
+const SuspendedScreen = () => {
+  const { signOut } = useAuth();
+  return (
+    <div className="min-h-screen bg-background flex items-center justify-center p-6">
+      <div className="max-w-md w-full text-center space-y-6">
+        <img src={deltaLogoIcon} alt="DeltaNetwork" className="h-16 w-auto mx-auto object-contain" />
+        <div className="space-y-3">
+          <div className="flex items-center justify-center gap-2 text-warning">
+            <AlertTriangle className="h-8 w-8" />
+          </div>
+          <h1 className="text-xl font-bold text-foreground">
+            Ο λογαριασμός σας έχει ανασταλεί
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Για επαναφορά επικοινωνήστε:
+          </p>
+          <div className="space-y-1 text-sm text-muted-foreground">
+            <p>✉️ info@deltanetwork.app</p>
+          </div>
+        </div>
+        <Button variant="outline" className="gap-2" onClick={signOut}>
+          <LogOut className="h-4 w-4" /> Αποσύνδεση
+        </Button>
+      </div>
+    </div>
+  );
+};
 
 const AppLayout = ({ children }: { children: ReactNode }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { online, pendingCount, pendingSurveyCount, pendingConstructionCount, syncAll } = useOfflineSync();
   useLocationTracking();
   useAuditLog(); // Track page views automatically
+
+  const { organization, isLoading: orgLoading } = useOrganization();
+
+  // Show suspended screen if org is suspended
+  if (!orgLoading && organization?.status === "suspended") {
+    return <SuspendedScreen />;
+  }
 
   return (
     <div className="flex min-h-screen bg-background safe-top safe-left safe-right">

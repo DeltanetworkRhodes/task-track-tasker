@@ -664,6 +664,59 @@ const SuperAdminDashboard = () => {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {/* Payment alert bell */}
+          {paymentAlerts.total > 0 && (
+            <Dialog open={paymentAlertOpen} onOpenChange={setPaymentAlertOpen}>
+              <DialogTrigger asChild>
+                <Button variant="ghost" size="icon" className="relative h-9 w-9">
+                  <CreditCard className="h-4 w-4 text-destructive" />
+                  <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[9px] text-white font-bold">
+                    {paymentAlerts.total}
+                  </span>
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2">
+                    <CreditCard className="h-5 w-5 text-destructive" />
+                    Ειδοποιήσεις Πληρωμών
+                  </DialogTitle>
+                </DialogHeader>
+                <div className="space-y-3 pt-2">
+                  {paymentAlerts.overdue.map((org: any) => (
+                    <Card key={org.id} className="p-3 flex items-center justify-between border-destructive/30">
+                      <div>
+                        <p className="text-sm font-semibold text-foreground">{org.name}</p>
+                        <p className="text-xs text-destructive">🔴 Εκπρόθεσμη πληρωμή</p>
+                      </div>
+                      <div className="flex gap-1">
+                        <Button size="sm" variant="outline" className="text-xs h-7" onClick={() => { updatePaymentForm(org.id, "status", "paid"); handleSavePayment(org.id); }}>
+                          ✅ Πληρώθηκε
+                        </Button>
+                        <Button size="sm" variant="destructive" className="text-xs h-7" onClick={() => { updatePaymentForm(org.id, "status", "suspended"); handleSavePayment(org.id); }}>
+                          Suspend
+                        </Button>
+                      </div>
+                    </Card>
+                  ))}
+                  {paymentAlerts.soonDue.map((org: any) => {
+                    const days = differenceInDays(new Date(org.next_payment_due), new Date());
+                    return (
+                      <Card key={org.id} className="p-3 flex items-center justify-between border-warning/30">
+                        <div>
+                          <p className="text-sm font-semibold text-foreground">{org.name}</p>
+                          <p className="text-xs text-warning">⚠️ Πληρώνει σε {days} μέρ{days === 1 ? "α" : "ες"}</p>
+                        </div>
+                        <Button size="sm" variant="outline" className="text-xs h-7" onClick={() => { updatePaymentForm(org.id, "status", "paid"); handleSavePayment(org.id); }}>
+                          ✅ Πληρώθηκε
+                        </Button>
+                      </Card>
+                    );
+                  })}
+                </div>
+              </DialogContent>
+            </Dialog>
+          )}
           {/* Trial alert bell */}
           {expiringTrials.length > 0 && (
             <Dialog open={trialAlertOpen} onOpenChange={setTrialAlertOpen}>
