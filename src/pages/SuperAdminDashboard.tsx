@@ -325,6 +325,7 @@ const SuperAdminDashboard = () => {
         slug: form.slug.toLowerCase().replace(/[^a-z0-9-]/g, ""),
         plan: form.plan,
         max_users: parseInt(form.max_users) || 10,
+        ...(form.plan === "free" ? { monthly_price: 0 } : {}),
       } as any)
       .eq("id", editingOrg.id);
     if (error) return toast.error(error.message);
