@@ -1189,11 +1189,15 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          last_payment_date: string | null
           logo_url: string | null
           max_users: number
           monthly_price: number | null
           name: string
+          next_payment_due: string | null
           notes: string | null
+          payment_notes: string | null
+          payment_status: string | null
           plan: string
           slug: string
           status: string
@@ -1203,11 +1207,15 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          last_payment_date?: string | null
           logo_url?: string | null
           max_users?: number
           monthly_price?: number | null
           name: string
+          next_payment_due?: string | null
           notes?: string | null
+          payment_notes?: string | null
+          payment_status?: string | null
           plan?: string
           slug: string
           status?: string
@@ -1217,11 +1225,15 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          last_payment_date?: string | null
           logo_url?: string | null
           max_users?: number
           monthly_price?: number | null
           name?: string
+          next_payment_due?: string | null
           notes?: string | null
+          payment_notes?: string | null
+          payment_status?: string | null
           plan?: string
           slug?: string
           status?: string
