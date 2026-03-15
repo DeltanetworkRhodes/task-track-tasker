@@ -45,6 +45,9 @@ const SuperAdminDashboard = () => {
   const [impersonating, setImpersonating] = useState<string | null>(null);
   const [activityFilter, setActivityFilter] = useState("all");
   const [activityOrgFilter, setActivityOrgFilter] = useState("all");
+  const [paymentAlertOpen, setPaymentAlertOpen] = useState(false);
+  const [paymentForms, setPaymentForms] = useState<Record<string, { status: string; lastDate: string; nextDate: string; notes: string }>>({});
+
 
   // ── Queries ──
   const { data: organizations, isLoading } = useQuery({
