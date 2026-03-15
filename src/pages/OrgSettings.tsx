@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { toast } from "sonner";
 import AppLayout from "@/components/AppLayout";
+import AuditLogViewer from "@/components/AuditLogViewer";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
