@@ -28,6 +28,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
+
+      // Audit log: track login events
+      if (_event === 'SIGNED_IN' && session?.user) {
+        supabase.from("audit_logs").insert({
+          user_id: session.user.id,
+          action: "login",
+          details: { method: "session" },
+          user_agent: navigator.userAgent,
+          page_url: window.location.pathname,
+        }).then(() => {});
+      }
+      if (_event === 'SIGNED_OUT') {
+        // logged before user is cleared
+      }
     });
 
     supabase.auth.getSession().then(({ data: { session } }) => {

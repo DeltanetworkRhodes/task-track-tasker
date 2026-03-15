@@ -498,6 +498,11 @@ const OrgSettings = () => {
               <Save className="h-4 w-4" />
               {saving ? "Αποθήκευση..." : "Αποθήκευση Ρυθμίσεων"}
             </Button>
+
+            {/* Audit Log Section */}
+            <div className="mt-8">
+              <AuditLogViewer />
+            </div>
           </div>
         )}
       </div>
