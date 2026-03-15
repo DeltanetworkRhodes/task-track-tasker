@@ -151,6 +151,36 @@ const SuperAdminDashboard = () => {
     });
   }, [organizations]);
 
+  // Payment alerts
+  const paymentAlerts = useMemo(() => {
+    const now = new Date();
+    const soonDue = (organizations || []).filter((o: any) => {
+      if (o.payment_status !== "paid" || !o.next_payment_due) return false;
+      const days = differenceInDays(new Date(o.next_payment_due), now);
+      return days >= 0 && days <= 5;
+    });
+    const overdue = (organizations || []).filter((o: any) => o.payment_status === "overdue");
+    return { soonDue, overdue, total: soonDue.length + overdue.length };
+  }, [organizations]);
+
+  // Initialize payment form for an org
+  const getPaymentForm = (org: any) => {
+    if (paymentForms[org.id]) return paymentForms[org.id];
+    return {
+      status: org.payment_status || "paid",
+      lastDate: org.last_payment_date || "",
+      nextDate: org.next_payment_due || "",
+      notes: org.payment_notes || "",
+    };
+  };
+
+  const updatePaymentForm = (orgId: string, field: string, value: string) => {
+    setPaymentForms((prev) => ({
+      ...prev,
+      [orgId]: { ...getPaymentForm(orgMap[orgId]), [field]: value },
+    }));
+  };
+
   // Revenue calculations
   const activeOrgs = (organizations || []).filter((o: any) => o.status === "active");
   const mrr = activeOrgs.reduce((sum: number, o: any) => sum + (Number(o.monthly_price) || 0), 0);
