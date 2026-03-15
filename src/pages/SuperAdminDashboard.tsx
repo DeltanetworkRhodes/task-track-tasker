@@ -524,7 +524,46 @@ const SuperAdminDashboard = () => {
     queryClient.invalidateQueries({ queryKey: ["all-organizations"] });
   };
 
+  const handleSavePayment = async (orgId: string) => {
+    const pf = getPaymentForm(orgMap[orgId]);
+    const today = new Date().toISOString().split("T")[0];
+    
+    const updateData: any = {
+      payment_status: pf.status,
+      payment_notes: pf.notes || null,
+      last_payment_date: pf.lastDate || null,
+      next_payment_due: pf.nextDate || null,
+    };
+
+    if (pf.status === "paid") {
+      updateData.last_payment_date = today;
+      const next = new Date();
+      next.setDate(next.getDate() + 30);
+      updateData.next_payment_due = next.toISOString().split("T")[0];
+      updateData.status = "active";
+    }
+
+    if (pf.status === "suspended") {
+      updateData.status = "suspended";
+    }
+
+    const { error } = await supabase.from("organizations").update(updateData).eq("id", orgId);
+    if (error) return toast.error(error.message);
+
+    if (pf.status === "paid") toast.success("✅ Εταιρία ενεργοποιήθηκε — πληρωμή καταχωρήθηκε");
+    else if (pf.status === "suspended") toast.success("❌ Εταιρία ανεστάλη λόγω πληρωμής");
+    else toast.success("Κατάσταση πληρωμής ενημερώθηκε");
+
+    setPaymentForms((prev) => {
+      const cp = { ...prev };
+      delete cp[orgId];
+      return cp;
+    });
+    queryClient.invalidateQueries({ queryKey: ["all-organizations"] });
+  };
+
   const getTrialStatus = (org: any) => {
+
     if (!org.trial_ends_at) return { label: "✅ Πληρωμένο", color: "text-success" };
     const days = differenceInDays(new Date(org.trial_ends_at), new Date());
     if (days > 0) return { label: `🟡 Trial · ${days} μέρες`, color: "text-warning" };
