@@ -306,6 +306,8 @@ const SuperAdminDashboard = () => {
       slug: form.slug.toLowerCase().replace(/[^a-z0-9-]/g, ""),
       plan: form.plan,
       max_users: parseInt(form.max_users) || 10,
+      monthly_price: form.plan === "free" ? 0 : 600,
+      payment_status: form.plan === "free" ? "paid" : "paid",
     } as any);
     if (error) return toast.error(error.message);
     toast.success("Εταιρία δημιουργήθηκε");
