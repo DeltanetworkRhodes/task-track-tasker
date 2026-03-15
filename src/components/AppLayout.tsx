@@ -3,6 +3,7 @@ import AppSidebar from "./AppSidebar";
 import OfflineBanner from "./OfflineBanner";
 import { useOfflineSync } from "@/hooks/useOfflineSync";
 import { useLocationTracking } from "@/hooks/useLocationTracking";
+import { useAuditLog } from "@/hooks/useAuditLog";
 import { Menu, X } from "lucide-react";
 import deltaLogoIcon from "@/assets/delta-logo-icon.png";
 
@@ -10,6 +11,7 @@ const AppLayout = ({ children }: { children: ReactNode }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { online, pendingCount, pendingSurveyCount, pendingConstructionCount, syncAll } = useOfflineSync();
   useLocationTracking();
+  useAuditLog(); // Track page views automatically
 
   return (
     <div className="flex min-h-screen bg-background safe-top safe-left safe-right">
