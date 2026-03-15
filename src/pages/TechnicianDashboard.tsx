@@ -72,6 +72,7 @@ const TechnicianDashboard = () => {
         (a.sr_id && a.sr_id.toLowerCase().includes(q)) ||
         (a.address && a.address.toLowerCase().includes(q)) ||
         (a.area && a.area.toLowerCase().includes(q)) ||
+        (a.customer_name && a.customer_name.toLowerCase().includes(q)) ||
         (a.building_id_hemd && a.building_id_hemd.toLowerCase().includes(q))
       );
     }
