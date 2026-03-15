@@ -571,6 +571,7 @@ const SuperAdminDashboard = () => {
   };
 
   const planColors: Record<string, string> = {
+    free: "bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400",
     basic: "bg-muted text-muted-foreground",
     pro: "bg-primary/10 text-primary border-primary/20",
     enterprise: "bg-accent/10 text-accent border-accent/20",
