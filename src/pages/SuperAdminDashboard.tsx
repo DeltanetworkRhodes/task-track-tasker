@@ -1009,6 +1009,66 @@ const SuperAdminDashboard = () => {
                               </div>
                             )}
                           </div>
+                          {/* Payment Section */}
+                          <div className="border-t border-border bg-muted/20 px-4 py-3">
+                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                              <CreditCard className="h-3 w-3" /> Πληρωμή
+                            </p>
+                            {(() => {
+                              const pf = getPaymentForm(org);
+                              return (
+                                <div className="space-y-3">
+                                  <div className="grid grid-cols-2 gap-3">
+                                    <div className="space-y-1">
+                                      <Label className="text-[11px]">Κατάσταση</Label>
+                                      <Select value={pf.status} onValueChange={(v) => updatePaymentForm(org.id, "status", v)}>
+                                        <SelectTrigger className="h-8 text-xs">
+                                          <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          <SelectItem value="paid">✅ Πλήρωσε</SelectItem>
+                                          <SelectItem value="overdue">⚠️ Εκπρόθεσμο</SelectItem>
+                                          <SelectItem value="suspended">❌ Ανεστάλη</SelectItem>
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+                                    <div className="space-y-1">
+                                      <Label className="text-[11px]">Σημειώσεις</Label>
+                                      <Input
+                                        className="h-8 text-xs"
+                                        value={pf.notes}
+                                        onChange={(e) => updatePaymentForm(org.id, "notes", e.target.value)}
+                                        placeholder="π.χ. Τιμολόγιο #123"
+                                      />
+                                    </div>
+                                  </div>
+                                  <div className="grid grid-cols-2 gap-3">
+                                    <div className="space-y-1">
+                                      <Label className="text-[11px]">Τελ. πληρωμή</Label>
+                                      <Input
+                                        type="date"
+                                        className="h-8 text-xs"
+                                        value={pf.lastDate}
+                                        onChange={(e) => updatePaymentForm(org.id, "lastDate", e.target.value)}
+                                      />
+                                    </div>
+                                    <div className="space-y-1">
+                                      <Label className="text-[11px]">Επόμενη</Label>
+                                      <Input
+                                        type="date"
+                                        className="h-8 text-xs"
+                                        value={pf.nextDate}
+                                        onChange={(e) => updatePaymentForm(org.id, "nextDate", e.target.value)}
+                                      />
+                                    </div>
+                                  </div>
+                                  <Button size="sm" className="gap-1.5 text-xs h-7" onClick={() => handleSavePayment(org.id)}>
+                                    <Save className="h-3 w-3" /> Αποθήκευση
+                                  </Button>
+                                </div>
+                              );
+                            })()}
+                          </div>
                         </CollapsibleContent>
                       </Collapsible>
                     </Card>
