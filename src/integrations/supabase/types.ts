@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      announcements: {
+        Row: {
+          body: string
+          created_at: string | null
+          created_by: string
+          id: string
+          target: string | null
+          title: string
+        }
+        Insert: {
+          body: string
+          created_at?: string | null
+          created_by: string
+          id?: string
+          target?: string | null
+          title: string
+        }
+        Update: {
+          body?: string
+          created_at?: string | null
+          created_by?: string
+          id?: string
+          target?: string | null
+          title?: string
+        }
+        Relationships: []
+      }
       appointments: {
         Row: {
           appointment_at: string
@@ -1094,6 +1121,38 @@ export type Database = {
           },
         ]
       }
+      org_activity: {
+        Row: {
+          action: string
+          created_at: string | null
+          id: string
+          organization_id: string | null
+          user_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string | null
+          id?: string
+          organization_id?: string | null
+          user_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string | null
+          id?: string
+          organization_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_activity_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       org_settings: {
         Row: {
           id: string
@@ -1132,10 +1191,13 @@ export type Database = {
           id: string
           logo_url: string | null
           max_users: number
+          monthly_price: number | null
           name: string
+          notes: string | null
           plan: string
           slug: string
           status: string
+          trial_ends_at: string | null
           updated_at: string
         }
         Insert: {
@@ -1143,10 +1205,13 @@ export type Database = {
           id?: string
           logo_url?: string | null
           max_users?: number
+          monthly_price?: number | null
           name: string
+          notes?: string | null
           plan?: string
           slug: string
           status?: string
+          trial_ends_at?: string | null
           updated_at?: string
         }
         Update: {
@@ -1154,10 +1219,13 @@ export type Database = {
           id?: string
           logo_url?: string | null
           max_users?: number
+          monthly_price?: number | null
           name?: string
+          notes?: string | null
           plan?: string
           slug?: string
           status?: string
+          trial_ends_at?: string | null
           updated_at?: string
         }
         Relationships: []
