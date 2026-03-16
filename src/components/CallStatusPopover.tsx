@@ -7,6 +7,7 @@ import { CALL_STATUS, type CallStatusKey } from "@/lib/callStatus";
 import CallStatusBadge from "@/components/CallStatusBadge";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useOrganization } from "@/contexts/OrganizationContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Phone, Save, Loader2 } from "lucide-react";
