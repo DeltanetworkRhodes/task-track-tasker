@@ -655,6 +655,16 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
               </div>
             )}
 
+            {/* Appointment info */}
+            {a.appointment_at && (
+              <div className="flex items-center gap-1.5 rounded-md bg-green-500/10 border border-green-500/20 px-2.5 py-1.5 text-xs text-green-600">
+                <CalendarClock className="h-3.5 w-3.5 shrink-0" />
+                <span className="font-medium">
+                  Ραντεβού: {new Date(a.appointment_at).toLocaleDateString("el-GR", { weekday: "short", day: "numeric", month: "numeric" })} στις {new Date(a.appointment_at).toLocaleTimeString("el-GR", { hour: "2-digit", minute: "2-digit" })}
+                </span>
+              </div>
+            )}
+
             {/* GIS pending indicator for pre_committed */}
             {a.status === "pre_committed" && !gisAssignmentIds?.includes(a.id) && (
               <div className="flex items-center gap-1.5 rounded-md bg-amber-500/10 border border-amber-500/20 px-2.5 py-1.5 text-xs text-amber-600">
