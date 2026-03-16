@@ -88,6 +88,12 @@ const Assignments = () => {
     if (activeTab === "unassigned" && (a as any).technicianId) return false;
     if (areaFilter !== "all" && a.area !== areaFilter) return false;
     if (sourceFilter !== "all" && (a as any).sourceTab !== sourceFilter) return false;
+    if (callFilter !== "all") {
+      const cs = (a as any).callStatus || "not_called";
+      if (callFilter === "not_called" && cs !== "not_called") return false;
+      if (callFilter === "callback" && cs !== "no_answer" && cs !== "sms_sent") return false;
+      if (callFilter === "scheduled" && cs !== "scheduled") return false;
+    }
     if (q && !a.srId.toLowerCase().includes(q) && !(a as any).customerName?.toLowerCase().includes(q)) return false;
     return true;
   });
