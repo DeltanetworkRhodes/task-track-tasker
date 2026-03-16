@@ -1,7 +1,8 @@
 import { useState, useCallback } from "react";
 
-import { MapPin, Phone, Calendar, MessageSquare, Loader2, Eye, FileEdit, CheckCircle, Clock, HardHat, XCircle, Ban, Upload, FileSpreadsheet, FileText, CalendarClock } from "lucide-react";
+import { MapPin, Phone, Calendar, MessageSquare, Loader2, Eye, FileEdit, CheckCircle, Clock, HardHat, XCircle, Ban, Upload, FileSpreadsheet, FileText, CalendarClock, Users } from "lucide-react";
 import GisUploadCard from "@/components/GisUploadCard";
+import CrewWorkPanel from "@/components/CrewWorkPanel";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -58,6 +59,7 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
   const [selectedAssignment, setSelectedAssignment] = useState<any | null>(null);
   const [showSurveyForm, setShowSurveyForm] = useState(false);
   const [showConstructionForm, setShowConstructionForm] = useState(false);
+  const [showCrewPanel, setShowCrewPanel] = useState(false);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
   const [cancelling, setCancelling] = useState(false);
@@ -568,6 +570,14 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
     if (status === "construction") {
       return (
         <div className="space-y-3">
+          <Button
+            variant="outline"
+            className={`${btnClass} border-teal-500/30 text-teal-600 hover:bg-teal-500/10`}
+            onClick={() => setShowCrewPanel(true)}
+          >
+            <Users className="h-4 w-4" />
+            Εργασίες Συνεργείου
+          </Button>
           <Button className={btnClass} onClick={() => setShowConstructionForm(true)}>
             <HardHat className="h-4 w-4" />
             Φόρμα Κατασκευής
@@ -609,7 +619,7 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
           <Card
             key={a.id}
             className="p-4 space-y-2 cursor-pointer hover:border-primary/30 transition-colors"
-            onClick={() => { setSelectedAssignment(a); setShowSurveyForm(false); setShowConstructionForm(false); }}
+            onClick={() => { setSelectedAssignment(a); setShowSurveyForm(false); setShowConstructionForm(false); setShowCrewPanel(false); }}
             onMouseEnter={() => handleCardHover(a)}
             onTouchStart={() => handleCardHover(a)}
           >
@@ -690,7 +700,7 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
       </div>
 
       {/* SR Detail Sheet */}
-      <Sheet open={!!selectedAssignment} onOpenChange={(open) => { if (!open) { setSelectedAssignment(null); setShowSurveyForm(false); setShowConstructionForm(false); } }}>
+      <Sheet open={!!selectedAssignment} onOpenChange={(open) => { if (!open) { setSelectedAssignment(null); setShowSurveyForm(false); setShowConstructionForm(false); setShowCrewPanel(false); } }}>
         <SheetContent side="bottom" className="h-[92vh] sm:h-[90vh] p-0 rounded-t-2xl overflow-hidden">
           <SheetHeader className="px-4 pt-4 pb-2">
             <SheetTitle className="text-left">
@@ -702,7 +712,7 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
           </SheetHeader>
 
           <div className="overflow-y-auto overscroll-contain px-4 pb-8 safe-bottom" style={{ height: 'calc(92vh - 80px)' }}>
-            {selectedAssignment && !showSurveyForm && !showConstructionForm && (
+            {selectedAssignment && !showSurveyForm && !showConstructionForm && !showCrewPanel && (
               <div className="space-y-4">
                 {/* Status badge */}
                 <div className="flex items-center gap-2">
@@ -942,6 +952,11 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
                   queryClient.invalidateQueries({ queryKey: ["technician-assignments"] });
                 }}
               />
+            )}
+
+            {/* Crew Work Panel (inline in sheet) */}
+            {selectedAssignment && showCrewPanel && (
+              <CrewWorkPanel assignment={selectedAssignment} />
             )}
           </div>
         </SheetContent>
