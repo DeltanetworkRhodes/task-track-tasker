@@ -114,6 +114,8 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
   const [deleting, setDeleting] = useState(false);
   
   const { data: technicians } = useTechnicians();
+  const { data: userRole } = useUserRole();
+  const isAdmin = userRole === "admin" || userRole === "super_admin";
   const { data: history } = useAssignmentHistory(selected?.id || null);
   const queryClient = useQueryClient();
 
