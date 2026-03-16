@@ -561,7 +561,6 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
                       .eq("id", assignment.id);
                     if (error) throw error;
                     queryClient.invalidateQueries({ queryKey: ["technician-assignments"] });
-                    // Update local state
                     setSelectedAssignment({ ...assignment, status: "construction" });
                   } else {
                     updateDemoAssignment(assignment.id, { status: "construction" });
@@ -572,7 +571,7 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
                   return;
                 }
               }
-              setShowConstructionForm(true);
+              setShowCrewPanel(true);
             }}>
               <HardHat className="h-4 w-4" />
               Έναρξη Κατασκευής
