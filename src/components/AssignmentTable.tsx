@@ -158,6 +158,24 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
     return acc;
   }, {});
 
+  // Auto-assign all work categories to a technician
+  const autoAssignCrews = async (assignmentId: string, techId: string | null) => {
+    if (!organizationId || !workCategories?.length) return;
+    if (!techId) return; // Don't clear crew assignments when unassigning
+    for (const cat of workCategories) {
+      await supabase
+        .from("sr_crew_assignments" as any)
+        .upsert({
+          assignment_id: assignmentId,
+          organization_id: organizationId,
+          category_id: cat.id,
+          technician_id: techId,
+          status: "pending",
+        }, { onConflict: "assignment_id,category_id" });
+    }
+    queryClient.invalidateQueries({ queryKey: ["sr_crew_assignments", assignmentId] });
+  };
+
   const handleAssign = async (assignmentId: string, technicianId: string) => {
     setAssigning(assignmentId);
     const newValue = technicianId === "__none__" ? null : technicianId;
@@ -174,6 +192,11 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
         .eq("id", assignmentId);
       if (error) throw error;
       toast.success(newValue ? `Ανατέθηκε σε ${techMap[newValue] || "τεχνικό"}` : "Αφαιρέθηκε η ανάθεση");
+
+      // Auto-assign all crew categories to this technician
+      if (newValue) {
+        autoAssignCrews(assignmentId, newValue).catch(console.error);
+      }
 
       // Fire-and-forget push notification
       if (newValue) {
