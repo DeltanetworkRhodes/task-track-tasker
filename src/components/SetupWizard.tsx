@@ -405,6 +405,21 @@ const SetupWizard = ({ onDismiss, demoMode = false }: SetupWizardProps) => {
         return;
       }
 
+      // Seed default work categories if none exist
+      const { count: catCount } = await supabase
+        .from("sr_work_categories" as any)
+        .select("id", { count: "exact", head: true })
+        .eq("organization_id", organizationId!);
+      if ((catCount || 0) === 0) {
+        await supabase.from("sr_work_categories" as any).insert([
+          { organization_id: organizationId!, name: "Σκάμμα", sort_order: 1, photo_categories: ["ΣΚΑΜΜΑ"], requires_works: true },
+          { organization_id: organizationId!, name: "Εμφύσηση", sort_order: 2, photo_categories: ["ΕΜΦΥΣΗΣΗ", "ΟΠΤΙΚΗ"] },
+          { organization_id: organizationId!, name: "Κουτιά / Κανάλια / Οδεύσεις", sort_order: 3, photo_categories: ["FB", "BEP", "BMO", "ΚΑΝΑΛΙΑ", "ΣΠΙΡΑΛ", "ΟΔΕΥΣΗ"], requires_works: true },
+          { organization_id: organizationId!, name: "Κόλληση Ινών & OTDR", sort_order: 4, photo_categories: ["ΚΟΛΛΗΣΗ", "OTDR"], requires_measurements: true },
+          { organization_id: organizationId!, name: "Γ' Φάση — Οδεύσεις OTO", sort_order: 5, photo_categories: ["ΟΔΕΥΣΗ_ΟΤΟ", "ΤΕΛΙΚΗ"], requires_works: true, can_close_sr: true },
+        ]);
+      }
+
       await supabase.from("org_settings").upsert({
         organization_id: organizationId!,
         setting_key: "setup_wizard_completed",
