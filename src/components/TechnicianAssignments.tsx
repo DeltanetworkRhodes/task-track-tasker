@@ -561,7 +561,6 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
                       .eq("id", assignment.id);
                     if (error) throw error;
                     queryClient.invalidateQueries({ queryKey: ["technician-assignments"] });
-                    // Update local state
                     setSelectedAssignment({ ...assignment, status: "construction" });
                   } else {
                     updateDemoAssignment(assignment.id, { status: "construction" });
@@ -572,7 +571,7 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
                   return;
                 }
               }
-              setShowConstructionForm(true);
+              setShowCrewPanel(true);
             }}>
               <HardHat className="h-4 w-4" />
               Έναρξη Κατασκευής
@@ -594,16 +593,11 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
       return (
         <div className="space-y-3">
           <Button
-            variant="outline"
-            className={`${btnClass} border-teal-500/30 text-teal-600 hover:bg-teal-500/10`}
+            className={btnClass}
             onClick={() => setShowCrewPanel(true)}
           >
             <Users className="h-4 w-4" />
             Εργασίες Συνεργείου
-          </Button>
-          <Button className={btnClass} onClick={() => setShowConstructionForm(true)}>
-            <HardHat className="h-4 w-4" />
-            Φόρμα Κατασκευής
           </Button>
           <GisUploadCard
             assignment={assignment}
