@@ -855,7 +855,7 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
             <DetailRow icon={MapPin} label="Διεύθυνση" value={selected?.address} />
             <DetailRow icon={Phone} label="Τηλέφωνο" value={selected?.phone} />
             <DetailRow icon={Hash} label="Καμπίνα (CAB)" value={selected?.cab} />
-            <DetailRow icon={User} label="Τεχνικός" value={selected?.technicianId ? techMap[selected.technicianId] : null} />
+            <DetailRow icon={User} label="Υπεύθυνος" value={selected?.technicianId ? techMap[selected.technicianId] : null} />
             <DetailRow icon={MessageSquare} label="Σχόλια" value={selected?.comments} />
           </div>
 
