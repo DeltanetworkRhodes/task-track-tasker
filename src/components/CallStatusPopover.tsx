@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/input";
 import { CALL_STATUS, type CallStatusKey } from "@/lib/callStatus";
 import CallStatusBadge from "@/components/CallStatusBadge";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { useOrganization } from "@/contexts/OrganizationContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Phone, Save, Loader2 } from "lucide-react";
@@ -47,6 +49,8 @@ interface CallStatusPopoverProps {
 }
 
 const CallStatusPopover = ({ assignment, children }: CallStatusPopoverProps) => {
+  const { user } = useAuth();
+  const { organizationId } = useOrganization();
   const srId = assignment.srId || assignment.sr_id || "";
   const customerName = assignment.customerName || assignment.customer_name || "";
   const phone = assignment.phone || "";
@@ -105,8 +109,23 @@ const CallStatusPopover = ({ assignment, children }: CallStatusPopoverProps) => 
 
       if (error) throw error;
 
+      // Auto-save call notes as SR comment
+      if (notes && notes.trim() && user) {
+        const statusLabel = CALL_STATUS[selectedStatus]?.label || selectedStatus;
+        const commentMessage = `📞 ${statusLabel}: ${notes.trim()}`;
+        await supabase.from("sr_comments").insert({
+          assignment_id: assignment.id,
+          user_id: user.id,
+          message: commentMessage,
+          organization_id: organizationId || null,
+        }).then(({ error: commentErr }) => {
+          if (commentErr) console.error("Failed to save call note as comment:", commentErr);
+        });
+      }
+
       toast.success("Η κατάσταση κλήσης ενημερώθηκε");
       queryClient.invalidateQueries({ queryKey: ["assignments"] });
+      queryClient.invalidateQueries({ queryKey: ["sr-comments"] });
       setOpen(false);
     } catch (err: any) {
       toast.error(err.message || "Σφάλμα αποθήκευσης");
