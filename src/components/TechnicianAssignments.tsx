@@ -550,7 +550,30 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
           />
           {/* Show construction form button only when GIS exists */}
           {hasGis && (
-            <Button className={btnClass} onClick={() => setShowConstructionForm(true)}>
+            <Button className={btnClass} onClick={async () => {
+              // Auto-transition to construction status
+              if (assignment.status !== 'construction') {
+                try {
+                  if (!isDemo) {
+                    const { error } = await supabase
+                      .from("assignments")
+                      .update({ status: "construction" })
+                      .eq("id", assignment.id);
+                    if (error) throw error;
+                    queryClient.invalidateQueries({ queryKey: ["technician-assignments"] });
+                    // Update local state
+                    setSelectedAssignment({ ...assignment, status: "construction" });
+                  } else {
+                    updateDemoAssignment(assignment.id, { status: "construction" });
+                    setSelectedAssignment({ ...assignment, status: "construction" });
+                  }
+                } catch (err: any) {
+                  toast.error(err.message || "Σφάλμα αλλαγής κατάστασης");
+                  return;
+                }
+              }
+              setShowConstructionForm(true);
+            }}>
               <HardHat className="h-4 w-4" />
               Έναρξη Κατασκευής
             </Button>
