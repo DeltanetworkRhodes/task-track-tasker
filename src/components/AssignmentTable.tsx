@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from "react";
 import { Assignment, statusLabels } from "@/data/mockData";
-import { Camera, MessageSquare, ExternalLink, User, MapPin, Phone, Hash, FolderOpen, FileText, Image, Loader2, Clock, ArrowRight, Trash2, Eye } from "lucide-react";
+import { Camera, MessageSquare, ExternalLink, User, MapPin, Phone, Hash, FolderOpen, FileText, Image, Loader2, Clock, ArrowRight, Trash2, Eye, Users } from "lucide-react";
 import SRComments from "@/components/SRComments";
 import CallStatusBadge from "@/components/CallStatusBadge";
 import CallStatusPopover from "@/components/CallStatusPopover";
+import CrewAssignmentPanel from "@/components/CrewAssignmentPanel";
 import { useUserRole } from "@/hooks/useUserRole";
 
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";

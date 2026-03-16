@@ -953,6 +953,11 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
                 }}
               />
             )}
+
+            {/* Crew Work Panel (inline in sheet) */}
+            {selectedAssignment && showCrewPanel && (
+              <CrewWorkPanel assignment={selectedAssignment} />
+            )}
           </div>
         </SheetContent>
       </Sheet>
