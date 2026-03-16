@@ -29,6 +29,7 @@ const Assignments = () => {
   const isAdmin = userRole === "admin" || userRole === "super_admin";
   const [areaFilter, setAreaFilter] = useState<string>("all");
   const [sourceFilter, setSourceFilter] = useState<string>("all");
+  const [callFilter, setCallFilter] = useState<string>("all");
   const [activeTab, setActiveTab] = useState<string>("active");
   const [search, setSearch] = useState("");
   const [showCreate, setShowCreate] = useState(false);
@@ -53,6 +54,11 @@ const Assignments = () => {
         driveUrl: a.drive_folder_url || "",
         driveEgrafaUrl: (a as any).drive_egrafa_url || "",
         drivePromeletiUrl: (a as any).drive_promeleti_url || "",
+        callStatus: (a as any).call_status || "not_called",
+        callNotes: (a as any).call_notes || "",
+        lastCalledAt: (a as any).last_called_at || null,
+        callCount: (a as any).call_count || 0,
+        appointmentAt: (a as any).appointment_at || null,
       }))
     : [];
 
@@ -82,6 +88,12 @@ const Assignments = () => {
     if (activeTab === "unassigned" && (a as any).technicianId) return false;
     if (areaFilter !== "all" && a.area !== areaFilter) return false;
     if (sourceFilter !== "all" && (a as any).sourceTab !== sourceFilter) return false;
+    if (callFilter !== "all") {
+      const cs = (a as any).callStatus || "not_called";
+      if (callFilter === "not_called" && cs !== "not_called") return false;
+      if (callFilter === "callback" && cs !== "no_answer" && cs !== "sms_sent") return false;
+      if (callFilter === "scheduled" && cs !== "scheduled") return false;
+    }
     if (q && !a.srId.toLowerCase().includes(q) && !(a as any).customerName?.toLowerCase().includes(q)) return false;
     return true;
   });
@@ -188,6 +200,30 @@ const Assignments = () => {
                 </select>
               )}
             </div>
+
+            {/* Call Filter Chips */}
+            {isAdmin && (
+              <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-none">
+                {[
+                  { key: "all", label: "Όλες" },
+                  { key: "not_called", label: "Δεν κλήθηκαν 🔴" },
+                  { key: "callback", label: "Επανάκληση ⚠️" },
+                  { key: "scheduled", label: "Ραντεβού ✅" },
+                ].map((f) => (
+                  <button
+                    key={f.key}
+                    onClick={() => setCallFilter(f.key)}
+                    className={`flex-shrink-0 inline-flex items-center gap-1 rounded-full border px-3 py-1.5 text-xs font-medium transition-all ${
+                      callFilter === f.key
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "bg-muted/50 text-muted-foreground border-border hover:bg-muted"
+                    }`}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+            )}
 
             {/* Table */}
             <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">

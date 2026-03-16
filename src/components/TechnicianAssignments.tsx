@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 
-import { MapPin, Phone, Calendar, MessageSquare, Loader2, Eye, FileEdit, CheckCircle, Clock, HardHat, XCircle, Ban, Upload, FileSpreadsheet, FileText } from "lucide-react";
+import { MapPin, Phone, Calendar, MessageSquare, Loader2, Eye, FileEdit, CheckCircle, Clock, HardHat, XCircle, Ban, Upload, FileSpreadsheet, FileText, CalendarClock } from "lucide-react";
 import GisUploadCard from "@/components/GisUploadCard";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -652,6 +652,16 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
               <div className="flex items-start gap-1.5 text-xs text-muted-foreground">
                 <MessageSquare className="h-3 w-3 mt-0.5 shrink-0" />
                 <span className="line-clamp-2">{a.comments}</span>
+              </div>
+            )}
+
+            {/* Appointment info */}
+            {a.appointment_at && (
+              <div className="flex items-center gap-1.5 rounded-md bg-green-500/10 border border-green-500/20 px-2.5 py-1.5 text-xs text-green-600">
+                <CalendarClock className="h-3.5 w-3.5 shrink-0" />
+                <span className="font-medium">
+                  Ραντεβού: {new Date(a.appointment_at).toLocaleDateString("el-GR", { weekday: "short", day: "numeric", month: "numeric" })} στις {new Date(a.appointment_at).toLocaleTimeString("el-GR", { hour: "2-digit", minute: "2-digit" })}
+                </span>
               </div>
             )}
 

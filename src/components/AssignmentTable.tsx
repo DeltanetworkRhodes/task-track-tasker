@@ -2,6 +2,9 @@ import { useState, useEffect, useCallback } from "react";
 import { Assignment, statusLabels } from "@/data/mockData";
 import { Camera, MessageSquare, ExternalLink, User, MapPin, Phone, Hash, FolderOpen, FileText, Image, Loader2, Clock, ArrowRight, Trash2, Eye } from "lucide-react";
 import SRComments from "@/components/SRComments";
+import CallStatusBadge from "@/components/CallStatusBadge";
+import CallStatusPopover from "@/components/CallStatusPopover";
+import { useUserRole } from "@/hooks/useUserRole";
 
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -111,6 +114,8 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
   const [deleting, setDeleting] = useState(false);
   
   const { data: technicians } = useTechnicians();
+  const { data: userRole } = useUserRole();
+  const isAdmin = userRole === "admin" || userRole === "super_admin";
   const { data: history } = useAssignmentHistory(selected?.id || null);
   const queryClient = useQueryClient();
 
@@ -467,6 +472,16 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
                 </div>
               )}
             </div>
+            {/* Call Status Badge - mobile */}
+            <div className="mt-1.5" onClick={(e) => e.stopPropagation()}>
+              {isAdmin ? (
+                <CallStatusPopover assignment={a}>
+                  <div><CallStatusBadge status={(a as any).callStatus} callCount={(a as any).callCount} onClick={() => {}} /></div>
+                </CallStatusPopover>
+              ) : (
+                <CallStatusBadge status={(a as any).callStatus} callCount={(a as any).callCount} />
+              )}
+            </div>
             <div className="flex items-center justify-between mt-2 pt-1.5 border-t border-border/30">
               <span className="text-[10px] text-muted-foreground font-bold">{a.date}</span>
               <div className="flex items-center gap-2.5">
@@ -504,14 +519,15 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
                   />
                 </th>
               )}
-              <th className="py-2 px-1.5 text-left font-medium text-muted-foreground text-[10px] uppercase tracking-wider w-[14%]">SR ID</th>
-              <th className="py-2 px-1.5 text-left font-medium text-muted-foreground text-[10px] uppercase tracking-wider w-[12%]">Περιοχή</th>
-              <th className="py-2 px-1.5 text-left font-medium text-muted-foreground text-[10px] uppercase tracking-wider w-[16%]">Πελάτης</th>
-              <th className="py-2 px-1.5 text-left font-medium text-muted-foreground text-[10px] uppercase tracking-wider w-[18%]">Τεχνικός</th>
-              <th className="py-2 px-1.5 text-left font-medium text-muted-foreground text-[10px] uppercase tracking-wider w-[16%]">Κατάσταση</th>
-              <th className="py-2 px-1.5 text-left font-medium text-muted-foreground text-[10px] uppercase tracking-wider w-[12%]">Ημ/νία</th>
-              <th className="py-2 px-1 text-center font-medium text-muted-foreground text-[10px] uppercase tracking-wider w-[6%]">Drive</th>
-              <th className="py-2 px-1 text-center w-[6%]"></th>
+              <th className="py-2 px-1.5 text-left font-medium text-muted-foreground text-[10px] uppercase tracking-wider w-[13%]">SR ID</th>
+              <th className="py-2 px-1.5 text-left font-medium text-muted-foreground text-[10px] uppercase tracking-wider w-[11%]">Περιοχή</th>
+              <th className="py-2 px-1.5 text-left font-medium text-muted-foreground text-[10px] uppercase tracking-wider w-[14%]">Πελάτης</th>
+              <th className="py-2 px-1.5 text-left font-medium text-muted-foreground text-[10px] uppercase tracking-wider w-[16%]">Τεχνικός</th>
+              <th className="py-2 px-1.5 text-left font-medium text-muted-foreground text-[10px] uppercase tracking-wider w-[14%]">Κατάσταση</th>
+              <th className="py-2 px-1.5 text-left font-medium text-muted-foreground text-[10px] uppercase tracking-wider w-[12%]">Κλήση</th>
+              <th className="py-2 px-1.5 text-left font-medium text-muted-foreground text-[10px] uppercase tracking-wider w-[10%]">Ημ/νία</th>
+              <th className="py-2 px-1 text-center font-medium text-muted-foreground text-[10px] uppercase tracking-wider w-[5%]">Drive</th>
+              <th className="py-2 px-1 text-center w-[5%]"></th>
             </tr>
           </thead>
           <tbody>
@@ -577,6 +593,15 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
                     </SelectContent>
                   </Select>
                 </td>
+                <td className="py-2 px-1.5" onClick={(e) => e.stopPropagation()}>
+                  {isAdmin ? (
+                    <CallStatusPopover assignment={a}>
+                      <div><CallStatusBadge status={(a as any).callStatus} callCount={(a as any).callCount} onClick={() => {}} /></div>
+                    </CallStatusPopover>
+                  ) : (
+                    <CallStatusBadge status={(a as any).callStatus} callCount={(a as any).callCount} />
+                  )}
+                </td>
                 <td className="py-2 px-1.5 font-bold text-[10px] text-muted-foreground whitespace-nowrap">{a.date}</td>
                 <td className="py-2 px-1 text-center">
                   {(a as any).driveUrl ? (
@@ -617,14 +642,15 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
                   />
                 </th>
               )}
-              <th className="py-2.5 px-2 text-left font-medium text-muted-foreground text-[11px] uppercase tracking-wider w-[10%]">SR ID</th>
-              <th className="py-2.5 px-2 text-left font-medium text-muted-foreground text-[11px] uppercase tracking-wider w-[10%]">Περιοχή</th>
-              <th className="py-2.5 px-2 text-left font-medium text-muted-foreground text-[11px] uppercase tracking-wider w-[14%]">Πελάτης</th>
-              <th className="py-2.5 px-2 text-left font-medium text-muted-foreground text-[11px] uppercase tracking-wider w-[7%]">CAB</th>
-              <th className="py-2.5 px-2 text-left font-medium text-muted-foreground text-[11px] uppercase tracking-wider w-[14%]">Τεχνικός</th>
-              <th className="py-2.5 px-2 text-left font-medium text-muted-foreground text-[11px] uppercase tracking-wider w-[12%]">Κατάσταση</th>
-              <th className="py-2.5 px-2 text-left font-medium text-muted-foreground text-[11px] uppercase tracking-wider w-[9%]">Ημ/νία</th>
-              <th className="py-2.5 px-2 text-left font-medium text-muted-foreground text-[11px] uppercase tracking-wider w-[16%]">Σχόλια</th>
+              <th className="py-2.5 px-2 text-left font-medium text-muted-foreground text-[11px] uppercase tracking-wider w-[9%]">SR ID</th>
+              <th className="py-2.5 px-2 text-left font-medium text-muted-foreground text-[11px] uppercase tracking-wider w-[8%]">Περιοχή</th>
+              <th className="py-2.5 px-2 text-left font-medium text-muted-foreground text-[11px] uppercase tracking-wider w-[12%]">Πελάτης</th>
+              <th className="py-2.5 px-2 text-left font-medium text-muted-foreground text-[11px] uppercase tracking-wider w-[6%]">CAB</th>
+              <th className="py-2.5 px-2 text-left font-medium text-muted-foreground text-[11px] uppercase tracking-wider w-[12%]">Τεχνικός</th>
+              <th className="py-2.5 px-2 text-left font-medium text-muted-foreground text-[11px] uppercase tracking-wider w-[10%]">Κατάσταση</th>
+              <th className="py-2.5 px-2 text-left font-medium text-muted-foreground text-[11px] uppercase tracking-wider w-[10%]">Κλήση</th>
+              <th className="py-2.5 px-2 text-left font-medium text-muted-foreground text-[11px] uppercase tracking-wider w-[8%]">Ημ/νία</th>
+              <th className="py-2.5 px-2 text-left font-medium text-muted-foreground text-[11px] uppercase tracking-wider w-[14%]">Σχόλια</th>
               <th className="py-2.5 px-1.5 text-center font-medium text-muted-foreground text-[11px] uppercase tracking-wider w-[5%]">Drive</th>
               <th className="py-2.5 px-1.5 text-center font-medium text-muted-foreground text-[11px] uppercase tracking-wider w-[3%]"></th>
             </tr>
@@ -692,6 +718,15 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
                       ))}
                     </SelectContent>
                   </Select>
+                </td>
+                <td className="py-2.5 px-2" onClick={(e) => e.stopPropagation()}>
+                  {isAdmin ? (
+                    <CallStatusPopover assignment={a}>
+                      <div><CallStatusBadge status={(a as any).callStatus} callCount={(a as any).callCount} onClick={() => {}} /></div>
+                    </CallStatusPopover>
+                  ) : (
+                    <CallStatusBadge status={(a as any).callStatus} callCount={(a as any).callCount} />
+                  )}
                 </td>
                 <td className="py-2.5 px-2 font-bold text-[11px] text-muted-foreground whitespace-nowrap">{a.date}</td>
                 <td className="py-2.5 px-2 text-[11px] text-muted-foreground truncate">

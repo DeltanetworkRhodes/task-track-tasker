@@ -9,6 +9,7 @@ import AssignmentTable from "@/components/AssignmentTable";
 import SyncButton from "@/components/SyncButton";
 import SetupWizard from "@/components/SetupWizard";
 import PaymentTracker from "@/components/PaymentTracker";
+import CallDashboardWidget from "@/components/CallDashboardWidget";
 import { useAssignments, useConstructions } from "@/hooks/useData";
 import { statusLabels } from "@/data/mockData";
 import { ClipboardCheck, Wrench, TrendingUp, Euro, FolderOpen, Activity, Wifi, PieChartIcon, CalendarDays, Timer, Zap, Wallet } from "lucide-react";
@@ -88,6 +89,14 @@ const Index = () => {
       driveUrl: a.drive_folder_url || '',
       driveEgrafaUrl: (a as any).drive_egrafa_url || '',
       drivePromeletiUrl: (a as any).drive_promeleti_url || '',
+      callStatus: (a as any).call_status || 'not_called',
+      callNotes: (a as any).call_notes || '',
+      lastCalledAt: (a as any).last_called_at || null,
+      callCount: (a as any).call_count || 0,
+      appointmentAt: (a as any).appointment_at || null,
+      call_status: (a as any).call_status || 'not_called',
+      customer_name: (a as any).customer_name || '',
+      appointment_at: (a as any).appointment_at || null,
     }));
   }, [dbAssignments]);
 
@@ -378,8 +387,8 @@ const Index = () => {
           </div>
         </div>
 
-        {/* Activity + Revenue Trend */}
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        {/* Activity + Revenue Trend + Calls */}
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
           {/* Recent Activity */}
           <div className="rounded-xl border border-border bg-card p-4 sm:p-5 shadow-sm">
             <h2 className="font-bold text-sm mb-4 flex items-center gap-2 text-foreground">
@@ -432,6 +441,9 @@ const Index = () => {
               </LineChart>
             </ChartContainer>
           </div>
+
+          {/* Call Dashboard Widget */}
+          <CallDashboardWidget assignments={assignments} />
         </div>
 
         {/* Recent Assignments Table */}
