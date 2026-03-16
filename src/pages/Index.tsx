@@ -9,6 +9,7 @@ import AssignmentTable from "@/components/AssignmentTable";
 import SyncButton from "@/components/SyncButton";
 import SetupWizard from "@/components/SetupWizard";
 import PaymentTracker from "@/components/PaymentTracker";
+import CallDashboardWidget from "@/components/CallDashboardWidget";
 import { useAssignments, useConstructions } from "@/hooks/useData";
 import { statusLabels } from "@/data/mockData";
 import { ClipboardCheck, Wrench, TrendingUp, Euro, FolderOpen, Activity, Wifi, PieChartIcon, CalendarDays, Timer, Zap, Wallet } from "lucide-react";
