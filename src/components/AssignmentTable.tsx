@@ -6,6 +6,8 @@ import CallStatusBadge from "@/components/CallStatusBadge";
 import CallStatusPopover from "@/components/CallStatusPopover";
 import CrewAssignmentPanel from "@/components/CrewAssignmentPanel";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useOrganization } from "@/contexts/OrganizationContext";
+import { useWorkCategories } from "@/hooks/useCrewData";
 
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
