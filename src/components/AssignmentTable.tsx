@@ -884,6 +884,13 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
           {/* SR Comments */}
           {selected && <SRComments assignmentId={selected.id} />}
 
+          {/* Crew Assignment Panel (admin only) */}
+          {selected && isAdmin && (selected.status === "construction" || selected.status === "completed") && (
+            <div className="mt-4 pt-4 border-t border-border/30">
+              <CrewAssignmentPanel assignment={selected} />
+            </div>
+          )}
+
           {/* Drive Folder Section */}
           <div className="mt-4 pt-4 border-t border-border/30">
             <div className="flex items-center gap-2 mb-3">
