@@ -117,7 +117,7 @@ const CallStatusPopover = ({ assignment, children }: CallStatusPopoverProps) => 
           assignment_id: assignment.id,
           user_id: user.id,
           message: commentMessage,
-          organization_id: null, // will be set by context if needed
+          organization_id: organizationId || null,
         }).then(({ error: commentErr }) => {
           if (commentErr) console.error("Failed to save call note as comment:", commentErr);
         });
