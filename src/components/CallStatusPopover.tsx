@@ -107,8 +107,23 @@ const CallStatusPopover = ({ assignment, children }: CallStatusPopoverProps) => 
 
       if (error) throw error;
 
+      // Auto-save call notes as SR comment
+      if (notes && notes.trim() && user) {
+        const statusLabel = CALL_STATUS[selectedStatus]?.label || selectedStatus;
+        const commentMessage = `📞 ${statusLabel}: ${notes.trim()}`;
+        await supabase.from("sr_comments").insert({
+          assignment_id: assignment.id,
+          user_id: user.id,
+          message: commentMessage,
+          organization_id: null, // will be set by context if needed
+        }).then(({ error: commentErr }) => {
+          if (commentErr) console.error("Failed to save call note as comment:", commentErr);
+        });
+      }
+
       toast.success("Η κατάσταση κλήσης ενημερώθηκε");
       queryClient.invalidateQueries({ queryKey: ["assignments"] });
+      queryClient.invalidateQueries({ queryKey: ["sr-comments"] });
       setOpen(false);
     } catch (err: any) {
       toast.error(err.message || "Σφάλμα αποθήκευσης");
