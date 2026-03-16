@@ -29,6 +29,7 @@ const Assignments = () => {
   const isAdmin = userRole === "admin" || userRole === "super_admin";
   const [areaFilter, setAreaFilter] = useState<string>("all");
   const [sourceFilter, setSourceFilter] = useState<string>("all");
+  const [callFilter, setCallFilter] = useState<string>("all");
   const [activeTab, setActiveTab] = useState<string>("active");
   const [search, setSearch] = useState("");
   const [showCreate, setShowCreate] = useState(false);
