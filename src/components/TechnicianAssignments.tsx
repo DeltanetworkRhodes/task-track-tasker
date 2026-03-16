@@ -700,7 +700,7 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
       </div>
 
       {/* SR Detail Sheet */}
-      <Sheet open={!!selectedAssignment} onOpenChange={(open) => { if (!open) { setSelectedAssignment(null); setShowSurveyForm(false); setShowConstructionForm(false); } }}>
+      <Sheet open={!!selectedAssignment} onOpenChange={(open) => { if (!open) { setSelectedAssignment(null); setShowSurveyForm(false); setShowConstructionForm(false); setShowCrewPanel(false); } }}>
         <SheetContent side="bottom" className="h-[92vh] sm:h-[90vh] p-0 rounded-t-2xl overflow-hidden">
           <SheetHeader className="px-4 pt-4 pb-2">
             <SheetTitle className="text-left">
