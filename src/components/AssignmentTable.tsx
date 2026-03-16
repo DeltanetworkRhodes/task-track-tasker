@@ -121,6 +121,8 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
   const isAdmin = userRole === "admin" || userRole === "super_admin";
   const { data: history } = useAssignmentHistory(selected?.id || null);
   const queryClient = useQueryClient();
+  const { organizationId } = useOrganization();
+  const { data: workCategories } = useWorkCategories();
 
   // Prefetch assignment details on hover (comments, history)
   const handleRowHover = useCallback((assignment: any) => {
