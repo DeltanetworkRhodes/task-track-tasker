@@ -53,6 +53,11 @@ const Assignments = () => {
         driveUrl: a.drive_folder_url || "",
         driveEgrafaUrl: (a as any).drive_egrafa_url || "",
         drivePromeletiUrl: (a as any).drive_promeleti_url || "",
+        callStatus: (a as any).call_status || "not_called",
+        callNotes: (a as any).call_notes || "",
+        lastCalledAt: (a as any).last_called_at || null,
+        callCount: (a as any).call_count || 0,
+        appointmentAt: (a as any).appointment_at || null,
       }))
     : [];
 
