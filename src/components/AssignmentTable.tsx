@@ -593,6 +593,15 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
                     </SelectContent>
                   </Select>
                 </td>
+                <td className="py-2 px-1.5" onClick={(e) => e.stopPropagation()}>
+                  {isAdmin ? (
+                    <CallStatusPopover assignment={a}>
+                      <div><CallStatusBadge status={(a as any).callStatus} callCount={(a as any).callCount} onClick={() => {}} /></div>
+                    </CallStatusPopover>
+                  ) : (
+                    <CallStatusBadge status={(a as any).callStatus} callCount={(a as any).callCount} />
+                  )}
+                </td>
                 <td className="py-2 px-1.5 font-bold text-[10px] text-muted-foreground whitespace-nowrap">{a.date}</td>
                 <td className="py-2 px-1 text-center">
                   {(a as any).driveUrl ? (
