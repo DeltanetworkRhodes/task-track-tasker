@@ -441,6 +441,9 @@ const Index = () => {
               </LineChart>
             </ChartContainer>
           </div>
+
+          {/* Call Dashboard Widget */}
+          <CallDashboardWidget assignments={assignments} />
         </div>
 
         {/* Recent Assignments Table */}
