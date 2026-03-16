@@ -13,10 +13,10 @@ const CallStatusBadge = ({ status, callCount = 0, onClick }: CallStatusBadgeProp
   return (
     <span
       className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs border ${cfg.color} ${cfg.border} ${onClick ? "cursor-pointer hover:opacity-80 transition-opacity" : ""}`}
-      onClick={(e) => {
+      onClick={onClick ? (e) => {
         e.stopPropagation();
-        onClick?.();
-      }}
+        onClick();
+      } : undefined}
     >
       {cfg.icon} {cfg.label}
       {key === "no_answer" && callCount > 1 && (
