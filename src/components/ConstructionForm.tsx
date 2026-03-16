@@ -1335,35 +1335,53 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
                     {catPhotos.length > 0 && (
                       <Badge variant="outline" className="text-[10px] h-5">{catPhotos.length}</Badge>
                     )}
+                    {/* Gallery input (no capture) */}
                     <input
                       ref={(el) => { fileInputRefs.current[cat.key] = el; }}
                       type="file"
                       accept="image/*"
                       multiple
+                      onChange={(e) => handleCategoryPhotoSelect(cat.key, e)}
+                      className="hidden"
+                    />
+                    {/* Camera input */}
+                    <input
+                      ref={(el) => { fileInputRefs.current[`${cat.key}_camera`] = el; }}
+                      type="file"
+                      accept="image/*"
                       capture="environment"
                       onChange={(e) => handleCategoryPhotoSelect(cat.key, e)}
                       className="hidden"
                     />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => fileInputRefs.current[cat.key]?.click()}
-                      className="h-7 text-[11px] gap-1 px-2"
-                      disabled={analyzing}
-                    >
-                      {analyzing ? (
-                        <>
-                          <BrainCircuit className="h-3 w-3 animate-spin" />
-                          AI Ανάλυση...
-                        </>
-                      ) : (
-                        <>
+                    {analyzing ? (
+                      <Button type="button" variant="outline" size="sm" className="h-7 text-[11px] gap-1 px-2" disabled>
+                        <BrainCircuit className="h-3 w-3 animate-spin" />
+                        AI...
+                      </Button>
+                    ) : (
+                      <div className="flex gap-1">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => fileInputRefs.current[cat.key]?.click()}
+                          className="h-7 text-[11px] gap-1 px-2"
+                          title="Από γκαλερί"
+                        >
+                          📁
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => fileInputRefs.current[`${cat.key}_camera`]?.click()}
+                          className="h-7 text-[11px] gap-1 px-2"
+                          title="Κάμερα"
+                        >
                           <Camera className="h-3 w-3" />
-                          Φωτο
-                        </>
-                      )}
-                    </Button>
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 </div>
 
