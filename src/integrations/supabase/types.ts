@@ -1464,6 +1464,156 @@ export type Database = {
           },
         ]
       }
+      sr_crew_assignments: {
+        Row: {
+          assignment_id: string
+          category_id: string
+          id: string
+          measurements: Json | null
+          notes: string | null
+          organization_id: string
+          saved_at: string | null
+          saved_by: string | null
+          status: string | null
+          technician_id: string | null
+        }
+        Insert: {
+          assignment_id: string
+          category_id: string
+          id?: string
+          measurements?: Json | null
+          notes?: string | null
+          organization_id: string
+          saved_at?: string | null
+          saved_by?: string | null
+          status?: string | null
+          technician_id?: string | null
+        }
+        Update: {
+          assignment_id?: string
+          category_id?: string
+          id?: string
+          measurements?: Json | null
+          notes?: string | null
+          organization_id?: string
+          saved_at?: string | null
+          saved_by?: string | null
+          status?: string | null
+          technician_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sr_crew_assignments_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "assignments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sr_crew_assignments_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "sr_work_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sr_crew_assignments_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sr_crew_photos: {
+        Row: {
+          created_at: string | null
+          crew_assignment_id: string
+          id: string
+          organization_id: string
+          photo_category: string
+          storage_path: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          crew_assignment_id: string
+          id?: string
+          organization_id: string
+          photo_category: string
+          storage_path: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          crew_assignment_id?: string
+          id?: string
+          organization_id?: string
+          photo_category?: string
+          storage_path?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sr_crew_photos_crew_assignment_id_fkey"
+            columns: ["crew_assignment_id"]
+            isOneToOne: false
+            referencedRelation: "sr_crew_assignments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sr_crew_photos_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sr_work_categories: {
+        Row: {
+          active: boolean | null
+          can_close_sr: boolean | null
+          id: string
+          name: string
+          organization_id: string
+          photo_categories: string[] | null
+          requires_measurements: boolean | null
+          requires_works: boolean | null
+          sort_order: number
+        }
+        Insert: {
+          active?: boolean | null
+          can_close_sr?: boolean | null
+          id?: string
+          name: string
+          organization_id: string
+          photo_categories?: string[] | null
+          requires_measurements?: boolean | null
+          requires_works?: boolean | null
+          sort_order?: number
+        }
+        Update: {
+          active?: boolean | null
+          can_close_sr?: boolean | null
+          id?: string
+          name?: string
+          organization_id?: string
+          photo_categories?: string[] | null
+          requires_measurements?: boolean | null
+          requires_works?: boolean | null
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sr_work_categories_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       survey_files: {
         Row: {
           created_at: string
