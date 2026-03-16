@@ -408,11 +408,34 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
     }
   };
 
+  const handleBulkTechnicianAssign = async (techId: string) => {
+    if (selectedIds.length === 0) return;
+    setBulkUpdating(true);
+    try {
+      const techName = techId === "__none__" ? null : (technicians || []).find(t => t.user_id === techId)?.full_name;
+      for (const id of selectedIds) {
+        await supabase.from("assignments").update({ 
+          technician_id: techId === "__none__" ? null : techId 
+        }).eq("id", id);
+      }
+      toast.success(techId === "__none__" 
+        ? `${selectedIds.length} SR → χωρίς τεχνικό`
+        : `${selectedIds.length} SR → ${techName}`
+      );
+      queryClient.invalidateQueries({ queryKey: ["assignments"] });
+      onSelectionChange?.([]);
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setBulkUpdating(false);
+    }
+  };
+
   return (
     <>
       {/* Bulk Action Bar */}
       {selectedIds.length > 0 && (
-        <div className="flex items-center gap-3 px-4 py-2.5 bg-primary/5 border-b border-primary/20">
+        <div className="flex items-center gap-3 px-4 py-2.5 bg-primary/5 border-b border-primary/20 flex-wrap">
           <span className="text-xs font-semibold text-primary">
             {selectedIds.length} επιλεγμένα
           </span>
@@ -423,6 +446,22 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
             <SelectContent>
               {Object.entries(statusLabels).map(([key, label]) => (
                 <SelectItem key={key} value={key}>{label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select onValueChange={handleBulkTechnicianAssign} disabled={bulkUpdating}>
+            <SelectTrigger className="w-[200px] h-7 text-xs">
+              <SelectValue placeholder="Ανάθεση τεχνικού..." />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__none__">
+                <span className="text-muted-foreground">Χωρίς ανάθεση</span>
+              </SelectItem>
+              {(technicians || []).map((t) => (
+                <SelectItem key={t.user_id} value={t.user_id}>
+                  <Users className="h-3 w-3 inline mr-1" />
+                  {t.full_name}{t.area ? ` (${t.area})` : ""}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
