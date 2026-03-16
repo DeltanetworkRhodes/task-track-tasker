@@ -48,6 +48,7 @@ interface CallStatusPopoverProps {
 }
 
 const CallStatusPopover = ({ assignment, children }: CallStatusPopoverProps) => {
+  const { user } = useAuth();
   const srId = assignment.srId || assignment.sr_id || "";
   const customerName = assignment.customerName || assignment.customer_name || "";
   const phone = assignment.phone || "";
