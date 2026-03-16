@@ -476,7 +476,7 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
             <div className="mt-1.5" onClick={(e) => e.stopPropagation()}>
               {isAdmin ? (
                 <CallStatusPopover assignment={a}>
-                  <div><CallStatusBadge status={(a as any).callStatus} callCount={(a as any).callCount} onClick={() => {}} /></div>
+                  <button type="button"><CallStatusBadge status={(a as any).callStatus} callCount={(a as any).callCount} /></button>
                 </CallStatusPopover>
               ) : (
                 <CallStatusBadge status={(a as any).callStatus} callCount={(a as any).callCount} />
@@ -596,7 +596,7 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
                 <td className="py-2 px-1.5" onClick={(e) => e.stopPropagation()}>
                   {isAdmin ? (
                     <CallStatusPopover assignment={a}>
-                      <div><CallStatusBadge status={(a as any).callStatus} callCount={(a as any).callCount} onClick={() => {}} /></div>
+                      <button type="button"><CallStatusBadge status={(a as any).callStatus} callCount={(a as any).callCount} /></button>
                     </CallStatusPopover>
                   ) : (
                     <CallStatusBadge status={(a as any).callStatus} callCount={(a as any).callCount} />
@@ -722,7 +722,7 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
                 <td className="py-2.5 px-2" onClick={(e) => e.stopPropagation()}>
                   {isAdmin ? (
                     <CallStatusPopover assignment={a}>
-                      <div><CallStatusBadge status={(a as any).callStatus} callCount={(a as any).callCount} onClick={() => {}} /></div>
+                      <button type="button"><CallStatusBadge status={(a as any).callStatus} callCount={(a as any).callCount} /></button>
                     </CallStatusPopover>
                   ) : (
                     <CallStatusBadge status={(a as any).callStatus} callCount={(a as any).callCount} />
