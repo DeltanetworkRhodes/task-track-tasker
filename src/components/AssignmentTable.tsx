@@ -862,7 +862,7 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
           {/* Assign in modal */}
           {selected && (
             <div className="mt-3 pt-3 border-t border-border/30">
-              <p className="text-[10px] uppercase tracking-wider text-muted-foreground/70 mb-2">Ανάθεση σε Τεχνικό</p>
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground/70 mb-2">Ανάθεση Υπεύθυνου</p>
               <Select
                 value={(selected as any).technicianId || "__none__"}
                 onValueChange={(val) => {
