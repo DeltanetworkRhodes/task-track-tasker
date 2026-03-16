@@ -143,9 +143,13 @@ export type Database = {
       assignments: {
         Row: {
           address: string | null
+          appointment_at: string | null
           area: string
           building_id_hemd: string | null
           cab: string | null
+          call_count: number | null
+          call_notes: string | null
+          call_status: string | null
           comments: string | null
           created_at: string
           customer_name: string | null
@@ -154,6 +158,7 @@ export type Database = {
           drive_promeleti_url: string | null
           google_sheet_row_id: number | null
           id: string
+          last_called_at: string | null
           latitude: number | null
           longitude: number | null
           organization_id: string | null
@@ -173,9 +178,13 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          appointment_at?: string | null
           area: string
           building_id_hemd?: string | null
           cab?: string | null
+          call_count?: number | null
+          call_notes?: string | null
+          call_status?: string | null
           comments?: string | null
           created_at?: string
           customer_name?: string | null
@@ -184,6 +193,7 @@ export type Database = {
           drive_promeleti_url?: string | null
           google_sheet_row_id?: number | null
           id?: string
+          last_called_at?: string | null
           latitude?: number | null
           longitude?: number | null
           organization_id?: string | null
@@ -203,9 +213,13 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          appointment_at?: string | null
           area?: string
           building_id_hemd?: string | null
           cab?: string | null
+          call_count?: number | null
+          call_notes?: string | null
+          call_status?: string | null
           comments?: string | null
           created_at?: string
           customer_name?: string | null
@@ -214,6 +228,7 @@ export type Database = {
           drive_promeleti_url?: string | null
           google_sheet_row_id?: number | null
           id?: string
+          last_called_at?: string | null
           latitude?: number | null
           longitude?: number | null
           organization_id?: string | null
