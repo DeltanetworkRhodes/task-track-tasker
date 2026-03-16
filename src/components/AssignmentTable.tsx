@@ -6,6 +6,8 @@ import CallStatusBadge from "@/components/CallStatusBadge";
 import CallStatusPopover from "@/components/CallStatusPopover";
 import CrewAssignmentPanel from "@/components/CrewAssignmentPanel";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useOrganization } from "@/contexts/OrganizationContext";
+import { useWorkCategories } from "@/hooks/useCrewData";
 
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -119,6 +121,8 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
   const isAdmin = userRole === "admin" || userRole === "super_admin";
   const { data: history } = useAssignmentHistory(selected?.id || null);
   const queryClient = useQueryClient();
+  const { organizationId } = useOrganization();
+  const { data: workCategories } = useWorkCategories();
 
   // Prefetch assignment details on hover (comments, history)
   const handleRowHover = useCallback((assignment: any) => {
@@ -154,6 +158,24 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
     return acc;
   }, {});
 
+  // Auto-assign all work categories to a technician
+  const autoAssignCrews = async (assignmentId: string, techId: string | null) => {
+    if (!organizationId || !workCategories?.length) return;
+    if (!techId) return; // Don't clear crew assignments when unassigning
+    for (const cat of workCategories) {
+      await supabase
+        .from("sr_crew_assignments" as any)
+        .upsert({
+          assignment_id: assignmentId,
+          organization_id: organizationId,
+          category_id: cat.id,
+          technician_id: techId,
+          status: "pending",
+        }, { onConflict: "assignment_id,category_id" });
+    }
+    queryClient.invalidateQueries({ queryKey: ["sr_crew_assignments", assignmentId] });
+  };
+
   const handleAssign = async (assignmentId: string, technicianId: string) => {
     setAssigning(assignmentId);
     const newValue = technicianId === "__none__" ? null : technicianId;
@@ -170,6 +192,11 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
         .eq("id", assignmentId);
       if (error) throw error;
       toast.success(newValue ? `Ανατέθηκε σε ${techMap[newValue] || "τεχνικό"}` : "Αφαιρέθηκε η ανάθεση");
+
+      // Auto-assign all crew categories to this technician
+      if (newValue) {
+        autoAssignCrews(assignmentId, newValue).catch(console.error);
+      }
 
       // Fire-and-forget push notification
       if (newValue) {
@@ -413,13 +440,18 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
     setBulkUpdating(true);
     try {
       const techName = techId === "__none__" ? null : (technicians || []).find(t => t.user_id === techId)?.full_name;
+      const techValue = techId === "__none__" ? null : techId;
       for (const id of selectedIds) {
         await supabase.from("assignments").update({ 
-          technician_id: techId === "__none__" ? null : techId 
+          technician_id: techValue
         }).eq("id", id);
+        // Auto-assign all crew categories
+        if (techValue) {
+          await autoAssignCrews(id, techValue);
+        }
       }
       toast.success(techId === "__none__" 
-        ? `${selectedIds.length} SR → χωρίς τεχνικό`
+        ? `${selectedIds.length} SR → χωρίς υπεύθυνο`
         : `${selectedIds.length} SR → ${techName}`
       );
       queryClient.invalidateQueries({ queryKey: ["assignments"] });
@@ -451,7 +483,7 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
           </Select>
           <Select onValueChange={handleBulkTechnicianAssign} disabled={bulkUpdating}>
             <SelectTrigger className="w-[200px] h-7 text-xs">
-              <SelectValue placeholder="Ανάθεση τεχνικού..." />
+              <SelectValue placeholder="Ανάθεση υπεύθυνου..." />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="__none__">
@@ -562,7 +594,7 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
               <th className="py-2 px-1.5 text-left font-medium text-muted-foreground text-[10px] uppercase tracking-wider w-[13%]">SR ID</th>
               <th className="py-2 px-1.5 text-left font-medium text-muted-foreground text-[10px] uppercase tracking-wider w-[11%]">Περιοχή</th>
               <th className="py-2 px-1.5 text-left font-medium text-muted-foreground text-[10px] uppercase tracking-wider w-[14%]">Πελάτης</th>
-              <th className="py-2 px-1.5 text-left font-medium text-muted-foreground text-[10px] uppercase tracking-wider w-[16%]">Τεχνικός</th>
+              <th className="py-2 px-1.5 text-left font-medium text-muted-foreground text-[10px] uppercase tracking-wider w-[16%]">Υπεύθυνος</th>
               <th className="py-2 px-1.5 text-left font-medium text-muted-foreground text-[10px] uppercase tracking-wider w-[14%]">Κατάσταση</th>
               <th className="py-2 px-1.5 text-left font-medium text-muted-foreground text-[10px] uppercase tracking-wider w-[12%]">Κλήση</th>
               <th className="py-2 px-1.5 text-left font-medium text-muted-foreground text-[10px] uppercase tracking-wider w-[10%]">Ημ/νία</th>
@@ -686,7 +718,7 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
               <th className="py-2.5 px-2 text-left font-medium text-muted-foreground text-[11px] uppercase tracking-wider w-[8%]">Περιοχή</th>
               <th className="py-2.5 px-2 text-left font-medium text-muted-foreground text-[11px] uppercase tracking-wider w-[12%]">Πελάτης</th>
               <th className="py-2.5 px-2 text-left font-medium text-muted-foreground text-[11px] uppercase tracking-wider w-[6%]">CAB</th>
-              <th className="py-2.5 px-2 text-left font-medium text-muted-foreground text-[11px] uppercase tracking-wider w-[12%]">Τεχνικός</th>
+              <th className="py-2.5 px-2 text-left font-medium text-muted-foreground text-[11px] uppercase tracking-wider w-[12%]">Υπεύθυνος</th>
               <th className="py-2.5 px-2 text-left font-medium text-muted-foreground text-[11px] uppercase tracking-wider w-[10%]">Κατάσταση</th>
               <th className="py-2.5 px-2 text-left font-medium text-muted-foreground text-[11px] uppercase tracking-wider w-[10%]">Κλήση</th>
               <th className="py-2.5 px-2 text-left font-medium text-muted-foreground text-[11px] uppercase tracking-wider w-[8%]">Ημ/νία</th>
@@ -823,14 +855,14 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
             <DetailRow icon={MapPin} label="Διεύθυνση" value={selected?.address} />
             <DetailRow icon={Phone} label="Τηλέφωνο" value={selected?.phone} />
             <DetailRow icon={Hash} label="Καμπίνα (CAB)" value={selected?.cab} />
-            <DetailRow icon={User} label="Τεχνικός" value={selected?.technicianId ? techMap[selected.technicianId] : null} />
+            <DetailRow icon={User} label="Υπεύθυνος" value={selected?.technicianId ? techMap[selected.technicianId] : null} />
             <DetailRow icon={MessageSquare} label="Σχόλια" value={selected?.comments} />
           </div>
 
           {/* Assign in modal */}
           {selected && (
             <div className="mt-3 pt-3 border-t border-border/30">
-              <p className="text-[10px] uppercase tracking-wider text-muted-foreground/70 mb-2">Ανάθεση σε Τεχνικό</p>
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground/70 mb-2">Ανάθεση Υπεύθυνου</p>
               <Select
                 value={(selected as any).technicianId || "__none__"}
                 onValueChange={(val) => {
