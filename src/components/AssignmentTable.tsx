@@ -519,14 +519,15 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
                   />
                 </th>
               )}
-              <th className="py-2 px-1.5 text-left font-medium text-muted-foreground text-[10px] uppercase tracking-wider w-[14%]">SR ID</th>
-              <th className="py-2 px-1.5 text-left font-medium text-muted-foreground text-[10px] uppercase tracking-wider w-[12%]">Περιοχή</th>
-              <th className="py-2 px-1.5 text-left font-medium text-muted-foreground text-[10px] uppercase tracking-wider w-[16%]">Πελάτης</th>
-              <th className="py-2 px-1.5 text-left font-medium text-muted-foreground text-[10px] uppercase tracking-wider w-[18%]">Τεχνικός</th>
-              <th className="py-2 px-1.5 text-left font-medium text-muted-foreground text-[10px] uppercase tracking-wider w-[16%]">Κατάσταση</th>
-              <th className="py-2 px-1.5 text-left font-medium text-muted-foreground text-[10px] uppercase tracking-wider w-[12%]">Ημ/νία</th>
-              <th className="py-2 px-1 text-center font-medium text-muted-foreground text-[10px] uppercase tracking-wider w-[6%]">Drive</th>
-              <th className="py-2 px-1 text-center w-[6%]"></th>
+              <th className="py-2 px-1.5 text-left font-medium text-muted-foreground text-[10px] uppercase tracking-wider w-[13%]">SR ID</th>
+              <th className="py-2 px-1.5 text-left font-medium text-muted-foreground text-[10px] uppercase tracking-wider w-[11%]">Περιοχή</th>
+              <th className="py-2 px-1.5 text-left font-medium text-muted-foreground text-[10px] uppercase tracking-wider w-[14%]">Πελάτης</th>
+              <th className="py-2 px-1.5 text-left font-medium text-muted-foreground text-[10px] uppercase tracking-wider w-[16%]">Τεχνικός</th>
+              <th className="py-2 px-1.5 text-left font-medium text-muted-foreground text-[10px] uppercase tracking-wider w-[14%]">Κατάσταση</th>
+              <th className="py-2 px-1.5 text-left font-medium text-muted-foreground text-[10px] uppercase tracking-wider w-[12%]">Κλήση</th>
+              <th className="py-2 px-1.5 text-left font-medium text-muted-foreground text-[10px] uppercase tracking-wider w-[10%]">Ημ/νία</th>
+              <th className="py-2 px-1 text-center font-medium text-muted-foreground text-[10px] uppercase tracking-wider w-[5%]">Drive</th>
+              <th className="py-2 px-1 text-center w-[5%]"></th>
             </tr>
           </thead>
           <tbody>
