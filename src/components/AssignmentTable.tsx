@@ -885,7 +885,7 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
           {selected && <SRComments assignmentId={selected.id} />}
 
           {/* Crew Assignment Panel (admin only) */}
-          {selected && isAdmin && (selected.status === "pre_committed" || selected.status === "construction" || selected.status === "completed") && (
+          {selected && isAdmin && (
             <div className="mt-4 pt-4 border-t border-border/30">
               <CrewAssignmentPanel assignment={selected} />
             </div>
