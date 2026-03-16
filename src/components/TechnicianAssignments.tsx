@@ -712,7 +712,7 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
           </SheetHeader>
 
           <div className="overflow-y-auto overscroll-contain px-4 pb-8 safe-bottom" style={{ height: 'calc(92vh - 80px)' }}>
-            {selectedAssignment && !showSurveyForm && !showConstructionForm && (
+            {selectedAssignment && !showSurveyForm && !showConstructionForm && !showCrewPanel && (
               <div className="space-y-4">
                 {/* Status badge */}
                 <div className="flex items-center gap-2">
