@@ -483,7 +483,7 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
           </Select>
           <Select onValueChange={handleBulkTechnicianAssign} disabled={bulkUpdating}>
             <SelectTrigger className="w-[200px] h-7 text-xs">
-              <SelectValue placeholder="Ανάθεση τεχνικού..." />
+              <SelectValue placeholder="Ανάθεση υπεύθυνου..." />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="__none__">
