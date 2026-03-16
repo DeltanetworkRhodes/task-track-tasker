@@ -472,6 +472,16 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
                 </div>
               )}
             </div>
+            {/* Call Status Badge - mobile */}
+            <div className="mt-1.5" onClick={(e) => e.stopPropagation()}>
+              {isAdmin ? (
+                <CallStatusPopover assignment={a}>
+                  <div><CallStatusBadge status={(a as any).callStatus} callCount={(a as any).callCount} onClick={() => {}} /></div>
+                </CallStatusPopover>
+              ) : (
+                <CallStatusBadge status={(a as any).callStatus} callCount={(a as any).callCount} />
+              )}
+            </div>
             <div className="flex items-center justify-between mt-2 pt-1.5 border-t border-border/30">
               <span className="text-[10px] text-muted-foreground font-bold">{a.date}</span>
               <div className="flex items-center gap-2.5">
