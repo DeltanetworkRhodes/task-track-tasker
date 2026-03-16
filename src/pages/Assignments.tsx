@@ -201,6 +201,30 @@ const Assignments = () => {
               )}
             </div>
 
+            {/* Call Filter Chips */}
+            {isAdmin && (
+              <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-none">
+                {[
+                  { key: "all", label: "Όλες" },
+                  { key: "not_called", label: "Δεν κλήθηκαν 🔴" },
+                  { key: "callback", label: "Επανάκληση ⚠️" },
+                  { key: "scheduled", label: "Ραντεβού ✅" },
+                ].map((f) => (
+                  <button
+                    key={f.key}
+                    onClick={() => setCallFilter(f.key)}
+                    className={`flex-shrink-0 inline-flex items-center gap-1 rounded-full border px-3 py-1.5 text-xs font-medium transition-all ${
+                      callFilter === f.key
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "bg-muted/50 text-muted-foreground border-border hover:bg-muted"
+                    }`}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+            )}
+
             {/* Table */}
             <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
               <div className="flex items-center gap-2 border-b border-border px-4 sm:px-5 py-3 sm:py-4">
