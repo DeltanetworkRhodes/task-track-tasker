@@ -440,13 +440,18 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
     setBulkUpdating(true);
     try {
       const techName = techId === "__none__" ? null : (technicians || []).find(t => t.user_id === techId)?.full_name;
+      const techValue = techId === "__none__" ? null : techId;
       for (const id of selectedIds) {
         await supabase.from("assignments").update({ 
-          technician_id: techId === "__none__" ? null : techId 
+          technician_id: techValue
         }).eq("id", id);
+        // Auto-assign all crew categories
+        if (techValue) {
+          await autoAssignCrews(id, techValue);
+        }
       }
       toast.success(techId === "__none__" 
-        ? `${selectedIds.length} SR → χωρίς τεχνικό`
+        ? `${selectedIds.length} SR → χωρίς υπεύθυνο`
         : `${selectedIds.length} SR → ${techName}`
       );
       queryClient.invalidateQueries({ queryKey: ["assignments"] });
