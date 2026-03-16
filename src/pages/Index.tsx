@@ -387,8 +387,8 @@ const Index = () => {
           </div>
         </div>
 
-        {/* Activity + Revenue Trend */}
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        {/* Activity + Revenue Trend + Calls */}
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
           {/* Recent Activity */}
           <div className="rounded-xl border border-border bg-card p-4 sm:p-5 shadow-sm">
             <h2 className="font-bold text-sm mb-4 flex items-center gap-2 text-foreground">
