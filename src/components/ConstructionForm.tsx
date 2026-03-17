@@ -2058,9 +2058,10 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
       {/* Submit */}
       <div className="space-y-3">
         <Button 
+          variant="secondary"
           onClick={handleSubmit} 
           disabled={submitting || completing} 
-          className="w-full py-6 text-sm font-bold gap-2 bg-amber-600 hover:bg-amber-700 text-white border-0"
+          className="w-full py-6 text-sm font-bold gap-2 !bg-amber-600 !hover:bg-amber-700 !text-white border-0"
         >
           {submitting && !completing ? (
             <>
