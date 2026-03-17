@@ -1794,8 +1794,13 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                     {cat.workPrefixes.length > 0 && <span className="text-[10px] text-muted-foreground">(προαιρ.)</span>}
                   </div>
                   <div className="flex items-center gap-2">
+                    {existingPhotoCounts[cat.key] > 0 && (
+                      <Badge variant="secondary" className="text-[10px] h-5 bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300">
+                        ☁️ {existingPhotoCounts[cat.key]}
+                      </Badge>
+                    )}
                     {catPhotos.length > 0 && (
-                      <Badge variant="outline" className="text-[10px] h-5">{catPhotos.length}</Badge>
+                      <Badge variant="outline" className="text-[10px] h-5">{catPhotos.length} νέες</Badge>
                     )}
                     {/* Gallery input (no capture) */}
                     <input
