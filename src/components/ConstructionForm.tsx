@@ -998,6 +998,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
       } finally {
         setSubmitting(false);
         setCompleting(false);
+        completingRef.current = false;
         setSubmitProgress("");
       }
       return;
