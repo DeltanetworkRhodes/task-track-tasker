@@ -1276,13 +1276,13 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
       }
 
       // Delete existing works & materials, then re-insert
-      await supabase.from("construction_works").delete().eq("construction_id", construction.id);
-      await supabase.from("construction_materials").delete().eq("construction_id", construction.id);
+      await supabase.from("construction_works").delete().eq("construction_id", constructionId);
+      await supabase.from("construction_materials").delete().eq("construction_id", constructionId);
 
       if (workItems.length > 0) {
         const { error: worksError } = await supabase.from("construction_works").insert(
           workItems.map((w) => ({
-            construction_id: construction.id,
+            construction_id: constructionId,
             work_pricing_id: w.work_pricing_id,
             quantity: w.quantity,
             unit_price: w.unit_price,
@@ -1296,7 +1296,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
       if (materialItems.length > 0) {
         const { error: matsError } = await supabase.from("construction_materials").insert(
           materialItems.map((m) => ({
-            construction_id: construction.id,
+            construction_id: constructionId,
             material_id: m.material_id,
             quantity: m.quantity,
             source: m.source,
@@ -1310,7 +1310,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
         setSubmitProgress("Ενημέρωση αποθέματος...");
         const { error: deductErr } = await supabase.functions.invoke("deduct-stock", {
           body: {
-            construction_id: construction.id,
+            construction_id: constructionId,
             materials: deltanetMaterials.map((m) => ({
               material_id: m.material_id,
               quantity: m.quantity,
@@ -1337,7 +1337,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
           for (let i = 0; i < files.length; i++) {
             const photo = files[i];
             const ext = photo.name.split(".").pop() || "jpg";
-            const storagePath = `constructions/${safeSrId}/${construction.id}/${folderName}/${i + 1}.${ext}`;
+            const storagePath = `constructions/${safeSrId}/${constructionId}/${folderName}/${Date.now()}_${i + 1}.${ext}`;
             const { error: uploadErr } = await supabase.storage
               .from("photos")
               .upload(storagePath, photo, { upsert: true });
@@ -1363,7 +1363,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
           
           for (let i = 0; i < files.length; i++) {
             const pdf = files[i];
-            const storagePath = `constructions/${safeSrId}/${construction.id}/${folderName}/${pdf.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+            const storagePath = `constructions/${safeSrId}/${constructionId}/${folderName}/${Date.now()}_${pdf.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
             const { error: uploadErr } = await supabase.storage
               .from("photos")
               .upload(storagePath, pdf, { upsert: true, contentType: "application/pdf" });
@@ -1394,7 +1394,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
       try {
         const { data, error: docsErr } = await supabase.functions.invoke(
           "generate-construction-docs",
-          { body: { construction_id: construction.id, photo_paths: photoPaths, otdr_paths: otdrPaths } }
+          { body: { construction_id: constructionId, photo_paths: photoPaths, otdr_paths: otdrPaths } }
         );
         docsResult = data;
         if (docsErr) {
@@ -1415,7 +1415,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
           "send-completion-email",
           {
             body: {
-              construction_id: construction.id,
+              construction_id: constructionId,
               sr_id: assignment.sr_id,
               area: assignment.area,
               customer_name: assignment.customer_name,
