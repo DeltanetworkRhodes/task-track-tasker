@@ -1895,19 +1895,45 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
       )}
 
       {/* Submit */}
-      <Button onClick={handleSubmit} disabled={submitting} className="w-full py-6 text-sm font-bold gap-2">
-        {submitting ? (
-          <>
-            <Loader2 className="h-4 w-4 animate-spin" />
-            {submitProgress || (isCrewMode ? "Αποθήκευση..." : "Υποβολή...")}
-          </>
-        ) : (
-          <>
-            <HardHat className="h-4 w-4" />
-            {isCrewMode ? "Αποθήκευση Κατασκευής" : "Υποβολή Κατασκευής"}
-          </>
+      <div className="space-y-2">
+        <Button onClick={handleSubmit} disabled={submitting || completing} className="w-full py-6 text-sm font-bold gap-2">
+          {submitting && !completing ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              {submitProgress || (isCrewMode ? "Αποθήκευση..." : "Υποβολή...")}
+            </>
+          ) : (
+            <>
+              <HardHat className="h-4 w-4" />
+              {isCrewMode ? "Αποθήκευση Κατασκευής" : "Υποβολή Κατασκευής"}
+            </>
+          )}
+        </Button>
+
+        {isCrewMode && (
+          <Button
+            onClick={() => {
+              setCompleting(true);
+              handleSubmit();
+            }}
+            disabled={submitting || completing}
+            variant="default"
+            className="w-full py-6 text-sm font-bold gap-2 bg-green-600 hover:bg-green-700 text-white"
+          >
+            {completing ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                {submitProgress || "Ολοκλήρωση..."}
+              </>
+            ) : (
+              <>
+                <CheckCircle className="h-4 w-4" />
+                Ολοκλήρωση Κατασκευής
+              </>
+            )}
+          </Button>
         )}
-      </Button>
+      </div>
     </div>
   );
 };
