@@ -136,9 +136,13 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
   // Filter photo categories based on selected works
   const selectedWorkPrefixes = new Set(workItems.map((w) => WORK_CATEGORIES.find((c) => w.code.startsWith(c.prefix))?.prefix).filter(Boolean));
   
-  const visiblePhotoCategories = ALL_PHOTO_CATEGORIES.filter((cat) => 
-    cat.workPrefixes.length === 0 || cat.workPrefixes.some((p) => selectedWorkPrefixes.has(p))
-  );
+  // In crew mode, show only the photo categories matching the filter
+  // In normal mode, show categories based on selected works (existing logic)
+  const visiblePhotoCategories = filterPhotoCatKeys
+    ? ALL_PHOTO_CATEGORIES.filter((cat) => filterPhotoCatKeys.includes(cat.key))
+    : ALL_PHOTO_CATEGORIES.filter((cat) => 
+        cat.workPrefixes.length === 0 || cat.workPrefixes.some((p) => selectedWorkPrefixes.has(p))
+      );
 
   // OTDR PDF measurement categories (FB is dynamic based on floors)
   const OTDR_CATEGORIES_STATIC = [
