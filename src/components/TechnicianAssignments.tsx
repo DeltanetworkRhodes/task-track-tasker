@@ -981,9 +981,19 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
               />
             )}
 
-            {/* Crew Work Panel (inline in sheet) */}
+            {/* Crew Work Panel → Full ConstructionForm in crew mode */}
             {selectedAssignment && showCrewPanel && (
-              <CrewWorkPanel assignment={selectedAssignment} />
+              <ConstructionForm
+                assignment={selectedAssignment}
+                isCrewMode
+                filterPhotoCatKeys={crewPhotoCatKeys.length > 0 ? crewPhotoCatKeys : undefined}
+                crewAssignmentIds={crewAssignmentIds.length > 0 ? crewAssignmentIds : undefined}
+                onComplete={() => {
+                  setShowCrewPanel(false);
+                  setSelectedAssignment(null);
+                  queryClient.invalidateQueries({ queryKey: ["technician-assignments"] });
+                }}
+              />
             )}
           </div>
         </SheetContent>
