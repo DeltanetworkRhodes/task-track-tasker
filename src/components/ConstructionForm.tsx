@@ -219,11 +219,14 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
   const { data: existingConstruction } = useQuery({
     queryKey: ["existing_construction", assignment.id],
     queryFn: async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("constructions")
         .select("*")
         .eq("assignment_id", assignment.id)
+        .order("updated_at", { ascending: false })
+        .limit(1)
         .maybeSingle();
+      if (error) throw error;
       return data;
     },
   });
