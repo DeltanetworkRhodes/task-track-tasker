@@ -205,6 +205,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
 
   const [submitting, setSubmitting] = useState(false);
   const [completing, setCompleting] = useState(false);
+  const completingRef = useRef(false);
   const [submitted, setSubmitted] = useState(false);
   const [submitProgress, setSubmitProgress] = useState("");
 
