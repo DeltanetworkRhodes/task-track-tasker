@@ -204,6 +204,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
   const otdrInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   const [submitting, setSubmitting] = useState(false);
+  const [completing, setCompleting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [submitProgress, setSubmitProgress] = useState("");
 
