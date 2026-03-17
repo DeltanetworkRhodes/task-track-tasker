@@ -1247,6 +1247,10 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
         .single();
       if (constError) throw constError;
 
+      // Delete existing works & materials, then re-insert
+      await supabase.from("construction_works").delete().eq("construction_id", construction.id);
+      await supabase.from("construction_materials").delete().eq("construction_id", construction.id);
+
       if (workItems.length > 0) {
         const { error: worksError } = await supabase.from("construction_works").insert(
           workItems.map((w) => ({
