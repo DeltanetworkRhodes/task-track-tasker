@@ -2,7 +2,7 @@ import { useState, useCallback } from "react";
 
 import { MapPin, Phone, Calendar, MessageSquare, Loader2, Eye, FileEdit, CheckCircle, Clock, HardHat, XCircle, Ban, Upload, FileSpreadsheet, FileText, CalendarClock, Users } from "lucide-react";
 import GisUploadCard from "@/components/GisUploadCard";
-import CrewWorkPanel from "@/components/CrewWorkPanel";
+import { useMyCrewAssignments, useWorkCategories } from "@/hooks/useCrewData";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
