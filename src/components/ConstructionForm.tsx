@@ -386,10 +386,13 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
     },
   });
 
-  // Auto-fill OTE materials from GIS data
+  // Auto-fill OTE materials from GIS data (ONLY if no saved materials exist in DB)
   const [gisAutoFilled, setGisAutoFilled] = useState(false);
   useEffect(() => {
-    if (!gisData || !materials || gisAutoFilled || materialItems.length > 0) return;
+    // Skip GIS auto-fill if: already done, no GIS data, no materials catalog,
+    // user already has items, OR existing construction has saved materials in DB
+    const hasExistingSavedMaterials = existingMaterials && existingMaterials.length > 0;
+    if (!gisData || !materials || gisAutoFilled || materialItems.length > 0 || hasExistingSavedMaterials) return;
     
     const oteMaterials = materials.filter((m) => m.source === "OTE");
     const allMaterials = materials;
