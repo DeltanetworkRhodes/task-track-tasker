@@ -68,6 +68,16 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
   });
   const queryClient = useQueryClient();
 
+  // Crew data for filtered ConstructionForm
+  const { data: myCrewAssignments } = useMyCrewAssignments(selectedAssignment?.id);
+  const { data: workCategoriesData } = useWorkCategories();
+
+  const crewPhotoCatKeys = (myCrewAssignments || []).flatMap((ca: any) => {
+    const cat = (workCategoriesData || []).find((c: any) => c.id === ca.category_id);
+    return cat?.photo_categories || [];
+  });
+  const crewAssignmentIds = (myCrewAssignments || []).map((ca: any) => ca.id);
+
   // Fetch existing survey for selected assignment
   const { data: existingSurvey } = useQuery({
     queryKey: ["assignment-survey", selectedAssignment?.sr_id, isDemo],
