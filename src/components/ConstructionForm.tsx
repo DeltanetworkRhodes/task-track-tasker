@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useEffect } from "react";
+import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import { hapticFeedback } from "@/lib/haptics";
 import { compressImage } from "@/lib/imageCompression";
 import { applyWatermark, type WatermarkData } from "@/lib/watermark";
@@ -7,7 +7,7 @@ import { useOrganization } from "@/contexts/OrganizationContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Trash2, Loader2, CheckCircle, HardHat, Package, Wrench, Camera, X, ChevronDown, ChevronRight, Plus, Minus, MapPin, Route, BrainCircuit, ShieldCheck, ShieldAlert, AlertTriangle } from "lucide-react";
+import { Trash2, Loader2, CheckCircle, HardHat, Package, Wrench, Camera, X, ChevronDown, ChevronRight, Plus, Minus, MapPin, Route, BrainCircuit, ShieldCheck, ShieldAlert, AlertTriangle, Save } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +16,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useConstructionPhotoAnalysis } from "@/hooks/usePhotoAnalysis";
 import { isOnline, enqueueConstruction, fileToOfflineFile, type OfflineConstructionPayload } from "@/lib/offlineQueue";
 
@@ -208,6 +209,142 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
   const completingRef = useRef(false);
   const [submitted, setSubmitted] = useState(false);
   const [submitProgress, setSubmitProgress] = useState("");
+  const [showCompleteConfirm, setShowCompleteConfirm] = useState(false);
+
+  // ─── Existing uploaded photos from storage (persistence) ───
+  const [existingPhotoCounts, setExistingPhotoCounts] = useState<Record<string, number>>({});
+  const [existingOtdrCounts, setExistingOtdrCounts] = useState<Record<string, number>>({});
+
+  // Load existing construction data when re-entering the form
+  const { data: existingConstruction } = useQuery({
+    queryKey: ["existing_construction", assignment.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("constructions")
+        .select("*")
+        .eq("assignment_id", assignment.id)
+        .maybeSingle();
+      return data;
+    },
+  });
+
+  const { data: existingWorks } = useQuery({
+    queryKey: ["existing_construction_works", existingConstruction?.id],
+    enabled: !!existingConstruction?.id,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("construction_works")
+        .select("*, work_pricing:work_pricing_id(code, description, unit)")
+        .eq("construction_id", existingConstruction!.id);
+      return data || [];
+    },
+  });
+
+  const { data: existingMaterials } = useQuery({
+    queryKey: ["existing_construction_materials", existingConstruction?.id],
+    enabled: !!existingConstruction?.id,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("construction_materials")
+        .select("*, materials:material_id(code, name, unit, price, source)")
+        .eq("construction_id", existingConstruction!.id);
+      return data || [];
+    },
+  });
+
+  // Load existing photo/OTDR counts from storage
+  useEffect(() => {
+    if (!existingConstruction?.id) return;
+    const loadExistingFiles = async () => {
+      const safeSrId = assignment.sr_id.replace(/[^a-zA-Z0-9_-]/g, "_");
+      const prefix = `constructions/${safeSrId}/${existingConstruction.id}`;
+      const { data: folders } = await supabase.storage.from("photos").list(prefix);
+      if (!folders) return;
+      
+      const photoCounts: Record<string, number> = {};
+      const otdrCounts: Record<string, number> = {};
+      
+      for (const folder of folders) {
+        if (folder.id === null) { // subfolder
+          const { data: subFiles } = await supabase.storage.from("photos").list(`${prefix}/${folder.name}`);
+          const count = (subFiles || []).filter(f => f.id !== null).length;
+          if (count > 0) {
+            // Map storageName back to key
+            const photoCat = ALL_PHOTO_CATEGORIES.find(c => c.storageName === folder.name);
+            if (photoCat) {
+              photoCounts[photoCat.key] = count;
+            } else if (folder.name.startsWith("OTDR_")) {
+              const otdrKey = folder.name.replace("OTDR_", "");
+              // Try to match OTDR category
+              const otdrCat = OTDR_CATEGORIES_STATIC.find(c => c.storageName === folder.name);
+              otdrCounts[otdrCat?.key || otdrKey] = count;
+            }
+          }
+        }
+      }
+      setExistingPhotoCounts(photoCounts);
+      setExistingOtdrCounts(otdrCounts);
+    };
+    loadExistingFiles();
+  }, [existingConstruction?.id]);
+
+  // Auto-fill form from existing construction data
+  const [existingDataLoaded, setExistingDataLoaded] = useState(false);
+  useEffect(() => {
+    if (existingDataLoaded || !existingConstruction) return;
+    
+    if (existingConstruction.ses_id && !sesId) setSesId(existingConstruction.ses_id);
+    if (existingConstruction.ak && !ak) setAk(existingConstruction.ak);
+    if (existingConstruction.cab && !cab) setCab(existingConstruction.cab);
+    if (existingConstruction.floors && floors === "0") setFloors(String(existingConstruction.floors));
+    if (existingConstruction.routing_type && !routingType) setRoutingType(existingConstruction.routing_type);
+    if (existingConstruction.pending_note && !pendingNote) setPendingNote(existingConstruction.pending_note);
+    if (existingConstruction.routes && Array.isArray(existingConstruction.routes)) {
+      const savedRoutes = existingConstruction.routes as any[];
+      setRoutes(prev => prev.map((r, i) => {
+        const saved = savedRoutes.find((sr: any) => sr.label === r.label);
+        return saved ? { ...r, koi: String(saved.koi || ""), fyraKoi: String(saved.fyra_koi || "") } : r;
+      }));
+    }
+    
+    setExistingDataLoaded(true);
+    if (existingConstruction.status !== "in_progress" || existingConstruction.revenue > 0) {
+      toast.info("📋 Φόρτωση υπάρχουσας κατασκευής");
+    }
+  }, [existingConstruction, existingDataLoaded]);
+
+  // Auto-fill works from existing data
+  const [existingWorksLoaded, setExistingWorksLoaded] = useState(false);
+  useEffect(() => {
+    if (existingWorksLoaded || !existingWorks || existingWorks.length === 0 || workItems.length > 0) return;
+    const items: WorkItem[] = existingWorks.map((w: any) => ({
+      work_pricing_id: w.work_pricing_id,
+      code: w.work_pricing?.code || "",
+      description: w.work_pricing?.description || "",
+      unit: w.work_pricing?.unit || "",
+      unit_price: w.unit_price,
+      quantity: w.quantity,
+    }));
+    setWorkItems(items);
+    setExistingWorksLoaded(true);
+  }, [existingWorks, existingWorksLoaded, workItems.length]);
+
+  // Auto-fill materials from existing data (only if no GIS auto-fill happened)
+  const [existingMaterialsLoaded, setExistingMaterialsLoaded] = useState(false);
+  useEffect(() => {
+    if (existingMaterialsLoaded || !existingMaterials || existingMaterials.length === 0 || materialItems.length > 0) return;
+    const items: MaterialItem[] = existingMaterials.map((m: any) => ({
+      material_id: m.material_id,
+      code: m.materials?.code || "",
+      name: m.materials?.name || "",
+      unit: m.materials?.unit || "",
+      price: m.materials?.price || 0,
+      source: m.materials?.source || m.source,
+      quantity: m.quantity,
+    }));
+    setMaterialItems(items);
+    setExistingMaterialsLoaded(true);
+  }, [existingMaterials, existingMaterialsLoaded, materialItems.length]);
 
   // Fetch work pricing
   const { data: workPricing } = useQuery({
@@ -1657,8 +1794,13 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                     {cat.workPrefixes.length > 0 && <span className="text-[10px] text-muted-foreground">(προαιρ.)</span>}
                   </div>
                   <div className="flex items-center gap-2">
+                    {existingPhotoCounts[cat.key] > 0 && (
+                      <Badge variant="secondary" className="text-[10px] h-5 bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300">
+                        ☁️ {existingPhotoCounts[cat.key]}
+                      </Badge>
+                    )}
                     {catPhotos.length > 0 && (
-                      <Badge variant="outline" className="text-[10px] h-5">{catPhotos.length}</Badge>
+                      <Badge variant="outline" className="text-[10px] h-5">{catPhotos.length} νέες</Badge>
                     )}
                     {/* Gallery input (no capture) */}
                     <input
@@ -1896,9 +2038,30 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
         </Card>
       )}
 
+      {/* Existing uploaded files summary */}
+      {(Object.keys(existingPhotoCounts).length > 0 || Object.keys(existingOtdrCounts).length > 0) && (
+        <Alert className="border-blue-500/30 bg-blue-500/5">
+          <CheckCircle className="h-4 w-4 text-blue-600" />
+          <AlertTitle className="text-xs font-semibold text-blue-700">Ήδη ανεβασμένα αρχεία</AlertTitle>
+          <AlertDescription className="text-xs text-blue-600 space-y-1">
+            {Object.entries(existingPhotoCounts).map(([key, count]) => {
+              const cat = ALL_PHOTO_CATEGORIES.find(c => c.key === key);
+              return <div key={key}>📷 {cat?.label || key}: {count} φωτογραφίες</div>;
+            })}
+            {Object.entries(existingOtdrCounts).map(([key, count]) => (
+              <div key={key}>📊 OTDR {key}: {count} αρχεία</div>
+            ))}
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Submit */}
-      <div className="space-y-2">
-        <Button onClick={handleSubmit} disabled={submitting || completing} className="w-full py-6 text-sm font-bold gap-2">
+      <div className="space-y-3">
+        <Button 
+          onClick={handleSubmit} 
+          disabled={submitting || completing} 
+          className="w-full py-6 text-sm font-bold gap-2 bg-amber-600 hover:bg-amber-700 text-white border-0"
+        >
           {submitting && !completing ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -1906,35 +2069,61 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
             </>
           ) : (
             <>
-              <HardHat className="h-4 w-4" />
-              {isCrewMode ? "Αποθήκευση Κατασκευής" : "Υποβολή Κατασκευής"}
+              <Save className="h-4 w-4" />
+              {isCrewMode ? "💾 Αποθήκευση Εργασιών" : "Υποβολή Κατασκευής"}
             </>
           )}
         </Button>
 
         {isCrewMode && (
-          <Button
-            onClick={() => {
-              completingRef.current = true;
-              setCompleting(true);
-              handleSubmit();
-            }}
-            disabled={submitting || completing}
-            variant="default"
-            className="w-full py-6 text-sm font-bold gap-2 bg-green-600 hover:bg-green-700 text-white"
-          >
-            {completing ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                {submitProgress || "Ολοκλήρωση..."}
-              </>
-            ) : (
-              <>
-                <CheckCircle className="h-4 w-4" />
-                Ολοκλήρωση Κατασκευής
-              </>
-            )}
-          </Button>
+          <>
+            <AlertDialog open={showCompleteConfirm} onOpenChange={setShowCompleteConfirm}>
+              <AlertDialogTrigger asChild>
+                <Button
+                  disabled={submitting || completing}
+                  variant="default"
+                  className="w-full py-6 text-sm font-bold gap-2 bg-green-600 hover:bg-green-700 text-white"
+                >
+                  {completing ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      {submitProgress || "Ολοκλήρωση..."}
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="h-4 w-4" />
+                      ✅ Ολοκλήρωση Κατασκευής
+                    </>
+                  )}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Ολοκλήρωση Κατασκευής</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Είστε σίγουροι ότι θέλετε να ολοκληρώσετε την κατασκευή για το SR <strong>{assignment.sr_id}</strong>;
+                    <br /><br />
+                    Αν είστε ο τελευταίος τεχνικός, θα δημιουργηθεί ο φάκελος πελάτη και θα σταλεί email ολοκλήρωσης.
+                    <br /><br />
+                    <strong>Αυτή η ενέργεια δεν αναιρείται.</strong>
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Ακύρωση</AlertDialogCancel>
+                  <AlertDialogAction
+                    className="bg-green-600 hover:bg-green-700 text-white"
+                    onClick={() => {
+                      completingRef.current = true;
+                      setCompleting(true);
+                      handleSubmit();
+                    }}
+                  >
+                    Ναι, Ολοκλήρωση
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </>
         )}
       </div>
     </div>
