@@ -37,21 +37,37 @@ const SURVEY_PROMPTS: Record<string, string> = {
 // ─── Construction-phase category-specific prompts (deep QA) ───
 const CONSTRUCTION_CATEGORY_PROMPTS: Record<string, string> = {
   ΣΚΑΜΑ:
-    "Ελέγξτε το σκάμα (εκσκαφή): Είναι ολοκληρωμένο; Έχει σωστό βάθος; Υπάρχουν σωληνώσεις τοποθετημένες; Είναι ασφαλές;",
+    `Ελέγξτε αν η φωτογραφία δείχνει ΣΚΑΜΑ (εκσκαφή) για τηλεπικοινωνιακό δίκτυο FTTH.
+ΠΡΕΠΕΙ να φαίνεται: εκσκαφή/τάφρος/χαντάκι στο έδαφος, ή σωληνώσεις μέσα σε σκάμμα, ή φρεάτιο.
+ΑΠΟΡΡΙΨΗ αν: δεν φαίνεται κανένα σκάμμα/εκσκαφή, είναι εσωτερικός χώρος, ή είναι άσχετη φωτογραφία.`,
   ΟΔΕΥΣΗ:
-    "Ελέγξτε την όδευση οπτικής ίνας: Υπάρχουν απότομες τσακίσεις (γωνία μικρότερη από ακτίνα κάμψης); Είναι το καλώδιο μέσα σε κανάλι/σωλήνα ή χύμα; Είναι στερεωμένο σωστά;",
+    `Ελέγξτε αν η φωτογραφία δείχνει ΟΔΕΥΣΗ οπτικής ίνας (routing).
+ΠΡΕΠΕΙ να φαίνεται: καλώδιο/σωλήνας/κανάλι/microduct σε τοίχο ή οροφή ή δάπεδο, ή σωληνώσεις σε εξωτερικό χώρο.
+ΑΠΟΡΡΙΨΗ αν: δεν φαίνεται καμία καλωδίωση/σωλήνωση/κανάλι, ή είναι εντελώς άσχετη.`,
   BCP:
-    "Ελέγξτε το BCP (Building Connection Point): Είναι τοποθετημένο σωστά και ίσια; Έχει ταμπελάκι σήμανσης; Είναι τα splicing καθαρά;",
+    `Ελέγξτε αν η φωτογραφία δείχνει BCP (Building Connection Point).
+ΠΡΕΠΕΙ να φαίνεται: κουτί BCP τοποθετημένο, ή splicing εντός BCP, ή σύνδεση σε BCP.
+ΑΠΟΡΡΙΨΗ αν: δεν φαίνεται κανένα BCP/κουτί σύνδεσης, ή η φωτογραφία δεν σχετίζεται με τηλεπικοινωνιακό εξοπλισμό.`,
   BEP:
-    "Ελέγξτε το BEP (Building Entry Point): Σωστή τοποθέτηση; Στεγανοποίηση εισόδου; Σήμανση παρούσα;",
+    `Ελέγξτε αν η φωτογραφία δείχνει BEP (Building Entry Point).
+ΠΡΕΠΕΙ να φαίνεται: σημείο εισόδου καλωδίου σε κτίριο, κουτί BEP, ή εργασία τοποθέτησης BEP.
+ΑΠΟΡΡΙΨΗ αν: δεν φαίνεται κανένα BEP ή σημείο εισόδου, ή είναι άσχετη.`,
   BMO:
-    "Ελέγξτε το BMO (Building Main Outlet): Σωστή τοποθέτηση στον τοίχο, ευθυγράμμιση, σήμανση, καθαρή καλωδίωση;",
+    `Ελέγξτε αν η φωτογραφία δείχνει BMO (Building Main Outlet).
+ΠΡΕΠΕΙ να φαίνεται: κουτί BMO τοποθετημένο σε τοίχο, ή εργασία τοποθέτησης BMO.
+ΑΠΟΡΡΙΨΗ αν: δεν φαίνεται κανένα BMO/κουτί σε τοίχο, ή είναι άσχετη.`,
   FB:
-    "Ελέγξτε το Floor Box: Σωστή τοποθέτηση, κάλυμμα, σήμανση, splicing εντός;",
+    `Ελέγξτε αν η φωτογραφία δείχνει Floor Box (κουτί ορόφου).
+ΠΡΕΠΕΙ να φαίνεται: floor box τοποθετημένο, ή splicing εντός floor box, ή κάλυμμα floor box.
+ΑΠΟΡΡΙΨΗ αν: δεν φαίνεται κανένα floor box, ή είναι άσχετη.`,
   ΚΑΜΠΙΝΑ:
-    "Ελέγξτε την καμπίνα: Σωστή σύνδεση, τακτοποίηση καλωδίων, σήμανση πορτών;",
+    `Ελέγξτε αν η φωτογραφία δείχνει ΚΑΜΠΙΝΑ (Cabinet) τηλεπικοινωνιών.
+ΠΡΕΠΕΙ να φαίνεται: τηλεπικοινωνιακή καμπίνα (cabinet), ή εσωτερικό καμπίνας με splicing/καλώδια, ή εργασία σε καμπίνα.
+ΑΠΟΡΡΙΨΗ αν: δεν φαίνεται καμπίνα ή τηλεπικοινωνιακός εξοπλισμός, ή είναι άσχετη.`,
   Γ_ΦΑΣΗ:
-    "Ελέγξτε τη Γ' Φάση (σύνδεση πελάτη): ONT/Router τοποθετημένο σωστά; Πριζάκι οπτικής ίνας σωστά στον τοίχο; Ταμπελάκι πελάτη παρόν;",
+    `Ελέγξτε αν η φωτογραφία δείχνει Γ' Φάση (σύνδεση πελάτη).
+ΠΡΕΠΕΙ να φαίνεται: ONT/Router, πριζάκι οπτικής ίνας σε τοίχο, ή εγκατάσταση εξοπλισμού στο σπίτι πελάτη.
+ΑΠΟΡΡΙΨΗ αν: δεν φαίνεται κανένας εξοπλισμός πελάτη (router/ONT/πρίζα), ή είναι άσχετη.`,
 };
 
 serve(async (req) => {
@@ -61,9 +77,13 @@ serve(async (req) => {
 
   try {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+    if (!LOVABLE_API_KEY) {
+      console.error("LOVABLE_API_KEY is not configured");
+      throw new Error("LOVABLE_API_KEY is not configured");
+    }
 
     const { imageBase64, photoType, phase, category } = await req.json();
+    console.log(`analyze-photo called: phase=${phase}, category=${category}, photoType=${photoType}, imageSize=${imageBase64?.length || 0}`);
 
     if (!imageBase64) {
       return new Response(
@@ -81,23 +101,34 @@ serve(async (req) => {
     if (isConstruction) {
       const catPrompt =
         CONSTRUCTION_CATEGORY_PROMPTS[category] ||
-        "Ελέγξτε αν η φωτογραφία δείχνει εργασίες κατασκευής FTTH σύμφωνα με τις προδιαγραφές ΟΤΕ.";
+        "Ελέγξτε αν η φωτογραφία δείχνει εργασίες κατασκευής FTTH. ΑΠΟΡΡΙΨΗ αν δεν σχετίζεται με τηλεπικοινωνιακό έργο.";
 
-      systemPrompt = `Είσαι ένας έμπειρος αλλά ΕΛΑΣΤΙΚΟΣ Ελεγκτής Ποιότητας Έργων Οπτικών Ινών (FTTH) του ΟΤΕ για την Β' Φάση (Κατασκευή/Ολοκλήρωση).
-Η δουλειά σου είναι να αναλύεις φωτογραφίες από τις εγκαταστάσεις των τεχνικών και να δίνεις χρήσιμο feedback.
+      systemPrompt = `Είσαι Ελεγκτής Ποιότητας Έργων Οπτικών Ινών (FTTH) του ΟΤΕ για την Β' Φάση (Κατασκευή).
+Η δουλειά σου είναι να ΕΛΕΓΧΕΙΣ αν η φωτογραφία αντιστοιχεί στη ΣΩΣΤΗ ΚΑΤΗΓΟΡΙΑ εργασίας.
 
-ΓΕΝΙΚΗ ΑΡΧΗ: Να είσαι ΕΠΙΕΙΚΗΣ. Οι τεχνικοί εργάζονται σε πραγματικές συνθήκες εργοταξίου. Μικρές ατέλειες είναι αποδεκτές.
+ΚΑΝΟΝΕΣ ΕΛΕΓΧΟΥ:
 
-Κριτήρια Ελέγχου (με ελαστικότητα):
-1. ΠΟΙΟΤΗΤΑ ΦΩΤΟΓΡΑΦΙΑΣ: Αρκεί να φαίνεται ξεκάθαρα τι απεικονίζεται. Απόρριψη ΜΟΝΟ αν είναι εντελώς θολή/σκοτεινή και δεν αναγνωρίζεται τίποτα.
-2. ΟΔΕΥΣΗ ΟΠΤΙΚΗΣ ΙΝΑΣ: Απόρριψη ΜΟΝΟ για πολύ σοβαρές τσακίσεις (ξεκάθαρα σπασμένη ακτίνα κάμψης). Ελαφρές καμπύλες είναι αποδεκτές.
-3. ΕΞΟΠΛΙΣΜΟΣ: Ο εξοπλισμός πρέπει να είναι τοποθετημένος λειτουργικά. Μικρή κλίση ή αισθητικές ατέλειες δεν αποτελούν λόγο απόρριψης.
-4. ΣΗΜΑΝΣΗ: Η σήμανση είναι επιθυμητή αλλά η απουσία της δεν αποτελεί αυτόματα λόγο απόρριψης. Σημείωσέ το ως παρατήρηση.
+1. ΑΝΤΙΣΤΟΙΧΙΑ ΚΑΤΗΓΟΡΙΑΣ (ΚΡΙΣΙΜΟ): Η φωτογραφία ΠΡΕΠΕΙ να δείχνει αυτό που ζητάει η κατηγορία.
+   - Αν η κατηγορία είναι "ΣΚΑΜΑ" και η φωτο δείχνει εσωτερικό χώρο → ΑΠΟΡΡΙΨΗ
+   - Αν η κατηγορία είναι "BEP" και η φωτο δείχνει σκάμα → ΑΠΟΡΡΙΨΗ
+   - Αν η κατηγορία είναι "ΚΑΜΠΙΝΑ" και η φωτο δείχνει floor box → ΑΠΟΡΡΙΨΗ
 
-Ειδικές οδηγίες για αυτή την κατηγορία: ${catPrompt}
+2. ΠΟΙΟΤΗΤΑ: Η φωτογραφία πρέπει να είναι αρκετά ευκρινής ώστε να αναγνωρίζεται τι δείχνει.
+   - Εντελώς θολή/σκοτεινή → ΑΠΟΡΡΙΨΗ (score ≤ 3)
 
-ΣΗΜΑΝΤΙΚΟ: Σε περίπτωση αμφιβολίας, ΕΓΚΡΙΝΕ τη φωτογραφία με παρατηρήσεις. Απέρριψε ΜΟΝΟ σε σοβαρά προβλήματα (ασφάλεια, εντελώς λάθος εγκατάσταση, ακατάλληλη φωτογραφία).
-Δώσε score >= 7 εκτός αν υπάρχει πραγματικά σοβαρό πρόβλημα.`;
+3. ΑΣΧΕΤΕΣ ΦΩΤΟΓΡΑΦΙΕΣ: selfies, φαγητά, ζώα, τοπία → ΑΠΟΡΡΙΨΗ (score = 1)
+
+4. ΤΕΧΝΙΚΑ ΠΡΟΒΛΗΜΑΤΑ: Σοβαρές τσακίσεις καλωδίων, λάθος εγκατάσταση → ΑΠΟΡΡΙΨΗ με αναλυτικό feedback
+
+ΒΑΘΜΟΛΟΓΗΣΗ:
+- 8-10: Σωστή κατηγορία, καλή ποιότητα
+- 7: Σωστή κατηγορία, μέτρια ποιότητα ή μικρές ατέλειες
+- 4-6: Σωστή κατηγορία αλλά σοβαρά τεχνικά προβλήματα
+- 1-3: Λάθος κατηγορία, θολή, ή εντελώς άσχετη
+
+isApproved = true ΜΟΝΟ αν score >= 7 ΚΑΙ η φωτογραφία αντιστοιχεί στη σωστή κατηγορία.
+
+Ειδικές οδηγίες για κατηγορία "${category}": ${catPrompt}`;
 
       toolDef = {
         type: "function",
@@ -109,11 +140,11 @@ serve(async (req) => {
             properties: {
               isApproved: {
                 type: "boolean",
-                description: "true if photo passes OTE Phase B quality standards",
+                description: "true ONLY if photo matches the correct category AND has quality score >= 7",
               },
               qualityScore: {
                 type: "number",
-                description: "Quality score from 1 to 10",
+                description: "Quality score from 1 to 10. Score < 7 means rejected.",
               },
               issuesFound: {
                 type: "array",
@@ -122,7 +153,7 @@ serve(async (req) => {
               },
               feedbackForTechnician: {
                 type: "string",
-                description: "Detailed feedback in Greek for the technician",
+                description: "Detailed feedback in Greek for the technician explaining why approved or rejected",
               },
             },
             required: ["isApproved", "qualityScore", "issuesFound", "feedbackForTechnician"],
@@ -177,6 +208,8 @@ serve(async (req) => {
 
     const toolName = toolDef.function.name;
 
+    console.log(`Calling AI gateway for ${isConstruction ? 'construction' : 'survey'} analysis, category: ${category}`);
+
     const response = await fetch(
       "https://ai.gateway.lovable.dev/v1/chat/completions",
       {
@@ -195,7 +228,7 @@ serve(async (req) => {
                 {
                   type: "text",
                   text: isConstruction
-                    ? `Αναλύστε αυτή τη φωτογραφία κατασκευής FTTH (κατηγορία: ${category || "γενική"}).`
+                    ? `Αναλύστε αυτή τη φωτογραφία κατασκευής FTTH. Κατηγορία: "${category}". ΕΛΕΓΞΤΕ αν η φωτογραφία ΠΡΑΓΜΑΤΙΚΑ δείχνει ${category}. Αν δεν δείχνει τον σωστό εξοπλισμό/εργασία, ΑΠΟΡΡΙΨΤΕ ΤΗΝ.`
                     : "Αναλύστε αυτή τη φωτογραφία.",
                 },
                 {
@@ -224,16 +257,19 @@ serve(async (req) => {
     }
 
     const data = await response.json();
+    console.log("AI gateway response received, choices:", data.choices?.length);
 
     // Extract tool call result
     const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
     if (toolCall?.function?.arguments) {
       const result = JSON.parse(toolCall.function.arguments);
+      console.log(`Analysis result: isApproved=${result.isApproved}, score=${result.qualityScore}, isValid=${result.isValid}`);
       return new Response(JSON.stringify(result), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
+    console.warn("No tool call in response, returning fallback");
     // Fallback: accept
     const fallback = isConstruction
       ? { isApproved: true, qualityScore: 10, issuesFound: [], feedbackForTechnician: "Ο έλεγχος AI δεν ήταν δυνατός.", skipped: true }
