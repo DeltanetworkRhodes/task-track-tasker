@@ -864,7 +864,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
         queryClient.invalidateQueries({ queryKey: ["sr_crew_assignments"] });
 
         // If this is a completion request, check if ALL crew assignments are done
-        if (completing) {
+        if (completingRef.current) {
           setSubmitProgress("Έλεγχος ομάδας...");
           // Check all crew assignments for this assignment
           const { data: allCrewAssignments } = await supabase
