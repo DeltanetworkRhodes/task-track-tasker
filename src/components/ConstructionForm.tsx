@@ -1232,26 +1232,48 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
         .filter((r) => r.koi || r.fyraKoi)
         .map((r) => ({ label: r.label, koi: parseFloat(r.koi) || 0, fyra_koi: parseFloat(r.fyraKoi) || 0 }));
 
-      const { data: construction, error: constError } = await supabase
+      const { data: existingConstructionRow, error: existingConstructionError } = await supabase
         .from("constructions")
-        .insert({
-          sr_id: assignment.sr_id,
-          assignment_id: assignment.id,
-          ses_id: sesId.trim() || null,
-          ak: ak.trim() || null,
-          cab: cab.trim(),
-          floors: parseInt(floors) || 0,
-          revenue: totalRevenue,
-          material_cost: totalMaterialCost,
-          status: "completed",
-          routing_type: routingType.trim() || null,
-          pending_note: pendingNote.trim() || null,
-          routes: routesData.length > 0 ? routesData : null,
-          organization_id: organizationId,
-        } as any)
         .select("id")
-        .single();
-      if (constError) throw constError;
+        .eq("assignment_id", assignment.id)
+        .order("updated_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (existingConstructionError) throw existingConstructionError;
+
+      const constructionPayload = {
+        sr_id: assignment.sr_id,
+        assignment_id: assignment.id,
+        ses_id: sesId.trim() || null,
+        ak: ak.trim() || null,
+        cab: cab.trim(),
+        floors: parseInt(floors) || 0,
+        revenue: totalRevenue,
+        material_cost: totalMaterialCost,
+        status: "completed",
+        routing_type: routingType.trim() || null,
+        pending_note: pendingNote.trim() || null,
+        routes: routesData.length > 0 ? routesData : null,
+        organization_id: organizationId,
+      } as any;
+
+      let constructionId: string;
+      if (existingConstructionRow) {
+        const { error: updateError } = await supabase
+          .from("constructions")
+          .update(constructionPayload)
+          .eq("id", existingConstructionRow.id);
+        if (updateError) throw updateError;
+        constructionId = existingConstructionRow.id;
+      } else {
+        const { data: insertedConstruction, error: insertError } = await supabase
+          .from("constructions")
+          .insert(constructionPayload)
+          .select("id")
+          .single();
+        if (insertError) throw insertError;
+        constructionId = insertedConstruction.id;
+      }
 
       // Delete existing works & materials, then re-insert
       await supabase.from("construction_works").delete().eq("construction_id", construction.id);
