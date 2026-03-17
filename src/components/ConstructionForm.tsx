@@ -386,10 +386,13 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
     },
   });
 
-  // Auto-fill OTE materials from GIS data
+  // Auto-fill OTE materials from GIS data (ONLY if no saved materials exist in DB)
   const [gisAutoFilled, setGisAutoFilled] = useState(false);
   useEffect(() => {
-    if (!gisData || !materials || gisAutoFilled || materialItems.length > 0) return;
+    // Skip GIS auto-fill if: already done, no GIS data, no materials catalog,
+    // user already has items, OR existing construction has saved materials in DB
+    const hasExistingSavedMaterials = existingMaterials && existingMaterials.length > 0;
+    if (!gisData || !materials || gisAutoFilled || materialItems.length > 0 || hasExistingSavedMaterials) return;
     
     const oteMaterials = materials.filter((m) => m.source === "OTE");
     const allMaterials = materials;
@@ -560,7 +563,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
         floor_details: gisData.floor_details,
       });
     }
-  }, [gisData, materials, gisAutoFilled, materialItems.length]);
+  }, [gisData, materials, gisAutoFilled, materialItems.length, existingMaterials]);
 
   // Auto-fill basic fields from GIS data
   const [gisFieldsFilled, setGisFieldsFilled] = useState(false);
@@ -888,7 +891,11 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
           constructionId = data.id;
         }
 
-        // Insert works (additive)
+        // Delete existing works & materials, then re-insert (upsert pattern)
+        await supabase.from("construction_works").delete().eq("construction_id", constructionId);
+        await supabase.from("construction_materials").delete().eq("construction_id", constructionId);
+
+        // Insert works
         if (workItems.length > 0) {
           const { error: worksError } = await supabase.from("construction_works").insert(
             workItems.map((w) => ({
@@ -903,7 +910,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
           if (worksError) console.error("Works insert error:", worksError);
         }
 
-        // Insert materials (additive)
+        // Insert materials
         if (materialItems.length > 0) {
           const { error: matsError } = await supabase.from("construction_materials").insert(
             materialItems.map((m) => ({
@@ -1239,6 +1246,10 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
         .select("id")
         .single();
       if (constError) throw constError;
+
+      // Delete existing works & materials, then re-insert
+      await supabase.from("construction_works").delete().eq("construction_id", construction.id);
+      await supabase.from("construction_materials").delete().eq("construction_id", construction.id);
 
       if (workItems.length > 0) {
         const { error: worksError } = await supabase.from("construction_works").insert(
