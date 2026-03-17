@@ -76,7 +76,7 @@ const MATERIAL_CATEGORIES: { label: string; match: (name: string, code: string) 
   { label: "Σωλήνες & Στύλοι", match: (n) => /σωλήν|σιδηρ|δακτύλ|στύλ|ξύλιν/i.test(n) },
 ];
 
-const ConstructionForm = ({ assignment, onComplete }: Props) => {
+const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssignmentIds, isCrewMode }: Props) => {
   const { user } = useAuth();
   const { organizationId, organization } = useOrganization();
   const orgName = organization?.name || "DELTANETWORK";
