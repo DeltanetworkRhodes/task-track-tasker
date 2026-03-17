@@ -219,11 +219,14 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
   const { data: existingConstruction } = useQuery({
     queryKey: ["existing_construction", assignment.id],
     queryFn: async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("constructions")
         .select("*")
         .eq("assignment_id", assignment.id)
+        .order("updated_at", { ascending: false })
+        .limit(1)
         .maybeSingle();
+      if (error) throw error;
       return data;
     },
   });
@@ -846,11 +849,14 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
         setSubmitProgress("Αποθήκευση κατασκευής...");
 
         // Find or create construction record
-        const { data: existingConstruction } = await supabase
+        const { data: existingConstruction, error: existingConstructionError } = await supabase
           .from("constructions")
           .select("id")
           .eq("assignment_id", assignment.id)
+          .order("updated_at", { ascending: false })
+          .limit(1)
           .maybeSingle();
+        if (existingConstructionError) throw existingConstructionError;
 
         let constructionId: string;
 
@@ -1226,35 +1232,57 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
         .filter((r) => r.koi || r.fyraKoi)
         .map((r) => ({ label: r.label, koi: parseFloat(r.koi) || 0, fyra_koi: parseFloat(r.fyraKoi) || 0 }));
 
-      const { data: construction, error: constError } = await supabase
+      const { data: existingConstructionRow, error: existingConstructionError } = await supabase
         .from("constructions")
-        .insert({
-          sr_id: assignment.sr_id,
-          assignment_id: assignment.id,
-          ses_id: sesId.trim() || null,
-          ak: ak.trim() || null,
-          cab: cab.trim(),
-          floors: parseInt(floors) || 0,
-          revenue: totalRevenue,
-          material_cost: totalMaterialCost,
-          status: "completed",
-          routing_type: routingType.trim() || null,
-          pending_note: pendingNote.trim() || null,
-          routes: routesData.length > 0 ? routesData : null,
-          organization_id: organizationId,
-        } as any)
         .select("id")
-        .single();
-      if (constError) throw constError;
+        .eq("assignment_id", assignment.id)
+        .order("updated_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (existingConstructionError) throw existingConstructionError;
+
+      const constructionPayload = {
+        sr_id: assignment.sr_id,
+        assignment_id: assignment.id,
+        ses_id: sesId.trim() || null,
+        ak: ak.trim() || null,
+        cab: cab.trim(),
+        floors: parseInt(floors) || 0,
+        revenue: totalRevenue,
+        material_cost: totalMaterialCost,
+        status: "completed",
+        routing_type: routingType.trim() || null,
+        pending_note: pendingNote.trim() || null,
+        routes: routesData.length > 0 ? routesData : null,
+        organization_id: organizationId,
+      } as any;
+
+      let constructionId: string;
+      if (existingConstructionRow) {
+        const { error: updateError } = await supabase
+          .from("constructions")
+          .update(constructionPayload)
+          .eq("id", existingConstructionRow.id);
+        if (updateError) throw updateError;
+        constructionId = existingConstructionRow.id;
+      } else {
+        const { data: insertedConstruction, error: insertError } = await supabase
+          .from("constructions")
+          .insert(constructionPayload)
+          .select("id")
+          .single();
+        if (insertError) throw insertError;
+        constructionId = insertedConstruction.id;
+      }
 
       // Delete existing works & materials, then re-insert
-      await supabase.from("construction_works").delete().eq("construction_id", construction.id);
-      await supabase.from("construction_materials").delete().eq("construction_id", construction.id);
+      await supabase.from("construction_works").delete().eq("construction_id", constructionId);
+      await supabase.from("construction_materials").delete().eq("construction_id", constructionId);
 
       if (workItems.length > 0) {
         const { error: worksError } = await supabase.from("construction_works").insert(
           workItems.map((w) => ({
-            construction_id: construction.id,
+            construction_id: constructionId,
             work_pricing_id: w.work_pricing_id,
             quantity: w.quantity,
             unit_price: w.unit_price,
@@ -1268,7 +1296,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
       if (materialItems.length > 0) {
         const { error: matsError } = await supabase.from("construction_materials").insert(
           materialItems.map((m) => ({
-            construction_id: construction.id,
+            construction_id: constructionId,
             material_id: m.material_id,
             quantity: m.quantity,
             source: m.source,
@@ -1282,7 +1310,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
         setSubmitProgress("Ενημέρωση αποθέματος...");
         const { error: deductErr } = await supabase.functions.invoke("deduct-stock", {
           body: {
-            construction_id: construction.id,
+            construction_id: constructionId,
             materials: deltanetMaterials.map((m) => ({
               material_id: m.material_id,
               quantity: m.quantity,
@@ -1309,7 +1337,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
           for (let i = 0; i < files.length; i++) {
             const photo = files[i];
             const ext = photo.name.split(".").pop() || "jpg";
-            const storagePath = `constructions/${safeSrId}/${construction.id}/${folderName}/${i + 1}.${ext}`;
+            const storagePath = `constructions/${safeSrId}/${constructionId}/${folderName}/${Date.now()}_${i + 1}.${ext}`;
             const { error: uploadErr } = await supabase.storage
               .from("photos")
               .upload(storagePath, photo, { upsert: true });
@@ -1335,7 +1363,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
           
           for (let i = 0; i < files.length; i++) {
             const pdf = files[i];
-            const storagePath = `constructions/${safeSrId}/${construction.id}/${folderName}/${pdf.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+            const storagePath = `constructions/${safeSrId}/${constructionId}/${folderName}/${Date.now()}_${pdf.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
             const { error: uploadErr } = await supabase.storage
               .from("photos")
               .upload(storagePath, pdf, { upsert: true, contentType: "application/pdf" });
@@ -1366,7 +1394,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
       try {
         const { data, error: docsErr } = await supabase.functions.invoke(
           "generate-construction-docs",
-          { body: { construction_id: construction.id, photo_paths: photoPaths, otdr_paths: otdrPaths } }
+          { body: { construction_id: constructionId, photo_paths: photoPaths, otdr_paths: otdrPaths } }
         );
         docsResult = data;
         if (docsErr) {
@@ -1387,7 +1415,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
           "send-completion-email",
           {
             body: {
-              construction_id: construction.id,
+              construction_id: constructionId,
               sr_id: assignment.sr_id,
               area: assignment.area,
               customer_name: assignment.customer_name,
