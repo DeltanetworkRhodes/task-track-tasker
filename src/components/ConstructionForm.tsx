@@ -1170,7 +1170,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
     <div className="space-y-4 pb-8">
       <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
         <HardHat className="h-5 w-5" />
-        Φόρμα Κατασκευής
+        {isCrewMode ? "Κατασκευή – Η Δουλειά μου" : "Φόρμα Κατασκευής"}
       </h2>
 
       {/* Technical Details */}
