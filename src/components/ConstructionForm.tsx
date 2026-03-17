@@ -209,6 +209,142 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
   const completingRef = useRef(false);
   const [submitted, setSubmitted] = useState(false);
   const [submitProgress, setSubmitProgress] = useState("");
+  const [showCompleteConfirm, setShowCompleteConfirm] = useState(false);
+
+  // ─── Existing uploaded photos from storage (persistence) ───
+  const [existingPhotoCounts, setExistingPhotoCounts] = useState<Record<string, number>>({});
+  const [existingOtdrCounts, setExistingOtdrCounts] = useState<Record<string, number>>({});
+
+  // Load existing construction data when re-entering the form
+  const { data: existingConstruction } = useQuery({
+    queryKey: ["existing_construction", assignment.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("constructions")
+        .select("*")
+        .eq("assignment_id", assignment.id)
+        .maybeSingle();
+      return data;
+    },
+  });
+
+  const { data: existingWorks } = useQuery({
+    queryKey: ["existing_construction_works", existingConstruction?.id],
+    enabled: !!existingConstruction?.id,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("construction_works")
+        .select("*, work_pricing:work_pricing_id(code, description, unit)")
+        .eq("construction_id", existingConstruction!.id);
+      return data || [];
+    },
+  });
+
+  const { data: existingMaterials } = useQuery({
+    queryKey: ["existing_construction_materials", existingConstruction?.id],
+    enabled: !!existingConstruction?.id,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("construction_materials")
+        .select("*, materials:material_id(code, name, unit, price, source)")
+        .eq("construction_id", existingConstruction!.id);
+      return data || [];
+    },
+  });
+
+  // Load existing photo/OTDR counts from storage
+  useEffect(() => {
+    if (!existingConstruction?.id) return;
+    const loadExistingFiles = async () => {
+      const safeSrId = assignment.sr_id.replace(/[^a-zA-Z0-9_-]/g, "_");
+      const prefix = `constructions/${safeSrId}/${existingConstruction.id}`;
+      const { data: folders } = await supabase.storage.from("photos").list(prefix);
+      if (!folders) return;
+      
+      const photoCounts: Record<string, number> = {};
+      const otdrCounts: Record<string, number> = {};
+      
+      for (const folder of folders) {
+        if (folder.id === null) { // subfolder
+          const { data: subFiles } = await supabase.storage.from("photos").list(`${prefix}/${folder.name}`);
+          const count = (subFiles || []).filter(f => f.id !== null).length;
+          if (count > 0) {
+            // Map storageName back to key
+            const photoCat = ALL_PHOTO_CATEGORIES.find(c => c.storageName === folder.name);
+            if (photoCat) {
+              photoCounts[photoCat.key] = count;
+            } else if (folder.name.startsWith("OTDR_")) {
+              const otdrKey = folder.name.replace("OTDR_", "");
+              // Try to match OTDR category
+              const otdrCat = OTDR_CATEGORIES_STATIC.find(c => c.storageName === folder.name);
+              otdrCounts[otdrCat?.key || otdrKey] = count;
+            }
+          }
+        }
+      }
+      setExistingPhotoCounts(photoCounts);
+      setExistingOtdrCounts(otdrCounts);
+    };
+    loadExistingFiles();
+  }, [existingConstruction?.id]);
+
+  // Auto-fill form from existing construction data
+  const [existingDataLoaded, setExistingDataLoaded] = useState(false);
+  useEffect(() => {
+    if (existingDataLoaded || !existingConstruction) return;
+    
+    if (existingConstruction.ses_id && !sesId) setSesId(existingConstruction.ses_id);
+    if (existingConstruction.ak && !ak) setAk(existingConstruction.ak);
+    if (existingConstruction.cab && !cab) setCab(existingConstruction.cab);
+    if (existingConstruction.floors && floors === "0") setFloors(String(existingConstruction.floors));
+    if (existingConstruction.routing_type && !routingType) setRoutingType(existingConstruction.routing_type);
+    if (existingConstruction.pending_note && !pendingNote) setPendingNote(existingConstruction.pending_note);
+    if (existingConstruction.routes && Array.isArray(existingConstruction.routes)) {
+      const savedRoutes = existingConstruction.routes as any[];
+      setRoutes(prev => prev.map((r, i) => {
+        const saved = savedRoutes.find((sr: any) => sr.label === r.label);
+        return saved ? { ...r, koi: String(saved.koi || ""), fyraKoi: String(saved.fyra_koi || "") } : r;
+      }));
+    }
+    
+    setExistingDataLoaded(true);
+    if (existingConstruction.status !== "in_progress" || existingConstruction.revenue > 0) {
+      toast.info("📋 Φόρτωση υπάρχουσας κατασκευής");
+    }
+  }, [existingConstruction, existingDataLoaded]);
+
+  // Auto-fill works from existing data
+  const [existingWorksLoaded, setExistingWorksLoaded] = useState(false);
+  useEffect(() => {
+    if (existingWorksLoaded || !existingWorks || existingWorks.length === 0 || workItems.length > 0) return;
+    const items: WorkItem[] = existingWorks.map((w: any) => ({
+      work_pricing_id: w.work_pricing_id,
+      code: w.work_pricing?.code || "",
+      description: w.work_pricing?.description || "",
+      unit: w.work_pricing?.unit || "",
+      unit_price: w.unit_price,
+      quantity: w.quantity,
+    }));
+    setWorkItems(items);
+    setExistingWorksLoaded(true);
+  }, [existingWorks, existingWorksLoaded, workItems.length]);
+
+  // Auto-fill materials from existing data (only if no GIS auto-fill happened)
+  const [existingMaterialsLoaded, setExistingMaterialsLoaded] = useState(false);
+  useEffect(() => {
+    if (existingMaterialsLoaded || !existingMaterials || existingMaterials.length === 0 || materialItems.length > 0) return;
+    const items: MaterialItem[] = existingMaterials.map((m: any) => ({
+      material_id: m.material_id,
+      code: m.materials?.code || "",
+      name: m.materials?.name || "",
+      unit: m.materials?.unit || "",
+      price: m.materials?.price || 0,
+      source: m.materials?.source || m.source,
+      quantity: m.quantity,
+    }));
+    setMaterialItems(items);
+    setExistingMaterialsLoaded(true);
+  }, [existingMaterials, existingMaterialsLoaded, materialItems.length]);
 
   // Fetch work pricing
   const { data: workPricing } = useQuery({
