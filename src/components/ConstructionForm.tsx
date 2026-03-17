@@ -1915,6 +1915,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
         {isCrewMode && (
           <Button
             onClick={() => {
+              completingRef.current = true;
               setCompleting(true);
               handleSubmit();
             }}
