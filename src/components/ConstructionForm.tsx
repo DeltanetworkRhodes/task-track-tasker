@@ -1769,12 +1769,12 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
         {submitting ? (
           <>
             <Loader2 className="h-4 w-4 animate-spin" />
-            {submitProgress || "Υποβολή..."}
+            {submitProgress || (isCrewMode ? "Αποθήκευση..." : "Υποβολή...")}
           </>
         ) : (
           <>
             <HardHat className="h-4 w-4" />
-            Υποβολή Κατασκευής
+            {isCrewMode ? "Αποθήκευση Κατασκευής" : "Υποβολή Κατασκευής"}
           </>
         )}
       </Button>
