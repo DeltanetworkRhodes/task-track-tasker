@@ -991,7 +991,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
         }
 
         setSubmitted(true);
-        setTimeout(() => onComplete(), completing ? 2000 : 1500);
+        setTimeout(() => onComplete(), completingRef.current ? 2000 : 1500);
       } catch (err: any) {
         console.error(err);
         toast.error("Σφάλμα: " + (err.message || "Δοκιμάστε ξανά"));
