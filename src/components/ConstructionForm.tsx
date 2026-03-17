@@ -891,7 +891,11 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
           constructionId = data.id;
         }
 
-        // Insert works (additive)
+        // Delete existing works & materials, then re-insert (upsert pattern)
+        await supabase.from("construction_works").delete().eq("construction_id", constructionId);
+        await supabase.from("construction_materials").delete().eq("construction_id", constructionId);
+
+        // Insert works
         if (workItems.length > 0) {
           const { error: worksError } = await supabase.from("construction_works").insert(
             workItems.map((w) => ({
@@ -906,7 +910,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
           if (worksError) console.error("Works insert error:", worksError);
         }
 
-        // Insert materials (additive)
+        // Insert materials
         if (materialItems.length > 0) {
           const { error: matsError } = await supabase.from("construction_materials").insert(
             materialItems.map((m) => ({
