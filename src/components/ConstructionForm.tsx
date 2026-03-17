@@ -204,6 +204,8 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
   const otdrInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   const [submitting, setSubmitting] = useState(false);
+  const [completing, setCompleting] = useState(false);
+  const completingRef = useRef(false);
   const [submitted, setSubmitted] = useState(false);
   const [submitProgress, setSubmitProgress] = useState("");
 
@@ -856,17 +858,147 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
         }
 
         toast.success("✅ Αποθηκεύτηκε επιτυχώς!");
-        setSubmitted(true);
         queryClient.invalidateQueries({ queryKey: ["technician-assignments"] });
         queryClient.invalidateQueries({ queryKey: ["constructions"] });
         queryClient.invalidateQueries({ queryKey: ["sr_crew_assignments_mine"] });
         queryClient.invalidateQueries({ queryKey: ["sr_crew_assignments"] });
-        setTimeout(() => onComplete(), 1500);
+
+        // If this is a completion request, check if ALL crew assignments are done
+        if (completingRef.current) {
+          setSubmitProgress("Έλεγχος ομάδας...");
+          // Check all crew assignments for this assignment
+          const { data: allCrewAssignments } = await supabase
+            .from("sr_crew_assignments" as any)
+            .select("id, status, technician_id")
+            .eq("assignment_id", assignment.id);
+
+          const allSaved = (allCrewAssignments || []).every((ca: any) => ca.status === "saved");
+
+          if (!allSaved) {
+            const pending = (allCrewAssignments || []).filter((ca: any) => ca.status !== "saved");
+            toast.warning(`Εκκρεμούν ακόμα ${pending.length} εργασίες από άλλους τεχνικούς. Η δουλειά σου αποθηκεύτηκε.`);
+            setSubmitted(true);
+            setTimeout(() => onComplete(), 1500);
+            return;
+          }
+
+          // ALL are saved — trigger full completion flow
+          setSubmitProgress("Ολοκλήρωση κατασκευής...");
+
+          // Update construction status to completed
+          await supabase
+            .from("constructions")
+            .update({ status: "completed" })
+            .eq("id", constructionId);
+
+          // Calculate payment amount from works
+          const { data: allWorks } = await supabase
+            .from("construction_works")
+            .select("quantity, unit_price")
+            .eq("construction_id", constructionId);
+          const paymentAmount = (allWorks || []).reduce((sum: number, w: any) => sum + (w.quantity * w.unit_price), 0);
+
+          // Update assignment status to submitted
+          await supabase
+            .from("assignments")
+            .update({
+              status: "submitted",
+              cab: cab.trim() || assignment.cab || null,
+              payment_amount: paymentAmount,
+              submitted_at: new Date().toISOString(),
+            } as any)
+            .eq("id", assignment.id);
+
+          // Collect ALL photo paths from storage for this construction
+          setSubmitProgress("Συλλογή αρχείων...");
+          const safeSrIdAll = assignment.sr_id.replace(/[^a-zA-Z0-9_-]/g, "_");
+          const storagePrefix = `constructions/${safeSrIdAll}/${constructionId}`;
+          const allPhotoPaths: string[] = [];
+          const allOtdrPaths: string[] = [];
+
+          const { data: storageFolders } = await supabase.storage.from("photos").list(storagePrefix);
+          if (storageFolders) {
+            for (const folder of storageFolders) {
+              if (folder.id === null) {
+                // It's a subfolder
+                const { data: subFiles } = await supabase.storage.from("photos").list(`${storagePrefix}/${folder.name}`);
+                if (subFiles) {
+                  for (const sf of subFiles) {
+                    if (sf.id !== null) {
+                      const path = `${storagePrefix}/${folder.name}/${sf.name}`;
+                      if (folder.name.startsWith("OTDR_")) {
+                        allOtdrPaths.push(path);
+                      } else {
+                        allPhotoPaths.push(path);
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+
+          // Generate docs & upload to Drive
+          setSubmitProgress("Δημιουργία εγγράφων & upload στο Drive...");
+          let docsResult: any = null;
+          try {
+            const { data, error: docsErr } = await supabase.functions.invoke(
+              "generate-construction-docs",
+              { body: { construction_id: constructionId, photo_paths: allPhotoPaths, otdr_paths: allOtdrPaths } }
+            );
+            docsResult = data;
+            if (docsErr) {
+              console.error("Docs generation error:", docsErr);
+              toast.error("Τα έγγραφα δεν δημιουργήθηκαν, αλλά η κατασκευή ολοκληρώθηκε");
+            } else if (docsResult?.drive_uploaded) {
+              toast.success(`Αρχεία ανέβηκαν στο Drive (${docsResult.files?.length || 0} αρχεία)`);
+            }
+          } catch (docsErr: any) {
+            console.error("Docs error:", docsErr);
+          }
+
+          // Send completion email
+          setSubmitProgress("Αποστολή email ολοκλήρωσης...");
+          try {
+            const spreadsheetFile = docsResult?.files?.find((f: any) => f.type === "spreadsheet");
+            const { error: emailErr } = await supabase.functions.invoke(
+              "send-completion-email",
+              {
+                body: {
+                  construction_id: constructionId,
+                  sr_id: assignment.sr_id,
+                  area: assignment.area,
+                  customer_name: assignment.customer_name,
+                  address: assignment.address,
+                  cab: cab.trim() || assignment.cab,
+                  spreadsheet_id: spreadsheetFile?.id || null,
+                  photo_paths: allPhotoPaths,
+                  otdr_paths: allOtdrPaths,
+                  drive_folder_url: docsResult?.sr_folder?.url || assignment.drive_folder_url,
+                },
+              }
+            );
+            if (emailErr) {
+              console.error("Completion email error:", emailErr);
+            } else {
+              toast.success("Email ολοκλήρωσης εστάλη");
+            }
+          } catch (emailErr: any) {
+            console.error("Completion email error:", emailErr);
+          }
+
+          toast.success("🎉 Η κατασκευή ολοκληρώθηκε πλήρως!");
+        }
+
+        setSubmitted(true);
+        setTimeout(() => onComplete(), completingRef.current ? 2000 : 1500);
       } catch (err: any) {
         console.error(err);
         toast.error("Σφάλμα: " + (err.message || "Δοκιμάστε ξανά"));
       } finally {
         setSubmitting(false);
+        setCompleting(false);
+        completingRef.current = false;
         setSubmitProgress("");
       }
       return;
@@ -1765,19 +1897,46 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
       )}
 
       {/* Submit */}
-      <Button onClick={handleSubmit} disabled={submitting} className="w-full py-6 text-sm font-bold gap-2">
-        {submitting ? (
-          <>
-            <Loader2 className="h-4 w-4 animate-spin" />
-            {submitProgress || (isCrewMode ? "Αποθήκευση..." : "Υποβολή...")}
-          </>
-        ) : (
-          <>
-            <HardHat className="h-4 w-4" />
-            {isCrewMode ? "Αποθήκευση Κατασκευής" : "Υποβολή Κατασκευής"}
-          </>
+      <div className="space-y-2">
+        <Button onClick={handleSubmit} disabled={submitting || completing} className="w-full py-6 text-sm font-bold gap-2">
+          {submitting && !completing ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              {submitProgress || (isCrewMode ? "Αποθήκευση..." : "Υποβολή...")}
+            </>
+          ) : (
+            <>
+              <HardHat className="h-4 w-4" />
+              {isCrewMode ? "Αποθήκευση Κατασκευής" : "Υποβολή Κατασκευής"}
+            </>
+          )}
+        </Button>
+
+        {isCrewMode && (
+          <Button
+            onClick={() => {
+              completingRef.current = true;
+              setCompleting(true);
+              handleSubmit();
+            }}
+            disabled={submitting || completing}
+            variant="default"
+            className="w-full py-6 text-sm font-bold gap-2 bg-green-600 hover:bg-green-700 text-white"
+          >
+            {completing ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                {submitProgress || "Ολοκλήρωση..."}
+              </>
+            ) : (
+              <>
+                <CheckCircle className="h-4 w-4" />
+                Ολοκλήρωση Κατασκευής
+              </>
+            )}
+          </Button>
         )}
-      </Button>
+      </div>
     </div>
   );
 };
