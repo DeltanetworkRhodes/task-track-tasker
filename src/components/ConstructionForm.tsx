@@ -41,6 +41,12 @@ interface MaterialItem {
 interface Props {
   assignment: any;
   onComplete: () => void;
+  /** Crew mode: filter photo/OTDR sections to these keys from ALL_PHOTO_CATEGORIES */
+  filterPhotoCatKeys?: string[];
+  /** Crew mode: update these sr_crew_assignments on save */
+  crewAssignmentIds?: string[];
+  /** Crew mode: lighter save (no assignment status change, no emails) */
+  isCrewMode?: boolean;
 }
 
 // Category definitions for works based on code prefix
@@ -70,7 +76,7 @@ const MATERIAL_CATEGORIES: { label: string; match: (name: string, code: string) 
   { label: "Σωλήνες & Στύλοι", match: (n) => /σωλήν|σιδηρ|δακτύλ|στύλ|ξύλιν/i.test(n) },
 ];
 
-const ConstructionForm = ({ assignment, onComplete }: Props) => {
+const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssignmentIds, isCrewMode }: Props) => {
   const { user } = useAuth();
   const { organizationId, organization } = useOrganization();
   const orgName = organization?.name || "DELTANETWORK";
@@ -130,9 +136,13 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
   // Filter photo categories based on selected works
   const selectedWorkPrefixes = new Set(workItems.map((w) => WORK_CATEGORIES.find((c) => w.code.startsWith(c.prefix))?.prefix).filter(Boolean));
   
-  const visiblePhotoCategories = ALL_PHOTO_CATEGORIES.filter((cat) => 
-    cat.workPrefixes.length === 0 || cat.workPrefixes.some((p) => selectedWorkPrefixes.has(p))
-  );
+  // In crew mode, show only the photo categories matching the filter
+  // In normal mode, show categories based on selected works (existing logic)
+  const visiblePhotoCategories = filterPhotoCatKeys
+    ? ALL_PHOTO_CATEGORIES.filter((cat) => filterPhotoCatKeys.includes(cat.key))
+    : ALL_PHOTO_CATEGORIES.filter((cat) => 
+        cat.workPrefixes.length === 0 || cat.workPrefixes.some((p) => selectedWorkPrefixes.has(p))
+      );
 
   // OTDR PDF measurement categories (FB is dynamic based on floors)
   const OTDR_CATEGORIES_STATIC = [
@@ -171,13 +181,21 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
   }, [totalFbCharged]);
 
   const OTDR_CATEGORIES = useMemo(() => {
-    // Insert FB floors after BMO
-    return [
+    const allOtdr = [
       OTDR_CATEGORIES_STATIC[0], // BMO
       ...fbOtdrCategories,
       ...OTDR_CATEGORIES_STATIC.slice(1), // ΚΑΜΠΙΝΑ, BEP, BCP, LIVE
     ];
-  }, [fbOtdrCategories]);
+    // In crew mode, filter OTDR categories based on filterPhotoCatKeys
+    if (!filterPhotoCatKeys) return allOtdr;
+    return allOtdr.filter((otdr) => {
+      const k = otdr.key.toUpperCase();
+      return filterPhotoCatKeys.some((pk) => {
+        const pkUp = pk.toUpperCase();
+        return k.startsWith(pkUp) || k.startsWith("FB") && pkUp === "FB" || pkUp === "BMO" && k === "BMO" || k === "LIVE";
+      });
+    });
+  }, [fbOtdrCategories, filterPhotoCatKeys]);
 
   const [categorizedPhotos, setCategorizedPhotos] = useState<Record<string, File[]>>({});
   const [categorizedPreviews, setCategorizedPreviews] = useState<Record<string, string[]>>({});
@@ -670,12 +688,187 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
       toast.error("Υπάρχουν φωτογραφίες που δεν πέρασαν τον έλεγχο ΟΤΕ. Αντικαταστήστε τες πριν την υποβολή.");
       return;
     }
-    if (!cab.trim()) {
+    if (!isCrewMode && !cab.trim()) {
       toast.error("Η Καμπίνα (CAB) είναι υποχρεωτική");
       return;
     }
-    if (workItems.length === 0) {
+    if (!isCrewMode && workItems.length === 0) {
       toast.error("Επιλέξτε τουλάχιστον μία εργασία");
+      return;
+    }
+
+    // ═══════ CREW MODE BRANCH ═══════
+    if (isCrewMode) {
+      setSubmitting(true);
+      try {
+        setSubmitProgress("Αποθήκευση κατασκευής...");
+
+        // Find or create construction record
+        const { data: existingConstruction } = await supabase
+          .from("constructions")
+          .select("id")
+          .eq("assignment_id", assignment.id)
+          .maybeSingle();
+
+        let constructionId: string;
+
+        const routesData = routes
+          .filter((r) => r.koi || r.fyraKoi)
+          .map((r) => ({ label: r.label, koi: parseFloat(r.koi) || 0, fyra_koi: parseFloat(r.fyraKoi) || 0 }));
+
+        const constructionPayload = {
+          sr_id: assignment.sr_id,
+          assignment_id: assignment.id,
+          ses_id: sesId.trim() || null,
+          ak: ak.trim() || null,
+          cab: cab.trim() || assignment.cab || null,
+          floors: parseInt(floors) || 0,
+          revenue: totalRevenue,
+          material_cost: totalMaterialCost,
+          status: "in_progress",
+          routing_type: routingType.trim() || null,
+          pending_note: pendingNote.trim() || null,
+          routes: routesData.length > 0 ? routesData : null,
+          organization_id: organizationId,
+        } as any;
+
+        if (existingConstruction) {
+          const { error } = await supabase
+            .from("constructions")
+            .update(constructionPayload)
+            .eq("id", existingConstruction.id);
+          if (error) throw error;
+          constructionId = existingConstruction.id;
+        } else {
+          const { data, error } = await supabase
+            .from("constructions")
+            .insert(constructionPayload)
+            .select("id")
+            .single();
+          if (error) throw error;
+          constructionId = data.id;
+        }
+
+        // Insert works (additive)
+        if (workItems.length > 0) {
+          const { error: worksError } = await supabase.from("construction_works").insert(
+            workItems.map((w) => ({
+              construction_id: constructionId,
+              work_pricing_id: w.work_pricing_id,
+              quantity: w.quantity,
+              unit_price: w.unit_price,
+              subtotal: w.unit_price * w.quantity,
+              organization_id: organizationId,
+            }))
+          );
+          if (worksError) console.error("Works insert error:", worksError);
+        }
+
+        // Insert materials (additive)
+        if (materialItems.length > 0) {
+          const { error: matsError } = await supabase.from("construction_materials").insert(
+            materialItems.map((m) => ({
+              construction_id: constructionId,
+              material_id: m.material_id,
+              quantity: m.quantity,
+              source: m.source,
+              organization_id: organizationId,
+            }))
+          );
+          if (matsError) console.error("Materials insert error:", matsError);
+        }
+
+        // Deduct stock for DELTANETWORK materials
+        if (deltanetMaterials.length > 0) {
+          setSubmitProgress("Ενημέρωση αποθέματος...");
+          const { error: deductErr } = await supabase.functions.invoke("deduct-stock", {
+            body: {
+              construction_id: constructionId,
+              materials: deltanetMaterials.map((m) => ({
+                material_id: m.material_id,
+                quantity: m.quantity,
+                source: m.source,
+              })),
+            },
+          });
+          if (deductErr) console.error("Stock deduction error:", deductErr);
+        }
+
+        // Upload photos
+        const safeSrId = assignment.sr_id.replace(/[^a-zA-Z0-9_-]/g, "_");
+        const allCategoryPhotos = Object.entries(categorizedPhotos).filter(([_, files]) => files.length > 0);
+        const totalPhotoCount = allCategoryPhotos.reduce((sum, [_, files]) => sum + files.length, 0);
+
+        if (totalPhotoCount > 0) {
+          let uploaded = 0;
+          setSubmitProgress(`Ανέβασμα φωτογραφιών (0/${totalPhotoCount})...`);
+          for (const [category, files] of allCategoryPhotos) {
+            const catDef = ALL_PHOTO_CATEGORIES.find((c) => c.key === category);
+            const folderName = catDef?.storageName || category.replace(/[^a-zA-Z0-9_-]/g, "_");
+            for (let i = 0; i < files.length; i++) {
+              const photo = files[i];
+              const ext = photo.name.split(".").pop() || "jpg";
+              const storagePath = `constructions/${safeSrId}/${constructionId}/${folderName}/${Date.now()}_${i + 1}.${ext}`;
+              const { error: uploadErr } = await supabase.storage
+                .from("photos")
+                .upload(storagePath, photo, { upsert: true });
+              if (uploadErr) console.error(`Photo upload error ${folderName}/${i}:`, uploadErr);
+              uploaded++;
+              setSubmitProgress(`Ανέβασμα φωτογραφιών (${uploaded}/${totalPhotoCount})...`);
+            }
+          }
+        }
+
+        // Upload OTDR files
+        const allOtdrFiles = Object.entries(otdrFiles).filter(([_, files]) => files.length > 0);
+        const totalOtdrCount = allOtdrFiles.reduce((sum, [_, files]) => sum + files.length, 0);
+        if (totalOtdrCount > 0) {
+          let otdrUploaded = 0;
+          setSubmitProgress(`Ανέβασμα OTDR μετρήσεων (0/${totalOtdrCount})...`);
+          for (const [category, files] of allOtdrFiles) {
+            const catDef = OTDR_CATEGORIES.find((c) => c.key === category);
+            const folderName = catDef?.storageName || `OTDR_${category.replace(/[^a-zA-Z0-9_-]/g, "_")}`;
+            for (let i = 0; i < files.length; i++) {
+              const pdf = files[i];
+              const storagePath = `constructions/${safeSrId}/${constructionId}/${folderName}/${pdf.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+              const { error: uploadErr } = await supabase.storage
+                .from("photos")
+                .upload(storagePath, pdf, { upsert: true, contentType: "application/pdf" });
+              if (uploadErr) console.error(`OTDR upload error ${folderName}/${i}:`, uploadErr);
+              otdrUploaded++;
+              setSubmitProgress(`Ανέβασμα OTDR μετρήσεων (${otdrUploaded}/${totalOtdrCount})...`);
+            }
+          }
+        }
+
+        // Update crew assignments status
+        if (crewAssignmentIds?.length) {
+          for (const caId of crewAssignmentIds) {
+            await supabase
+              .from("sr_crew_assignments" as any)
+              .update({
+                status: "saved",
+                saved_at: new Date().toISOString(),
+                saved_by: user?.id,
+              })
+              .eq("id", caId);
+          }
+        }
+
+        toast.success("✅ Αποθηκεύτηκε επιτυχώς!");
+        setSubmitted(true);
+        queryClient.invalidateQueries({ queryKey: ["technician-assignments"] });
+        queryClient.invalidateQueries({ queryKey: ["constructions"] });
+        queryClient.invalidateQueries({ queryKey: ["sr_crew_assignments_mine"] });
+        queryClient.invalidateQueries({ queryKey: ["sr_crew_assignments"] });
+        setTimeout(() => onComplete(), 1500);
+      } catch (err: any) {
+        console.error(err);
+        toast.error("Σφάλμα: " + (err.message || "Δοκιμάστε ξανά"));
+      } finally {
+        setSubmitting(false);
+        setSubmitProgress("");
+      }
       return;
     }
 
@@ -977,7 +1170,7 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
     <div className="space-y-4 pb-8">
       <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
         <HardHat className="h-5 w-5" />
-        Φόρμα Κατασκευής
+        {isCrewMode ? "Κατασκευή – Η Δουλειά μου" : "Φόρμα Κατασκευής"}
       </h2>
 
       {/* Technical Details */}
@@ -1576,12 +1769,12 @@ const ConstructionForm = ({ assignment, onComplete }: Props) => {
         {submitting ? (
           <>
             <Loader2 className="h-4 w-4 animate-spin" />
-            {submitProgress || "Υποβολή..."}
+            {submitProgress || (isCrewMode ? "Αποθήκευση..." : "Υποβολή...")}
           </>
         ) : (
           <>
             <HardHat className="h-4 w-4" />
-            Υποβολή Κατασκευής
+            {isCrewMode ? "Αποθήκευση Κατασκευής" : "Υποβολή Κατασκευής"}
           </>
         )}
       </Button>

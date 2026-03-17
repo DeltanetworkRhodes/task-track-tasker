@@ -2,7 +2,7 @@ import { useState, useCallback } from "react";
 
 import { MapPin, Phone, Calendar, MessageSquare, Loader2, Eye, FileEdit, CheckCircle, Clock, HardHat, XCircle, Ban, Upload, FileSpreadsheet, FileText, CalendarClock, Users } from "lucide-react";
 import GisUploadCard from "@/components/GisUploadCard";
-import CrewWorkPanel from "@/components/CrewWorkPanel";
+import { useMyCrewAssignments, useWorkCategories } from "@/hooks/useCrewData";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -67,6 +67,16 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
     return false; // will be synced by query + PreWorkChecklist onMount
   });
   const queryClient = useQueryClient();
+
+  // Crew data for filtered ConstructionForm
+  const { data: myCrewAssignments } = useMyCrewAssignments(selectedAssignment?.id);
+  const { data: workCategoriesData } = useWorkCategories();
+
+  const crewPhotoCatKeys = (myCrewAssignments || []).flatMap((ca: any) => {
+    const cat = (workCategoriesData || []).find((c: any) => c.id === ca.category_id);
+    return cat?.photo_categories || [];
+  });
+  const crewAssignmentIds = (myCrewAssignments || []).map((ca: any) => ca.id);
 
   // Fetch existing survey for selected assignment
   const { data: existingSurvey } = useQuery({
@@ -971,9 +981,19 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
               />
             )}
 
-            {/* Crew Work Panel (inline in sheet) */}
+            {/* Crew Work Panel → Full ConstructionForm in crew mode */}
             {selectedAssignment && showCrewPanel && (
-              <CrewWorkPanel assignment={selectedAssignment} />
+              <ConstructionForm
+                assignment={selectedAssignment}
+                isCrewMode
+                filterPhotoCatKeys={crewPhotoCatKeys.length > 0 ? crewPhotoCatKeys : undefined}
+                crewAssignmentIds={crewAssignmentIds.length > 0 ? crewAssignmentIds : undefined}
+                onComplete={() => {
+                  setShowCrewPanel(false);
+                  setSelectedAssignment(null);
+                  queryClient.invalidateQueries({ queryKey: ["technician-assignments"] });
+                }}
+              />
             )}
           </div>
         </SheetContent>
