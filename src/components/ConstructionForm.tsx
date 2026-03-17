@@ -849,11 +849,14 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
         setSubmitProgress("Αποθήκευση κατασκευής...");
 
         // Find or create construction record
-        const { data: existingConstruction } = await supabase
+        const { data: existingConstruction, error: existingConstructionError } = await supabase
           .from("constructions")
           .select("id")
           .eq("assignment_id", assignment.id)
+          .order("updated_at", { ascending: false })
+          .limit(1)
           .maybeSingle();
+        if (existingConstructionError) throw existingConstructionError;
 
         let constructionId: string;
 
