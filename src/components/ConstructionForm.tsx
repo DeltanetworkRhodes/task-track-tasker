@@ -563,7 +563,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
         floor_details: gisData.floor_details,
       });
     }
-  }, [gisData, materials, gisAutoFilled, materialItems.length]);
+  }, [gisData, materials, gisAutoFilled, materialItems.length, existingMaterials]);
 
   // Auto-fill basic fields from GIS data
   const [gisFieldsFilled, setGisFieldsFilled] = useState(false);
