@@ -41,6 +41,12 @@ interface MaterialItem {
 interface Props {
   assignment: any;
   onComplete: () => void;
+  /** Crew mode: filter photo/OTDR sections to these keys from ALL_PHOTO_CATEGORIES */
+  filterPhotoCatKeys?: string[];
+  /** Crew mode: update these sr_crew_assignments on save */
+  crewAssignmentIds?: string[];
+  /** Crew mode: lighter save (no assignment status change, no emails) */
+  isCrewMode?: boolean;
 }
 
 // Category definitions for works based on code prefix
