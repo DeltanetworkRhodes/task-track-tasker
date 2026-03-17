@@ -683,8 +683,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
   const oteMaterials = materialItems.filter((m) => m.source === "OTE");
   const totalMaterialCost = deltanetMaterials.reduce((sum, m) => sum + m.price * m.quantity, 0);
 
-  const handleSubmit = async (isCompleteOverride?: boolean) => {
-    const isCompleting = isCompleteOverride === true;
+  const handleSubmit = async () => {
     hapticFeedback.medium();
     if (hasRejectedPhotos()) {
       toast.error("Υπάρχουν φωτογραφίες που δεν πέρασαν τον έλεγχο ΟΤΕ. Αντικαταστήστε τες πριν την υποβολή.");
