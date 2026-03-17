@@ -181,13 +181,21 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
   }, [totalFbCharged]);
 
   const OTDR_CATEGORIES = useMemo(() => {
-    // Insert FB floors after BMO
-    return [
+    const allOtdr = [
       OTDR_CATEGORIES_STATIC[0], // BMO
       ...fbOtdrCategories,
       ...OTDR_CATEGORIES_STATIC.slice(1), // ΚΑΜΠΙΝΑ, BEP, BCP, LIVE
     ];
-  }, [fbOtdrCategories]);
+    // In crew mode, filter OTDR categories based on filterPhotoCatKeys
+    if (!filterPhotoCatKeys) return allOtdr;
+    return allOtdr.filter((otdr) => {
+      const k = otdr.key.toUpperCase();
+      return filterPhotoCatKeys.some((pk) => {
+        const pkUp = pk.toUpperCase();
+        return k.startsWith(pkUp) || k.startsWith("FB") && pkUp === "FB" || pkUp === "BMO" && k === "BMO" || k === "LIVE";
+      });
+    });
+  }, [fbOtdrCategories, filterPhotoCatKeys]);
 
   const [categorizedPhotos, setCategorizedPhotos] = useState<Record<string, File[]>>({});
   const [categorizedPreviews, setCategorizedPreviews] = useState<Record<string, string[]>>({});
