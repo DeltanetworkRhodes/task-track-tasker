@@ -305,7 +305,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
       return data || [];
     },
   });
-...
+
   // Auto-fill materials from existing data (always prefer saved DB rows over GIS defaults)
   const [existingMaterialsLoaded, setExistingMaterialsLoaded] = useState(false);
   useEffect(() => {
