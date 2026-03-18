@@ -1065,6 +1065,9 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
         toast.success("✅ Αποθηκεύτηκε επιτυχώς!");
         queryClient.invalidateQueries({ queryKey: ["technician-assignments"] });
         queryClient.invalidateQueries({ queryKey: ["constructions"] });
+        queryClient.invalidateQueries({ queryKey: ["existing_construction", assignment.id] });
+        queryClient.invalidateQueries({ queryKey: ["existing_construction_works"] });
+        queryClient.invalidateQueries({ queryKey: ["existing_construction_materials"] });
         queryClient.invalidateQueries({ queryKey: ["sr_crew_assignments_mine"] });
         queryClient.invalidateQueries({ queryKey: ["sr_crew_assignments"] });
 
