@@ -688,7 +688,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
   // Auto-fill basic fields from GIS data
   const [gisFieldsFilled, setGisFieldsFilled] = useState(false);
   useEffect(() => {
-    if (!gisData || gisFieldsFilled) return;
+    if (!gisData || gisFieldsFilled || !!existingConstruction) return;
 
     // CAB from assignment or GIS associated_bcp
     if (!cab && gisData.associated_bcp) {
