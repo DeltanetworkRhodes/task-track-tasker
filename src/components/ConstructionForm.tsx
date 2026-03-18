@@ -825,6 +825,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
   const totalRevenue = workItems.reduce((sum, w) => sum + w.unit_price * w.quantity, 0);
   const deltanetMaterials = materialItems.filter((m) => m.source === "DELTANETWORK");
   const oteMaterials = materialItems.filter((m) => m.source === "OTE");
+  const totalMaterialCost = deltanetMaterials.reduce((sum, m) => sum + m.price * m.quantity, 0);
 
   const calculateMaterialDeltas = (
     previousMaterials: Array<{ material_id: string; quantity: number; source: string | null }>,
