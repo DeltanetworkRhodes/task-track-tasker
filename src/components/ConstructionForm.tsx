@@ -306,23 +306,153 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
     },
   });
 
-  // Auto-fill materials from existing data (always prefer saved DB rows over GIS defaults)
+  const [existingConstructionLoaded, setExistingConstructionLoaded] = useState(false);
+  const [existingWorksLoaded, setExistingWorksLoaded] = useState(false);
   const [existingMaterialsLoaded, setExistingMaterialsLoaded] = useState(false);
+
+  // Hydrate base form fields from saved construction so edits persist across reopen/save cycles
   useEffect(() => {
-    if (existingMaterialsLoaded || !existingMaterials || existingMaterials.length === 0) return;
+    if (existingConstructionLoaded || !existingConstruction) return;
+
+    setSesId(existingConstruction.ses_id || "");
+    setAk(existingConstruction.ak || "");
+    setCab(existingConstruction.cab || assignment.cab || "");
+    setFloors(String(existingConstruction.floors ?? 0));
+    setRoutingType(existingConstruction.routing_type || "");
+    setPendingNote(existingConstruction.pending_note || "");
+
+    const dbRoutes = Array.isArray(existingConstruction.routes) ? (existingConstruction.routes as any[]) : [];
+    if (dbRoutes.length > 0) {
+      setRoutes((prev) =>
+        prev.map((route, index) => {
+          const routeByLabel = dbRoutes.find((r: any) => String(r?.label || "") === route.label);
+          const sourceRoute = routeByLabel || dbRoutes[index];
+          if (!sourceRoute) return route;
+
+          const koiValue = sourceRoute.koi ?? sourceRoute.koi_m ?? "";
+          const fyraValue = sourceRoute.fyra_koi ?? sourceRoute.fyraKoi ?? "";
+
+          return {
+            ...route,
+            koi: koiValue === null || koiValue === undefined ? "" : String(koiValue),
+            fyraKoi: fyraValue === null || fyraValue === undefined ? "" : String(fyraValue),
+          };
+        })
+      );
+    }
+
+    // Prevent GIS defaults from overriding persisted values
+    setGisFieldsFilled(true);
+    setGisAutoFilled(true);
+    setExistingConstructionLoaded(true);
+  }, [existingConstruction, existingConstructionLoaded, assignment.cab]);
+
+  // Hydrate saved works
+  useEffect(() => {
+    if (existingWorksLoaded || !existingWorks) return;
+
+    const items: WorkItem[] = existingWorks.map((w: any) => ({
+      work_pricing_id: w.work_pricing_id,
+      code: w.work_pricing?.code || "",
+      description: w.work_pricing?.description || "",
+      unit: w.work_pricing?.unit || "",
+      unit_price: Number(w.unit_price) || 0,
+      quantity: Number(w.quantity) || 1,
+    }));
+
+    setWorkItems(items);
+    setExistingWorksLoaded(true);
+  }, [existingWorks, existingWorksLoaded]);
+
+  // Hydrate saved materials (or empty saved state) to avoid accidental GIS re-autofill
+  useEffect(() => {
+    if (existingMaterialsLoaded || !existingMaterials) return;
+
     const items: MaterialItem[] = existingMaterials.map((m: any) => ({
       material_id: m.material_id,
       code: m.materials?.code || "",
       name: m.materials?.name || "",
       unit: m.materials?.unit || "",
-      price: m.materials?.price || 0,
+      price: Number(m.materials?.price) || 0,
       source: m.materials?.source || m.source,
-      quantity: m.quantity,
+      quantity: Number(m.quantity) || 1,
     }));
+
     setMaterialItems(items);
     setExistingMaterialsLoaded(true);
     setGisAutoFilled(true);
   }, [existingMaterials, existingMaterialsLoaded]);
+
+  // Load uploaded file counters for already-saved construction (including ΣΚΑΜΑ/ΟΔΕΥΣΗ)
+  useEffect(() => {
+    if (!existingConstruction?.id) {
+      setExistingPhotoCounts({});
+      setExistingOtdrCounts({});
+      return;
+    }
+
+    let cancelled = false;
+
+    const loadExistingFileCounts = async () => {
+      const safeSrId = assignment.sr_id.replace(/[^a-zA-Z0-9_-]/g, "_");
+      const storagePrefix = `constructions/${safeSrId}/${existingConstruction.id}`;
+
+      const { data: folders, error } = await supabase.storage.from("photos").list(storagePrefix);
+      if (error || !folders || cancelled) {
+        if (error) console.error("Failed to load existing construction files:", error);
+        return;
+      }
+
+      const photoCounts: Record<string, number> = {};
+      const otdrCounts: Record<string, number> = {};
+
+      const photoFolderToCategory: Record<string, string> = {
+        SKAMA: "ΣΚΑΜΑ",
+        ODEFSI: "ΟΔΕΥΣΗ",
+        BCP: "BCP",
+        BEP: "BEP",
+        BMO: "BMO",
+        FB: "FB",
+        KAMPINA: "ΚΑΜΠΙΝΑ",
+        G_FASI: "Γ_ΦΑΣΗ",
+      };
+
+      const otdrFolderToCategory = (folderName: string) => {
+        const withoutPrefix = folderName.replace(/^OTDR_/, "");
+        if (withoutPrefix === "KAMPINA") return "ΚΑΜΠΙΝΑ";
+        return withoutPrefix;
+      };
+
+      for (const folder of folders) {
+        if (folder.id !== null) continue;
+
+        const { data: files } = await supabase.storage.from("photos").list(`${storagePrefix}/${folder.name}`);
+        if (!files || cancelled) continue;
+
+        const fileCount = files.filter((f) => f.id !== null).length;
+        if (!fileCount) continue;
+
+        if (folder.name.startsWith("OTDR_")) {
+          const key = otdrFolderToCategory(folder.name);
+          otdrCounts[key] = (otdrCounts[key] || 0) + fileCount;
+        } else {
+          const key = photoFolderToCategory[folder.name] || folder.name;
+          photoCounts[key] = (photoCounts[key] || 0) + fileCount;
+        }
+      }
+
+      if (!cancelled) {
+        setExistingPhotoCounts(photoCounts);
+        setExistingOtdrCounts(otdrCounts);
+      }
+    };
+
+    loadExistingFileCounts();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [existingConstruction?.id, assignment.sr_id]);
 
   // Fetch work pricing
   const { data: workPricing } = useQuery({
@@ -367,12 +497,13 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
   // Auto-fill OTE materials from GIS data (ONLY if no saved materials exist in DB)
   const [gisAutoFilled, setGisAutoFilled] = useState(false);
   useEffect(() => {
+    const hasExistingConstruction = !!existingConstruction;
     const hasExistingSavedMaterials = (existingMaterials?.length || 0) > 0;
     const existingMaterialLookupReady = !existingConstruction ? existingConstructionFetched : existingMaterialsFetched;
 
     // Skip GIS auto-fill if: DB lookup not finished, already done, no GIS data/material catalog,
-    // user already has items, OR existing construction has saved materials in DB
-    if (!existingMaterialLookupReady || !gisData || !materials || gisAutoFilled || materialItems.length > 0 || hasExistingSavedMaterials) return;
+    // user already has items, OR this assignment already has persisted construction data
+    if (!existingMaterialLookupReady || !gisData || !materials || gisAutoFilled || materialItems.length > 0 || hasExistingSavedMaterials || hasExistingConstruction) return;
     
     const oteMaterials = materials.filter((m) => m.source === "OTE");
     const allMaterials = materials;
@@ -557,7 +688,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
   // Auto-fill basic fields from GIS data
   const [gisFieldsFilled, setGisFieldsFilled] = useState(false);
   useEffect(() => {
-    if (!gisData || gisFieldsFilled) return;
+    if (!gisData || gisFieldsFilled || !!existingConstruction) return;
 
     // CAB from assignment or GIS associated_bcp
     if (!cab && gisData.associated_bcp) {
@@ -625,7 +756,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
 
     setGisFieldsFilled(true);
     toast.success("Αυτόματη συμπλήρωση στοιχείων από GIS");
-  }, [gisData, gisFieldsFilled]);
+  }, [gisData, gisFieldsFilled, existingConstruction]);
 
   const worksByCategory = useMemo(() => {
     if (!workPricing) return {};
