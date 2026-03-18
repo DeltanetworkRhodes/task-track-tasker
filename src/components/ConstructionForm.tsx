@@ -124,7 +124,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
   // Photo categories mapped to work code prefixes
   // storageName uses ASCII for Supabase Storage compatibility
   const ALL_PHOTO_CATEGORIES = [
-    { key: "ΣΚΑΜΑ", storageName: "SKAMA", label: "Σκάμα", icon: "⛏️", workPrefixes: ["1965"] },
+    { key: "ΣΚΑΜΑ", storageName: "SKAMA", label: "Σκάμα", icon: "⛏️", workPrefixes: [] },
     { key: "ΟΔΕΥΣΗ", storageName: "ODEFSI", label: "Όδευση", icon: "🛤️", workPrefixes: [] },
     { key: "BCP", storageName: "BCP", label: "BCP", icon: "📦", workPrefixes: ["1991", "1993"] },
     { key: "BEP", storageName: "BEP", label: "BEP", icon: "🔌", workPrefixes: [] },
@@ -134,14 +134,62 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
     { key: "Γ_ΦΑΣΗ", storageName: "G_FASI", label: "Γ' Φάση", icon: "👤", workPrefixes: ["1955"] },
   ];
 
+  const crewPhotoCategoryTokens = useMemo(() => {
+    if (!filterPhotoCatKeys || filterPhotoCatKeys.length === 0) return [];
+
+    return filterPhotoCatKeys
+      .flatMap((entry) => String(entry).split(/[\s,;|/]+/g))
+      .map((token) => token.trim())
+      .filter(Boolean);
+  }, [filterPhotoCatKeys]);
+
+  const normalizedCrewPhotoKeys = useMemo(() => {
+    const normalized = new Set<string>();
+
+    for (const token of crewPhotoCategoryTokens) {
+      const upper = token.toUpperCase();
+
+      if (["ΣΚΑΜΑ", "ΣΚΑΜΜΑ", "SKAMA"].includes(upper)) {
+        normalized.add("ΣΚΑΜΑ");
+      } else if (["ΟΔΕΥΣΗ", "ΚΑΝΑΛΙΑ", "ΣΠΙΡΑΛ", "ODEFSI", "ROUTING"].includes(upper)) {
+        normalized.add("ΟΔΕΥΣΗ");
+      } else if (upper === "BCP") {
+        normalized.add("BCP");
+      } else if (upper === "BEP") {
+        normalized.add("BEP");
+      } else if (upper === "BMO") {
+        normalized.add("BMO");
+      } else if (upper === "FB" || /^FB_?\d+$/i.test(upper)) {
+        normalized.add("FB");
+      } else if (["ΚΑΜΠΙΝΑ", "KAMPINA", "CAB", "CABINET", "ΕΜΦΥΣΗΣΗ", "ΟΠΤΙΚΗ"].includes(upper)) {
+        normalized.add("ΚΑΜΠΙΝΑ");
+      } else if (["Γ_ΦΑΣΗ", "ΟΔΕΥΣΗ_ΟΤΟ", "ΤΕΛΙΚΗ", "OTO"].includes(upper)) {
+        normalized.add("Γ_ΦΑΣΗ");
+      }
+    }
+
+    return normalized;
+  }, [crewPhotoCategoryTokens]);
+
+  const allowAllOtdrInCrewMode = useMemo(() => {
+    if (!filterPhotoCatKeys) return false;
+
+    return crewPhotoCategoryTokens.some((token) => {
+      const upper = token.toUpperCase();
+      return upper === "OTDR" || upper === "ΚΟΛΛΗΣΗ";
+    });
+  }, [filterPhotoCatKeys, crewPhotoCategoryTokens]);
+
   // Filter photo categories based on selected works
   const selectedWorkPrefixes = new Set(workItems.map((w) => WORK_CATEGORIES.find((c) => w.code.startsWith(c.prefix))?.prefix).filter(Boolean));
-  
-  // In crew mode, show only the photo categories matching the filter
-  // In normal mode, show categories based on selected works (existing logic)
+
+  const crewFilteredPhotoCategories = ALL_PHOTO_CATEGORIES.filter((cat) => normalizedCrewPhotoKeys.has(cat.key));
+
+  // In crew mode, show filtered categories with alias support (fallback: show all)
+  // In normal mode, show categories based on selected works
   const visiblePhotoCategories = filterPhotoCatKeys
-    ? ALL_PHOTO_CATEGORIES.filter((cat) => filterPhotoCatKeys.includes(cat.key))
-    : ALL_PHOTO_CATEGORIES.filter((cat) => 
+    ? (crewFilteredPhotoCategories.length > 0 ? crewFilteredPhotoCategories : ALL_PHOTO_CATEGORIES)
+    : ALL_PHOTO_CATEGORIES.filter((cat) =>
         cat.workPrefixes.length === 0 || cat.workPrefixes.some((p) => selectedWorkPrefixes.has(p))
       );
 
@@ -155,13 +203,13 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
   ];
 
   const floorCount = Math.max(0, parseInt(floors) || 0);
-  
+
   // Count total FBs from charged materials (not floors)
   const totalFbCharged = useMemo(() => {
     return materialItems
       .filter((m) => {
         const upper = m.name.toUpperCase();
-        return (upper.includes("FLOOR") && upper.includes("BOX")) || 
+        return (upper.includes("FLOOR") && upper.includes("BOX")) ||
                (upper.includes("FB") && !upper.includes("BEP") && !upper.includes("BMO"));
       })
       .reduce((sum, m) => sum + m.quantity, 0);
@@ -187,16 +235,19 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
       ...fbOtdrCategories,
       ...OTDR_CATEGORIES_STATIC.slice(1), // ΚΑΜΠΙΝΑ, BEP, BCP, LIVE
     ];
-    // In crew mode, filter OTDR categories based on filterPhotoCatKeys
+
     if (!filterPhotoCatKeys) return allOtdr;
-    return allOtdr.filter((otdr) => {
-      const k = otdr.key.toUpperCase();
-      return filterPhotoCatKeys.some((pk) => {
-        const pkUp = pk.toUpperCase();
-        return k.startsWith(pkUp) || k.startsWith("FB") && pkUp === "FB" || pkUp === "BMO" && k === "BMO" || k === "LIVE";
-      });
+    if (allowAllOtdrInCrewMode) return allOtdr;
+
+    const crewFilteredOtdr = allOtdr.filter((otdr) => {
+      if (otdr.key === "LIVE") return true;
+      if (otdr.key.startsWith("FB_")) return normalizedCrewPhotoKeys.has("FB");
+      return normalizedCrewPhotoKeys.has(otdr.key);
     });
-  }, [fbOtdrCategories, filterPhotoCatKeys]);
+
+    // If filters from DB were malformed, keep OTDR visible instead of hiding everything.
+    return crewFilteredOtdr.length > 1 ? crewFilteredOtdr : allOtdr;
+  }, [fbOtdrCategories, filterPhotoCatKeys, normalizedCrewPhotoKeys, allowAllOtdrInCrewMode]);
 
   const [categorizedPhotos, setCategorizedPhotos] = useState<Record<string, File[]>>({});
   const [categorizedPreviews, setCategorizedPreviews] = useState<Record<string, string[]>>({});
@@ -216,7 +267,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
   const [existingOtdrCounts, setExistingOtdrCounts] = useState<Record<string, number>>({});
 
   // Load existing construction data when re-entering the form
-  const { data: existingConstruction } = useQuery({
+  const { data: existingConstruction, isFetched: existingConstructionFetched } = useQuery({
     queryKey: ["existing_construction", assignment.id],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -243,7 +294,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
     },
   });
 
-  const { data: existingMaterials } = useQuery({
+  const { data: existingMaterials, isFetched: existingMaterialsFetched } = useQuery({
     queryKey: ["existing_construction_materials", existingConstruction?.id],
     enabled: !!existingConstruction?.id,
     queryFn: async () => {
@@ -255,87 +306,10 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
     },
   });
 
-  // Load existing photo/OTDR counts from storage
-  useEffect(() => {
-    if (!existingConstruction?.id) return;
-    const loadExistingFiles = async () => {
-      const safeSrId = assignment.sr_id.replace(/[^a-zA-Z0-9_-]/g, "_");
-      const prefix = `constructions/${safeSrId}/${existingConstruction.id}`;
-      const { data: folders } = await supabase.storage.from("photos").list(prefix);
-      if (!folders) return;
-      
-      const photoCounts: Record<string, number> = {};
-      const otdrCounts: Record<string, number> = {};
-      
-      for (const folder of folders) {
-        if (folder.id === null) { // subfolder
-          const { data: subFiles } = await supabase.storage.from("photos").list(`${prefix}/${folder.name}`);
-          const count = (subFiles || []).filter(f => f.id !== null).length;
-          if (count > 0) {
-            // Map storageName back to key
-            const photoCat = ALL_PHOTO_CATEGORIES.find(c => c.storageName === folder.name);
-            if (photoCat) {
-              photoCounts[photoCat.key] = count;
-            } else if (folder.name.startsWith("OTDR_")) {
-              const otdrKey = folder.name.replace("OTDR_", "");
-              // Try to match OTDR category
-              const otdrCat = OTDR_CATEGORIES_STATIC.find(c => c.storageName === folder.name);
-              otdrCounts[otdrCat?.key || otdrKey] = count;
-            }
-          }
-        }
-      }
-      setExistingPhotoCounts(photoCounts);
-      setExistingOtdrCounts(otdrCounts);
-    };
-    loadExistingFiles();
-  }, [existingConstruction?.id]);
-
-  // Auto-fill form from existing construction data
-  const [existingDataLoaded, setExistingDataLoaded] = useState(false);
-  useEffect(() => {
-    if (existingDataLoaded || !existingConstruction) return;
-    
-    if (existingConstruction.ses_id && !sesId) setSesId(existingConstruction.ses_id);
-    if (existingConstruction.ak && !ak) setAk(existingConstruction.ak);
-    if (existingConstruction.cab && !cab) setCab(existingConstruction.cab);
-    if (existingConstruction.floors && floors === "0") setFloors(String(existingConstruction.floors));
-    if (existingConstruction.routing_type && !routingType) setRoutingType(existingConstruction.routing_type);
-    if (existingConstruction.pending_note && !pendingNote) setPendingNote(existingConstruction.pending_note);
-    if (existingConstruction.routes && Array.isArray(existingConstruction.routes)) {
-      const savedRoutes = existingConstruction.routes as any[];
-      setRoutes(prev => prev.map((r, i) => {
-        const saved = savedRoutes.find((sr: any) => sr.label === r.label);
-        return saved ? { ...r, koi: String(saved.koi || ""), fyraKoi: String(saved.fyra_koi || "") } : r;
-      }));
-    }
-    
-    setExistingDataLoaded(true);
-    if (existingConstruction.status !== "in_progress" || existingConstruction.revenue > 0) {
-      toast.info("📋 Φόρτωση υπάρχουσας κατασκευής");
-    }
-  }, [existingConstruction, existingDataLoaded]);
-
-  // Auto-fill works from existing data
-  const [existingWorksLoaded, setExistingWorksLoaded] = useState(false);
-  useEffect(() => {
-    if (existingWorksLoaded || !existingWorks || existingWorks.length === 0 || workItems.length > 0) return;
-    const items: WorkItem[] = existingWorks.map((w: any) => ({
-      work_pricing_id: w.work_pricing_id,
-      code: w.work_pricing?.code || "",
-      description: w.work_pricing?.description || "",
-      unit: w.work_pricing?.unit || "",
-      unit_price: w.unit_price,
-      quantity: w.quantity,
-    }));
-    setWorkItems(items);
-    setExistingWorksLoaded(true);
-  }, [existingWorks, existingWorksLoaded, workItems.length]);
-
-  // Auto-fill materials from existing data (only if no GIS auto-fill happened)
+  // Auto-fill materials from existing data (always prefer saved DB rows over GIS defaults)
   const [existingMaterialsLoaded, setExistingMaterialsLoaded] = useState(false);
   useEffect(() => {
-    if (existingMaterialsLoaded || !existingMaterials || existingMaterials.length === 0 || materialItems.length > 0) return;
+    if (existingMaterialsLoaded || !existingMaterials || existingMaterials.length === 0) return;
     const items: MaterialItem[] = existingMaterials.map((m: any) => ({
       material_id: m.material_id,
       code: m.materials?.code || "",
@@ -347,7 +321,8 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
     }));
     setMaterialItems(items);
     setExistingMaterialsLoaded(true);
-  }, [existingMaterials, existingMaterialsLoaded, materialItems.length]);
+    setGisAutoFilled(true);
+  }, [existingMaterials, existingMaterialsLoaded]);
 
   // Fetch work pricing
   const { data: workPricing } = useQuery({
@@ -392,10 +367,12 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
   // Auto-fill OTE materials from GIS data (ONLY if no saved materials exist in DB)
   const [gisAutoFilled, setGisAutoFilled] = useState(false);
   useEffect(() => {
-    // Skip GIS auto-fill if: already done, no GIS data, no materials catalog,
+    const hasExistingSavedMaterials = (existingMaterials?.length || 0) > 0;
+    const existingMaterialLookupReady = !existingConstruction ? existingConstructionFetched : existingMaterialsFetched;
+
+    // Skip GIS auto-fill if: DB lookup not finished, already done, no GIS data/material catalog,
     // user already has items, OR existing construction has saved materials in DB
-    const hasExistingSavedMaterials = existingMaterials && existingMaterials.length > 0;
-    if (!gisData || !materials || gisAutoFilled || materialItems.length > 0 || hasExistingSavedMaterials) return;
+    if (!existingMaterialLookupReady || !gisData || !materials || gisAutoFilled || materialItems.length > 0 || hasExistingSavedMaterials) return;
     
     const oteMaterials = materials.filter((m) => m.source === "OTE");
     const allMaterials = materials;
@@ -566,7 +543,16 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
         floor_details: gisData.floor_details,
       });
     }
-  }, [gisData, materials, gisAutoFilled, materialItems.length, existingMaterials]);
+  }, [
+    existingConstruction,
+    existingConstructionFetched,
+    existingMaterials,
+    existingMaterialsFetched,
+    gisData,
+    materials,
+    gisAutoFilled,
+    materialItems.length,
+  ]);
 
   // Auto-fill basic fields from GIS data
   const [gisFieldsFilled, setGisFieldsFilled] = useState(false);
