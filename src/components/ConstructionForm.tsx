@@ -756,7 +756,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
 
     setGisFieldsFilled(true);
     toast.success("Αυτόματη συμπλήρωση στοιχείων από GIS");
-  }, [gisData, gisFieldsFilled]);
+  }, [gisData, gisFieldsFilled, existingConstruction]);
 
   const worksByCategory = useMemo(() => {
     if (!workPricing) return {};
