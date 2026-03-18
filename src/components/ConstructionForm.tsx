@@ -1515,6 +1515,9 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
       setSubmitted(true);
       queryClient.invalidateQueries({ queryKey: ["technician-assignments"] });
       queryClient.invalidateQueries({ queryKey: ["constructions"] });
+      queryClient.invalidateQueries({ queryKey: ["existing_construction", assignment.id] });
+      queryClient.invalidateQueries({ queryKey: ["existing_construction_works"] });
+      queryClient.invalidateQueries({ queryKey: ["existing_construction_materials"] });
       setTimeout(() => onComplete(), 2000);
     } catch (err: any) {
       console.error(err);
