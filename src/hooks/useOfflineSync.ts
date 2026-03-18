@@ -256,19 +256,18 @@ async function syncConstruction(payload: OfflineConstructionPayload) {
     );
   }
 
-  // 4. Deduct DELTANETWORK stock
-  const deltaMats = payload.materialItems.filter((m) => m.source === "DELTANETWORK");
-  if (deltaMats.length > 0) {
+  // 4. Sync stock for all materials (OTE + DELTANETWORK)
+  if (payload.materialItems.length > 0) {
     await supabase.functions.invoke("deduct-stock", {
       body: {
         construction_id: construction.id,
-        materials: deltaMats.map((m) => ({
+        material_deltas: payload.materialItems.map((m) => ({
           material_id: m.material_id,
           quantity: m.quantity,
           source: m.source,
         })),
       },
-    }).catch((err) => console.error("Stock deduction error:", err));
+    }).catch((err) => console.error("Stock sync error:", err));
   }
 
   // 5. Upload photos
