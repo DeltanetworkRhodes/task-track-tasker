@@ -827,6 +827,45 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
   const oteMaterials = materialItems.filter((m) => m.source === "OTE");
   const totalMaterialCost = deltanetMaterials.reduce((sum, m) => sum + m.price * m.quantity, 0);
 
+  const calculateMaterialDeltas = (
+    previousMaterials: Array<{ material_id: string; quantity: number; source: string | null }>,
+    nextMaterials: MaterialItem[]
+  ) => {
+    const previousMap = new Map<string, { quantity: number; source: string }>();
+    for (const item of previousMaterials) {
+      previousMap.set(item.material_id, {
+        quantity: Number(item.quantity) || 0,
+        source: item.source || "DELTANETWORK",
+      });
+    }
+
+    const nextMap = new Map<string, { quantity: number; source: string }>();
+    for (const item of nextMaterials) {
+      nextMap.set(item.material_id, {
+        quantity: Number(item.quantity) || 0,
+        source: item.source,
+      });
+    }
+
+    const materialIds = new Set<string>([...previousMap.keys(), ...nextMap.keys()]);
+    const deltas: Array<{ material_id: string; quantity: number; source: string }> = [];
+
+    for (const materialId of materialIds) {
+      const prevQty = previousMap.get(materialId)?.quantity || 0;
+      const nextQty = nextMap.get(materialId)?.quantity || 0;
+      const delta = nextQty - prevQty;
+      if (Math.abs(delta) < 0.0001) continue;
+
+      deltas.push({
+        material_id: materialId,
+        quantity: delta,
+        source: nextMap.get(materialId)?.source || previousMap.get(materialId)?.source || "DELTANETWORK",
+      });
+    }
+
+    return deltas;
+  };
+
   const handleSubmit = async () => {
     hapticFeedback.medium();
     if (hasRejectedPhotos()) {
@@ -897,9 +936,26 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
           constructionId = data.id;
         }
 
+        // Compute stock deltas BEFORE replacing saved materials
+        const { data: previousMaterialsRows, error: previousMaterialsError } = await supabase
+          .from("construction_materials")
+          .select("material_id, quantity, source")
+          .eq("construction_id", constructionId);
+        if (previousMaterialsError) throw previousMaterialsError;
+        const materialDeltas = calculateMaterialDeltas(previousMaterialsRows || [], materialItems);
+
         // Delete existing works & materials, then re-insert (upsert pattern)
-        await supabase.from("construction_works").delete().eq("construction_id", constructionId);
-        await supabase.from("construction_materials").delete().eq("construction_id", constructionId);
+        const { error: deleteWorksError } = await supabase
+          .from("construction_works")
+          .delete()
+          .eq("construction_id", constructionId);
+        if (deleteWorksError) throw deleteWorksError;
+
+        const { error: deleteMaterialsError } = await supabase
+          .from("construction_materials")
+          .delete()
+          .eq("construction_id", constructionId);
+        if (deleteMaterialsError) throw deleteMaterialsError;
 
         // Insert works
         if (workItems.length > 0) {
@@ -913,7 +969,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
               organization_id: organizationId,
             }))
           );
-          if (worksError) console.error("Works insert error:", worksError);
+          if (worksError) throw worksError;
         }
 
         // Insert materials
@@ -927,23 +983,22 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
               organization_id: organizationId,
             }))
           );
-          if (matsError) console.error("Materials insert error:", matsError);
+          if (matsError) throw matsError;
         }
 
-        // Deduct stock for DELTANETWORK materials
-        if (deltanetMaterials.length > 0) {
+        // Sync stock changes for both OTE & DELTANETWORK based on quantity deltas
+        if (materialDeltas.length > 0) {
           setSubmitProgress("Ενημέρωση αποθέματος...");
           const { error: deductErr } = await supabase.functions.invoke("deduct-stock", {
             body: {
               construction_id: constructionId,
-              materials: deltanetMaterials.map((m) => ({
-                material_id: m.material_id,
-                quantity: m.quantity,
-                source: m.source,
-              })),
+              material_deltas: materialDeltas,
             },
           });
-          if (deductErr) console.error("Stock deduction error:", deductErr);
+          if (deductErr) {
+            console.error("Stock deduction error:", deductErr);
+            toast.warning("Αποθηκεύτηκαν τα υλικά αλλά απέτυχε η ενημέρωση αποθήκης. Ελέγξτε το Admin Panel.");
+          }
         }
 
         // Upload photos
@@ -1010,6 +1065,9 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
         toast.success("✅ Αποθηκεύτηκε επιτυχώς!");
         queryClient.invalidateQueries({ queryKey: ["technician-assignments"] });
         queryClient.invalidateQueries({ queryKey: ["constructions"] });
+        queryClient.invalidateQueries({ queryKey: ["existing_construction", assignment.id] });
+        queryClient.invalidateQueries({ queryKey: ["existing_construction_works"] });
+        queryClient.invalidateQueries({ queryKey: ["existing_construction_materials"] });
         queryClient.invalidateQueries({ queryKey: ["sr_crew_assignments_mine"] });
         queryClient.invalidateQueries({ queryKey: ["sr_crew_assignments"] });
 
@@ -1275,9 +1333,26 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
         constructionId = insertedConstruction.id;
       }
 
+      // Compute stock deltas BEFORE replacing saved materials
+      const { data: previousMaterialsRows, error: previousMaterialsError } = await supabase
+        .from("construction_materials")
+        .select("material_id, quantity, source")
+        .eq("construction_id", constructionId);
+      if (previousMaterialsError) throw previousMaterialsError;
+      const materialDeltas = calculateMaterialDeltas(previousMaterialsRows || [], materialItems);
+
       // Delete existing works & materials, then re-insert
-      await supabase.from("construction_works").delete().eq("construction_id", constructionId);
-      await supabase.from("construction_materials").delete().eq("construction_id", constructionId);
+      const { error: deleteWorksError } = await supabase
+        .from("construction_works")
+        .delete()
+        .eq("construction_id", constructionId);
+      if (deleteWorksError) throw deleteWorksError;
+
+      const { error: deleteMaterialsError } = await supabase
+        .from("construction_materials")
+        .delete()
+        .eq("construction_id", constructionId);
+      if (deleteMaterialsError) throw deleteMaterialsError;
 
       if (workItems.length > 0) {
         const { error: worksError } = await supabase.from("construction_works").insert(
@@ -1290,7 +1365,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
             organization_id: organizationId,
           }))
         );
-        if (worksError) console.error("Works insert error:", worksError);
+        if (worksError) throw worksError;
       }
 
       if (materialItems.length > 0) {
@@ -1303,22 +1378,21 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
             organization_id: organizationId,
           }))
         );
-        if (matsError) console.error("Materials insert error:", matsError);
+        if (matsError) throw matsError;
       }
 
-      if (deltanetMaterials.length > 0) {
+      if (materialDeltas.length > 0) {
         setSubmitProgress("Ενημέρωση αποθέματος...");
         const { error: deductErr } = await supabase.functions.invoke("deduct-stock", {
           body: {
             construction_id: constructionId,
-            materials: deltanetMaterials.map((m) => ({
-              material_id: m.material_id,
-              quantity: m.quantity,
-              source: m.source,
-            })),
+            material_deltas: materialDeltas,
           },
         });
-        if (deductErr) console.error("Stock deduction error:", deductErr);
+        if (deductErr) {
+          console.error("Stock deduction error:", deductErr);
+          toast.warning("Αποθηκεύτηκαν τα υλικά αλλά απέτυχε η ενημέρωση αποθήκης. Ελέγξτε το Admin Panel.");
+        }
       }
 
       const photoPaths: string[] = [];
@@ -1441,6 +1515,9 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
       setSubmitted(true);
       queryClient.invalidateQueries({ queryKey: ["technician-assignments"] });
       queryClient.invalidateQueries({ queryKey: ["constructions"] });
+      queryClient.invalidateQueries({ queryKey: ["existing_construction", assignment.id] });
+      queryClient.invalidateQueries({ queryKey: ["existing_construction_works"] });
+      queryClient.invalidateQueries({ queryKey: ["existing_construction_materials"] });
       setTimeout(() => onComplete(), 2000);
     } catch (err: any) {
       console.error(err);
