@@ -282,7 +282,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
     },
   });
 
-  const { data: existingWorks, isFetched: existingWorksFetched } = useQuery({
+  const { data: existingWorks } = useQuery({
     queryKey: ["existing_construction_works", existingConstruction?.id],
     enabled: !!existingConstruction?.id,
     queryFn: async () => {
