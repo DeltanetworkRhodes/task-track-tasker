@@ -824,8 +824,46 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
   // Totals
   const totalRevenue = workItems.reduce((sum, w) => sum + w.unit_price * w.quantity, 0);
   const deltanetMaterials = materialItems.filter((m) => m.source === "DELTANETWORK");
-  const oteMaterials = materialItems.filter((m) => m.source === "OTE");
   const totalMaterialCost = deltanetMaterials.reduce((sum, m) => sum + m.price * m.quantity, 0);
+
+  const calculateMaterialDeltas = (
+    previousMaterials: Array<{ material_id: string; quantity: number; source: string | null }>,
+    nextMaterials: MaterialItem[]
+  ) => {
+    const previousMap = new Map<string, { quantity: number; source: string }>();
+    for (const item of previousMaterials) {
+      previousMap.set(item.material_id, {
+        quantity: Number(item.quantity) || 0,
+        source: item.source || "DELTANETWORK",
+      });
+    }
+
+    const nextMap = new Map<string, { quantity: number; source: string }>();
+    for (const item of nextMaterials) {
+      nextMap.set(item.material_id, {
+        quantity: Number(item.quantity) || 0,
+        source: item.source,
+      });
+    }
+
+    const materialIds = new Set<string>([...previousMap.keys(), ...nextMap.keys()]);
+    const deltas: Array<{ material_id: string; quantity: number; source: string }> = [];
+
+    for (const materialId of materialIds) {
+      const prevQty = previousMap.get(materialId)?.quantity || 0;
+      const nextQty = nextMap.get(materialId)?.quantity || 0;
+      const delta = nextQty - prevQty;
+      if (Math.abs(delta) < 0.0001) continue;
+
+      deltas.push({
+        material_id: materialId,
+        quantity: delta,
+        source: nextMap.get(materialId)?.source || previousMap.get(materialId)?.source || "DELTANETWORK",
+      });
+    }
+
+    return deltas;
+  };
 
   const handleSubmit = async () => {
     hapticFeedback.medium();
