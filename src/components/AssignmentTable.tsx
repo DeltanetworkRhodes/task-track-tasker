@@ -82,10 +82,11 @@ const FileItem = ({ file }: { file: DriveFile }) => {
   );
 };
 
-// Hook to get technician profiles
+// Hook to get technician profiles (filtered by organization)
 const useTechnicians = () => {
+  const { organizationId } = useOrganization();
   return useQuery({
-    queryKey: ["technicians"],
+    queryKey: ["technicians", organizationId],
     queryFn: async () => {
       // Get all user_ids with technician role
       const { data: roles, error: rolesError } = await supabase
@@ -96,13 +97,20 @@ const useTechnicians = () => {
       if (!roles || roles.length === 0) return [];
 
       const techIds = roles.map((r) => r.user_id);
-      const { data: profiles, error: profilesError } = await supabase
+      let query = supabase
         .from("profiles")
         .select("user_id, full_name, area")
         .in("user_id", techIds);
+      
+      if (organizationId) {
+        query = query.eq("organization_id", organizationId);
+      }
+      
+      const { data: profiles, error: profilesError } = await query;
       if (profilesError) throw profilesError;
       return profiles || [];
     },
+    enabled: !!organizationId,
   });
 };
 
