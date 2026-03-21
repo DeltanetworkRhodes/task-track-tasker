@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { Assignment, statusLabels } from "@/data/mockData";
-import { Camera, MessageSquare, ExternalLink, User, MapPin, Phone, Hash, FolderOpen, FileText, Image, Loader2, Clock, ArrowRight, Trash2, Eye, Users } from "lucide-react";
+import { Camera, MessageSquare, ExternalLink, User, MapPin, Phone, Hash, FolderOpen, FileText, Image, Loader2, Clock, ArrowRight, Trash2, Eye, Users, Settings2, Building, Briefcase, Tag, Navigation } from "lucide-react";
 import SRComments from "@/components/SRComments";
 import CallStatusBadge from "@/components/CallStatusBadge";
 import CallStatusPopover from "@/components/CallStatusPopover";
@@ -10,8 +10,11 @@ import { useOrganization } from "@/contexts/OrganizationContext";
 import { useWorkCategories } from "@/hooks/useCrewData";
 
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAssignmentHistory } from "@/hooks/useData";
@@ -82,13 +85,39 @@ const FileItem = ({ file }: { file: DriveFile }) => {
   );
 };
 
+// Column definitions
+const ALL_COLUMNS = [
+  { key: "srId", label: "SR ID", default: true },
+  { key: "area", label: "Περιοχή", default: true },
+  { key: "customerName", label: "Πελάτης", default: true },
+  { key: "cab", label: "CAB", default: true },
+  { key: "workType", label: "Είδος Εργασίας", default: false },
+  { key: "requestCategory", label: "Τύπος Αιτήματος", default: false },
+  { key: "municipality", label: "Δήμος", default: false },
+  { key: "buildingId", label: "BID", default: false },
+  { key: "technician", label: "Υπεύθυνος", default: true },
+  { key: "status", label: "Κατάσταση", default: true },
+  { key: "callStatus", label: "Κλήση", default: true },
+  { key: "date", label: "Ημ/νία", default: true },
+  { key: "comments", label: "Σχόλια", default: true },
+] as const;
+
+const STORAGE_KEY = "assignment-visible-columns";
+
+const getDefaultColumns = (): string[] => {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) return JSON.parse(saved);
+  } catch {}
+  return ALL_COLUMNS.filter(c => c.default).map(c => c.key);
+};
+
 // Hook to get technician profiles (filtered by organization)
 const useTechnicians = () => {
   const { organizationId } = useOrganization();
   return useQuery({
     queryKey: ["technicians", organizationId],
     queryFn: async () => {
-      // Get all user_ids with technician role
       const { data: roles, error: rolesError } = await supabase
         .from("user_roles")
         .select("user_id")
@@ -124,6 +153,7 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
   const [deleteTarget, setDeleteTarget] = useState<any>(null);
   const [deleting, setDeleting] = useState(false);
   const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
+  const [visibleColumns, setVisibleColumns] = useState<string[]>(getDefaultColumns);
   
   const { data: technicians } = useTechnicians();
   const { data: userRole } = useUserRole();
@@ -133,7 +163,17 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
   const { organizationId } = useOrganization();
   const { data: workCategories } = useWorkCategories();
 
-  // Prefetch assignment details on hover (comments, history)
+  const toggleColumn = (key: string) => {
+    setVisibleColumns(prev => {
+      const next = prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key];
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      return next;
+    });
+  };
+
+  const isColumnVisible = (key: string) => visibleColumns.includes(key);
+
+  // Prefetch assignment details on hover
   const handleRowHover = useCallback((assignment: any) => {
     queryClient.prefetchQuery({
       queryKey: ["sr_comments", assignment.id],
@@ -170,7 +210,7 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
   // Auto-assign all work categories to a technician
   const autoAssignCrews = async (assignmentId: string, techId: string | null) => {
     if (!organizationId || !workCategories?.length) return;
-    if (!techId) return; // Don't clear crew assignments when unassigning
+    if (!techId) return;
     for (const cat of workCategories) {
       await supabase
         .from("sr_crew_assignments" as any)
@@ -189,7 +229,6 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
     setAssigning(assignmentId);
     const newValue = technicianId === "__none__" ? null : technicianId;
 
-    // Optimistic update
     queryClient.setQueryData(["assignments"], (old: any) =>
       old?.map((a: any) => a.id === assignmentId ? { ...a, technician_id: newValue } : a)
     );
@@ -202,12 +241,10 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
       if (error) throw error;
       toast.success(newValue ? `Ανατέθηκε σε ${techMap[newValue] || "τεχνικό"}` : "Αφαιρέθηκε η ανάθεση");
 
-      // Auto-assign all crew categories to this technician
       if (newValue) {
         autoAssignCrews(assignmentId, newValue).catch(console.error);
       }
 
-      // Fire-and-forget push notification
       if (newValue) {
         const assignment = assignments.find((a: any) => a.id === assignmentId) as any;
         supabase.functions.invoke("send-push-notification", {
@@ -231,11 +268,8 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
     if (!deleteTarget) return;
     setDeleting(true);
     try {
-      // Find assignment details for Drive cleanup
       const target = assignments.find((a: any) => a.id === deleteTarget.id) as any;
       
-      // Delete dependent records first (cascade manually)
-      // 1. Find constructions linked to this assignment
       const { data: constructions } = await supabase
         .from("constructions")
         .select("id")
@@ -244,25 +278,20 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
       const constructionIds = (constructions || []).map((c: any) => c.id);
       
       if (constructionIds.length > 0) {
-        // Delete construction_works and construction_materials first
         await supabase.from("construction_works").delete().in("construction_id", constructionIds);
         await supabase.from("construction_materials").delete().in("construction_id", constructionIds);
-        // Then delete constructions
         await supabase.from("constructions").delete().eq("assignment_id", deleteTarget.id);
       }
       
-      // 2. Delete gis_data and assignment_history
       await supabase.from("gis_data").delete().eq("assignment_id", deleteTarget.id);
       await supabase.from("assignment_history").delete().eq("assignment_id", deleteTarget.id);
       
-      // 3. Now delete the assignment itself
       const { error } = await supabase
         .from("assignments")
         .delete()
         .eq("id", deleteTarget.id);
       if (error) throw error;
       
-      // Delete Drive folder (non-blocking)
       if (target) {
         supabase.functions.invoke("delete-drive-folder", {
           body: {
@@ -273,7 +302,6 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
           },
         }).then(({ error: driveErr }) => {
           if (driveErr) console.error("Drive folder delete error:", driveErr);
-          else console.log(`Drive folder for ${deleteTarget.srId} deleted`);
         });
       }
       
@@ -288,7 +316,6 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
   };
 
   const handleStatusChange = async (assignmentId: string, newStatus: string) => {
-    // Guard: block construction without GIS
     if (newStatus === "construction") {
       const { data: gisCheck } = await supabase
         .from("gis_data")
@@ -301,7 +328,6 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
       }
     }
 
-    // Optimistic update
     queryClient.setQueryData(["assignments"], (old: any) =>
       old?.map((a: any) => a.id === assignmentId ? { ...a, status: newStatus, updated_at: new Date().toISOString() } : a)
     );
@@ -319,7 +345,6 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
 
       const assignment = assignments.find((a: any) => a.id === assignmentId) as any;
 
-      // If pre_committed, auto-fetch Drive folder URLs
       if (newStatus === "pre_committed" && assignment) {
         const srId = assignment.sr_id || assignment.srId;
         try {
@@ -365,7 +390,6 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
         }
       }
 
-      // If cancelled, move the SR folder in Drive to ΑΚΥΡΩΜΕΝΕΣ ΚΑΤΑΣΚΕΥΕΣ
       if (newStatus === "cancelled" && assignment) {
         try {
           await supabase.functions.invoke("move-cancelled-folder", {
@@ -381,7 +405,6 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
         }
       }
     } catch (err: any) {
-      // Rollback on error
       queryClient.invalidateQueries({ queryKey: ["assignments"] });
       toast.error(err.message);
     }
@@ -454,7 +477,6 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
         await supabase.from("assignments").update({ 
           technician_id: techValue
         }).eq("id", id);
-        // Auto-assign all crew categories
         if (techValue) {
           await autoAssignCrews(id, techValue);
         }
@@ -477,7 +499,6 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
     setBulkUpdating(true);
     try {
       for (const id of selectedIds) {
-        // Delete dependent records
         const { data: constructions } = await supabase
           .from("constructions").select("id").eq("assignment_id", id);
         const cIds = (constructions || []).map((c: any) => c.id);
@@ -505,8 +526,52 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
     }
   };
 
+  // Helper to get cell value
+  const getCellValue = (a: any, key: string) => {
+    switch (key) {
+      case "srId": return a.srId;
+      case "area": return a.area;
+      case "customerName": return a.customerName || "—";
+      case "cab": return a.cab || "—";
+      case "workType": return a.workType || "—";
+      case "requestCategory": return a.requestCategory || "—";
+      case "municipality": return a.municipality || "—";
+      case "buildingId": return a.buildingId || "—";
+      case "date": return a.date;
+      case "comments": return a.comments;
+      default: return "";
+    }
+  };
+
   return (
     <>
+      {/* Column Visibility Toggle */}
+      <div className="flex items-center justify-end px-4 py-2 border-b border-border/30">
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline" size="sm" className="gap-1.5 h-7 text-xs">
+              <Settings2 className="h-3.5 w-3.5" />
+              Στήλες
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-56 p-3" align="end">
+            <p className="text-xs font-semibold mb-2 text-muted-foreground">Εμφάνιση στηλών</p>
+            <div className="space-y-2">
+              {ALL_COLUMNS.map(col => (
+                <label key={col.key} className="flex items-center gap-2 cursor-pointer text-xs">
+                  <Checkbox
+                    checked={isColumnVisible(col.key)}
+                    onCheckedChange={() => toggleColumn(col.key)}
+                    className="h-3.5 w-3.5"
+                  />
+                  {col.label}
+                </label>
+              ))}
+            </div>
+          </PopoverContent>
+        </Popover>
+      </div>
+
       {/* Bulk Action Bar */}
       {selectedIds.length > 0 && (
         <div className="flex items-center gap-3 px-4 py-2.5 bg-primary/5 border-b border-primary/20 flex-wrap">
@@ -557,6 +622,7 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
           </button>
         </div>
       )}
+
       {/* Mobile Card View */}
       <div className="block md:hidden space-y-2 p-2">
         {assignments.map((a) => (
@@ -589,6 +655,12 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
                   <span className="font-bold">{(a as any).cab}</span>
                 </div>
               )}
+              {(a as any).workType && (
+                <div className="flex items-center gap-1.5 text-muted-foreground">
+                  <Briefcase className="h-3 w-3 shrink-0" />
+                  <span className="truncate">{(a as any).workType}</span>
+                </div>
+              )}
               {(a as any).technicianId && techMap[(a as any).technicianId] && (
                 <div className="flex items-center gap-1.5 text-muted-foreground">
                   <User className="h-3 w-3 shrink-0" />
@@ -596,7 +668,6 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
                 </div>
               )}
             </div>
-            {/* Call Status Badge - mobile */}
             <div className="mt-1.5" onClick={(e) => e.stopPropagation()}>
               {isAdmin ? (
                 <CallStatusPopover assignment={a}>
@@ -628,13 +699,13 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
         ))}
       </div>
 
-      {/* Tablet Compact Table View */}
-      <div className="hidden md:block lg:hidden">
-        <table className="w-full text-xs table-fixed">
+      {/* Desktop/Tablet Table View */}
+      <div className="hidden md:block overflow-x-auto">
+        <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border/50">
               {onSelectionChange && (
-                <th className="py-2 px-1 w-7">
+                <th className="py-2.5 px-1.5 w-8 shrink-0">
                   <input
                     type="checkbox"
                     checked={selectedIds.length === assignments.length && assignments.length > 0}
@@ -643,140 +714,23 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
                   />
                 </th>
               )}
-              <th className="py-2 px-1.5 text-left font-medium text-muted-foreground text-[10px] uppercase tracking-wider w-[13%]">SR ID</th>
-              <th className="py-2 px-1.5 text-left font-medium text-muted-foreground text-[10px] uppercase tracking-wider w-[11%]">Περιοχή</th>
-              <th className="py-2 px-1.5 text-left font-medium text-muted-foreground text-[10px] uppercase tracking-wider w-[14%]">Πελάτης</th>
-              <th className="py-2 px-1.5 text-left font-medium text-muted-foreground text-[10px] uppercase tracking-wider w-[16%]">Υπεύθυνος</th>
-              <th className="py-2 px-1.5 text-left font-medium text-muted-foreground text-[10px] uppercase tracking-wider w-[14%]">Κατάσταση</th>
-              <th className="py-2 px-1.5 text-left font-medium text-muted-foreground text-[10px] uppercase tracking-wider w-[12%]">Κλήση</th>
-              <th className="py-2 px-1.5 text-left font-medium text-muted-foreground text-[10px] uppercase tracking-wider w-[10%]">Ημ/νία</th>
-              <th className="py-2 px-1 text-center font-medium text-muted-foreground text-[10px] uppercase tracking-wider w-[5%]">Drive</th>
-              <th className="py-2 px-1 text-center w-[5%]"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {assignments.map((a) => (
-              <tr
-                key={a.id}
-                className={`border-b border-border/30 hover:bg-secondary/50 transition-colors ${selectedIds.includes(a.id) ? 'bg-primary/5' : ''}`}
-                onMouseEnter={() => handleRowHover(a)}
-              >
-                {onSelectionChange && (
-                  <td className="py-2 px-1" onClick={(e) => e.stopPropagation()}>
-                    <input
-                      type="checkbox"
-                      checked={selectedIds.includes(a.id)}
-                      onChange={() => toggleSelect(a.id)}
-                      className="h-3.5 w-3.5 rounded border-border accent-primary"
-                    />
-                  </td>
-                )}
-                <td
-                  className="py-2 px-1.5 font-bold text-primary cursor-pointer text-[11px] truncate"
-                  onClick={() => setSelected(a)}
-                >
-                  {a.srId}
-                </td>
-                <td className="py-2 px-1.5 text-[11px] truncate">{a.area}</td>
-                <td className="py-2 px-1.5 text-muted-foreground text-[11px] truncate">{(a as any).customerName || '—'}</td>
-                <td className="py-2 px-1.5" onClick={(e) => e.stopPropagation()}>
-                  <Select
-                    value={(a as any).technicianId || "__none__"}
-                    onValueChange={(val) => handleAssign(a.id, val)}
-                    disabled={assigning === a.id}
-                  >
-                    <SelectTrigger className="w-full h-6 text-[10px] border-border/50 px-1">
-                      <SelectValue placeholder="Χωρίς" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="__none__">
-                        <span className="text-muted-foreground">Χωρίς</span>
-                      </SelectItem>
-                      {(technicians || []).map((t) => (
-                        <SelectItem key={t.user_id} value={t.user_id}>
-                          {t.full_name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </td>
-                <td className="py-2 px-1.5" onClick={(e) => e.stopPropagation()}>
-                  <Select
-                    value={a.status}
-                    onValueChange={(val) => handleStatusChange(a.id, val)}
-                  >
-                    <SelectTrigger className="h-6 text-[10px] w-full border-0 bg-transparent hover:bg-muted/50 px-0.5">
-                      <span className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium ${statusColors[a.status] || statusColors.pending}`}>
-                        {statusLabels[a.status] || a.status}
-                      </span>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Object.entries(statusLabels).map(([key, label]) => (
-                        <SelectItem key={key} value={key} className="text-xs">{label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </td>
-                <td className="py-2 px-1.5" onClick={(e) => e.stopPropagation()}>
-                  {isAdmin ? (
-                    <CallStatusPopover assignment={a}>
-                      <button type="button"><CallStatusBadge status={(a as any).callStatus} callCount={(a as any).callCount} /></button>
-                    </CallStatusPopover>
-                  ) : (
-                    <CallStatusBadge status={(a as any).callStatus} callCount={(a as any).callCount} />
-                  )}
-                </td>
-                <td className="py-2 px-1.5 font-bold text-[10px] text-muted-foreground whitespace-nowrap">{a.date}</td>
-                <td className="py-2 px-1 text-center">
-                  {(a as any).driveUrl ? (
-                    <a href={(a as any).driveUrl} target="_blank" rel="noopener noreferrer" className="inline-flex" title="Φάκελος" onClick={(e) => e.stopPropagation()}>
-                      <FolderOpen className="h-3.5 w-3.5 text-primary hover:text-primary/70 transition-colors" />
-                    </a>
-                  ) : (
-                    <FolderOpen className="h-3 w-3 text-muted-foreground/30 mx-auto" />
-                  )}
-                </td>
-                <td className="py-2 px-1 text-center">
-                  <button
-                    onClick={(e) => { e.stopPropagation(); setDeleteTarget(a); }}
-                    className="text-muted-foreground/40 hover:text-destructive transition-colors p-0.5 rounded"
-                    title="Διαγραφή"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Desktop Table View */}
-      <div className="hidden lg:block">
-        <table className="w-full text-sm table-fixed">
-          <thead>
-            <tr className="border-b border-border/50">
-              {onSelectionChange && (
-                <th className="py-2.5 px-1.5 w-8">
-                  <input
-                    type="checkbox"
-                    checked={selectedIds.length === assignments.length && assignments.length > 0}
-                    onChange={toggleAll}
-                    className="h-3.5 w-3.5 rounded border-border accent-primary"
-                  />
-                </th>
-              )}
-              <th className="py-2.5 px-2 text-left font-medium text-muted-foreground text-[11px] uppercase tracking-wider w-[9%]">SR ID</th>
-              <th className="py-2.5 px-2 text-left font-medium text-muted-foreground text-[11px] uppercase tracking-wider w-[8%]">Περιοχή</th>
-              <th className="py-2.5 px-2 text-left font-medium text-muted-foreground text-[11px] uppercase tracking-wider w-[12%]">Πελάτης</th>
-              <th className="py-2.5 px-2 text-left font-medium text-muted-foreground text-[11px] uppercase tracking-wider w-[6%]">CAB</th>
-              <th className="py-2.5 px-2 text-left font-medium text-muted-foreground text-[11px] uppercase tracking-wider w-[12%]">Υπεύθυνος</th>
-              <th className="py-2.5 px-2 text-left font-medium text-muted-foreground text-[11px] uppercase tracking-wider w-[10%]">Κατάσταση</th>
-              <th className="py-2.5 px-2 text-left font-medium text-muted-foreground text-[11px] uppercase tracking-wider w-[10%]">Κλήση</th>
-              <th className="py-2.5 px-2 text-left font-medium text-muted-foreground text-[11px] uppercase tracking-wider w-[8%]">Ημ/νία</th>
-              <th className="py-2.5 px-2 text-left font-medium text-muted-foreground text-[11px] uppercase tracking-wider w-[14%]">Σχόλια</th>
-              <th className="py-2.5 px-1.5 text-center font-medium text-muted-foreground text-[11px] uppercase tracking-wider w-[5%]">Drive</th>
-              <th className="py-2.5 px-1.5 text-center font-medium text-muted-foreground text-[11px] uppercase tracking-wider w-[3%]"></th>
+              {ALL_COLUMNS.map(col => {
+                if (!isColumnVisible(col.key)) return null;
+                if (col.key === "technician" || col.key === "status" || col.key === "callStatus") {
+                  return (
+                    <th key={col.key} className="py-2.5 px-2 text-left font-medium text-muted-foreground text-[11px] uppercase tracking-wider whitespace-nowrap">
+                      {col.label}
+                    </th>
+                  );
+                }
+                return (
+                  <th key={col.key} className="py-2.5 px-2 text-left font-medium text-muted-foreground text-[11px] uppercase tracking-wider whitespace-nowrap">
+                    {col.label}
+                  </th>
+                );
+              })}
+              <th className="py-2.5 px-1.5 text-center font-medium text-muted-foreground text-[11px] uppercase tracking-wider w-12">Drive</th>
+              <th className="py-2.5 px-1.5 text-center w-8"></th>
             </tr>
           </thead>
           <tbody>
@@ -796,71 +750,113 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
                     />
                   </td>
                 )}
-                <td
-                  className="py-2.5 px-2 font-bold text-primary cursor-pointer text-xs truncate"
-                  onClick={() => setSelected(a)}
-                >
-                  {a.srId}
-                </td>
-                <td className="py-2.5 px-2 text-xs truncate">{a.area}</td>
-                <td className="py-2.5 px-2 text-muted-foreground text-xs truncate">{(a as any).customerName || '—'}</td>
-                <td className="py-2.5 px-2 font-bold text-xs truncate">{(a as any).cab || '—'}</td>
-                <td className="py-2.5 px-2" onClick={(e) => e.stopPropagation()}>
-                  <Select
-                    value={(a as any).technicianId || "__none__"}
-                    onValueChange={(val) => handleAssign(a.id, val)}
-                    disabled={assigning === a.id}
-                  >
-                    <SelectTrigger className="w-full h-7 text-[11px] border-border/50">
-                      <SelectValue placeholder="Χωρίς" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="__none__">
-                        <span className="text-muted-foreground">Χωρίς ανάθεση</span>
-                      </SelectItem>
-                      {(technicians || []).map((t) => (
-                        <SelectItem key={t.user_id} value={t.user_id}>
-                          {t.full_name}{t.area ? ` (${t.area})` : ""}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </td>
-                <td className="py-2.5 px-2" onClick={(e) => e.stopPropagation()}>
-                  <Select
-                    value={a.status}
-                    onValueChange={(val) => handleStatusChange(a.id, val)}
-                  >
-                    <SelectTrigger className="h-7 text-[11px] w-full border-0 bg-transparent hover:bg-muted/50 px-1">
-                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${statusColors[a.status] || statusColors.pending}`}>
-                        {statusLabels[a.status] || a.status}
-                      </span>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Object.entries(statusLabels).map(([key, label]) => (
-                        <SelectItem key={key} value={key} className="text-xs">{label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </td>
-                <td className="py-2.5 px-2" onClick={(e) => e.stopPropagation()}>
-                  {isAdmin ? (
-                    <CallStatusPopover assignment={a}>
-                      <button type="button"><CallStatusBadge status={(a as any).callStatus} callCount={(a as any).callCount} /></button>
-                    </CallStatusPopover>
-                  ) : (
-                    <CallStatusBadge status={(a as any).callStatus} callCount={(a as any).callCount} />
-                  )}
-                </td>
-                <td className="py-2.5 px-2 font-bold text-[11px] text-muted-foreground whitespace-nowrap">{a.date}</td>
-                <td className="py-2.5 px-2 text-[11px] text-muted-foreground truncate">
-                  {a.comments && (
-                    <span className="inline-flex items-center gap-1">
-                      <MessageSquare className="h-3 w-3 flex-shrink-0" />
-                      <span className="truncate">{a.comments}</span>
-                    </span>
-                  )}
-                </td>
+                {ALL_COLUMNS.map(col => {
+                  if (!isColumnVisible(col.key)) return null;
+                  
+                  // SR ID - clickable
+                  if (col.key === "srId") {
+                    return (
+                      <td key={col.key} className="py-2.5 px-2 font-bold text-primary cursor-pointer text-xs truncate max-w-[120px]" onClick={() => setSelected(a)}>
+                        {a.srId}
+                      </td>
+                    );
+                  }
+                  
+                  // Technician - Select
+                  if (col.key === "technician") {
+                    return (
+                      <td key={col.key} className="py-2.5 px-2" onClick={(e) => e.stopPropagation()}>
+                        <Select
+                          value={(a as any).technicianId || "__none__"}
+                          onValueChange={(val) => handleAssign(a.id, val)}
+                          disabled={assigning === a.id}
+                        >
+                          <SelectTrigger className="w-full h-7 text-[11px] border-border/50 min-w-[120px]">
+                            <SelectValue placeholder="Χωρίς" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="__none__">
+                              <span className="text-muted-foreground">Χωρίς ανάθεση</span>
+                            </SelectItem>
+                            {(technicians || []).map((t) => (
+                              <SelectItem key={t.user_id} value={t.user_id}>
+                                {t.full_name}{t.area ? ` (${t.area})` : ""}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </td>
+                    );
+                  }
+                  
+                  // Status - Select
+                  if (col.key === "status") {
+                    return (
+                      <td key={col.key} className="py-2.5 px-2" onClick={(e) => e.stopPropagation()}>
+                        <Select
+                          value={a.status}
+                          onValueChange={(val) => handleStatusChange(a.id, val)}
+                        >
+                          <SelectTrigger className="h-7 text-[11px] w-full border-0 bg-transparent hover:bg-muted/50 px-1 min-w-[100px]">
+                            <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${statusColors[a.status] || statusColors.pending}`}>
+                              {statusLabels[a.status] || a.status}
+                            </span>
+                          </SelectTrigger>
+                          <SelectContent>
+                            {Object.entries(statusLabels).map(([key, label]) => (
+                              <SelectItem key={key} value={key} className="text-xs">{label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </td>
+                    );
+                  }
+                  
+                  // Call Status
+                  if (col.key === "callStatus") {
+                    return (
+                      <td key={col.key} className="py-2.5 px-2" onClick={(e) => e.stopPropagation()}>
+                        {isAdmin ? (
+                          <CallStatusPopover assignment={a}>
+                            <button type="button"><CallStatusBadge status={(a as any).callStatus} callCount={(a as any).callCount} /></button>
+                          </CallStatusPopover>
+                        ) : (
+                          <CallStatusBadge status={(a as any).callStatus} callCount={(a as any).callCount} />
+                        )}
+                      </td>
+                    );
+                  }
+                  
+                  // Comments
+                  if (col.key === "comments") {
+                    return (
+                      <td key={col.key} className="py-2.5 px-2 text-[11px] text-muted-foreground truncate max-w-[150px]">
+                        {a.comments && (
+                          <span className="inline-flex items-center gap-1">
+                            <MessageSquare className="h-3 w-3 flex-shrink-0" />
+                            <span className="truncate">{a.comments}</span>
+                          </span>
+                        )}
+                      </td>
+                    );
+                  }
+                  
+                  // Date
+                  if (col.key === "date") {
+                    return (
+                      <td key={col.key} className="py-2.5 px-2 font-bold text-[11px] text-muted-foreground whitespace-nowrap tabular-nums">
+                        {a.date}
+                      </td>
+                    );
+                  }
+                  
+                  // Default text cells
+                  return (
+                    <td key={col.key} className="py-2.5 px-2 text-xs truncate max-w-[120px]" title={getCellValue(a, col.key)}>
+                      {getCellValue(a, col.key)}
+                    </td>
+                  );
+                })}
                 <td className="py-2.5 px-1.5 text-center">
                   {(a as any).driveUrl ? (
                     <div className="flex items-center justify-center gap-1" onClick={(e) => e.stopPropagation()}>
@@ -887,100 +883,133 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
         </table>
       </div>
 
-      {/* Detail Modal */}
-      <Dialog open={!!selected} onOpenChange={() => setSelected(null)}>
-        <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Hash className="h-4 w-4 text-primary" />
-              <span className="font-bold">{selected?.srId}</span>
+      {/* Detail Sheet (Side Panel) */}
+      <Sheet open={!!selected} onOpenChange={() => setSelected(null)}>
+        <SheetContent side="right" className="w-full sm:max-w-2xl overflow-y-auto p-0">
+          <SheetHeader className="sticky top-0 z-10 bg-background border-b border-border px-6 py-4">
+            <SheetTitle className="flex items-center gap-2">
+              <Hash className="h-5 w-5 text-primary" />
+              <span className="font-bold text-lg">{selected?.srId}</span>
               <span className={`ml-auto inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${statusColors[selected?.status] || statusColors.pending}`}>
                 {statusLabels[selected?.status as keyof typeof statusLabels] || selected?.status}
               </span>
-            </DialogTitle>
-          </DialogHeader>
+            </SheetTitle>
+          </SheetHeader>
 
-          {/* Customer Info */}
-          <div className="space-y-0 mt-2">
-            <DetailRow icon={MapPin} label="Περιοχή" value={selected?.area} />
-            <DetailRow icon={User} label="Πελάτης" value={selected?.customerName} />
-            <DetailRow icon={MapPin} label="Διεύθυνση" value={selected?.address} />
-            <DetailRow icon={Phone} label="Τηλέφωνο" value={selected?.phone} />
-            <DetailRow icon={Phone} label="Κινητό Πελάτη" value={(selected as any)?.customerMobile} />
-            <DetailRow icon={Phone} label="Σταθερό Πελάτη" value={(selected as any)?.customerLandline} />
-            <DetailRow icon={User} label="Email Πελάτη" value={(selected as any)?.customerEmail} />
-            <DetailRow icon={Hash} label="Καμπίνα (CAB)" value={selected?.cab} />
-            <DetailRow icon={Hash} label="Όροφος" value={(selected as any)?.floor} />
-            <DetailRow icon={MapPin} label="Δήμος" value={(selected as any)?.municipality} />
-            <DetailRow icon={Hash} label="Τύπος Εργασίας" value={(selected as any)?.workType} />
-            <DetailRow icon={User} label="Υπεύθυνος" value={selected?.technicianId ? techMap[selected.technicianId] : null} />
-            <DetailRow icon={MessageSquare} label="Σχόλια" value={selected?.comments} />
-          </div>
+          <div className="px-6 py-4 space-y-6">
+            {/* Work Info */}
+            <div>
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1.5">
+                <Briefcase className="h-3.5 w-3.5" /> Στοιχεία Εργασίας
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6">
+                <DetailRow icon={Briefcase} label="Είδος Εργασίας" value={(selected as any)?.workType} />
+                <DetailRow icon={Tag} label="Τύπος Αιτήματος" value={(selected as any)?.requestCategory} />
+                <DetailRow icon={MapPin} label="Περιοχή" value={selected?.area} />
+                <DetailRow icon={Building} label="Δήμος" value={(selected as any)?.municipality} />
+                <DetailRow icon={Hash} label="CAB" value={selected?.cab} />
+                <DetailRow icon={Hash} label="Building ID" value={(selected as any)?.buildingId} />
+                <DetailRow icon={MapPin} label="Διεύθυνση" value={selected?.address} />
+                <DetailRow icon={Hash} label="Όροφος" value={(selected as any)?.floor} />
+              </div>
+              {(selected as any)?.latitude && (selected as any)?.longitude && (
+                <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
+                  <Navigation className="h-3.5 w-3.5" />
+                  <span>Συντεταγμένες: {(selected as any).latitude}, {(selected as any).longitude}</span>
+                  <a
+                    href={`https://www.google.com/maps?q=${(selected as any).latitude},${(selected as any).longitude}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary hover:underline ml-1"
+                  >
+                    Χάρτης ↗
+                  </a>
+                </div>
+              )}
+            </div>
 
-          {/* Manager Info */}
-          {((selected as any)?.managerName || (selected as any)?.managerMobile) && (
-            <div className="mt-3 pt-3 border-t border-border/30">
-              <p className="text-[10px] uppercase tracking-wider text-muted-foreground/70 mb-1">Στοιχεία Διαχειριστή</p>
-              <div className="space-y-0">
-                <DetailRow icon={User} label="Διαχειριστής" value={(selected as any)?.managerName} />
-                <DetailRow icon={Phone} label="Κινητό Διαχ." value={(selected as any)?.managerMobile} />
-                <DetailRow icon={User} label="Email Διαχ." value={(selected as any)?.managerEmail} />
+            {/* Customer Info */}
+            <div>
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1.5">
+                <User className="h-3.5 w-3.5" /> Στοιχεία Πελάτη
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6">
+                <DetailRow icon={User} label="Ονοματεπώνυμο" value={selected?.customerName} />
+                <DetailRow icon={Phone} label="Τηλέφωνο" value={selected?.phone} />
+                <DetailRow icon={Phone} label="Κινητό" value={(selected as any)?.customerMobile} />
+                <DetailRow icon={Phone} label="Σταθερό" value={(selected as any)?.customerLandline} />
+                <DetailRow icon={User} label="Email" value={(selected as any)?.customerEmail} />
               </div>
             </div>
-          )}
 
-          {/* Assign in modal */}
-          {selected && (
-            <div className="mt-3 pt-3 border-t border-border/30">
-              <p className="text-[10px] uppercase tracking-wider text-muted-foreground/70 mb-2">Ανάθεση Υπεύθυνου</p>
-              <Select
-                value={(selected as any).technicianId || "__none__"}
-                onValueChange={(val) => {
-                  handleAssign(selected.id, val);
-                  setSelected({ ...selected, technicianId: val === "__none__" ? null : val });
-                }}
-                disabled={assigning === selected.id}
-              >
-                <SelectTrigger className="w-full h-8 text-xs">
-                  <SelectValue placeholder="Χωρίς ανάθεση" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none__">
-                    <span className="text-muted-foreground">Χωρίς ανάθεση</span>
-                  </SelectItem>
-                  {(technicians || []).map((t) => (
-                    <SelectItem key={t.user_id} value={t.user_id}>
-                      {t.full_name}{t.area ? ` (${t.area})` : ""}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
+            {/* Manager Info */}
+            {((selected as any)?.managerName || (selected as any)?.managerMobile || (selected as any)?.managerEmail) && (
+              <div>
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1.5">
+                  <Users className="h-3.5 w-3.5" /> Στοιχεία Διαχειριστή
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6">
+                  <DetailRow icon={User} label="Ονοματεπώνυμο" value={(selected as any)?.managerName} />
+                  <DetailRow icon={Phone} label="Κινητό" value={(selected as any)?.managerMobile} />
+                  <DetailRow icon={User} label="Email" value={(selected as any)?.managerEmail} />
+                </div>
+              </div>
+            )}
 
-          {/* Status Change */}
-          {selected && (
-            <div className="mt-3 pt-3 border-t border-border/30">
-              <p className="text-[10px] uppercase tracking-wider text-muted-foreground/70 mb-2">Αλλαγή Κατάστασης</p>
-              <Select
-                value={selected.status}
-                onValueChange={(val) => handleStatusChange(selected.id, val)}
-              >
-                <SelectTrigger className="w-full h-8 text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.entries(statusLabels).map(([key, label]) => (
-                    <SelectItem key={key} value={key}>{label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
+            {/* Comments */}
+            {selected?.comments && (
+              <DetailRow icon={MessageSquare} label="Σχόλια" value={selected?.comments} />
+            )}
 
-          {/* View Inspection PDF */}
-          {selected && selected.pdfUrl && (
-            <div className="mt-3 pt-3 border-t border-border/30">
+            {/* Assign Technician */}
+            {selected && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground/70 mb-2">Ανάθεση Υπεύθυνου</p>
+                  <Select
+                    value={(selected as any).technicianId || "__none__"}
+                    onValueChange={(val) => {
+                      handleAssign(selected.id, val);
+                      setSelected({ ...selected, technicianId: val === "__none__" ? null : val });
+                    }}
+                    disabled={assigning === selected.id}
+                  >
+                    <SelectTrigger className="w-full h-8 text-xs">
+                      <SelectValue placeholder="Χωρίς ανάθεση" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">
+                        <span className="text-muted-foreground">Χωρίς ανάθεση</span>
+                      </SelectItem>
+                      {(technicians || []).map((t) => (
+                        <SelectItem key={t.user_id} value={t.user_id}>
+                          {t.full_name}{t.area ? ` (${t.area})` : ""}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground/70 mb-2">Αλλαγή Κατάστασης</p>
+                  <Select
+                    value={selected.status}
+                    onValueChange={(val) => handleStatusChange(selected.id, val)}
+                  >
+                    <SelectTrigger className="w-full h-8 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(statusLabels).map(([key, label]) => (
+                        <SelectItem key={key} value={key}>{label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            )}
+
+            {/* Inspection PDF */}
+            {selected && selected.pdfUrl && (
               <button
                 onClick={() => window.open(selected.pdfUrl, "_blank")}
                 className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium bg-primary/5 text-primary hover:bg-primary/10 transition-colors"
@@ -988,145 +1017,146 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
                 <Eye className="h-3.5 w-3.5" />
                 Προβολή Δελτίου Αυτοψίας
               </button>
-            </div>
-          )}
+            )}
 
-          {history && history.length > 0 && (
-            <div className="mt-4 pt-4 border-t border-border/30">
-              <div className="flex items-center gap-2 mb-3">
-                <Clock className="h-4 w-4 text-accent" />
-                <h3 className="text-sm font-semibold">Ιστορικό Αλλαγών</h3>
-              </div>
-              <div className="space-y-0 relative">
-                <div className="absolute left-[7px] top-2 bottom-2 w-px bg-border/50" />
-                {history.map((h: any, i: number) => (
-                  <div key={h.id || i} className="flex items-start gap-3 py-1.5 relative">
-                    <div className="h-[15px] w-[15px] rounded-full border-2 border-accent bg-background z-10 shrink-0 mt-0.5" />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5 text-xs">
-                        <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${statusColors[h.old_status] || 'bg-muted text-muted-foreground'}`}>
-                          {statusLabels[h.old_status as keyof typeof statusLabels] || h.old_status || '—'}
-                        </span>
-                        <ArrowRight className="h-3 w-3 text-muted-foreground/50" />
-                        <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${statusColors[h.new_status] || 'bg-muted text-muted-foreground'}`}>
-                          {statusLabels[h.new_status as keyof typeof statusLabels] || h.new_status}
-                        </span>
+            {/* History */}
+            {history && history.length > 0 && (
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <Clock className="h-4 w-4 text-accent" />
+                  <h3 className="text-sm font-semibold">Ιστορικό Αλλαγών</h3>
+                </div>
+                <div className="space-y-0 relative">
+                  <div className="absolute left-[7px] top-2 bottom-2 w-px bg-border/50" />
+                  {history.map((h: any, i: number) => (
+                    <div key={h.id || i} className="flex items-start gap-3 py-1.5 relative">
+                      <div className="h-[15px] w-[15px] rounded-full border-2 border-accent bg-background z-10 shrink-0 mt-0.5" />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5 text-xs">
+                          <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${statusColors[h.old_status] || 'bg-muted text-muted-foreground'}`}>
+                            {statusLabels[h.old_status as keyof typeof statusLabels] || h.old_status || '—'}
+                          </span>
+                          <ArrowRight className="h-3 w-3 text-muted-foreground/50" />
+                          <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${statusColors[h.new_status] || 'bg-muted text-muted-foreground'}`}>
+                            {statusLabels[h.new_status as keyof typeof statusLabels] || h.new_status}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground/60 mt-0.5 font-bold">
+                          {new Date(h.created_at).toLocaleDateString('el-GR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                        </p>
                       </div>
-                      <p className="text-[10px] text-muted-foreground/60 mt-0.5 font-bold">
-                        {new Date(h.created_at).toLocaleDateString('el-GR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })}
-                      </p>
                     </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* SR Comments */}
-          {selected && <SRComments assignmentId={selected.id} />}
-
-          {/* Crew Assignment Panel (admin only) */}
-          {selected && isAdmin && (
-            <div className="mt-4 pt-4 border-t border-border/30">
-              <CrewAssignmentPanel assignment={selected} />
-            </div>
-          )}
-
-          {/* Drive Folder Section */}
-          <div className="mt-4 pt-4 border-t border-border/30">
-            <div className="flex items-center gap-2 mb-3">
-              <FolderOpen className="h-4 w-4 text-primary" />
-              <h3 className="text-sm font-semibold">Φάκελος Έργου (Drive)</h3>
-            </div>
-
-            {driveLoading && (
-              <div className="flex items-center gap-2 py-4 text-xs text-muted-foreground">
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                Αναζήτηση φακέλου...
+                  ))}
+                </div>
               </div>
             )}
 
-            {!driveLoading && driveData?.found && (
-              <div className="space-y-3">
-                {driveData.folder?.webViewLink && (
-                  <a
-                    href={driveData.folder.webViewLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2 rounded-md bg-primary/5 border border-primary/20 px-3 py-2 text-xs text-primary hover:bg-primary/10 transition-colors"
-                  >
-                    <FolderOpen className="h-4 w-4" />
-                    <span className="font-medium">Άνοιγμα Φακέλου {driveData.folder.name}</span>
-                    <ExternalLink className="h-3 w-3 ml-auto" />
-                  </a>
-                )}
+            {/* SR Comments */}
+            {selected && <SRComments assignmentId={selected.id} />}
 
-                {driveData.files && driveData.files.length > 0 && (
-                  <div>
-                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground/70 mb-1">Αρχεία</p>
-                    <div className="space-y-0.5">
-                      {driveData.files.map((f) => (
-                        <FileItem key={f.id} file={f} />
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {driveData.subfolders && Object.entries(driveData.subfolders).map(([name, sub]) => (
-                  <div key={name}>
-                    <div className="flex items-center gap-2 mb-1">
-                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground/70">
-                        📁 {name}
-                      </p>
-                      <span className="text-[10px] text-muted-foreground/50">
-                        ({sub.files.length} αρχεία)
-                      </span>
-                      {sub.webViewLink && (
-                        <a href={sub.webViewLink} target="_blank" rel="noopener noreferrer" className="ml-auto">
-                          <ExternalLink className="h-3 w-3 text-muted-foreground/50 hover:text-primary transition-colors" />
-                        </a>
-                      )}
-                    </div>
-                    <div className="space-y-0.5 pl-2 border-l border-border/30">
-                      {sub.files.slice(0, 5).map((f) => (
-                        <FileItem key={f.id} file={f} />
-                      ))}
-                      {sub.files.length > 5 && (
-                        <a
-                          href={sub.webViewLink || "#"}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="block text-[10px] text-primary hover:underline pl-2 py-1"
-                        >
-                          +{sub.files.length - 5} ακόμα αρχεία →
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                ))}
+            {/* Crew Assignment Panel */}
+            {selected && isAdmin && (
+              <div className="pt-4 border-t border-border/30">
+                <CrewAssignmentPanel assignment={selected} />
               </div>
             )}
 
-            {!driveLoading && driveData && !driveData.found && (
-              <p className="text-xs text-muted-foreground/70 py-2">
-                Δεν βρέθηκε φάκελος για SR {selected?.srId} στο Drive
-              </p>
-            )}
+            {/* Drive */}
+            <div className="pt-4 border-t border-border/30">
+              <div className="flex items-center gap-2 mb-3">
+                <FolderOpen className="h-4 w-4 text-primary" />
+                <h3 className="text-sm font-semibold">Φάκελος Έργου (Drive)</h3>
+              </div>
 
-            {!driveLoading && !driveData && (
-              <p className="text-xs text-muted-foreground/70 py-2">
-                Δεν ήταν δυνατή η σύνδεση με το Drive
-              </p>
-            )}
+              {driveLoading && (
+                <div className="flex items-center gap-2 py-4 text-xs text-muted-foreground">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  Αναζήτηση φακέλου...
+                </div>
+              )}
+
+              {!driveLoading && driveData?.found && (
+                <div className="space-y-3">
+                  {driveData.folder?.webViewLink && (
+                    <a
+                      href={driveData.folder.webViewLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 rounded-md bg-primary/5 border border-primary/20 px-3 py-2 text-xs text-primary hover:bg-primary/10 transition-colors"
+                    >
+                      <FolderOpen className="h-4 w-4" />
+                      <span className="font-medium">Άνοιγμα Φακέλου {driveData.folder.name}</span>
+                      <ExternalLink className="h-3 w-3 ml-auto" />
+                    </a>
+                  )}
+
+                  {driveData.files && driveData.files.length > 0 && (
+                    <div>
+                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground/70 mb-1">Αρχεία</p>
+                      <div className="space-y-0.5">
+                        {driveData.files.map((f) => (
+                          <FileItem key={f.id} file={f} />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {driveData.subfolders && Object.entries(driveData.subfolders).map(([name, sub]) => (
+                    <div key={name}>
+                      <div className="flex items-center gap-2 mb-1">
+                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground/70">
+                          📁 {name}
+                        </p>
+                        <span className="text-[10px] text-muted-foreground/50">
+                          ({sub.files.length} αρχεία)
+                        </span>
+                        {sub.webViewLink && (
+                          <a href={sub.webViewLink} target="_blank" rel="noopener noreferrer" className="ml-auto">
+                            <ExternalLink className="h-3 w-3 text-muted-foreground/50 hover:text-primary transition-colors" />
+                          </a>
+                        )}
+                      </div>
+                      <div className="space-y-0.5 pl-2 border-l border-border/30">
+                        {sub.files.slice(0, 5).map((f) => (
+                          <FileItem key={f.id} file={f} />
+                        ))}
+                        {sub.files.length > 5 && (
+                          <a
+                            href={sub.webViewLink || "#"}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="block text-[10px] text-primary hover:underline pl-2 py-1"
+                          >
+                            +{sub.files.length - 5} ακόμα αρχεία →
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {!driveLoading && driveData && !driveData.found && (
+                <p className="text-xs text-muted-foreground/70 py-2">
+                  Δεν βρέθηκε φάκελος για SR {selected?.srId} στο Drive
+                </p>
+              )}
+
+              {!driveLoading && !driveData && (
+                <p className="text-xs text-muted-foreground/70 py-2">
+                  Δεν ήταν δυνατή η σύνδεση με το Drive
+                </p>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="pt-3 border-t border-border/30 flex items-center justify-between text-[10px] text-muted-foreground/50">
+              <span>Πηγή: {selected?.sourceTab || '—'}</span>
+              <span>{selected?.date}</span>
+            </div>
           </div>
-
-          {/* Footer */}
-          <div className="mt-3 pt-3 border-t border-border/30 flex items-center justify-between text-[10px] text-muted-foreground/50">
-            <span>Πηγή: {selected?.sourceTab || '—'}</span>
-            <span>{selected?.date}</span>
-          </div>
-        </DialogContent>
-      </Dialog>
+        </SheetContent>
+      </Sheet>
 
       {/* Delete Confirmation */}
       <AlertDialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}>
@@ -1156,7 +1186,7 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
           <AlertDialogHeader>
             <AlertDialogTitle>Μαζική Διαγραφή</AlertDialogTitle>
             <AlertDialogDescription>
-              Είστε σίγουροι ότι θέλετε να διαγράψετε <strong className="text-foreground">{selectedIds.length}</strong> αναθέσεις; Θα διαγραφούν και όλα τα σχετικά δεδομένα (κατασκευές, GIS, ιστορικό κτλ). Αυτή η ενέργεια δεν μπορεί να αναιρεθεί.
+              Θέλετε να διαγράψετε <strong className="text-foreground">{selectedIds.length}</strong> αναθέσεις; Αυτή η ενέργεια δεν μπορεί να αναιρεθεί.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -1166,12 +1196,11 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
               disabled={bulkUpdating}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {bulkUpdating ? "Διαγραφή..." : `Διαγραφή ${selectedIds.length} αναθέσεων`}
+              {bulkUpdating ? "Διαγραφή..." : "Διαγραφή Όλων"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
     </>
   );
 };
