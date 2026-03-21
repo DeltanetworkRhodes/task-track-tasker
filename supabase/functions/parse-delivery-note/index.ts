@@ -88,8 +88,8 @@ Deno.serve(async (req) => {
             .eq("id", existing[0].id);
           if (!error) updated++;
         } else {
-          // Create new material for this organization
-          const { error } = await supabase.from("materials").insert({
+          // Create new material for this organization (upsert to handle duplicates)
+          const { error } = await supabase.from("materials").upsert({
             code: item.code,
             name: item.name || item.code,
             stock: item.quantity,
@@ -97,10 +97,10 @@ Deno.serve(async (req) => {
             price: 0,
             unit: item.unit || "τεμ.",
             organization_id: organization_id || null,
-          });
+          }, { onConflict: "code,organization_id" });
           if (!error) created++;
           else {
-            console.error(`Insert error for ${item.code}:`, error.message);
+            console.error(`Upsert error for ${item.code}:`, error.message);
             notFound.push(item.code);
           }
         }
