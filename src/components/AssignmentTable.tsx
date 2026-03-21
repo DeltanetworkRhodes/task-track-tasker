@@ -776,15 +776,16 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
               )}
               {orderedColumns.map(col => {
                 if (!visibleColumns.includes(col.key)) return null;
-                if (col.key === "technician" || col.key === "status" || col.key === "callStatus") {
-                  return (
-                    <th key={col.key} className="py-2.5 px-2 text-left font-medium text-muted-foreground text-[11px] uppercase tracking-wider whitespace-nowrap">
-                      {col.label}
-                    </th>
-                  );
-                }
                 return (
-                  <th key={col.key} className="py-2.5 px-2 text-left font-medium text-muted-foreground text-[11px] uppercase tracking-wider whitespace-nowrap">
+                  <th
+                    key={col.key}
+                    draggable
+                    onDragStart={(e) => handleColumnDragStart(e, col.key)}
+                    onDragOver={(e) => handleColumnDragOver(e, col.key)}
+                    onDragEnd={handleColumnDragEnd}
+                    onDragLeave={handleColumnDragLeave}
+                    className={`py-2.5 px-2 text-left font-medium text-muted-foreground text-[11px] uppercase tracking-wider whitespace-nowrap cursor-grab active:cursor-grabbing select-none transition-colors ${dragOverKey === col.key ? 'bg-primary/10' : ''}`}
+                  >
                     {col.label}
                   </th>
                 );
