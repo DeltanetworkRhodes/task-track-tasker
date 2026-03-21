@@ -203,8 +203,8 @@ Deno.serve(async (req) => {
         const category = getCategoryForCode(code);
 
         const { error } = await supabase.from("work_pricing").upsert(
-          { code, description, unit_price: unitPrice, category, unit: "τεμ." },
-          { onConflict: "code" }
+          { code, description, unit_price: unitPrice, category, unit: "τεμ.", organization_id: organizationId },
+          { onConflict: "code,organization_id" }
         );
         if (error) {
           results.errors.push(`WorkPricing ${code}: ${error.message}`);
