@@ -240,9 +240,7 @@ const Index = () => {
                   </p>
                 </div>
               </div>
-              <div className="hidden sm:block shrink-0">
-                <SyncButton />
-              </div>
+            
             </div>
 
             {/* Quick stats row */}
