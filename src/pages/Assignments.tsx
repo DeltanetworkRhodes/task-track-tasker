@@ -61,6 +61,17 @@ const Assignments = () => {
         lastCalledAt: (a as any).last_called_at || null,
         callCount: (a as any).call_count || 0,
         appointmentAt: (a as any).appointment_at || null,
+        // New fields
+        workType: (a as any).work_type || "",
+        requestCategory: (a as any).request_category || "",
+        floor: (a as any).floor || "",
+        municipality: (a as any).municipality || "",
+        customerMobile: (a as any).customer_mobile || "",
+        customerLandline: (a as any).customer_landline || "",
+        customerEmail: (a as any).customer_email || "",
+        managerName: (a as any).manager_name || "",
+        managerMobile: (a as any).manager_mobile || "",
+        managerEmail: (a as any).manager_email || "",
       }))
     : [];
 

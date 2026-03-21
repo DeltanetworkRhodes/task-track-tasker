@@ -152,15 +152,23 @@ export type Database = {
           call_status: string | null
           comments: string | null
           created_at: string
+          customer_email: string | null
+          customer_landline: string | null
+          customer_mobile: string | null
           customer_name: string | null
           drive_egrafa_url: string | null
           drive_folder_url: string | null
           drive_promeleti_url: string | null
+          floor: string | null
           google_sheet_row_id: number | null
           id: string
           last_called_at: string | null
           latitude: number | null
           longitude: number | null
+          manager_email: string | null
+          manager_mobile: string | null
+          manager_name: string | null
+          municipality: string | null
           organization_id: string | null
           paid_at: string | null
           payment_amount: number | null
@@ -169,12 +177,14 @@ export type Database = {
           pdf_url: string | null
           phone: string | null
           photos_count: number | null
+          request_category: string | null
           source_tab: string | null
           sr_id: string
           status: string
           submitted_at: string | null
           technician_id: string | null
           updated_at: string
+          work_type: string | null
         }
         Insert: {
           address?: string | null
@@ -187,15 +197,23 @@ export type Database = {
           call_status?: string | null
           comments?: string | null
           created_at?: string
+          customer_email?: string | null
+          customer_landline?: string | null
+          customer_mobile?: string | null
           customer_name?: string | null
           drive_egrafa_url?: string | null
           drive_folder_url?: string | null
           drive_promeleti_url?: string | null
+          floor?: string | null
           google_sheet_row_id?: number | null
           id?: string
           last_called_at?: string | null
           latitude?: number | null
           longitude?: number | null
+          manager_email?: string | null
+          manager_mobile?: string | null
+          manager_name?: string | null
+          municipality?: string | null
           organization_id?: string | null
           paid_at?: string | null
           payment_amount?: number | null
@@ -204,12 +222,14 @@ export type Database = {
           pdf_url?: string | null
           phone?: string | null
           photos_count?: number | null
+          request_category?: string | null
           source_tab?: string | null
           sr_id: string
           status?: string
           submitted_at?: string | null
           technician_id?: string | null
           updated_at?: string
+          work_type?: string | null
         }
         Update: {
           address?: string | null
@@ -222,15 +242,23 @@ export type Database = {
           call_status?: string | null
           comments?: string | null
           created_at?: string
+          customer_email?: string | null
+          customer_landline?: string | null
+          customer_mobile?: string | null
           customer_name?: string | null
           drive_egrafa_url?: string | null
           drive_folder_url?: string | null
           drive_promeleti_url?: string | null
+          floor?: string | null
           google_sheet_row_id?: number | null
           id?: string
           last_called_at?: string | null
           latitude?: number | null
           longitude?: number | null
+          manager_email?: string | null
+          manager_mobile?: string | null
+          manager_name?: string | null
+          municipality?: string | null
           organization_id?: string | null
           paid_at?: string | null
           payment_amount?: number | null
@@ -239,12 +267,14 @@ export type Database = {
           pdf_url?: string | null
           phone?: string | null
           photos_count?: number | null
+          request_category?: string | null
           source_tab?: string | null
           sr_id?: string
           status?: string
           submitted_at?: string | null
           technician_id?: string | null
           updated_at?: string
+          work_type?: string | null
         }
         Relationships: [
           {

@@ -854,10 +854,28 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
             <DetailRow icon={User} label="Πελάτης" value={selected?.customerName} />
             <DetailRow icon={MapPin} label="Διεύθυνση" value={selected?.address} />
             <DetailRow icon={Phone} label="Τηλέφωνο" value={selected?.phone} />
+            <DetailRow icon={Phone} label="Κινητό Πελάτη" value={(selected as any)?.customerMobile} />
+            <DetailRow icon={Phone} label="Σταθερό Πελάτη" value={(selected as any)?.customerLandline} />
+            <DetailRow icon={User} label="Email Πελάτη" value={(selected as any)?.customerEmail} />
             <DetailRow icon={Hash} label="Καμπίνα (CAB)" value={selected?.cab} />
+            <DetailRow icon={Hash} label="Όροφος" value={(selected as any)?.floor} />
+            <DetailRow icon={MapPin} label="Δήμος" value={(selected as any)?.municipality} />
+            <DetailRow icon={Hash} label="Τύπος Εργασίας" value={(selected as any)?.workType} />
             <DetailRow icon={User} label="Υπεύθυνος" value={selected?.technicianId ? techMap[selected.technicianId] : null} />
             <DetailRow icon={MessageSquare} label="Σχόλια" value={selected?.comments} />
           </div>
+
+          {/* Manager Info */}
+          {((selected as any)?.managerName || (selected as any)?.managerMobile) && (
+            <div className="mt-3 pt-3 border-t border-border/30">
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground/70 mb-1">Στοιχεία Διαχειριστή</p>
+              <div className="space-y-0">
+                <DetailRow icon={User} label="Διαχειριστής" value={(selected as any)?.managerName} />
+                <DetailRow icon={Phone} label="Κινητό Διαχ." value={(selected as any)?.managerMobile} />
+                <DetailRow icon={User} label="Email Διαχ." value={(selected as any)?.managerEmail} />
+              </div>
+            </div>
+          )}
 
           {/* Assign in modal */}
           {selected && (
