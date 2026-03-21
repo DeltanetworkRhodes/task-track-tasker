@@ -62,7 +62,7 @@ Deno.serve(async (req) => {
     // === JSON mode: confirm & save previously extracted materials ===
     if (contentType.includes("application/json")) {
       const body = await req.json();
-      const { materials: confirmedMaterials, source } = body;
+      const { materials: confirmedMaterials, source, organization_id } = body;
       if (!confirmedMaterials || !source) throw new Error("Missing materials or source");
       if (source !== "OTE" && source !== "DELTANETWORK") throw new Error("Invalid source");
 
@@ -71,12 +71,14 @@ Deno.serve(async (req) => {
       const notFound: string[] = [];
 
       for (const item of confirmedMaterials) {
-        const { data: existing } = await supabase
+        // Search within the same organization
+        let query = supabase
           .from("materials")
           .select("id, code, stock, source")
           .eq("source", source)
-          .ilike("code", `%${item.code}%`)
-          .limit(1);
+          .ilike("code", `%${item.code}%`);
+        if (organization_id) query = query.eq("organization_id", organization_id);
+        const { data: existing } = await query.limit(1);
 
         if (existing && existing.length > 0) {
           const newStock = Number(existing[0].stock) + item.quantity;
@@ -86,6 +88,7 @@ Deno.serve(async (req) => {
             .eq("id", existing[0].id);
           if (!error) updated++;
         } else {
+          // Create new material for this organization
           const { error } = await supabase.from("materials").insert({
             code: item.code,
             name: item.name || item.code,
@@ -93,9 +96,13 @@ Deno.serve(async (req) => {
             source: source,
             price: 0,
             unit: item.unit || "τεμ.",
+            organization_id: organization_id || null,
           });
           if (!error) created++;
-          else notFound.push(item.code);
+          else {
+            console.error(`Insert error for ${item.code}:`, error.message);
+            notFound.push(item.code);
+          }
         }
       }
 

@@ -339,7 +339,7 @@ const SetupWizard = ({ onDismiss, demoMode = false }: SetupWizardProps) => {
             Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ materials: extracted, source: "OTE" }),
+          body: JSON.stringify({ materials: extracted, source: "OTE", organization_id: organizationId }),
         }
       );
       const confirmData = await confirmRes.json();
