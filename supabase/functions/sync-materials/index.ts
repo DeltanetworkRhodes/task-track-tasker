@@ -231,7 +231,7 @@ Deno.serve(async (req) => {
       const profit = parseValue(r[3] || 0);
 
       const { error } = await supabase.from("profit_per_sr").upsert(
-        { sr_id, revenue, expenses, profit },
+        { sr_id, revenue, expenses, profit, organization_id: organizationId },
         { onConflict: "sr_id" }
       );
       if (error) {
