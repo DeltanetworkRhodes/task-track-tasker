@@ -6,13 +6,13 @@ import AppLayout from "@/components/AppLayout";
 import deltaLogoIcon from "@/assets/delta-logo-icon.png";
 import StatCard from "@/components/StatCard";
 import AssignmentTable from "@/components/AssignmentTable";
-import SyncButton from "@/components/SyncButton";
+
 import SetupWizard from "@/components/SetupWizard";
 import PaymentTracker from "@/components/PaymentTracker";
 import CallDashboardWidget from "@/components/CallDashboardWidget";
 import { useAssignments, useConstructions } from "@/hooks/useData";
 import { statusLabels } from "@/data/mockData";
-import { ClipboardCheck, Wrench, TrendingUp, Euro, FolderOpen, Activity, Wifi, PieChartIcon, CalendarDays, Timer, Zap, Wallet } from "lucide-react";
+import { ClipboardCheck, Wrench, TrendingUp, Euro, Activity, Wifi, PieChartIcon, CalendarDays, Timer, Zap, Wallet } from "lucide-react";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { BarChart, Bar, XAxis, YAxis, Cell, PieChart, Pie, LineChart, Line, CartesianGrid, ResponsiveContainer } from "recharts";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -127,7 +127,7 @@ const Index = () => {
   const totalRevenue = constructions.reduce((sum, c) => sum + c.revenue, 0);
   const totalProfit = constructions.reduce((sum, c) => sum + c.profit, 0);
   const activeConstructions = constructions.filter(c => c.status === 'in_progress').length;
-  const withDrive = assignments.filter(a => (a as any).driveUrl).length;
+  
 
   // Status distribution
   const statusCounts = Object.entries(
@@ -240,9 +240,7 @@ const Index = () => {
                   </p>
                 </div>
               </div>
-              <div className="hidden sm:block shrink-0">
-                <SyncButton />
-              </div>
+            
             </div>
 
             {/* Quick stats row */}
@@ -263,10 +261,7 @@ const Index = () => {
               </div>
             </div>
 
-            {/* Mobile sync button */}
-            <div className="mt-4 sm:hidden">
-              <SyncButton />
-            </div>
+            
           </div>
         </div>
 
@@ -294,7 +289,7 @@ const Index = () => {
           <StatCard title="Κατασκευές" value={activeConstructions} subtitle="σε εξέλιξη" icon={Wrench} accent />
           <StatCard title="Έσοδα" value={`${totalRevenue.toLocaleString('el-GR')}€`} subtitle="κατασκευών" icon={Euro} trend="up" trendValue={`${totalProfit.toLocaleString('el-GR')}€ κέρδος`} />
           <StatCard title="Καθαρό Κέρδος" value={`${totalProfit.toLocaleString('el-GR')}€`} subtitle={`${totalRevenue > 0 ? Math.round((totalProfit / totalRevenue) * 100) : 0}% margin`} icon={TrendingUp} trend={totalProfit > 0 ? 'up' : 'down'} trendValue={`${constructions.length} κατ.`} accent />
-          <StatCard title="Drive Folders" value={withDrive} subtitle={`από ${assignments.length}`} icon={FolderOpen} />
+          <StatCard title="Εκκρεμείς Πληρωμές" value={`${pendingPaymentTotal.toLocaleString('el-GR')}€`} subtitle={`${pendingPayments.length} SR`} icon={Wallet} accent />
           <StatCard title="Εκκρεμείς Πληρωμές" value={`${pendingPaymentTotal.toLocaleString('el-GR')}€`} subtitle={`${pendingPayments.length} SR`} icon={Wallet} accent />
         </div>
 
