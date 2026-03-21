@@ -289,27 +289,44 @@ const SetupWizard = ({ onDismiss, demoMode = false }: SetupWizardProps) => {
     }
   };
 
-  // ═══════════ STEP 4: Materials & Pricing ═══════════
-  const handleLoadMaterials = async () => {
+  // ═══════════ STEP 4: Materials (PDF Upload) & Pricing ═══════════
+  const handleUploadDeliveryNote = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
     if (demoMode) {
       setLoadingMaterials(true);
       await new Promise(r => setTimeout(r, 1500));
+      setMaterialsCount(125);
       setMaterialsLoaded(true);
       setLoadingMaterials(false);
-      toast.success("Demo: 847 υλικά φορτώθηκαν");
+      toast.success("Demo: 125 υλικά φορτώθηκαν από δελτίο");
       return;
     }
 
     setLoadingMaterials(true);
     try {
-      await supabase.functions.invoke("sync-materials", {
-        body: { organizationId },
+      // Upload PDF to storage
+      const filePath = `delivery-notes/${organizationId}/${Date.now()}_${file.name}`;
+      const { error: uploadError } = await supabase.storage
+        .from("payment-docs")
+        .upload(filePath, file);
+      if (uploadError) throw uploadError;
+
+      // Parse delivery note via edge function
+      const { data, error } = await supabase.functions.invoke("parse-delivery-note", {
+        body: { filePath, organizationId, source: "OTE" },
       });
+      if (error) throw error;
+
+      const count = data?.materials?.length || data?.count || 0;
+      setMaterialsCount(count);
       setMaterialsLoaded(true);
+      queryClient.invalidateQueries({ queryKey: ["materials"] });
       queryClient.invalidateQueries({ queryKey: ["setup-checklist"] });
-      toast.success("Υλικά φορτώθηκαν επιτυχώς!");
+      toast.success(`${count} υλικά φορτώθηκαν από το δελτίο αποστολής!`);
     } catch (err: any) {
-      toast.error("Σφάλμα φόρτωσης υλικών: " + (err.message || ""));
+      toast.error("Σφάλμα ανάγνωσης δελτίου: " + (err.message || "Δοκιμάστε ξανά"));
     } finally {
       setLoadingMaterials(false);
     }
