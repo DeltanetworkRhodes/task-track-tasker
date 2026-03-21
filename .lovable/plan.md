@@ -1,56 +1,44 @@
 
 
-# Σύνδεση με Google Drive API
+# Revised Plan: Database Expansion + Smart Import
 
-## Κατάσταση
+## New Columns to Add (10 only)
 
-Δεν υπάρχει έτοιμος Google Drive connector στο Lovable. Θα χρειαστεί σύνδεση μέσω **Google Drive API** με Service Account, ώστε να διαβάζουμε αυτόματα τα Google Sheets (Form Responses) και αρχεία από το Drive σου.
+| Column | Type | Source |
+|--------|------|--------|
+| `work_type` | text | IFS-FSM (Τύπος εργασίας) |
+| `request_category` | text | IFS-FSM (Κατηγορία Αιτήματος) |
+| `floor` | text | Both (Όροφος) |
+| `municipality` | text | Both (Δήμος) |
+| `customer_mobile` | text | CRM Raw (Κινητό Πελάτη) |
+| `customer_landline` | text | CRM Raw (Σταθερό Πελάτη) |
+| `customer_email` | text | CRM Raw (E-mail Πελάτη) |
+| `manager_name` | text | CRM Raw (Ονοματεπώνυμο Διαχειριστή) |
+| `manager_mobile` | text | CRM Raw (Κινητό Διαχειριστή) |
+| `manager_email` | text | CRM Raw (E-mail Διαχειριστή) |
 
-## Τι χρειάζεται από εσένα
+Note: `phone`, `customer_name`, `cab`, `building_id_hemd`, `address` already exist.
 
-1. **Google Cloud Console** — Δημιουργία ενός Service Account:
-   - Πήγαινε στο [Google Cloud Console](https://console.cloud.google.com/)
-   - Ενεργοποίησε τα APIs: **Google Drive API** και **Google Sheets API**
-   - Δημιούργησε ένα **Service Account** και κατέβασε το JSON key
-   - Κάνε **Share** τα Google Sheets και τους φακέλους Drive σου με το email του Service Account (π.χ. `xxx@project.iam.gserviceaccount.com`)
+## Steps
 
-2. **Credentials** — Θα σου ζητήσω να τα αποθηκεύσεις ως secrets:
-   - `GOOGLE_SERVICE_ACCOUNT_KEY` (το JSON key)
-   - IDs των Google Sheets (Form Responses 4, Form Responses 8, ΒΑΣΗ_ΤΙΜΟΛΟΓΗΣΗΣ κλπ.)
+### 1. Database Migration
+Add the 10 new nullable text columns to `assignments`.
 
-## Τι θα φτιαχτεί
+### 2. Update AssignmentsImport.tsx
+- **Import tab (IFS-FSM)**: Map `work_type`, `request_category`, `floor`, `municipality` from the formatted Excel alongside existing fields (SR ID, area, address, coordinates).
+- **Enrichment tab (CRM Raw)**: Map `customer_mobile`, `customer_landline`, `customer_email`, `manager_name`, `manager_mobile`, `manager_email` plus existing fields (`phone`, `customer_name`, `cab`, `building_id_hemd`).
+- Add a grouped checkbox UI so users can toggle which field categories to import:
+  - **Βασικά** (always on): SR ID, Περιοχή
+  - **Διεύθυνση**: Οδός, Αριθμός, Όροφος, Δήμος
+  - **Πελάτης**: Όνομα, Κινητό, Σταθερό, Email
+  - **Διαχειριστής**: Όνομα, Κινητό, Email
+  - **Τεχνικά**: Τύπος Εργασίας, Κατηγορία, CAB, Building ID
 
-### 1. Edge Function: `google-drive-sync`
-- Συνδέεται στο Google Drive/Sheets API μέσω Service Account
-- Διαβάζει τα δεδομένα από τα Google Sheets (Form Responses 4 → assignments, Form Responses 8 → constructions/materials)
-- Συγχρονίζει (upsert) τα δεδομένα στους πίνακες της βάσης
-- Μπορεί να καλείται χειροκίνητα ή με cron
+### 3. Update AssignmentTable / Detail Views
+Show the new fields (manager info, customer contacts) in the assignment detail panel where relevant.
 
-### 2. Edge Function: `google-drive-files`
-- Λίστα αρχείων/φακέλων από το Drive
-- Download φωτογραφιών και PDFs
-- Αποθήκευση στο Cloud Storage (bucket `photos`)
-
-### 3. Ενημέρωση σελίδων
-- Οι σελίδες Assignments, Construction, Materials θα χρησιμοποιούν τα πραγματικά δεδομένα από τη βάση (αντί mock data)
-- Κουμπί "Συγχρονισμός από Drive" στο dashboard
-- Εμφάνιση links προς τους φακέλους Drive ανά SR ID
-
-### 4. Database updates
-- Προσθήκη πεδίου `google_sheet_row_id` στους πίνακες assignments/constructions για αντιστοίχιση εγγραφών
-- Migration για τα νέα πεδία
-
-## Σειρά υλοποίησης
-
-1. Αποθήκευση Google Service Account key ως secret
-2. Δημιουργία edge function για ανάγνωση Sheets
-3. Δημιουργία edge function για αρχεία Drive
-4. Ενημέρωση UI με sync κουμπί και πραγματικά δεδομένα
-5. Αντικατάσταση mock data με live queries
-
-## Σημείωση
-
-Πριν προχωρήσω στην υλοποίηση, θα χρειαστώ:
-- Το **Google Service Account JSON key**
-- Τα **IDs** (ή URLs) των Google Sheets που χρησιμοποιείς (Form Responses 4, Form Responses 8, ΒΑΣΗ_ΤΙΜΟΛΟΓΗΣΗΣ, ΒΑΣΗ_ΥΛΙΚΩΝ)
+### Files to Modify
+1. New migration — `ALTER TABLE assignments ADD COLUMN ...` (10 columns)
+2. `src/components/AssignmentsImport.tsx` — expanded mapping + checkbox UI
+3. `src/components/AssignmentTable.tsx` — display new fields in detail view
 
