@@ -146,8 +146,8 @@ Deno.serve(async (req) => {
 
       // Update price if material already exists from ΑΠΟΘΗΚΗ, otherwise insert
       const { error } = await supabase.from("materials").upsert(
-        { code, name, price, unit, source },
-        { onConflict: "code" }
+        { code, name, price, unit, source, organization_id: organizationId },
+        { onConflict: "code,organization_id" }
       );
       if (error) {
         results.errors.push(`BasiYlikon ${code}: ${error.message}`);
