@@ -72,6 +72,9 @@ const Assignments = () => {
         managerName: (a as any).manager_name || "",
         managerMobile: (a as any).manager_mobile || "",
         managerEmail: (a as any).manager_email || "",
+        buildingId: (a as any).building_id_hemd || "",
+        latitude: (a as any).latitude || null,
+        longitude: (a as any).longitude || null,
       }))
     : [];
 
