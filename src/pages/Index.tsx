@@ -289,7 +289,7 @@ const Index = () => {
           <StatCard title="Κατασκευές" value={activeConstructions} subtitle="σε εξέλιξη" icon={Wrench} accent />
           <StatCard title="Έσοδα" value={`${totalRevenue.toLocaleString('el-GR')}€`} subtitle="κατασκευών" icon={Euro} trend="up" trendValue={`${totalProfit.toLocaleString('el-GR')}€ κέρδος`} />
           <StatCard title="Καθαρό Κέρδος" value={`${totalProfit.toLocaleString('el-GR')}€`} subtitle={`${totalRevenue > 0 ? Math.round((totalProfit / totalRevenue) * 100) : 0}% margin`} icon={TrendingUp} trend={totalProfit > 0 ? 'up' : 'down'} trendValue={`${constructions.length} κατ.`} accent />
-          <StatCard title="Drive Folders" value={withDrive} subtitle={`από ${assignments.length}`} icon={FolderOpen} />
+          <StatCard title="Εκκρεμείς Πληρωμές" value={`${pendingPaymentTotal.toLocaleString('el-GR')}€`} subtitle={`${pendingPayments.length} SR`} icon={Wallet} accent />
           <StatCard title="Εκκρεμείς Πληρωμές" value={`${pendingPaymentTotal.toLocaleString('el-GR')}€`} subtitle={`${pendingPayments.length} SR`} icon={Wallet} accent />
         </div>
 
