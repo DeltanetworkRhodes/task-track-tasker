@@ -1150,6 +1150,28 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* Bulk Delete Confirmation */}
+      <AlertDialog open={bulkDeleteConfirm} onOpenChange={setBulkDeleteConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Μαζική Διαγραφή</AlertDialogTitle>
+            <AlertDialogDescription>
+              Είστε σίγουροι ότι θέλετε να διαγράψετε <strong className="text-foreground">{selectedIds.length}</strong> αναθέσεις; Θα διαγραφούν και όλα τα σχετικά δεδομένα (κατασκευές, GIS, ιστορικό κτλ). Αυτή η ενέργεια δεν μπορεί να αναιρεθεί.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={bulkUpdating}>Ακύρωση</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleBulkDelete}
+              disabled={bulkUpdating}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {bulkUpdating ? "Διαγραφή..." : `Διαγραφή ${selectedIds.length} αναθέσεων`}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
     </>
   );
 };
