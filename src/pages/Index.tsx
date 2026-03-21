@@ -127,7 +127,7 @@ const Index = () => {
   const totalRevenue = constructions.reduce((sum, c) => sum + c.revenue, 0);
   const totalProfit = constructions.reduce((sum, c) => sum + c.profit, 0);
   const activeConstructions = constructions.filter(c => c.status === 'in_progress').length;
-  const withDrive = assignments.filter(a => (a as any).driveUrl).length;
+  
 
   // Status distribution
   const statusCounts = Object.entries(
