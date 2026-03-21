@@ -539,6 +539,16 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
               ))}
             </SelectContent>
           </Select>
+          {isAdmin && (
+            <button
+              onClick={() => setBulkDeleteConfirm(true)}
+              disabled={bulkUpdating}
+              className="text-xs text-destructive hover:text-destructive/80 font-medium"
+            >
+              <Trash2 className="h-3 w-3 inline mr-1" />
+              Μαζική Διαγραφή
+            </button>
+          )}
           <button
             onClick={() => onSelectionChange?.([])}
             className="text-[10px] text-muted-foreground hover:text-foreground ml-auto"
