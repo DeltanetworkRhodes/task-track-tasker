@@ -350,6 +350,7 @@ const Materials = () => {
           body: JSON.stringify({
             source: previewData.source,
             materials: previewData.materials.filter(m => m.quantity > 0),
+            organization_id: organization?.id || null,
           }),
         }
       );
