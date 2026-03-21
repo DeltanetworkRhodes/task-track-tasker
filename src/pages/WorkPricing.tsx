@@ -79,6 +79,7 @@ const WorkPricing = () => {
         category: form.category.trim() || null,
         unit: form.unit.trim() || 'τεμ.',
         unit_price: Number(form.unit_price) || 0,
+        organization_id: organizationId,
       });
       if (error) throw error;
       toast.success('Εργασία προστέθηκε');
