@@ -100,16 +100,29 @@ const ALL_COLUMNS = [
   { key: "callStatus", label: "Κλήση", default: true },
   { key: "date", label: "Ημ/νία", default: true },
   { key: "comments", label: "Σχόλια", default: true },
-] as const;
+];
 
 const STORAGE_KEY = "assignment-visible-columns";
+const ORDER_STORAGE_KEY = "assignment-column-order";
 
-const getDefaultColumns = (): string[] => {
+interface ColumnConfig {
+  visible: string[];
+  order: string[];
+}
+
+const getDefaultConfig = (): ColumnConfig => {
   try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) return JSON.parse(saved);
+    const savedVisible = localStorage.getItem(STORAGE_KEY);
+    const savedOrder = localStorage.getItem(ORDER_STORAGE_KEY);
+    return {
+      visible: savedVisible ? JSON.parse(savedVisible) : ALL_COLUMNS.filter(c => c.default).map(c => c.key),
+      order: savedOrder ? JSON.parse(savedOrder) : ALL_COLUMNS.map(c => c.key),
+    };
   } catch {}
-  return ALL_COLUMNS.filter(c => c.default).map(c => c.key);
+  return {
+    visible: ALL_COLUMNS.filter(c => c.default).map(c => c.key),
+    order: ALL_COLUMNS.map(c => c.key),
+  };
 };
 
 // Hook to get technician profiles (filtered by organization)
