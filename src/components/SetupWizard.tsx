@@ -306,20 +306,46 @@ const SetupWizard = ({ onDismiss, demoMode = false }: SetupWizardProps) => {
 
     setLoadingMaterials(true);
     try {
-      // Upload PDF to storage
-      const filePath = `delivery-notes/${organizationId}/${Date.now()}_${file.name}`;
-      const { error: uploadError } = await supabase.storage
-        .from("payment-docs")
-        .upload(filePath, file);
-      if (uploadError) throw uploadError;
+      // Step 1: Extract materials from PDF via FormData
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("source", "OTE");
 
-      // Parse delivery note via edge function
-      const { data, error } = await supabase.functions.invoke("parse-delivery-note", {
-        body: { filePath, organizationId, source: "OTE" },
-      });
-      if (error) throw error;
+      const extractRes = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/parse-delivery-note`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: formData,
+        }
+      );
+      const extractData = await extractRes.json();
+      if (!extractRes.ok) throw new Error(extractData.error || "Extraction failed");
 
-      const count = data?.materials?.length || data?.count || 0;
+      const extracted = extractData.extracted || [];
+      if (extracted.length === 0) {
+        toast.info("Δεν βρέθηκαν υλικά στο PDF");
+        return;
+      }
+
+      // Step 2: Confirm & save materials to DB
+      const confirmRes = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/parse-delivery-note`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ materials: extracted, source: "OTE" }),
+        }
+      );
+      const confirmData = await confirmRes.json();
+      if (!confirmRes.ok) throw new Error(confirmData.error || "Save failed");
+
+      const count = extracted.length;
       setMaterialsCount(count);
       setMaterialsLoaded(true);
       queryClient.invalidateQueries({ queryKey: ["materials"] });
