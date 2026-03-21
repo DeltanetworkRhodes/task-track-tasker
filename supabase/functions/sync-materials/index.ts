@@ -68,13 +68,27 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const organizationId = body.organizationId || null;
 
-    const serviceAccountKey = JSON.parse(Deno.env.get("GOOGLE_SERVICE_ACCOUNT_KEY") || "{}");
-    const accessToken = await getAccessToken(serviceAccountKey);
-
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
+    // Get service account from org settings first, fall back to global for pricing sync
+    let serviceAccountKeyStr = Deno.env.get("GOOGLE_SERVICE_ACCOUNT_KEY") || "{}";
+    if (organizationId) {
+      const { data: orgSA } = await supabase
+        .from("org_settings")
+        .select("setting_value")
+        .eq("organization_id", organizationId)
+        .in("setting_key", ["service_account_key", "service_account_json"])
+        .limit(1)
+        .maybeSingle();
+      if (orgSA?.setting_value) serviceAccountKeyStr = orgSA.setting_value;
+    }
+
+    const serviceAccountKey = JSON.parse(serviceAccountKeyStr);
+    const accessToken = await getAccessToken(serviceAccountKey);
+
+    // Master OTE pricing spreadsheet (standard across all companies)
     const spreadsheetId = "1H7W4_SnDpnrHvFGGDhAWAf4KjRbilpUhmzdaO7fN2qU";
     const results: any = { materials: 0, work_pricing: 0, errors: [] };
 
