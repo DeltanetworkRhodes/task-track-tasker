@@ -192,15 +192,21 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
     });
   };
 
-  const handleDragStart = (idx: number) => {
-    dragItem.current = idx;
+  const [dragOverKey, setDragOverKey] = useState<string | null>(null);
+
+  const handleColumnDragStart = (e: React.DragEvent, key: string) => {
+    e.dataTransfer.effectAllowed = "move";
+    dragItem.current = columnOrder.indexOf(key);
   };
 
-  const handleDragEnter = (idx: number) => {
-    dragOverItem.current = idx;
+  const handleColumnDragOver = (e: React.DragEvent, key: string) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    setDragOverKey(key);
+    dragOverItem.current = columnOrder.indexOf(key);
   };
 
-  const handleDragEnd = () => {
+  const handleColumnDragEnd = () => {
     if (dragItem.current === null || dragOverItem.current === null) return;
     const newOrder = [...columnOrder];
     const draggedKey = newOrder[dragItem.current];
@@ -210,6 +216,11 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
     localStorage.setItem(ORDER_STORAGE_KEY, JSON.stringify(newOrder));
     dragItem.current = null;
     dragOverItem.current = null;
+    setDragOverKey(null);
+  };
+
+  const handleColumnDragLeave = () => {
+    setDragOverKey(null);
   };
 
   // Prefetch assignment details on hover
