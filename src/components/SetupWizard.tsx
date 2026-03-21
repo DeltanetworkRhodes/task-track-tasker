@@ -24,6 +24,8 @@ import {
   Mail,
   Loader2,
   SkipForward,
+  Upload,
+  FileText,
 } from "lucide-react";
 import deltaLogo from "@/assets/delta-logo-icon.png";
 
