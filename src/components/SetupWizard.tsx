@@ -403,13 +403,8 @@ const SetupWizard = ({ onDismiss, demoMode = false }: SetupWizardProps) => {
         errors.push("Τεχνικοί: Δεν έχετε προσθέσει τεχνικούς");
       }
 
-      const { count: materialCount } = await supabase
-        .from("materials")
-        .select("id", { count: "exact", head: true })
-        .eq("organization_id", organizationId!);
-      if ((materialCount || 0) === 0) {
-        errors.push("Αποθήκη: Δεν υπάρχουν υλικά");
-      }
+      // Materials are optional - can be uploaded later via delivery note
+      // No validation error for empty materials
 
       const { count: pricingCount } = await supabase
         .from("work_pricing")
