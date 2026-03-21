@@ -166,7 +166,10 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
   const [deleteTarget, setDeleteTarget] = useState<any>(null);
   const [deleting, setDeleting] = useState(false);
   const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
-  const [visibleColumns, setVisibleColumns] = useState<string[]>(getDefaultColumns);
+  const [visibleColumns, setVisibleColumns] = useState<string[]>(() => getDefaultConfig().visible);
+  const [columnOrder, setColumnOrder] = useState<string[]>(() => getDefaultConfig().order);
+  const dragItem = useRef<number | null>(null);
+  const dragOverItem = useRef<number | null>(null);
   
   const { data: technicians } = useTechnicians();
   const { data: userRole } = useUserRole();
@@ -176,6 +179,11 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
   const { organizationId } = useOrganization();
   const { data: workCategories } = useWorkCategories();
 
+  // Ordered columns for rendering
+  const orderedColumns = columnOrder
+    .map(key => ALL_COLUMNS.find(c => c.key === key))
+    .filter((c): c is typeof ALL_COLUMNS[number] => !!c);
+
   const toggleColumn = (key: string) => {
     setVisibleColumns(prev => {
       const next = prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key];
@@ -184,7 +192,25 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
     });
   };
 
-  const isColumnVisible = (key: string) => visibleColumns.includes(key);
+  const handleDragStart = (idx: number) => {
+    dragItem.current = idx;
+  };
+
+  const handleDragEnter = (idx: number) => {
+    dragOverItem.current = idx;
+  };
+
+  const handleDragEnd = () => {
+    if (dragItem.current === null || dragOverItem.current === null) return;
+    const newOrder = [...columnOrder];
+    const draggedKey = newOrder[dragItem.current];
+    newOrder.splice(dragItem.current, 1);
+    newOrder.splice(dragOverItem.current, 0, draggedKey);
+    setColumnOrder(newOrder);
+    localStorage.setItem(ORDER_STORAGE_KEY, JSON.stringify(newOrder));
+    dragItem.current = null;
+    dragOverItem.current = null;
+  };
 
   // Prefetch assignment details on hover
   const handleRowHover = useCallback((assignment: any) => {
