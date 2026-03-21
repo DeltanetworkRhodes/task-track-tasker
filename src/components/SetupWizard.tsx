@@ -731,7 +731,7 @@ const SetupWizard = ({ onDismiss, demoMode = false }: SetupWizardProps) => {
             <div>
               <h3 className="text-sm font-bold text-foreground mb-1">📦 Υλικά & Τιμοκατάλογος</h3>
               <p className="text-xs text-muted-foreground">
-                Φορτώστε αυτόματα τα υλικά OTE και τον τιμοκατάλογο εργασιών.
+                Ανεβάστε το δελτίο αποστολής OTE για εισαγωγή υλικών και φορτώστε τον τιμοκατάλογο εργασιών.
               </p>
             </div>
 
