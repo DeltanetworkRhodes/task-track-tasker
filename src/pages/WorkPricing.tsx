@@ -24,6 +24,7 @@ interface WorkItem {
 const WorkPricing = () => {
   const { data: workPricing, isLoading } = useWorkPricing();
   const queryClient = useQueryClient();
+  const { organizationId } = useOrganization();
   const [search, setSearch] = useState("");
   const [sortField, setSortField] = useState<SortField>('code');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
