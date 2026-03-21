@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useQueryClient } from "@tanstack/react-query";
+import { useOrganization } from "@/contexts/OrganizationContext";
 
 type SortField = 'code' | 'description' | 'unit_price' | 'category';
 type SortDir = 'asc' | 'desc';
@@ -23,6 +24,7 @@ interface WorkItem {
 const WorkPricing = () => {
   const { data: workPricing, isLoading } = useWorkPricing();
   const queryClient = useQueryClient();
+  const { organizationId } = useOrganization();
   const [search, setSearch] = useState("");
   const [sortField, setSortField] = useState<SortField>('code');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
@@ -77,6 +79,7 @@ const WorkPricing = () => {
         category: form.category.trim() || null,
         unit: form.unit.trim() || 'τεμ.',
         unit_price: Number(form.unit_price) || 0,
+        organization_id: organizationId,
       });
       if (error) throw error;
       toast.success('Εργασία προστέθηκε');

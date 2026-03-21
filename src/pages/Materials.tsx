@@ -478,6 +478,7 @@ const Materials = () => {
       const { error } = await supabase.from('materials').insert({
         code: form.code, name: form.name, source: form.source,
         stock: Number(form.stock) || 0, unit: form.unit, price: Number(form.price) || 0,
+        organization_id: organization?.id || null,
       });
       if (error) throw error;
       toast.success('Υλικό προστέθηκε');

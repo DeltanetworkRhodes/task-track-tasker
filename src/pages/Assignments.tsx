@@ -2,11 +2,12 @@ import { useState, useMemo, lazy, Suspense } from "react";
 import AppLayout from "@/components/AppLayout";
 import AssignmentTable from "@/components/AssignmentTable";
 import CreateAssignmentDialog from "@/components/CreateAssignmentDialog";
+import AssignmentsImport from "@/components/AssignmentsImport";
 import SyncButton from "@/components/SyncButton";
 import { useAssignments } from "@/hooks/useData";
 import { useUserRole } from "@/hooks/useUserRole";
 import { statusLabels } from "@/data/mockData";
-import { ClipboardCheck, Filter, Search, Plus, UserX, CheckCircle2, XCircle, ListChecks, AlertCircle, Radio } from "lucide-react";
+import { ClipboardCheck, Filter, Search, Plus, UserX, CheckCircle2, XCircle, ListChecks, AlertCircle, Radio, FileSpreadsheet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -33,6 +34,7 @@ const Assignments = () => {
   const [activeTab, setActiveTab] = useState<string>("active");
   const [search, setSearch] = useState("");
   const [showCreate, setShowCreate] = useState(false);
+  const [showImport, setShowImport] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
   const assignments = dbAssignments
@@ -110,6 +112,10 @@ const Assignments = () => {
             </p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
+            <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setShowImport(true)}>
+              <FileSpreadsheet className="h-4 w-4" />
+              <span className="hidden sm:inline">Εισαγωγή Excel</span>
+            </Button>
             <Button size="sm" className="gap-1.5" onClick={() => setShowCreate(true)}>
               <Plus className="h-4 w-4" />
               <span className="hidden sm:inline">Νέα Ανάθεση</span>
@@ -267,6 +273,7 @@ const Assignments = () => {
         )}
 
         <CreateAssignmentDialog open={showCreate} onOpenChange={setShowCreate} />
+        <AssignmentsImport open={showImport} onOpenChange={setShowImport} />
       </div>
     </AppLayout>
   );
