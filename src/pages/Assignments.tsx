@@ -112,6 +112,10 @@ const Assignments = () => {
             </p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
+            <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setShowImport(true)}>
+              <FileSpreadsheet className="h-4 w-4" />
+              <span className="hidden sm:inline">Εισαγωγή Excel</span>
+            </Button>
             <Button size="sm" className="gap-1.5" onClick={() => setShowCreate(true)}>
               <Plus className="h-4 w-4" />
               <span className="hidden sm:inline">Νέα Ανάθεση</span>
