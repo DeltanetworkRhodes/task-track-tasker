@@ -24,6 +24,8 @@ import {
   Mail,
   Loader2,
   SkipForward,
+  Upload,
+  FileText,
 } from "lucide-react";
 import deltaLogo from "@/assets/delta-logo-icon.png";
 
@@ -74,6 +76,7 @@ const SetupWizard = ({ onDismiss, demoMode = false }: SetupWizardProps) => {
   // Step 4 state
   const [loadingMaterials, setLoadingMaterials] = useState(false);
   const [materialsLoaded, setMaterialsLoaded] = useState(false);
+  const [materialsCount, setMaterialsCount] = useState(0);
   const [loadingPricing, setLoadingPricing] = useState(false);
   const [pricingLoaded, setPricingLoaded] = useState(false);
 
@@ -286,27 +289,44 @@ const SetupWizard = ({ onDismiss, demoMode = false }: SetupWizardProps) => {
     }
   };
 
-  // ═══════════ STEP 4: Materials & Pricing ═══════════
-  const handleLoadMaterials = async () => {
+  // ═══════════ STEP 4: Materials (PDF Upload) & Pricing ═══════════
+  const handleUploadDeliveryNote = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
     if (demoMode) {
       setLoadingMaterials(true);
       await new Promise(r => setTimeout(r, 1500));
+      setMaterialsCount(125);
       setMaterialsLoaded(true);
       setLoadingMaterials(false);
-      toast.success("Demo: 847 υλικά φορτώθηκαν");
+      toast.success("Demo: 125 υλικά φορτώθηκαν από δελτίο");
       return;
     }
 
     setLoadingMaterials(true);
     try {
-      await supabase.functions.invoke("sync-materials", {
-        body: { organizationId },
+      // Upload PDF to storage
+      const filePath = `delivery-notes/${organizationId}/${Date.now()}_${file.name}`;
+      const { error: uploadError } = await supabase.storage
+        .from("payment-docs")
+        .upload(filePath, file);
+      if (uploadError) throw uploadError;
+
+      // Parse delivery note via edge function
+      const { data, error } = await supabase.functions.invoke("parse-delivery-note", {
+        body: { filePath, organizationId, source: "OTE" },
       });
+      if (error) throw error;
+
+      const count = data?.materials?.length || data?.count || 0;
+      setMaterialsCount(count);
       setMaterialsLoaded(true);
+      queryClient.invalidateQueries({ queryKey: ["materials"] });
       queryClient.invalidateQueries({ queryKey: ["setup-checklist"] });
-      toast.success("Υλικά φορτώθηκαν επιτυχώς!");
+      toast.success(`${count} υλικά φορτώθηκαν από το δελτίο αποστολής!`);
     } catch (err: any) {
-      toast.error("Σφάλμα φόρτωσης υλικών: " + (err.message || ""));
+      toast.error("Σφάλμα ανάγνωσης δελτίου: " + (err.message || "Δοκιμάστε ξανά"));
     } finally {
       setLoadingMaterials(false);
     }
@@ -383,13 +403,8 @@ const SetupWizard = ({ onDismiss, demoMode = false }: SetupWizardProps) => {
         errors.push("Τεχνικοί: Δεν έχετε προσθέσει τεχνικούς");
       }
 
-      const { count: materialCount } = await supabase
-        .from("materials")
-        .select("id", { count: "exact", head: true })
-        .eq("organization_id", organizationId!);
-      if ((materialCount || 0) === 0) {
-        errors.push("Αποθήκη: Δεν υπάρχουν υλικά");
-      }
+      // Materials are optional - can be uploaded later via delivery note
+      // No validation error for empty materials
 
       const { count: pricingCount } = await supabase
         .from("work_pricing")
@@ -711,39 +726,45 @@ const SetupWizard = ({ onDismiss, demoMode = false }: SetupWizardProps) => {
             <div>
               <h3 className="text-sm font-bold text-foreground mb-1">📦 Υλικά & Τιμοκατάλογος</h3>
               <p className="text-xs text-muted-foreground">
-                Φορτώστε αυτόματα τα υλικά OTE και τον τιμοκατάλογο εργασιών.
+                Ανεβάστε το δελτίο αποστολής OTE για εισαγωγή υλικών και φορτώστε τον τιμοκατάλογο εργασιών.
               </p>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {/* Card A: Materials */}
+              {/* Card A: Materials via PDF Upload */}
               <Card className="p-4 space-y-3 border-border">
                 <div className="flex items-center gap-2">
                   <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center">
-                    <Package className="h-5 w-5 text-primary" />
+                    <FileText className="h-5 w-5 text-primary" />
                   </div>
                   <div>
                     <p className="text-sm font-bold text-foreground">Υλικά OTE</p>
-                    <p className="text-[11px] text-muted-foreground">847 υλικά έτοιμα για εισαγωγή</p>
+                    <p className="text-[11px] text-muted-foreground">Ανεβάστε δελτίο αποστολής (PDF)</p>
                   </div>
                 </div>
                 {loadingMaterials && <Progress value={65} className="h-1.5" />}
                 {materialsLoaded ? (
                   <div className="flex items-center gap-2 text-success text-xs font-medium">
-                    <CheckCircle2 className="h-4 w-4" /> 847 υλικά φορτώθηκαν
+                    <CheckCircle2 className="h-4 w-4" /> {materialsCount} υλικά φορτώθηκαν
                   </div>
                 ) : (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={handleLoadMaterials}
-                    disabled={loadingMaterials}
-                    className="w-full gap-1.5"
-                  >
-                    {loadingMaterials ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <>⚡</>}
-                    Φόρτωση Υλικών OTE
-                  </Button>
+                  <label className="cursor-pointer">
+                    <input
+                      type="file"
+                      accept=".pdf"
+                      className="hidden"
+                      onChange={handleUploadDeliveryNote}
+                      disabled={loadingMaterials}
+                    />
+                    <div className={`flex items-center justify-center gap-1.5 w-full px-3 py-2 rounded-md border border-input bg-background text-sm font-medium hover:bg-accent hover:text-accent-foreground transition-colors ${loadingMaterials ? "opacity-50 pointer-events-none" : ""}`}>
+                      {loadingMaterials ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+                      Ανέβασμα Δελτίου OTE
+                    </div>
+                  </label>
                 )}
+                <p className="text-[10px] text-muted-foreground">
+                  💡 Μπορείτε να ανεβάσετε κι αργότερα από τη σελίδα Αποθήκη
+                </p>
               </Card>
 
               {/* Card B: Pricing */}
