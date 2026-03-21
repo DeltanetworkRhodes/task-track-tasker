@@ -76,6 +76,7 @@ const SetupWizard = ({ onDismiss, demoMode = false }: SetupWizardProps) => {
   // Step 4 state
   const [loadingMaterials, setLoadingMaterials] = useState(false);
   const [materialsLoaded, setMaterialsLoaded] = useState(false);
+  const [materialsCount, setMaterialsCount] = useState(0);
   const [loadingPricing, setLoadingPricing] = useState(false);
   const [pricingLoaded, setPricingLoaded] = useState(false);
 
