@@ -12,7 +12,7 @@ import PaymentTracker from "@/components/PaymentTracker";
 import CallDashboardWidget from "@/components/CallDashboardWidget";
 import { useAssignments, useConstructions } from "@/hooks/useData";
 import { statusLabels } from "@/data/mockData";
-import { ClipboardCheck, Wrench, TrendingUp, Euro, FolderOpen, Activity, Wifi, PieChartIcon, CalendarDays, Timer, Zap, Wallet } from "lucide-react";
+import { ClipboardCheck, Wrench, TrendingUp, Euro, Activity, Wifi, PieChartIcon, CalendarDays, Timer, Zap, Wallet } from "lucide-react";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { BarChart, Bar, XAxis, YAxis, Cell, PieChart, Pie, LineChart, Line, CartesianGrid, ResponsiveContainer } from "recharts";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
