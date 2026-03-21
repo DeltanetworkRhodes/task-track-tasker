@@ -612,11 +612,11 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
                 <div
                   key={col.key}
                   draggable
-                  onDragStart={() => handleDragStart(columnOrder.indexOf(col.key))}
-                  onDragEnter={() => handleDragEnter(columnOrder.indexOf(col.key))}
-                  onDragEnd={handleDragEnd}
-                  onDragOver={(e) => e.preventDefault()}
-                  className="flex items-center gap-2 cursor-grab active:cursor-grabbing rounded-md px-1.5 py-1.5 hover:bg-muted/50 transition-colors"
+                  onDragStart={(e) => handleColumnDragStart(e, col.key)}
+                  onDragOver={(e) => handleColumnDragOver(e, col.key)}
+                  onDragEnd={handleColumnDragEnd}
+                  onDragLeave={handleColumnDragLeave}
+                  className={`flex items-center gap-2 cursor-grab active:cursor-grabbing rounded-md px-1.5 py-1.5 hover:bg-muted/50 transition-colors ${dragOverKey === col.key ? 'bg-primary/10 border border-primary/30' : ''}`}
                 >
                   <GripVertical className="h-3 w-3 text-muted-foreground/40 shrink-0" />
                   <Checkbox
