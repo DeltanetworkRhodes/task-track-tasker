@@ -82,10 +82,11 @@ const FileItem = ({ file }: { file: DriveFile }) => {
   );
 };
 
-// Hook to get technician profiles
+// Hook to get technician profiles (filtered by organization)
 const useTechnicians = () => {
+  const { organizationId } = useOrganization();
   return useQuery({
-    queryKey: ["technicians"],
+    queryKey: ["technicians", organizationId],
     queryFn: async () => {
       // Get all user_ids with technician role
       const { data: roles, error: rolesError } = await supabase
@@ -96,13 +97,20 @@ const useTechnicians = () => {
       if (!roles || roles.length === 0) return [];
 
       const techIds = roles.map((r) => r.user_id);
-      const { data: profiles, error: profilesError } = await supabase
+      let query = supabase
         .from("profiles")
         .select("user_id, full_name, area")
         .in("user_id", techIds);
+      
+      if (organizationId) {
+        query = query.eq("organization_id", organizationId);
+      }
+      
+      const { data: profiles, error: profilesError } = await query;
       if (profilesError) throw profilesError;
       return profiles || [];
     },
+    enabled: !!organizationId,
   });
 };
 
@@ -115,6 +123,7 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
   const [assigning, setAssigning] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<any>(null);
   const [deleting, setDeleting] = useState(false);
+  const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
   
   const { data: technicians } = useTechnicians();
   const { data: userRole } = useUserRole();
@@ -463,6 +472,39 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
     }
   };
 
+  const handleBulkDelete = async () => {
+    if (selectedIds.length === 0) return;
+    setBulkUpdating(true);
+    try {
+      for (const id of selectedIds) {
+        // Delete dependent records
+        const { data: constructions } = await supabase
+          .from("constructions").select("id").eq("assignment_id", id);
+        const cIds = (constructions || []).map((c: any) => c.id);
+        if (cIds.length > 0) {
+          await supabase.from("construction_works").delete().in("construction_id", cIds);
+          await supabase.from("construction_materials").delete().in("construction_id", cIds);
+          await supabase.from("constructions").delete().eq("assignment_id", id);
+        }
+        await supabase.from("gis_data").delete().eq("assignment_id", id);
+        await supabase.from("assignment_history").delete().eq("assignment_id", id);
+        await supabase.from("sr_comments").delete().eq("assignment_id", id);
+        await supabase.from("sr_crew_assignments").delete().eq("assignment_id", id);
+        await supabase.from("pre_work_checklists").delete().eq("assignment_id", id);
+        await supabase.from("inspection_reports").delete().eq("assignment_id", id);
+        await supabase.from("assignments").delete().eq("id", id);
+      }
+      toast.success(`${selectedIds.length} αναθέσεις διαγράφηκαν`);
+      queryClient.invalidateQueries({ queryKey: ["assignments"] });
+      onSelectionChange?.([]);
+      setBulkDeleteConfirm(false);
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setBulkUpdating(false);
+    }
+  };
+
   return (
     <>
       {/* Bulk Action Bar */}
@@ -497,6 +539,16 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
               ))}
             </SelectContent>
           </Select>
+          {isAdmin && (
+            <button
+              onClick={() => setBulkDeleteConfirm(true)}
+              disabled={bulkUpdating}
+              className="text-xs text-destructive hover:text-destructive/80 font-medium"
+            >
+              <Trash2 className="h-3 w-3 inline mr-1" />
+              Μαζική Διαγραφή
+            </button>
+          )}
           <button
             onClick={() => onSelectionChange?.([])}
             className="text-[10px] text-muted-foreground hover:text-foreground ml-auto"
@@ -1093,6 +1145,28 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {deleting ? "Διαγραφή..." : "Διαγραφή"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Bulk Delete Confirmation */}
+      <AlertDialog open={bulkDeleteConfirm} onOpenChange={setBulkDeleteConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Μαζική Διαγραφή</AlertDialogTitle>
+            <AlertDialogDescription>
+              Είστε σίγουροι ότι θέλετε να διαγράψετε <strong className="text-foreground">{selectedIds.length}</strong> αναθέσεις; Θα διαγραφούν και όλα τα σχετικά δεδομένα (κατασκευές, GIS, ιστορικό κτλ). Αυτή η ενέργεια δεν μπορεί να αναιρεθεί.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={bulkUpdating}>Ακύρωση</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleBulkDelete}
+              disabled={bulkUpdating}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {bulkUpdating ? "Διαγραφή..." : `Διαγραφή ${selectedIds.length} αναθέσεων`}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
