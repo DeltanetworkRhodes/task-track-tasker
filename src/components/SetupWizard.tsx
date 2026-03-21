@@ -358,6 +358,54 @@ const SetupWizard = ({ onDismiss, demoMode = false }: SetupWizardProps) => {
     }
   };
 
+  // Standard OTE work pricing template (built-in, no Google Sheets needed)
+  const STANDARD_WORK_PRICING = [
+    { code: "1930", description: "ΔΙΑΣΥΝΔΕΣΗ ΣΩΛΗΝΙΣΚΟΥ ΦΡΕΑΤΙΟΥ", unit_price: 37.2, category: "Λοιπά" },
+    { code: "1955.1", description: "Κατασκευή Γ'", unit_price: 24.41, category: "Γ' ΦΑΣΗ 1955 — Σύνδεση Πελάτη" },
+    { code: "1955.2", description: "Κατασκευή Γ' & Ενεργοποίηση", unit_price: 45.34, category: "Γ' ΦΑΣΗ 1955 — Σύνδεση Πελάτη" },
+    { code: "1955.3", description: "Κατασκευή νέου πελάτη με ΝΕΑ επίσκεψη", unit_price: 52.31, category: "Γ' ΦΑΣΗ 1955 — Σύνδεση Πελάτη" },
+    { code: "1955.4", description: "Κατασκευή και Ενεργοποιήση νέου πελάτη με ΝΕΑ επίσκεψη", unit_price: 73.24, category: "Γ' ΦΑΣΗ 1955 — Σύνδεση Πελάτη" },
+    { code: "1956.1", description: "Αυτοψία σε μεσαίο/ μεγάλο κτήριο (άνω των 3 όροφων)", unit_price: 55.8, category: "Αυτοψία" },
+    { code: "1956.2", description: "Αυτοψία σε μικρό κτήριο", unit_price: 34.88, category: "Αυτοψία" },
+    { code: "1963.1", description: "για συνολικό μήκος τάφρου έως 5μ", unit_price: 104.63, category: "BEP 1963 — ΕΣΚΑΛΙΤ" },
+    { code: "1963.2", description: "για συνολικό μήκος τάφρου έως 15μ", unit_price: 174.38, category: "BEP 1963 — ΕΣΚΑΛΙΤ" },
+    { code: "1965.1", description: "μήκος καλωδίωσης έως 5μ", unit_price: 104.63, category: "BEP 1965 — Σκάψιμο έως BEP" },
+    { code: "1965.2", description: "μήκος καλωδίωσης έως 15μ", unit_price: 174.38, category: "BEP 1965 — Σκάψιμο έως BEP" },
+    { code: "1965.3", description: "μήκος καλωδίωσης έως 30μ", unit_price: 244.13, category: "BEP 1965 — Σκάψιμο έως BEP" },
+    { code: "1965.4", description: "μήκος καλωδίωσης έως 60μ", unit_price: 313.88, category: "BEP 1965 — Σκάψιμο έως BEP" },
+    { code: "1965.5", description: "2 ΣΩΛ επέκτασης του κλάδου διανομής έως 5μ", unit_price: 111.6, category: "BEP 1965 — Σκάψιμο έως BEP" },
+    { code: "1965.6", description: "2 ΣΩΛ επέκτασης του κλάδου διανομής έως 15μ", unit_price: 188.33, category: "BEP 1965 — Σκάψιμο έως BEP" },
+    { code: "1965.7", description: "2 ΣΩΛ επέκτασης του κλάδου διανομής έως 30μ", unit_price: 265.05, category: "BEP 1965 — Σκάψιμο έως BEP" },
+    { code: "1965.8", description: "2 ΣΩΛ επέκτασης του κλάδου διανομής έως 60μ", unit_price: 341.78, category: "BEP 1965 — Σκάψιμο έως BEP" },
+    { code: "1970.1", description: "ΚΟΙ μήκους έως 10 μέτρων", unit_price: 34.88, category: "BEP 1970 — Τοποθέτηση ΒΕΡ" },
+    { code: "1970.2", description: "ΚΟΙ μήκους έως 25 μέτρων", unit_price: 69.75, category: "BEP 1970 — Τοποθέτηση ΒΕΡ" },
+    { code: "1970.3", description: "ΚΟΙ μήκους έως 40 μέτρων", unit_price: 122.06, category: "BEP 1970 — Τοποθέτηση ΒΕΡ" },
+    { code: "1970.4", description: "+ ΒΜΟ εώς 4 Δ/Κ σε 2 επίπεδα", unit_price: 20.93, category: "BEP 1970 — Τοποθέτηση ΒΕΡ" },
+    { code: "1970.5", description: "+ ΒΜΟ σε μεσαία και μεγάλα κτίρια", unit_price: 34.88, category: "BEP 1970 — Τοποθέτηση ΒΕΡ" },
+    { code: "1980.1", description: "Σε μη κατειλημμένο σωληνίσκο", unit_price: 125.55, category: "1980 — Εμφύσηση CAB" },
+    { code: "1980.2", description: "Σε κατειλημμένο σωληνίσκο", unit_price: 139.5, category: "1980 — Εμφύσηση CAB" },
+    { code: "1984.1", description: "έως 5 μέτρα μεταξύ τους", unit_price: 55.8, category: "2 BOX 1984" },
+    { code: "1984.2", description: "άνω των 5 μ. απόσταση", unit_price: 69.75, category: "2 BOX 1984" },
+    { code: "1985.2", description: "Τοποθέτηση FB", unit_price: 45.34, category: "FB 1985 — Κατακόρυφη ΚΟΙ" },
+    { code: "1986.3", description: "Με ΒΜΟ τα πρώτα 3 επίπεδα", unit_price: 57.2, category: "FB 1986 — Κολλήσεις & Διασυνδέσεις" },
+    { code: "1986.4", description: "Με ΒΜΟ επιπλέον των 3ων πρώτων επιπέδων", unit_price: 36.27, category: "FB 1986 — Κολλήσεις & Διασυνδέσεις" },
+    { code: "1991.1.1", description: "μήκος τάφρου έως 3 μέτρα", unit_price: 83.7, category: "BCP 1991" },
+    { code: "1991.1.2", description: "μήκος τάφρου από 3 έως 10 μέτρα", unit_price: 139.5, category: "BCP 1991" },
+    { code: "1991.1.3", description: "μήκος τάφρου από 10 έως15 μέτρα", unit_price: 181.35, category: "BCP 1991" },
+    { code: "1991.2.1", description: "μήκος επέκ. κλάδου έως 5μ", unit_price: 104.63, category: "BCP 1991" },
+    { code: "1991.2.2", description: "μήκος επέκ. κλάδου έως 15μ", unit_price: 174.38, category: "BCP 1991" },
+    { code: "1991.2.3", description: "μήκος επέκ. κλάδου έως 30μ", unit_price: 244.13, category: "BCP 1991" },
+    { code: "1993.1.1", description: "μήκος καλωδίωσης έως 5μ", unit_price: 83.7, category: "BCP 1993 — Από BCP έως ΒΕΡ" },
+    { code: "1993.1.2", description: "μήκος καλωδίωσης έως 15μ", unit_price: 139.5, category: "BCP 1993 — Από BCP έως ΒΕΡ" },
+    { code: "1993.1.3", description: "μήκος καλωδίωσης έως 30μ", unit_price: 188.33, category: "BCP 1993 — Από BCP έως ΒΕΡ" },
+    { code: "1993.1.4", description: "μήκος καλωδίωσης έως 60μ", unit_price: 237.15, category: "BCP 1993 — Από BCP έως ΒΕΡ" },
+    { code: "1993.1.5", description: "2 ΣΩΛ μήκος καλωδίωσης έως 5μ", unit_price: 90.68, category: "BCP 1993 — Από BCP έως ΒΕΡ" },
+    { code: "1993.1.6", description: "2 ΣΩΛ μήκος καλωδίωσης έως 15μ", unit_price: 153.45, category: "BCP 1993 — Από BCP έως ΒΕΡ" },
+    { code: "1993.1.7", description: "2 ΣΩΛ μήκος καλωδίωσης έως 30μ", unit_price: 209.25, category: "BCP 1993 — Από BCP έως ΒΕΡ" },
+    { code: "1993.1.8", description: "2 ΣΩΛ μήκος καλωδίωσης έως 60μ", unit_price: 265.05, category: "BCP 1993 — Από BCP έως ΒΕΡ" },
+    { code: "1993.2", description: "Εναέρια όδευση", unit_price: 104.63, category: "BCP 1993 — Από BCP έως ΒΕΡ" },
+  ];
+
   const handleLoadPricing = async () => {
     if (demoMode) {
       setLoadingPricing(true);
@@ -370,12 +418,25 @@ const SetupWizard = ({ onDismiss, demoMode = false }: SetupWizardProps) => {
 
     setLoadingPricing(true);
     try {
-      await supabase.functions.invoke("sync-materials", {
-        body: { organizationId },
-      });
+      const pricingRows = STANDARD_WORK_PRICING.map(p => ({
+        code: p.code,
+        description: p.description,
+        unit_price: p.unit_price,
+        category: p.category,
+        unit: "τεμ.",
+        organization_id: organizationId,
+      }));
+
+      const { error } = await supabase
+        .from("work_pricing")
+        .upsert(pricingRows, { onConflict: "code,organization_id" });
+
+      if (error) throw error;
+
       setPricingLoaded(true);
       queryClient.invalidateQueries({ queryKey: ["setup-checklist"] });
-      toast.success("Τιμοκατάλογος φορτώθηκε!");
+      queryClient.invalidateQueries({ queryKey: ["work-pricing"] });
+      toast.success(`Τιμοκατάλογος φορτώθηκε! (${STANDARD_WORK_PRICING.length} εργασίες)`);
     } catch (err: any) {
       toast.error("Σφάλμα: " + (err.message || ""));
     } finally {
