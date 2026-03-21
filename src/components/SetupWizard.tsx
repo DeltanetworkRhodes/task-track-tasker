@@ -736,34 +736,40 @@ const SetupWizard = ({ onDismiss, demoMode = false }: SetupWizardProps) => {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {/* Card A: Materials */}
+              {/* Card A: Materials via PDF Upload */}
               <Card className="p-4 space-y-3 border-border">
                 <div className="flex items-center gap-2">
                   <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center">
-                    <Package className="h-5 w-5 text-primary" />
+                    <FileText className="h-5 w-5 text-primary" />
                   </div>
                   <div>
                     <p className="text-sm font-bold text-foreground">Υλικά OTE</p>
-                    <p className="text-[11px] text-muted-foreground">847 υλικά έτοιμα για εισαγωγή</p>
+                    <p className="text-[11px] text-muted-foreground">Ανεβάστε δελτίο αποστολής (PDF)</p>
                   </div>
                 </div>
                 {loadingMaterials && <Progress value={65} className="h-1.5" />}
                 {materialsLoaded ? (
                   <div className="flex items-center gap-2 text-success text-xs font-medium">
-                    <CheckCircle2 className="h-4 w-4" /> 847 υλικά φορτώθηκαν
+                    <CheckCircle2 className="h-4 w-4" /> {materialsCount} υλικά φορτώθηκαν
                   </div>
                 ) : (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={handleLoadMaterials}
-                    disabled={loadingMaterials}
-                    className="w-full gap-1.5"
-                  >
-                    {loadingMaterials ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <>⚡</>}
-                    Φόρτωση Υλικών OTE
-                  </Button>
+                  <label className="cursor-pointer">
+                    <input
+                      type="file"
+                      accept=".pdf"
+                      className="hidden"
+                      onChange={handleUploadDeliveryNote}
+                      disabled={loadingMaterials}
+                    />
+                    <div className={`flex items-center justify-center gap-1.5 w-full px-3 py-2 rounded-md border border-input bg-background text-sm font-medium hover:bg-accent hover:text-accent-foreground transition-colors ${loadingMaterials ? "opacity-50 pointer-events-none" : ""}`}>
+                      {loadingMaterials ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+                      Ανέβασμα Δελτίου OTE
+                    </div>
+                  </label>
                 )}
+                <p className="text-[10px] text-muted-foreground">
+                  💡 Μπορείτε να ανεβάσετε κι αργότερα από τη σελίδα Αποθήκη
+                </p>
               </Card>
 
               {/* Card B: Pricing */}
