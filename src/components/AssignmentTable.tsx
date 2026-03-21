@@ -472,6 +472,39 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
     }
   };
 
+  const handleBulkDelete = async () => {
+    if (selectedIds.length === 0) return;
+    setBulkUpdating(true);
+    try {
+      for (const id of selectedIds) {
+        // Delete dependent records
+        const { data: constructions } = await supabase
+          .from("constructions").select("id").eq("assignment_id", id);
+        const cIds = (constructions || []).map((c: any) => c.id);
+        if (cIds.length > 0) {
+          await supabase.from("construction_works").delete().in("construction_id", cIds);
+          await supabase.from("construction_materials").delete().in("construction_id", cIds);
+          await supabase.from("constructions").delete().eq("assignment_id", id);
+        }
+        await supabase.from("gis_data").delete().eq("assignment_id", id);
+        await supabase.from("assignment_history").delete().eq("assignment_id", id);
+        await supabase.from("sr_comments").delete().eq("assignment_id", id);
+        await supabase.from("sr_crew_assignments").delete().eq("assignment_id", id);
+        await supabase.from("pre_work_checklists").delete().eq("assignment_id", id);
+        await supabase.from("inspection_reports").delete().eq("assignment_id", id);
+        await supabase.from("assignments").delete().eq("id", id);
+      }
+      toast.success(`${selectedIds.length} αναθέσεις διαγράφηκαν`);
+      queryClient.invalidateQueries({ queryKey: ["assignments"] });
+      onSelectionChange?.([]);
+      setBulkDeleteConfirm(false);
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setBulkUpdating(false);
+    }
+  };
+
   return (
     <>
       {/* Bulk Action Bar */}
