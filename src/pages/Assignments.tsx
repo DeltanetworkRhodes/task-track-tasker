@@ -273,6 +273,7 @@ const Assignments = () => {
         )}
 
         <CreateAssignmentDialog open={showCreate} onOpenChange={setShowCreate} />
+        <AssignmentsImport open={showImport} onOpenChange={setShowImport} />
       </div>
     </AppLayout>
   );
