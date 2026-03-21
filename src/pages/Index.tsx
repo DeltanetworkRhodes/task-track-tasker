@@ -261,10 +261,7 @@ const Index = () => {
               </div>
             </div>
 
-            {/* Mobile sync button */}
-            <div className="mt-4 sm:hidden">
-              <SyncButton />
-            </div>
+            
           </div>
         </div>
 
