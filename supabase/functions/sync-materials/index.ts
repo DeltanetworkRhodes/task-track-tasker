@@ -65,6 +65,9 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
+    const body = await req.json().catch(() => ({}));
+    const organizationId = body.organizationId || null;
+
     const serviceAccountKey = JSON.parse(Deno.env.get("GOOGLE_SERVICE_ACCOUNT_KEY") || "{}");
     const accessToken = await getAccessToken(serviceAccountKey);
 
@@ -96,28 +99,25 @@ Deno.serve(async (req) => {
       // Items with price > 0 are DELTANETWORK, price = 0 are OTE
       const source = price > 0 ? "DELTANETWORK" : "OTE";
 
-      // Check if material already exists
-      const { data: existing } = await supabase
-        .from("materials")
-        .select("id")
-        .eq("code", code)
-        .limit(1);
+      // Check if material already exists for this org
+      const q = supabase.from("materials").select("id").eq("code", code);
+      if (organizationId) q.eq("organization_id", organizationId);
+      const { data: existing } = await q.limit(1);
 
       if (existing && existing.length > 0) {
-        // Update name, price, unit but NOT stock (stock is managed via PDF uploads / manual edits)
         const { error } = await supabase
           .from("materials")
           .update({ name, price, unit, source })
-          .eq("code", code);
+          .eq("code", code)
+          .eq("organization_id", organizationId);
         if (error) {
           results.errors.push(`Material ${code}: ${error.message}`);
         } else {
           results.materials++;
         }
       } else {
-        // New material — insert with stock from sheet
         const { error } = await supabase.from("materials").insert(
-          { code, name, price, stock, unit, source }
+          { code, name, price, stock, unit, source, organization_id: organizationId }
         );
         if (error) {
           results.errors.push(`Material ${code}: ${error.message}`);
@@ -146,8 +146,8 @@ Deno.serve(async (req) => {
 
       // Update price if material already exists from ΑΠΟΘΗΚΗ, otherwise insert
       const { error } = await supabase.from("materials").upsert(
-        { code, name, price, unit, source },
-        { onConflict: "code" }
+        { code, name, price, unit, source, organization_id: organizationId },
+        { onConflict: "code,organization_id" }
       );
       if (error) {
         results.errors.push(`BasiYlikon ${code}: ${error.message}`);
@@ -203,8 +203,8 @@ Deno.serve(async (req) => {
         const category = getCategoryForCode(code);
 
         const { error } = await supabase.from("work_pricing").upsert(
-          { code, description, unit_price: unitPrice, category, unit: "τεμ." },
-          { onConflict: "code" }
+          { code, description, unit_price: unitPrice, category, unit: "τεμ.", organization_id: organizationId },
+          { onConflict: "code,organization_id" }
         );
         if (error) {
           results.errors.push(`WorkPricing ${code}: ${error.message}`);
@@ -231,7 +231,7 @@ Deno.serve(async (req) => {
       const profit = parseValue(r[3] || 0);
 
       const { error } = await supabase.from("profit_per_sr").upsert(
-        { sr_id, revenue, expenses, profit },
+        { sr_id, revenue, expenses, profit, organization_id: organizationId },
         { onConflict: "sr_id" }
       );
       if (error) {
