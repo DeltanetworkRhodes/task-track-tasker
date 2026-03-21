@@ -6,7 +6,7 @@ import AppLayout from "@/components/AppLayout";
 import deltaLogoIcon from "@/assets/delta-logo-icon.png";
 import StatCard from "@/components/StatCard";
 import AssignmentTable from "@/components/AssignmentTable";
-import SyncButton from "@/components/SyncButton";
+
 import SetupWizard from "@/components/SetupWizard";
 import PaymentTracker from "@/components/PaymentTracker";
 import CallDashboardWidget from "@/components/CallDashboardWidget";
