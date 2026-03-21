@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Assignment, statusLabels } from "@/data/mockData";
-import { Camera, MessageSquare, ExternalLink, User, MapPin, Phone, Hash, FolderOpen, FileText, Image, Loader2, Clock, ArrowRight, Trash2, Eye, Users, Settings2, Building, Briefcase, Tag, Navigation } from "lucide-react";
+import { Camera, MessageSquare, ExternalLink, User, MapPin, Phone, Hash, FolderOpen, FileText, Image, Loader2, Clock, ArrowRight, Trash2, Eye, Users, Settings2, Building, Briefcase, Tag, Navigation, GripVertical } from "lucide-react";
 import SRComments from "@/components/SRComments";
 import CallStatusBadge from "@/components/CallStatusBadge";
 import CallStatusPopover from "@/components/CallStatusPopover";
@@ -100,16 +100,29 @@ const ALL_COLUMNS = [
   { key: "callStatus", label: "Κλήση", default: true },
   { key: "date", label: "Ημ/νία", default: true },
   { key: "comments", label: "Σχόλια", default: true },
-] as const;
+];
 
 const STORAGE_KEY = "assignment-visible-columns";
+const ORDER_STORAGE_KEY = "assignment-column-order";
 
-const getDefaultColumns = (): string[] => {
+interface ColumnConfig {
+  visible: string[];
+  order: string[];
+}
+
+const getDefaultConfig = (): ColumnConfig => {
   try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) return JSON.parse(saved);
+    const savedVisible = localStorage.getItem(STORAGE_KEY);
+    const savedOrder = localStorage.getItem(ORDER_STORAGE_KEY);
+    return {
+      visible: savedVisible ? JSON.parse(savedVisible) : ALL_COLUMNS.filter(c => c.default).map(c => c.key),
+      order: savedOrder ? JSON.parse(savedOrder) : ALL_COLUMNS.map(c => c.key),
+    };
   } catch {}
-  return ALL_COLUMNS.filter(c => c.default).map(c => c.key);
+  return {
+    visible: ALL_COLUMNS.filter(c => c.default).map(c => c.key),
+    order: ALL_COLUMNS.map(c => c.key),
+  };
 };
 
 // Hook to get technician profiles (filtered by organization)
@@ -153,7 +166,10 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
   const [deleteTarget, setDeleteTarget] = useState<any>(null);
   const [deleting, setDeleting] = useState(false);
   const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
-  const [visibleColumns, setVisibleColumns] = useState<string[]>(getDefaultColumns);
+  const [visibleColumns, setVisibleColumns] = useState<string[]>(() => getDefaultConfig().visible);
+  const [columnOrder, setColumnOrder] = useState<string[]>(() => getDefaultConfig().order);
+  const dragItem = useRef<number | null>(null);
+  const dragOverItem = useRef<number | null>(null);
   
   const { data: technicians } = useTechnicians();
   const { data: userRole } = useUserRole();
@@ -163,6 +179,11 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
   const { organizationId } = useOrganization();
   const { data: workCategories } = useWorkCategories();
 
+  // Ordered columns for rendering
+  const orderedColumns = columnOrder
+    .map(key => ALL_COLUMNS.find(c => c.key === key))
+    .filter((c): c is typeof ALL_COLUMNS[number] => !!c);
+
   const toggleColumn = (key: string) => {
     setVisibleColumns(prev => {
       const next = prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key];
@@ -171,7 +192,25 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
     });
   };
 
-  const isColumnVisible = (key: string) => visibleColumns.includes(key);
+  const handleDragStart = (idx: number) => {
+    dragItem.current = idx;
+  };
+
+  const handleDragEnter = (idx: number) => {
+    dragOverItem.current = idx;
+  };
+
+  const handleDragEnd = () => {
+    if (dragItem.current === null || dragOverItem.current === null) return;
+    const newOrder = [...columnOrder];
+    const draggedKey = newOrder[dragItem.current];
+    newOrder.splice(dragItem.current, 1);
+    newOrder.splice(dragOverItem.current, 0, draggedKey);
+    setColumnOrder(newOrder);
+    localStorage.setItem(ORDER_STORAGE_KEY, JSON.stringify(newOrder));
+    dragItem.current = null;
+    dragOverItem.current = null;
+  };
 
   // Prefetch assignment details on hover
   const handleRowHover = useCallback((assignment: any) => {
@@ -554,18 +593,28 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
               Στήλες
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-56 p-3" align="end">
-            <p className="text-xs font-semibold mb-2 text-muted-foreground">Εμφάνιση στηλών</p>
-            <div className="space-y-2">
-              {ALL_COLUMNS.map(col => (
-                <label key={col.key} className="flex items-center gap-2 cursor-pointer text-xs">
+          <PopoverContent className="w-64 p-3" align="end">
+            <p className="text-xs font-semibold mb-1 text-muted-foreground">Εμφάνιση & σειρά στηλών</p>
+            <p className="text-[10px] text-muted-foreground/60 mb-3">Σύρε για αλλαγή σειράς</p>
+            <div className="space-y-0.5">
+              {orderedColumns.map((col, idx) => (
+                <div
+                  key={col.key}
+                  draggable
+                  onDragStart={() => handleDragStart(columnOrder.indexOf(col.key))}
+                  onDragEnter={() => handleDragEnter(columnOrder.indexOf(col.key))}
+                  onDragEnd={handleDragEnd}
+                  onDragOver={(e) => e.preventDefault()}
+                  className="flex items-center gap-2 cursor-grab active:cursor-grabbing rounded-md px-1.5 py-1.5 hover:bg-muted/50 transition-colors"
+                >
+                  <GripVertical className="h-3 w-3 text-muted-foreground/40 shrink-0" />
                   <Checkbox
-                    checked={isColumnVisible(col.key)}
+                    checked={visibleColumns.includes(col.key)}
                     onCheckedChange={() => toggleColumn(col.key)}
                     className="h-3.5 w-3.5"
                   />
-                  {col.label}
-                </label>
+                  <span className="text-xs select-none">{col.label}</span>
+                </div>
               ))}
             </div>
           </PopoverContent>
@@ -714,8 +763,8 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
                   />
                 </th>
               )}
-              {ALL_COLUMNS.map(col => {
-                if (!isColumnVisible(col.key)) return null;
+              {orderedColumns.map(col => {
+                if (!visibleColumns.includes(col.key)) return null;
                 if (col.key === "technician" || col.key === "status" || col.key === "callStatus") {
                   return (
                     <th key={col.key} className="py-2.5 px-2 text-left font-medium text-muted-foreground text-[11px] uppercase tracking-wider whitespace-nowrap">
@@ -750,8 +799,8 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
                     />
                   </td>
                 )}
-                {ALL_COLUMNS.map(col => {
-                  if (!isColumnVisible(col.key)) return null;
+                {orderedColumns.map(col => {
+                  if (!visibleColumns.includes(col.key)) return null;
                   
                   // SR ID - clickable
                   if (col.key === "srId") {
