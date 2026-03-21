@@ -593,18 +593,28 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
               Στήλες
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-56 p-3" align="end">
-            <p className="text-xs font-semibold mb-2 text-muted-foreground">Εμφάνιση στηλών</p>
-            <div className="space-y-2">
-              {ALL_COLUMNS.map(col => (
-                <label key={col.key} className="flex items-center gap-2 cursor-pointer text-xs">
+          <PopoverContent className="w-64 p-3" align="end">
+            <p className="text-xs font-semibold mb-1 text-muted-foreground">Εμφάνιση & σειρά στηλών</p>
+            <p className="text-[10px] text-muted-foreground/60 mb-3">Σύρε για αλλαγή σειράς</p>
+            <div className="space-y-0.5">
+              {orderedColumns.map((col, idx) => (
+                <div
+                  key={col.key}
+                  draggable
+                  onDragStart={() => handleDragStart(columnOrder.indexOf(col.key))}
+                  onDragEnter={() => handleDragEnter(columnOrder.indexOf(col.key))}
+                  onDragEnd={handleDragEnd}
+                  onDragOver={(e) => e.preventDefault()}
+                  className="flex items-center gap-2 cursor-grab active:cursor-grabbing rounded-md px-1.5 py-1.5 hover:bg-muted/50 transition-colors"
+                >
+                  <GripVertical className="h-3 w-3 text-muted-foreground/40 shrink-0" />
                   <Checkbox
-                    checked={isColumnVisible(col.key)}
+                    checked={visibleColumns.includes(col.key)}
                     onCheckedChange={() => toggleColumn(col.key)}
                     className="h-3.5 w-3.5"
                   />
-                  {col.label}
-                </label>
+                  <span className="text-xs select-none">{col.label}</span>
+                </div>
               ))}
             </div>
           </PopoverContent>
