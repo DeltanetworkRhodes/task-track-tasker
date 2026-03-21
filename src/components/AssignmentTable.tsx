@@ -799,8 +799,8 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
                     />
                   </td>
                 )}
-                {ALL_COLUMNS.map(col => {
-                  if (!isColumnVisible(col.key)) return null;
+                {orderedColumns.map(col => {
+                  if (!visibleColumns.includes(col.key)) return null;
                   
                   // SR ID - clickable
                   if (col.key === "srId") {
