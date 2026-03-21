@@ -192,15 +192,21 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
     });
   };
 
-  const handleDragStart = (idx: number) => {
-    dragItem.current = idx;
+  const [dragOverKey, setDragOverKey] = useState<string | null>(null);
+
+  const handleColumnDragStart = (e: React.DragEvent, key: string) => {
+    e.dataTransfer.effectAllowed = "move";
+    dragItem.current = columnOrder.indexOf(key);
   };
 
-  const handleDragEnter = (idx: number) => {
-    dragOverItem.current = idx;
+  const handleColumnDragOver = (e: React.DragEvent, key: string) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    setDragOverKey(key);
+    dragOverItem.current = columnOrder.indexOf(key);
   };
 
-  const handleDragEnd = () => {
+  const handleColumnDragEnd = () => {
     if (dragItem.current === null || dragOverItem.current === null) return;
     const newOrder = [...columnOrder];
     const draggedKey = newOrder[dragItem.current];
@@ -210,6 +216,11 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
     localStorage.setItem(ORDER_STORAGE_KEY, JSON.stringify(newOrder));
     dragItem.current = null;
     dragOverItem.current = null;
+    setDragOverKey(null);
+  };
+
+  const handleColumnDragLeave = () => {
+    setDragOverKey(null);
   };
 
   // Prefetch assignment details on hover
@@ -601,11 +612,11 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
                 <div
                   key={col.key}
                   draggable
-                  onDragStart={() => handleDragStart(columnOrder.indexOf(col.key))}
-                  onDragEnter={() => handleDragEnter(columnOrder.indexOf(col.key))}
-                  onDragEnd={handleDragEnd}
-                  onDragOver={(e) => e.preventDefault()}
-                  className="flex items-center gap-2 cursor-grab active:cursor-grabbing rounded-md px-1.5 py-1.5 hover:bg-muted/50 transition-colors"
+                  onDragStart={(e) => handleColumnDragStart(e, col.key)}
+                  onDragOver={(e) => handleColumnDragOver(e, col.key)}
+                  onDragEnd={handleColumnDragEnd}
+                  onDragLeave={handleColumnDragLeave}
+                  className={`flex items-center gap-2 cursor-grab active:cursor-grabbing rounded-md px-1.5 py-1.5 hover:bg-muted/50 transition-colors ${dragOverKey === col.key ? 'bg-primary/10 border border-primary/30' : ''}`}
                 >
                   <GripVertical className="h-3 w-3 text-muted-foreground/40 shrink-0" />
                   <Checkbox
@@ -765,15 +776,16 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
               )}
               {orderedColumns.map(col => {
                 if (!visibleColumns.includes(col.key)) return null;
-                if (col.key === "technician" || col.key === "status" || col.key === "callStatus") {
-                  return (
-                    <th key={col.key} className="py-2.5 px-2 text-left font-medium text-muted-foreground text-[11px] uppercase tracking-wider whitespace-nowrap">
-                      {col.label}
-                    </th>
-                  );
-                }
                 return (
-                  <th key={col.key} className="py-2.5 px-2 text-left font-medium text-muted-foreground text-[11px] uppercase tracking-wider whitespace-nowrap">
+                  <th
+                    key={col.key}
+                    draggable
+                    onDragStart={(e) => handleColumnDragStart(e, col.key)}
+                    onDragOver={(e) => handleColumnDragOver(e, col.key)}
+                    onDragEnd={handleColumnDragEnd}
+                    onDragLeave={handleColumnDragLeave}
+                    className={`py-2.5 px-2 text-left font-medium text-muted-foreground text-[11px] uppercase tracking-wider whitespace-nowrap cursor-grab active:cursor-grabbing select-none transition-colors ${dragOverKey === col.key ? 'bg-primary/10' : ''}`}
+                  >
                     {col.label}
                   </th>
                 );
