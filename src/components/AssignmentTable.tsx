@@ -51,6 +51,31 @@ const DetailRow = ({ icon: Icon, label, value }: { icon: any; label: string; val
   );
 };
 
+const EditableField = ({ editing, icon: Icon, label, value, fallback, onChange }: {
+  editing: boolean; icon: any; label: string; value: string | undefined; fallback: string | null | undefined; onChange: (v: string) => void;
+}) => {
+  const displayValue = editing ? (value ?? fallback ?? "") : (fallback || null);
+  if (!editing && !displayValue) return null;
+  return (
+    <div className="flex items-start gap-3 py-2.5 border-b border-border/30 last:border-0">
+      <Icon className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+      <div className="min-w-0 flex-1">
+        <p className="text-[10px] uppercase tracking-wider text-muted-foreground/70">{label}</p>
+        {editing ? (
+          <input
+            type="text"
+            value={value ?? fallback ?? ""}
+            onChange={(e) => onChange(e.target.value)}
+            className="w-full mt-0.5 rounded border border-border bg-card px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+          />
+        ) : (
+          <p className="text-sm mt-0.5 break-words">{displayValue}</p>
+        )}
+      </div>
+    </div>
+  );
+};
+
 interface DriveFile {
   id: string;
   name: string;
