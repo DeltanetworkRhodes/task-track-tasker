@@ -891,7 +891,7 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
                   // Comments
                   if (col.key === "comments") {
                     return (
-                      <td key={col.key} className="py-2.5 px-2 text-[11px] text-muted-foreground truncate max-w-[150px]">
+                      <td key={col.key} className="py-2 px-1.5 text-[10px] text-muted-foreground break-words leading-tight">
                         {a.comments && (
                           <span className="inline-flex items-center gap-1">
                             <MessageSquare className="h-3 w-3 flex-shrink-0" />
