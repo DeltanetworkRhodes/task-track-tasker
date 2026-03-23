@@ -918,9 +918,9 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
                     </td>
                   );
                 })}
-                <td className="py-2.5 px-1.5 text-center">
+                <td className="py-2 px-1 text-center">
                   {(a as any).driveUrl ? (
-                    <div className="flex items-center justify-center gap-1" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
                       <a href={(a as any).driveUrl} target="_blank" rel="noopener noreferrer" className="inline-flex" title="Φάκελος">
                         <FolderOpen className="h-3.5 w-3.5 text-primary hover:text-primary/70 transition-colors" />
                       </a>
