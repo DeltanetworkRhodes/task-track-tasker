@@ -760,8 +760,8 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
       </div>
 
       {/* Desktop/Tablet Table View */}
-      <div className="hidden md:block">
-        <table className="w-full text-sm table-fixed">
+      <div className="hidden md:block overflow-x-auto scrollbar-thin">
+        <table className="w-full text-sm min-w-[1200px]">
           <thead>
             <tr className="border-b border-border/50">
               {onSelectionChange && (
@@ -784,14 +784,14 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
                     onDragOver={(e) => handleColumnDragOver(e, col.key)}
                     onDragEnd={handleColumnDragEnd}
                     onDragLeave={handleColumnDragLeave}
-                    className={`py-2 px-1.5 text-left font-medium text-muted-foreground text-[10px] uppercase tracking-wider cursor-grab active:cursor-grabbing select-none transition-colors break-words ${dragOverKey === col.key ? 'bg-primary/10' : ''}`}
+                    className={`py-2.5 px-2 text-left font-medium text-muted-foreground text-[11px] uppercase tracking-wider whitespace-nowrap cursor-grab active:cursor-grabbing select-none transition-colors ${dragOverKey === col.key ? 'bg-primary/10' : ''}`}
                   >
                     {col.label}
                   </th>
                 );
               })}
-              <th className="py-2 px-1 text-center font-medium text-muted-foreground text-[10px] uppercase tracking-wider w-10">Drive</th>
-              <th className="py-2 px-1 text-center w-8"></th>
+              <th className="py-2.5 px-2 text-center font-medium text-muted-foreground text-[11px] uppercase tracking-wider w-12">Drive</th>
+              <th className="py-2.5 px-2 text-center w-8"></th>
             </tr>
           </thead>
           <tbody>
@@ -817,7 +817,7 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
                   // SR ID - clickable
                   if (col.key === "srId") {
                     return (
-                      <td key={col.key} className="py-2 px-1.5 font-bold text-primary cursor-pointer text-[11px] break-all leading-tight" onClick={() => setSelected(a)}>
+                      <td key={col.key} className="py-2.5 px-2 font-bold text-primary cursor-pointer text-xs whitespace-nowrap" onClick={() => setSelected(a)}>
                         {a.srId}
                       </td>
                     );
@@ -826,13 +826,13 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
                   // Technician - Select
                   if (col.key === "technician") {
                     return (
-                      <td key={col.key} className="py-2 px-1.5" onClick={(e) => e.stopPropagation()}>
+                      <td key={col.key} className="py-2.5 px-2" onClick={(e) => e.stopPropagation()}>
                         <Select
                           value={(a as any).technicianId || "__none__"}
                           onValueChange={(val) => handleAssign(a.id, val)}
                           disabled={assigning === a.id}
                         >
-                          <SelectTrigger className="w-full h-6 text-[10px] border-border/50 min-w-[100px]">
+                          <SelectTrigger className="w-full h-7 text-[11px] border-border/50 min-w-[120px]">
                             <SelectValue placeholder="Χωρίς" />
                           </SelectTrigger>
                           <SelectContent>
@@ -853,12 +853,12 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
                   // Status - Select
                   if (col.key === "status") {
                     return (
-                      <td key={col.key} className="py-2 px-1.5" onClick={(e) => e.stopPropagation()}>
+                      <td key={col.key} className="py-2.5 px-2" onClick={(e) => e.stopPropagation()}>
                         <Select
                           value={a.status}
                           onValueChange={(val) => handleStatusChange(a.id, val)}
                         >
-                          <SelectTrigger className="h-6 text-[10px] w-full border-0 bg-transparent hover:bg-muted/50 px-0.5 min-w-[80px]">
+                          <SelectTrigger className="h-7 text-[11px] w-full border-0 bg-transparent hover:bg-muted/50 px-1 min-w-[100px]">
                             <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${statusColors[a.status] || statusColors.pending}`}>
                               {statusLabels[a.status] || a.status}
                             </span>
@@ -876,7 +876,7 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
                   // Call Status
                   if (col.key === "callStatus") {
                     return (
-                      <td key={col.key} className="py-2 px-1.5" onClick={(e) => e.stopPropagation()}>
+                      <td key={col.key} className="py-2.5 px-2" onClick={(e) => e.stopPropagation()}>
                         {isAdmin ? (
                           <CallStatusPopover assignment={a}>
                             <button type="button"><CallStatusBadge status={(a as any).callStatus} callCount={(a as any).callCount} /></button>
@@ -891,11 +891,11 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
                   // Comments
                   if (col.key === "comments") {
                     return (
-                      <td key={col.key} className="py-2 px-1.5 text-[10px] text-muted-foreground break-words leading-tight">
+                      <td key={col.key} className="py-2.5 px-2 text-[11px] text-muted-foreground max-w-[180px]">
                         {a.comments && (
                           <span className="inline-flex items-center gap-1">
                             <MessageSquare className="h-3 w-3 flex-shrink-0" />
-                            <span className="break-words">{a.comments}</span>
+                            <span className="line-clamp-2">{a.comments}</span>
                           </span>
                         )}
                       </td>
@@ -905,7 +905,7 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
                   // Date
                   if (col.key === "date") {
                     return (
-                      <td key={col.key} className="py-2 px-1.5 font-bold text-[10px] text-muted-foreground whitespace-nowrap tabular-nums">
+                      <td key={col.key} className="py-2.5 px-2 font-bold text-[11px] text-muted-foreground whitespace-nowrap tabular-nums">
                         {a.date}
                       </td>
                     );
@@ -913,14 +913,14 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
                   
                   // Default text cells
                   return (
-                    <td key={col.key} className="py-2 px-1.5 text-[10px] break-words leading-tight" title={getCellValue(a, col.key)}>
+                    <td key={col.key} className="py-2.5 px-2 text-xs whitespace-nowrap" title={getCellValue(a, col.key)}>
                       {getCellValue(a, col.key)}
                     </td>
                   );
                 })}
-                <td className="py-2 px-1 text-center">
+                <td className="py-2.5 px-2 text-center">
                   {(a as any).driveUrl ? (
-                    <div className="flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex items-center justify-center gap-1" onClick={(e) => e.stopPropagation()}>
                       <a href={(a as any).driveUrl} target="_blank" rel="noopener noreferrer" className="inline-flex" title="Φάκελος">
                         <FolderOpen className="h-3.5 w-3.5 text-primary hover:text-primary/70 transition-colors" />
                       </a>
@@ -929,7 +929,7 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
                     <FolderOpen className="h-3.5 w-3.5 text-muted-foreground/30 mx-auto" />
                   )}
                 </td>
-                <td className="py-2 px-1 text-center">
+                <td className="py-2.5 px-2 text-center">
                   <button
                     onClick={(e) => { e.stopPropagation(); setDeleteTarget(a); }}
                     className="text-muted-foreground/40 hover:text-destructive transition-colors p-0.5 rounded"
