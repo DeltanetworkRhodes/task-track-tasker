@@ -944,16 +944,32 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
         </table>
       </div>
 
-      {/* Detail Sheet (Side Panel) */}
-      <Sheet open={!!selected} onOpenChange={() => setSelected(null)}>
+      {/* Detail Sheet (Side Panel) — Editable */}
+      <Sheet open={!!selected} onOpenChange={() => { setSelected(null); setEditing(false); setEditData({}); }}>
         <SheetContent side="right" className="w-full sm:max-w-2xl overflow-y-auto p-0">
           <SheetHeader className="sticky top-0 z-10 bg-background border-b border-border px-6 py-4">
             <SheetTitle className="flex items-center gap-2">
               <Hash className="h-5 w-5 text-primary" />
               <span className="font-bold text-lg">{selected?.srId}</span>
-              <span className={`ml-auto inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${statusColors[selected?.status] || statusColors.pending}`}>
+              <span className={`ml-2 inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${statusColors[selected?.status] || statusColors.pending}`}>
                 {statusLabels[selected?.status as keyof typeof statusLabels] || selected?.status}
               </span>
+              <div className="ml-auto flex items-center gap-2">
+                {!editing ? (
+                  <Button size="sm" variant="outline" className="gap-1.5 h-7 text-xs" onClick={() => { setEditing(true); setEditData(buildEditData(selected)); }}>
+                    <Pencil className="h-3 w-3" /> Επεξεργασία
+                  </Button>
+                ) : (
+                  <>
+                    <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => { setEditing(false); setEditData({}); }}>
+                      Ακύρωση
+                    </Button>
+                    <Button size="sm" className="gap-1.5 h-7 text-xs" onClick={() => handleSaveEdit()} disabled={saving}>
+                      <Save className="h-3 w-3" /> {saving ? "Αποθήκευση..." : "Αποθήκευση"}
+                    </Button>
+                  </>
+                )}
+              </div>
             </SheetTitle>
           </SheetHeader>
 
@@ -963,15 +979,15 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
               <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1.5">
                 <Briefcase className="h-3.5 w-3.5" /> Στοιχεία Εργασίας
               </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6">
-                <DetailRow icon={Briefcase} label="Είδος Εργασίας" value={(selected as any)?.workType} />
-                <DetailRow icon={Tag} label="Τύπος Αιτήματος" value={(selected as any)?.requestCategory} />
-                <DetailRow icon={MapPin} label="Περιοχή" value={selected?.area} />
-                <DetailRow icon={Building} label="Δήμος" value={(selected as any)?.municipality} />
-                <DetailRow icon={Hash} label="CAB" value={selected?.cab} />
-                <DetailRow icon={Hash} label="Building ID" value={(selected as any)?.buildingId} />
-                <DetailRow icon={MapPin} label="Διεύθυνση" value={selected?.address} />
-                <DetailRow icon={Hash} label="Όροφος" value={(selected as any)?.floor} />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1">
+                <EditableField editing={editing} icon={Briefcase} label="Είδος Εργασίας" value={editData.work_type} fallback={(selected as any)?.workType} onChange={(v) => setEditData(d => ({ ...d, work_type: v }))} />
+                <EditableField editing={editing} icon={Tag} label="Τύπος Αιτήματος" value={editData.request_category} fallback={(selected as any)?.requestCategory} onChange={(v) => setEditData(d => ({ ...d, request_category: v }))} />
+                <EditableField editing={editing} icon={MapPin} label="Περιοχή" value={editData.area} fallback={selected?.area} onChange={(v) => setEditData(d => ({ ...d, area: v }))} />
+                <EditableField editing={editing} icon={Building} label="Δήμος" value={editData.municipality} fallback={(selected as any)?.municipality} onChange={(v) => setEditData(d => ({ ...d, municipality: v }))} />
+                <EditableField editing={editing} icon={Hash} label="CAB" value={editData.cab} fallback={selected?.cab} onChange={(v) => setEditData(d => ({ ...d, cab: v }))} />
+                <EditableField editing={editing} icon={Hash} label="Building ID" value={editData.building_id_hemd} fallback={(selected as any)?.buildingId} onChange={(v) => setEditData(d => ({ ...d, building_id_hemd: v }))} />
+                <EditableField editing={editing} icon={MapPin} label="Διεύθυνση" value={editData.address} fallback={selected?.address} onChange={(v) => setEditData(d => ({ ...d, address: v }))} />
+                <EditableField editing={editing} icon={Hash} label="Όροφος" value={editData.floor} fallback={(selected as any)?.floor} onChange={(v) => setEditData(d => ({ ...d, floor: v }))} />
               </div>
               {(selected as any)?.latitude && (selected as any)?.longitude && (
                 <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
@@ -994,33 +1010,43 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
               <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1.5">
                 <User className="h-3.5 w-3.5" /> Στοιχεία Πελάτη
               </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6">
-                <DetailRow icon={User} label="Ονοματεπώνυμο" value={selected?.customerName} />
-                <DetailRow icon={Phone} label="Τηλέφωνο" value={selected?.phone} />
-                <DetailRow icon={Phone} label="Κινητό" value={(selected as any)?.customerMobile} />
-                <DetailRow icon={Phone} label="Σταθερό" value={(selected as any)?.customerLandline} />
-                <DetailRow icon={User} label="Email" value={(selected as any)?.customerEmail} />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1">
+                <EditableField editing={editing} icon={User} label="Ονοματεπώνυμο" value={editData.customer_name} fallback={selected?.customerName} onChange={(v) => setEditData(d => ({ ...d, customer_name: v }))} />
+                <EditableField editing={editing} icon={Phone} label="Τηλέφωνο" value={editData.phone} fallback={selected?.phone} onChange={(v) => setEditData(d => ({ ...d, phone: v }))} />
+                <EditableField editing={editing} icon={Phone} label="Κινητό" value={editData.customer_mobile} fallback={(selected as any)?.customerMobile} onChange={(v) => setEditData(d => ({ ...d, customer_mobile: v }))} />
+                <EditableField editing={editing} icon={Phone} label="Σταθερό" value={editData.customer_landline} fallback={(selected as any)?.customerLandline} onChange={(v) => setEditData(d => ({ ...d, customer_landline: v }))} />
+                <EditableField editing={editing} icon={Mail} label="Email" value={editData.customer_email} fallback={(selected as any)?.customerEmail} onChange={(v) => setEditData(d => ({ ...d, customer_email: v }))} />
               </div>
             </div>
 
             {/* Manager Info */}
-            {((selected as any)?.managerName || (selected as any)?.managerMobile || (selected as any)?.managerEmail) && (
-              <div>
-                <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1.5">
-                  <Users className="h-3.5 w-3.5" /> Στοιχεία Διαχειριστή
-                </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6">
-                  <DetailRow icon={User} label="Ονοματεπώνυμο" value={(selected as any)?.managerName} />
-                  <DetailRow icon={Phone} label="Κινητό" value={(selected as any)?.managerMobile} />
-                  <DetailRow icon={User} label="Email" value={(selected as any)?.managerEmail} />
-                </div>
+            <div>
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1.5">
+                <Users className="h-3.5 w-3.5" /> Στοιχεία Διαχειριστή
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1">
+                <EditableField editing={editing} icon={User} label="Ονοματεπώνυμο" value={editData.manager_name} fallback={(selected as any)?.managerName} onChange={(v) => setEditData(d => ({ ...d, manager_name: v }))} />
+                <EditableField editing={editing} icon={Phone} label="Κινητό" value={editData.manager_mobile} fallback={(selected as any)?.managerMobile} onChange={(v) => setEditData(d => ({ ...d, manager_mobile: v }))} />
+                <EditableField editing={editing} icon={Mail} label="Email" value={editData.manager_email} fallback={(selected as any)?.managerEmail} onChange={(v) => setEditData(d => ({ ...d, manager_email: v }))} />
               </div>
-            )}
+            </div>
 
             {/* Comments */}
-            {selected?.comments && (
-              <DetailRow icon={MessageSquare} label="Σχόλια" value={selected?.comments} />
-            )}
+            <div>
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1.5">
+                <MessageSquare className="h-3.5 w-3.5" /> Σχόλια
+              </h3>
+              {editing ? (
+                <textarea
+                  value={editData.comments ?? selected?.comments ?? ""}
+                  onChange={(e) => setEditData(d => ({ ...d, comments: e.target.value }))}
+                  rows={3}
+                  className="w-full rounded-lg border border-border bg-card px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                />
+              ) : (
+                <p className="text-sm text-foreground">{selected?.comments || <span className="text-muted-foreground/50">—</span>}</p>
+              )}
+            </div>
 
             {/* Assign Technician */}
             {selected && (
