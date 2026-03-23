@@ -193,6 +193,9 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
   const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
   const [visibleColumns, setVisibleColumns] = useState<string[]>(() => getDefaultConfig().visible);
   const [columnOrder, setColumnOrder] = useState<string[]>(() => getDefaultConfig().order);
+  const [editing, setEditing] = useState(false);
+  const [editData, setEditData] = useState<Record<string, string | undefined>>({});
+  const [saving, setSaving] = useState(false);
   const dragItem = useRef<number | null>(null);
   const dragOverItem = useRef<number | null>(null);
   
@@ -203,6 +206,84 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
   const queryClient = useQueryClient();
   const { organizationId } = useOrganization();
   const { data: workCategories } = useWorkCategories();
+
+  const buildEditData = (a: any) => ({
+    work_type: a?.workType || "",
+    request_category: a?.requestCategory || "",
+    area: a?.area || "",
+    municipality: a?.municipality || "",
+    cab: a?.cab || "",
+    building_id_hemd: a?.buildingId || "",
+    address: a?.address || "",
+    floor: a?.floor || "",
+    customer_name: a?.customerName || "",
+    phone: a?.phone || "",
+    customer_mobile: a?.customerMobile || "",
+    customer_landline: a?.customerLandline || "",
+    customer_email: a?.customerEmail || "",
+    manager_name: a?.managerName || "",
+    manager_mobile: a?.managerMobile || "",
+    manager_email: a?.managerEmail || "",
+    comments: a?.comments || "",
+  });
+
+  const handleSaveEdit = async () => {
+    if (!selected) return;
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from("assignments")
+        .update({
+          work_type: editData.work_type || null,
+          request_category: editData.request_category || null,
+          area: editData.area || selected.area,
+          municipality: editData.municipality || null,
+          cab: editData.cab || null,
+          building_id_hemd: editData.building_id_hemd || null,
+          address: editData.address || null,
+          floor: editData.floor || null,
+          customer_name: editData.customer_name || null,
+          phone: editData.phone || null,
+          customer_mobile: editData.customer_mobile || null,
+          customer_landline: editData.customer_landline || null,
+          customer_email: editData.customer_email || null,
+          manager_name: editData.manager_name || null,
+          manager_mobile: editData.manager_mobile || null,
+          manager_email: editData.manager_email || null,
+          comments: editData.comments || null,
+        })
+        .eq("id", selected.id);
+      if (error) throw error;
+      toast.success("Τα στοιχεία αποθηκεύτηκαν");
+      setEditing(false);
+      queryClient.invalidateQueries({ queryKey: ["assignments"] });
+      // Update selected with new values
+      setSelected({
+        ...selected,
+        workType: editData.work_type,
+        requestCategory: editData.request_category,
+        area: editData.area || selected.area,
+        municipality: editData.municipality,
+        cab: editData.cab,
+        buildingId: editData.building_id_hemd,
+        address: editData.address,
+        floor: editData.floor,
+        customerName: editData.customer_name,
+        phone: editData.phone,
+        customerMobile: editData.customer_mobile,
+        customerLandline: editData.customer_landline,
+        customerEmail: editData.customer_email,
+        managerName: editData.manager_name,
+        managerMobile: editData.manager_mobile,
+        managerEmail: editData.manager_email,
+        comments: editData.comments,
+      });
+    } catch (err: any) {
+      toast.error("Σφάλμα: " + err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
 
   // Ordered columns for rendering
   const orderedColumns = columnOrder
