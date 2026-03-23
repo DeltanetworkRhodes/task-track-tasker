@@ -826,13 +826,13 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
                   // Technician - Select
                   if (col.key === "technician") {
                     return (
-                      <td key={col.key} className="py-2.5 px-2" onClick={(e) => e.stopPropagation()}>
+                      <td key={col.key} className="py-2 px-1.5" onClick={(e) => e.stopPropagation()}>
                         <Select
                           value={(a as any).technicianId || "__none__"}
                           onValueChange={(val) => handleAssign(a.id, val)}
                           disabled={assigning === a.id}
                         >
-                          <SelectTrigger className="w-full h-7 text-[11px] border-border/50 min-w-[120px]">
+                          <SelectTrigger className="w-full h-6 text-[10px] border-border/50 min-w-[100px]">
                             <SelectValue placeholder="Χωρίς" />
                           </SelectTrigger>
                           <SelectContent>
