@@ -64,12 +64,31 @@ async function getAccessToken(serviceAccountKey: any): Promise<string> {
 
 const SHARED_DRIVE_ID = "0AN9VpmNEa7QBUk9PVA";
 
-async function driveSearch(accessToken: string, query: string): Promise<any[]> {
-  const url = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&fields=files(id,name,mimeType,thumbnailLink,webViewLink,size,createdTime)&pageSize=100&supportsAllDrives=true&includeItemsFromAllDrives=true&corpora=drive&driveId=${SHARED_DRIVE_ID}`;
+async function driveSearch(
+  accessToken: string,
+  query: string,
+  fallback = false
+): Promise<any[]> {
+  const corpora = fallback
+    ? "allDrives"
+    : `drive&driveId=${SHARED_DRIVE_ID}`;
+
+  const url =
+    `https://www.googleapis.com/drive/v3/files` +
+    `?q=${encodeURIComponent(query)}` +
+    `&fields=files(id,name,mimeType,thumbnailLink,webViewLink,size,createdTime)` +
+    `&pageSize=100` +
+    `&supportsAllDrives=true` +
+    `&includeItemsFromAllDrives=true` +
+    `&corpora=${corpora}`;
+
   const res = await fetch(url, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
-  if (!res.ok) throw new Error(await res.text());
+  if (!res.ok) {
+    if (!fallback) return driveSearch(accessToken, query, true);
+    throw new Error(await res.text());
+  }
   const data = await res.json();
   return data.files || [];
 }
