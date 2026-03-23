@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Assignment, statusLabels } from "@/data/mockData";
-import { Camera, MessageSquare, ExternalLink, User, MapPin, Phone, Hash, FolderOpen, FileText, Image, Loader2, Clock, ArrowRight, Trash2, Eye, Users, Settings2, Building, Briefcase, Tag, Navigation, GripVertical, Save, Pencil, Mail } from "lucide-react";
+import { Camera, MessageSquare, ExternalLink, User, MapPin, Phone, Hash, FolderOpen, FileText, Image, Loader2, Clock, ArrowRight, Trash2, Eye, Users, Settings2, Building, Briefcase, Tag, Navigation, GripVertical, Save, Pencil, Mail, MoreHorizontal, ClipboardCheck } from "lucide-react";
 import SRComments from "@/components/SRComments";
 import CallStatusBadge from "@/components/CallStatusBadge";
 import CallStatusPopover from "@/components/CallStatusPopover";
@@ -13,6 +13,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -868,9 +869,9 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
       </div>
 
       {/* Desktop/Tablet Table View */}
-      <div className="hidden md:block overflow-x-auto scrollbar-thin">
-        <table className="w-full text-sm min-w-[1200px]">
-          <thead>
+      <div className="hidden md:block w-full overflow-x-auto rounded-lg border border-border">
+        <table className="w-full text-xs min-w-[900px]">
+          <thead className="sticky top-0 z-10 bg-muted/80 backdrop-blur-sm">
             <tr className="border-b border-border/50">
               {onSelectionChange && (
                 <th className="py-2.5 px-1.5 w-8 shrink-0">
@@ -882,32 +883,36 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
                   />
                 </th>
               )}
-              {orderedColumns.map(col => {
-                if (!visibleColumns.includes(col.key)) return null;
-                return (
-                  <th
-                    key={col.key}
-                    draggable
-                    onDragStart={(e) => handleColumnDragStart(e, col.key)}
-                    onDragOver={(e) => handleColumnDragOver(e, col.key)}
-                    onDragEnd={handleColumnDragEnd}
-                    onDragLeave={handleColumnDragLeave}
-                    className={`py-2.5 px-2 text-left font-medium text-muted-foreground text-[11px] uppercase tracking-wider whitespace-nowrap cursor-grab active:cursor-grabbing select-none transition-colors ${dragOverKey === col.key ? 'bg-primary/10' : ''}`}
-                  >
-                    {col.label}
-                  </th>
-                );
-              })}
-              <th className="py-2.5 px-2 text-center font-medium text-muted-foreground text-[11px] uppercase tracking-wider w-12">Drive</th>
-              <th className="py-2.5 px-2 text-center w-8"></th>
+              <th className="py-2.5 px-2 text-left font-medium text-muted-foreground text-[11px] uppercase tracking-wider w-[11%]">SR ID</th>
+              <th className="py-2.5 px-2 text-left font-medium text-muted-foreground text-[11px] uppercase tracking-wider w-[24%]">Πελάτης / Διεύθυνση</th>
+              <th className="py-2.5 px-2 text-left font-medium text-muted-foreground text-[11px] uppercase tracking-wider w-[9%]">Περιοχή</th>
+              <th className="py-2.5 px-2 text-left font-medium text-muted-foreground text-[11px] uppercase tracking-wider w-[7%]">CAB</th>
+              <th className="py-2.5 px-2 text-left font-medium text-muted-foreground text-[11px] uppercase tracking-wider w-[15%]">Υπεύθυνος</th>
+              <th className="py-2.5 px-2 text-left font-medium text-muted-foreground text-[11px] uppercase tracking-wider w-[12%]">Κατάσταση</th>
+              <th className="py-2.5 px-2 text-left font-medium text-muted-foreground text-[11px] uppercase tracking-wider w-[9%]">Κλήση</th>
+              <th className="py-2.5 px-2 text-left font-medium text-muted-foreground text-[11px] uppercase tracking-wider w-[7%]">Ημ/νία</th>
+              <th className="py-2.5 px-2 text-center font-medium text-muted-foreground text-[11px] uppercase tracking-wider w-[6%]"></th>
             </tr>
           </thead>
           <tbody>
-            {assignments.map((a) => (
+            {assignments.length === 0 && (
+              <tr>
+                <td colSpan={onSelectionChange ? 10 : 9} className="py-16 text-center text-muted-foreground">
+                  <ClipboardCheck className="h-10 w-10 mx-auto mb-3 opacity-20" />
+                  <p className="text-sm">Δεν υπάρχουν αναθέσεις</p>
+                </td>
+              </tr>
+            )}
+            {assignments.map((a, index) => (
               <tr
                 key={a.id}
-                className={`border-b border-border/30 hover:bg-secondary/50 transition-colors ${selectedIds.includes(a.id) ? 'bg-primary/5' : ''}`}
+                className={`border-b border-border/50 cursor-pointer transition-colors hover:bg-muted/40 ${
+                  index % 2 === 0 ? 'bg-background' : 'bg-muted/20'
+                } ${selectedIds.includes(a.id) ? 'bg-primary/5' : ''} ${
+                  selected?.id === a.id ? '!bg-primary/5 border-l-2 border-l-primary' : ''
+                }`}
                 onMouseEnter={() => handleRowHover(a)}
+                onClick={() => setSelected(a)}
               >
                 {onSelectionChange && (
                   <td className="py-2.5 px-1.5" onClick={(e) => e.stopPropagation()}>
@@ -919,132 +924,126 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
                     />
                   </td>
                 )}
-                {orderedColumns.map(col => {
-                  if (!visibleColumns.includes(col.key)) return null;
-                  
-                  // SR ID - clickable
-                  if (col.key === "srId") {
-                    return (
-                      <td key={col.key} className="py-2.5 px-2 font-bold text-primary cursor-pointer text-xs whitespace-nowrap" onClick={() => setSelected(a)}>
-                        {a.srId}
-                      </td>
-                    );
-                  }
-                  
-                  // Technician - Select
-                  if (col.key === "technician") {
-                    return (
-                      <td key={col.key} className="py-2.5 px-2" onClick={(e) => e.stopPropagation()}>
-                        <Select
-                          value={(a as any).technicianId || "__none__"}
-                          onValueChange={(val) => handleAssign(a.id, val)}
-                          disabled={assigning === a.id}
-                        >
-                          <SelectTrigger className="w-full h-7 text-[11px] border-border/50 min-w-[120px]">
-                            <SelectValue placeholder="Χωρίς" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="__none__">
-                              <span className="text-muted-foreground">Χωρίς ανάθεση</span>
-                            </SelectItem>
-                            {(technicians || []).map((t) => (
-                              <SelectItem key={t.user_id} value={t.user_id}>
-                                {t.full_name}{t.area ? ` (${t.area})` : ""}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </td>
-                    );
-                  }
-                  
-                  // Status - Select
-                  if (col.key === "status") {
-                    return (
-                      <td key={col.key} className="py-2.5 px-2" onClick={(e) => e.stopPropagation()}>
-                        <Select
-                          value={a.status}
-                          onValueChange={(val) => handleStatusChange(a.id, val)}
-                        >
-                          <SelectTrigger className="h-7 text-[11px] w-full border-0 bg-transparent hover:bg-muted/50 px-1 min-w-[100px]">
-                            <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${statusColors[a.status] || statusColors.pending}`}>
-                              {statusLabels[a.status] || a.status}
-                            </span>
-                          </SelectTrigger>
-                          <SelectContent>
-                            {Object.entries(statusLabels).map(([key, label]) => (
-                              <SelectItem key={key} value={key} className="text-xs">{label}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </td>
-                    );
-                  }
-                  
-                  // Call Status
-                  if (col.key === "callStatus") {
-                    return (
-                      <td key={col.key} className="py-2.5 px-2" onClick={(e) => e.stopPropagation()}>
-                        {isAdmin ? (
-                          <CallStatusPopover assignment={a}>
-                            <button type="button"><CallStatusBadge status={(a as any).callStatus} callCount={(a as any).callCount} /></button>
-                          </CallStatusPopover>
-                        ) : (
-                          <CallStatusBadge status={(a as any).callStatus} callCount={(a as any).callCount} />
-                        )}
-                      </td>
-                    );
-                  }
-                  
-                  // Comments
-                  if (col.key === "comments") {
-                    return (
-                      <td key={col.key} className="py-2.5 px-2 text-[11px] text-muted-foreground max-w-[180px]">
-                        {a.comments && (
-                          <span className="inline-flex items-center gap-1">
-                            <MessageSquare className="h-3 w-3 flex-shrink-0" />
-                            <span className="line-clamp-2">{a.comments}</span>
-                          </span>
-                        )}
-                      </td>
-                    );
-                  }
-                  
-                  // Date
-                  if (col.key === "date") {
-                    return (
-                      <td key={col.key} className="py-2.5 px-2 font-bold text-[11px] text-muted-foreground whitespace-nowrap tabular-nums">
-                        {a.date}
-                      </td>
-                    );
-                  }
-                  
-                  // Default text cells
-                  return (
-                    <td key={col.key} className="py-2.5 px-2 text-xs whitespace-nowrap" title={getCellValue(a, col.key)}>
-                      {getCellValue(a, col.key)}
-                    </td>
-                  );
-                })}
-                <td className="py-2.5 px-2 text-center">
-                  {(a as any).driveUrl ? (
-                    <div className="flex items-center justify-center gap-1" onClick={(e) => e.stopPropagation()}>
-                      <a href={(a as any).driveUrl} target="_blank" rel="noopener noreferrer" className="inline-flex" title="Φάκελος">
-                        <FolderOpen className="h-3.5 w-3.5 text-primary hover:text-primary/70 transition-colors" />
+                {/* SR ID */}
+                <td className="py-2.5 px-2">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setSelected(a); }}
+                    className="text-xs font-bold text-primary hover:underline text-left truncate block w-full"
+                  >
+                    {a.srId}
+                  </button>
+                </td>
+                {/* Πελάτης / Διεύθυνση */}
+                <td className="py-2.5 px-2">
+                  <div className="min-w-0">
+                    <p className="text-xs font-medium text-foreground truncate">
+                      {(a as any).customerName || '—'}
+                    </p>
+                    {(a as any).address && (
+                      <p className="text-[10px] text-muted-foreground truncate flex items-center gap-1 mt-0.5">
+                        <MapPin className="h-2.5 w-2.5 shrink-0" />
+                        {(a as any).address}
+                      </p>
+                    )}
+                    {(a as any).phone && (
+                      <a
+                        href={`tel:${(a as any).phone}`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="text-[10px] text-primary flex items-center gap-1 mt-0.5 hover:underline"
+                      >
+                        <Phone className="h-2.5 w-2.5 shrink-0" />
+                        {(a as any).phone}
                       </a>
-                    </div>
+                    )}
+                  </div>
+                </td>
+                {/* Περιοχή */}
+                <td className="py-2.5 px-2 text-xs text-foreground truncate">{a.area}</td>
+                {/* CAB */}
+                <td className="py-2.5 px-2 text-xs text-foreground truncate">{(a as any).cab || '—'}</td>
+                {/* Τεχνικός */}
+                <td className="py-2.5 px-2" onClick={(e) => e.stopPropagation()}>
+                  <Select
+                    value={(a as any).technicianId || "__none__"}
+                    onValueChange={(val) => handleAssign(a.id, val)}
+                    disabled={assigning === a.id}
+                  >
+                    <SelectTrigger className="w-full h-7 text-[11px] border-border/50 min-w-[110px]">
+                      <SelectValue placeholder="Χωρίς" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">
+                        <span className="text-muted-foreground">Χωρίς ανάθεση</span>
+                      </SelectItem>
+                      {(technicians || []).map((t) => (
+                        <SelectItem key={t.user_id} value={t.user_id}>
+                          {t.full_name}{t.area ? ` (${t.area})` : ""}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </td>
+                {/* Κατάσταση */}
+                <td className="py-2.5 px-2" onClick={(e) => e.stopPropagation()}>
+                  <Select
+                    value={a.status}
+                    onValueChange={(val) => handleStatusChange(a.id, val)}
+                  >
+                    <SelectTrigger className="h-7 text-[11px] w-full border-0 bg-transparent hover:bg-muted/50 px-1 min-w-[90px]">
+                      <span className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium ${statusColors[a.status] || statusColors.pending}`}>
+                        {statusLabels[a.status] || a.status}
+                      </span>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(statusLabels).map(([key, label]) => (
+                        <SelectItem key={key} value={key} className="text-xs">{label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </td>
+                {/* Κλήση */}
+                <td className="py-2.5 px-2" onClick={(e) => e.stopPropagation()}>
+                  {isAdmin ? (
+                    <CallStatusPopover assignment={a}>
+                      <button type="button"><CallStatusBadge status={(a as any).callStatus} callCount={(a as any).callCount} /></button>
+                    </CallStatusPopover>
                   ) : (
-                    <FolderOpen className="h-3.5 w-3.5 text-muted-foreground/30 mx-auto" />
+                    <CallStatusBadge status={(a as any).callStatus} callCount={(a as any).callCount} />
                   )}
                 </td>
-                <td className="py-2.5 px-2 text-center">
-                  <button
-                    onClick={(e) => { e.stopPropagation(); setDeleteTarget(a); }}
-                    className="text-muted-foreground/40 hover:text-destructive transition-colors p-0.5 rounded"
-                    title="Διαγραφή"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
+                {/* Ημ/νία */}
+                <td className="py-2.5 px-2 font-bold text-[11px] text-muted-foreground whitespace-nowrap tabular-nums">
+                  {a.date}
+                </td>
+                {/* Ενέργειες */}
+                <td className="py-2.5 px-2 text-center" onClick={(e) => e.stopPropagation()}>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-7 w-7">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      {(a as any).driveUrl && (
+                        <DropdownMenuItem onClick={() => window.open((a as any).driveUrl, "_blank")}>
+                          <FolderOpen className="h-4 w-4 mr-2" />
+                          Drive
+                        </DropdownMenuItem>
+                      )}
+                      <DropdownMenuItem onClick={() => setSelected(a)}>
+                        <Eye className="h-4 w-4 mr-2" />
+                        Λεπτομέρειες
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        className="text-destructive focus:text-destructive"
+                        onClick={() => setDeleteTarget(a)}
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Διαγραφή
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </td>
               </tr>
             ))}
