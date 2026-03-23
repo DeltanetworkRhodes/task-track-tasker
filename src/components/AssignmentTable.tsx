@@ -929,7 +929,7 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
                     <FolderOpen className="h-3.5 w-3.5 text-muted-foreground/30 mx-auto" />
                   )}
                 </td>
-                <td className="py-2 px-1 text-center">
+                <td className="py-2.5 px-2 text-center">
                   <button
                     onClick={(e) => { e.stopPropagation(); setDeleteTarget(a); }}
                     className="text-muted-foreground/40 hover:text-destructive transition-colors p-0.5 rounded"
