@@ -115,6 +115,7 @@ const ALL_COLUMNS = [
   { key: "srId", label: "SR ID", default: true },
   { key: "area", label: "Περιοχή", default: true },
   { key: "customerName", label: "Πελάτης", default: true },
+  { key: "address", label: "Διεύθυνση", default: true },
   { key: "cab", label: "CAB", default: true },
   { key: "workType", label: "Είδος Εργασίας", default: true },
   { key: "requestCategory", label: "Τύπος Αιτήματος", default: true },
