@@ -1138,22 +1138,8 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
               </div>
             </div>
 
-            {/* Comments */}
-            <div>
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1.5">
-                <MessageSquare className="h-3.5 w-3.5" /> Σχόλια
-              </h3>
-              {editing ? (
-                <textarea
-                  value={editData.comments ?? selected?.comments ?? ""}
-                  onChange={(e) => setEditData(d => ({ ...d, comments: e.target.value }))}
-                  rows={3}
-                  className="w-full rounded-lg border border-border bg-card px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                />
-              ) : (
-                <p className="text-sm text-foreground">{selected?.comments || <span className="text-muted-foreground/50">—</span>}</p>
-              )}
-            </div>
+
+
 
             {/* Assign Technician */}
             {selected && (
