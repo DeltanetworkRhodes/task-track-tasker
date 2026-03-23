@@ -895,7 +895,7 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
                         {a.comments && (
                           <span className="inline-flex items-center gap-1">
                             <MessageSquare className="h-3 w-3 flex-shrink-0" />
-                            <span className="truncate">{a.comments}</span>
+                            <span className="break-words">{a.comments}</span>
                           </span>
                         )}
                       </td>
