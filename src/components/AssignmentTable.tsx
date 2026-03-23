@@ -1056,7 +1056,7 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
       </div>
 
       {/* Detail Sheet (Side Panel) — Editable */}
-      <Sheet open={!!selected} onOpenChange={() => { setSelected(null); setEditing(false); setEditData({}); }}>
+      <Sheet open={!!selected} onOpenChange={() => { setSelected(null); setEditing(false); setEditData({}); setEditingCustomer(false); }}>
         <SheetContent side="right" className="w-full sm:max-w-2xl overflow-y-auto p-0">
           <SheetHeader className="sticky top-0 z-10 bg-background border-b border-border px-6 py-4">
             <SheetTitle className="flex items-center gap-2">
