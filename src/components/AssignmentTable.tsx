@@ -913,7 +913,7 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
                   
                   // Default text cells
                   return (
-                    <td key={col.key} className="py-2.5 px-2 text-xs truncate max-w-[120px]" title={getCellValue(a, col.key)}>
+                    <td key={col.key} className="py-2 px-1.5 text-[10px] break-words leading-tight" title={getCellValue(a, col.key)}>
                       {getCellValue(a, col.key)}
                     </td>
                   );
