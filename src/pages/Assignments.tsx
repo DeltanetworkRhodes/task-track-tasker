@@ -7,12 +7,9 @@ import SyncButton from "@/components/SyncButton";
 import { useAssignments } from "@/hooks/useData";
 import { useUserRole } from "@/hooks/useUserRole";
 import { statusLabels } from "@/data/mockData";
-import { ClipboardCheck, Filter, Search, Plus, UserX, CheckCircle2, XCircle, ListChecks, AlertCircle, Radio, FileSpreadsheet, ShieldCheck, Loader2 } from "lucide-react";
+import { ClipboardCheck, Filter, Search, Plus, UserX, CheckCircle2, XCircle, ListChecks, AlertCircle, Radio, FileSpreadsheet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { supabase } from "@/integrations/supabase/client";
-import { useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
 
 const AdminLiveMap = lazy(() => import("@/components/AdminLiveMap"));
 
@@ -39,27 +36,6 @@ const Assignments = () => {
   const [showCreate, setShowCreate] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [checkingPrecommit, setCheckingPrecommit] = useState(false);
-  const queryClient = useQueryClient();
-
-  const handleCheckPrecommit = async () => {
-    setCheckingPrecommit(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("check-precommit-files");
-      if (error) throw error;
-      const result = data as any;
-      if (result.moved > 0 || result.pending > 0) {
-        toast.success(`${result.moved} → Αυτοψία, ${result.pending} → Εκκρεμεί`);
-        queryClient.invalidateQueries({ queryKey: ["assignments"] });
-      } else {
-        toast.info(result.message || "Δεν βρέθηκαν αναθέσεις σε προδέσμευση");
-      }
-    } catch (err: any) {
-      toast.error("Σφάλμα: " + (err.message || "Αποτυχία ελέγχου"));
-    } finally {
-      setCheckingPrecommit(false);
-    }
-  };
 
   const assignments = dbAssignments
     ? dbAssignments.map((a) => ({
@@ -150,12 +126,6 @@ const Assignments = () => {
             </p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            {isAdmin && (
-              <Button size="sm" variant="outline" className="gap-1.5" onClick={handleCheckPrecommit} disabled={checkingPrecommit}>
-                {checkingPrecommit ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
-                <span className="hidden sm:inline">Έλεγχος Προδεσμεύσεων</span>
-              </Button>
-            )}
             <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setShowImport(true)}>
               <FileSpreadsheet className="h-4 w-4" />
               <span className="hidden sm:inline">Εισαγωγή Excel</span>
