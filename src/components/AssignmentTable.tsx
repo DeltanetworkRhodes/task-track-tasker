@@ -790,8 +790,8 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
                   </th>
                 );
               })}
-              <th className="py-2 px-1 text-center font-medium text-muted-foreground text-[10px] uppercase tracking-wider w-10">Drive</th>
-              <th className="py-2 px-1 text-center w-8"></th>
+              <th className="py-2.5 px-2 text-center font-medium text-muted-foreground text-[11px] uppercase tracking-wider w-12">Drive</th>
+              <th className="py-2.5 px-2 text-center w-8"></th>
             </tr>
           </thead>
           <tbody>
