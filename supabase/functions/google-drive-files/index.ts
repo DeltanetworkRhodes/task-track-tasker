@@ -64,12 +64,31 @@ async function getAccessToken(serviceAccountKey: any): Promise<string> {
 
 const SHARED_DRIVE_ID = "0AN9VpmNEa7QBUk9PVA";
 
-async function driveSearch(accessToken: string, query: string): Promise<any[]> {
-  const url = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&fields=files(id,name,mimeType,thumbnailLink,webViewLink,size,createdTime)&pageSize=100&supportsAllDrives=true&includeItemsFromAllDrives=true&corpora=drive&driveId=${SHARED_DRIVE_ID}`;
+async function driveSearch(
+  accessToken: string,
+  query: string,
+  fallback = false
+): Promise<any[]> {
+  const corpora = fallback
+    ? "allDrives"
+    : `drive&driveId=${SHARED_DRIVE_ID}`;
+
+  const url =
+    `https://www.googleapis.com/drive/v3/files` +
+    `?q=${encodeURIComponent(query)}` +
+    `&fields=files(id,name,mimeType,thumbnailLink,webViewLink,size,createdTime)` +
+    `&pageSize=100` +
+    `&supportsAllDrives=true` +
+    `&includeItemsFromAllDrives=true` +
+    `&corpora=${corpora}`;
+
   const res = await fetch(url, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
-  if (!res.ok) throw new Error(await res.text());
+  if (!res.ok) {
+    if (!fallback) return driveSearch(accessToken, query, true);
+    throw new Error(await res.text());
+  }
   const data = await res.json();
   return data.files || [];
 }
@@ -125,25 +144,11 @@ Deno.serve(async (req) => {
 
     // Search for SR folder and list all contents with subfolders
     if (action === "sr_folder" && sr_id) {
-      // All folders where SR subfolders may live
-      const searchFolderIds = [
-        "1JvcSG3tiOplSujXhb3yj_ELQLjfrgOzO", // ΡΟΔΟΣ
-        "1X1mtK4tV_sgGM9IdizNSK7AS19qX1nYl", // ΚΩΣ
-        "1dal55zb0uv5__e1pDk2fLFMB0ogi1OnZ", // ΡΟΔΟΣ/ΜΑΡΤΙΟΣ/ΠΡΟΔΕΣΜΕΥΣΗ ΓΙΑ ΚΑΤΑΣΚΕΥΗ
-        "16Dr_1g6AkaypkyoePwcfZ8IanPX5TXeZ", // ΡΟΔΟΣ/ΜΑΡΤΙΟΣ/ΟΛΟΚΛΗΡΩΜΕΝΕΣ ΑΥΤΟΨΙΕΣ
-        "1azAHjT8LS8R3JOq0jYNh1UdBx4SYn-iM", // ΡΟΔΟΣ/ΜΑΡΤΙΟΣ/ΠΑΡΑΔΩΤΕΑ
-        "1pIRjzexYG_JVFkoqfaG2_o_YfziGoFy_", // ΡΟΔΟΣ/ΜΑΡΤΙΟΣ
-        "1C2E70l0PkCETaMPqywysYNMrDUcKMO5k", // ΠΑΡΑΔΕΙΓΜΑΤΑ
-      ];
-
-      let folders: any[] = [];
-      for (const fId of searchFolderIds) {
-        folders = await driveSearch(
-          accessToken,
-          `name contains '${sr_id}' and '${fId}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`
-        );
-        if (folders.length > 0) break;
-      }
+      // Αναζήτηση σε ΟΛΟ το Shared Drive χωρίς περιορισμό σε συγκεκριμένους φακέλους
+      const folders = await driveSearch(
+        accessToken,
+        `name contains '${sr_id}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`
+      );
 
       if (folders.length === 0) {
         return new Response(
@@ -152,7 +157,12 @@ Deno.serve(async (req) => {
         );
       }
 
-      const folder = folders[0];
+      // Αν βρεθούν πολλοί, προτίμησε τον πιο πρόσφατο
+      const folder = folders.length === 1
+        ? folders[0]
+        : folders.sort((a: any, b: any) =>
+            new Date(b.createdTime).getTime() - new Date(a.createdTime).getTime()
+          )[0];
       
       // List subfolders
       const subfolders = await driveSearch(
