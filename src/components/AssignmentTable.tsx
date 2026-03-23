@@ -853,12 +853,12 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
                   // Status - Select
                   if (col.key === "status") {
                     return (
-                      <td key={col.key} className="py-2 px-1.5" onClick={(e) => e.stopPropagation()}>
+                      <td key={col.key} className="py-2.5 px-2" onClick={(e) => e.stopPropagation()}>
                         <Select
                           value={a.status}
                           onValueChange={(val) => handleStatusChange(a.id, val)}
                         >
-                          <SelectTrigger className="h-6 text-[10px] w-full border-0 bg-transparent hover:bg-muted/50 px-0.5 min-w-[80px]">
+                          <SelectTrigger className="h-7 text-[11px] w-full border-0 bg-transparent hover:bg-muted/50 px-1 min-w-[100px]">
                             <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${statusColors[a.status] || statusColors.pending}`}>
                               {statusLabels[a.status] || a.status}
                             </span>
