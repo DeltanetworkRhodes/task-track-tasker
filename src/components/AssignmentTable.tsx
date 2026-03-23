@@ -688,6 +688,7 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
     switch (key) {
       case "srId": return a.srId;
       case "area": return a.area;
+      case "address": return a.address || "—";
       case "customerName": return a.customerName || "—";
       case "cab": return a.cab || "—";
       case "workType": return a.workType || "—";
