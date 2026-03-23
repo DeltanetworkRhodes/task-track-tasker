@@ -1118,16 +1118,73 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
 
             {/* Customer Info */}
             <div>
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1.5">
-                <User className="h-3.5 w-3.5" /> Στοιχεία Πελάτη
-              </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1">
-                <EditableField editing={editing} icon={User} label="Ονοματεπώνυμο" value={editData.customer_name} fallback={selected?.customerName} onChange={(v) => setEditData(d => ({ ...d, customer_name: v }))} />
-                <EditableField editing={editing} icon={Phone} label="Τηλέφωνο" value={editData.phone} fallback={selected?.phone} onChange={(v) => setEditData(d => ({ ...d, phone: v }))} />
-                <EditableField editing={editing} icon={Phone} label="Κινητό" value={editData.customer_mobile} fallback={(selected as any)?.customerMobile} onChange={(v) => setEditData(d => ({ ...d, customer_mobile: v }))} />
-                <EditableField editing={editing} icon={Phone} label="Σταθερό" value={editData.customer_landline} fallback={(selected as any)?.customerLandline} onChange={(v) => setEditData(d => ({ ...d, customer_landline: v }))} />
-                <EditableField editing={editing} icon={Mail} label="Email" value={editData.customer_email} fallback={(selected as any)?.customerEmail} onChange={(v) => setEditData(d => ({ ...d, customer_email: v }))} />
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                  <User className="h-3.5 w-3.5" /> Στοιχεία Πελάτη
+                </h3>
+                {!editingCustomer ? (
+                  <Button variant="ghost" size="sm" className="h-6 px-2 text-[10px] gap-1 text-muted-foreground hover:text-foreground"
+                    onClick={() => { setEditingCustomer(true); setCustomerForm({ customerName: selected?.customerName || "", address: selected?.address || "", phone: selected?.phone || "", cab: selected?.cab || "", area: selected?.area || "" }); }}>
+                    <Pencil className="h-3 w-3" /> Επεξεργασία
+                  </Button>
+                ) : (
+                  <div className="flex gap-1">
+                    <Button variant="ghost" size="sm" className="h-6 px-2 text-[10px] text-muted-foreground" onClick={() => setEditingCustomer(false)} disabled={savingCustomer}>Ακύρωση</Button>
+                    <Button size="sm" className="h-6 px-2 text-[10px] gap-1" disabled={savingCustomer} onClick={async () => {
+                      if (!selected) return;
+                      setSavingCustomer(true);
+                      try {
+                        const { error } = await supabase.from("assignments").update({ customer_name: customerForm.customerName, address: customerForm.address, phone: customerForm.phone, cab: customerForm.cab, area: customerForm.area }).eq("id", selected.id);
+                        if (error) throw error;
+                        setSelected({ ...selected, customerName: customerForm.customerName, address: customerForm.address, phone: customerForm.phone, cab: customerForm.cab, area: customerForm.area });
+                        queryClient.invalidateQueries({ queryKey: ["assignments"] });
+                        setEditingCustomer(false);
+                        toast.success("Τα στοιχεία αποθηκεύτηκαν");
+                      } catch (err: any) { toast.error(err.message || "Σφάλμα αποθήκευσης"); }
+                      finally { setSavingCustomer(false); }
+                    }}>
+                      {savingCustomer ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />} Αποθήκευση
+                    </Button>
+                  </div>
+                )}
               </div>
+              {!editingCustomer ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1">
+                  <DetailRow icon={User} label="Ονοματεπώνυμο" value={selected?.customerName} />
+                  <DetailRow icon={Phone} label="Τηλέφωνο" value={selected?.phone} />
+                  <DetailRow icon={MapPin} label="Διεύθυνση" value={selected?.address} />
+                  <DetailRow icon={Hash} label="CAB" value={selected?.cab} />
+                  <DetailRow icon={MapPin} label="Περιοχή" value={selected?.area} />
+                  <EditableField editing={editing} icon={Phone} label="Κινητό" value={editData.customer_mobile} fallback={(selected as any)?.customerMobile} onChange={(v) => setEditData(d => ({ ...d, customer_mobile: v }))} />
+                  <EditableField editing={editing} icon={Phone} label="Σταθερό" value={editData.customer_landline} fallback={(selected as any)?.customerLandline} onChange={(v) => setEditData(d => ({ ...d, customer_landline: v }))} />
+                  <EditableField editing={editing} icon={Mail} label="Email" value={editData.customer_email} fallback={(selected as any)?.customerEmail} onChange={(v) => setEditData(d => ({ ...d, customer_email: v }))} />
+                </div>
+              ) : (
+                <div className="space-y-2.5">
+                  <div className="space-y-1">
+                    <label className="text-[10px] uppercase tracking-wider text-muted-foreground/70">Ονοματεπώνυμο</label>
+                    <Input value={customerForm.customerName} onChange={e => setCustomerForm(f => ({ ...f, customerName: e.target.value }))} className="h-8 text-sm" placeholder="Όνομα πελάτη" />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] uppercase tracking-wider text-muted-foreground/70">Διεύθυνση</label>
+                    <Input value={customerForm.address} onChange={e => setCustomerForm(f => ({ ...f, address: e.target.value }))} className="h-8 text-sm" placeholder="Διεύθυνση" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <label className="text-[10px] uppercase tracking-wider text-muted-foreground/70">Τηλέφωνο</label>
+                      <Input value={customerForm.phone} onChange={e => setCustomerForm(f => ({ ...f, phone: e.target.value }))} className="h-8 text-sm" placeholder="69XXXXXXXX" type="tel" />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] uppercase tracking-wider text-muted-foreground/70">CAB</label>
+                      <Input value={customerForm.cab} onChange={e => setCustomerForm(f => ({ ...f, cab: e.target.value }))} className="h-8 text-sm" placeholder="G311" />
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] uppercase tracking-wider text-muted-foreground/70">Περιοχή</label>
+                    <Input value={customerForm.area} onChange={e => setCustomerForm(f => ({ ...f, area: e.target.value }))} className="h-8 text-sm" placeholder="π.χ. ΡΟΔΟΣ" />
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Manager Info */}
