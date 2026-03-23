@@ -129,8 +129,6 @@ const Assignments = () => {
             </p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            {isAdmin && (
-            )}
             <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setShowImport(true)}>
               <FileSpreadsheet className="h-4 w-4" />
               <span className="hidden sm:inline">Εισαγωγή Excel</span>
