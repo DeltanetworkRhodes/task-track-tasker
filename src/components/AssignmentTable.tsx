@@ -905,7 +905,7 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
                   // Date
                   if (col.key === "date") {
                     return (
-                      <td key={col.key} className="py-2.5 px-2 font-bold text-[11px] text-muted-foreground whitespace-nowrap tabular-nums">
+                      <td key={col.key} className="py-2 px-1.5 font-bold text-[10px] text-muted-foreground whitespace-nowrap tabular-nums">
                         {a.date}
                       </td>
                     );
