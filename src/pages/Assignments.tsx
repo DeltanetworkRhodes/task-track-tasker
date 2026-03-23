@@ -116,7 +116,7 @@ const Assignments = () => {
 
   return (
     <AppLayout>
-      <div className="space-y-5 max-w-[1400px] mx-auto">
+      <div className="space-y-5 w-full">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
