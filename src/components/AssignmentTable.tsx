@@ -876,7 +876,7 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
                   // Call Status
                   if (col.key === "callStatus") {
                     return (
-                      <td key={col.key} className="py-2 px-1.5" onClick={(e) => e.stopPropagation()}>
+                      <td key={col.key} className="py-2.5 px-2" onClick={(e) => e.stopPropagation()}>
                         {isAdmin ? (
                           <CallStatusPopover assignment={a}>
                             <button type="button"><CallStatusBadge status={(a as any).callStatus} callCount={(a as any).callCount} /></button>
