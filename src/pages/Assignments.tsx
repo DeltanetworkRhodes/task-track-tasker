@@ -39,27 +39,6 @@ const Assignments = () => {
   const [showCreate, setShowCreate] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [checkingPrecommit, setCheckingPrecommit] = useState(false);
-  const queryClient = useQueryClient();
-
-  const handleCheckPrecommit = async () => {
-    setCheckingPrecommit(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("check-precommit-files");
-      if (error) throw error;
-      const result = data as any;
-      if (result.moved > 0 || result.pending > 0) {
-        toast.success(`${result.moved} → Αυτοψία, ${result.pending} → Εκκρεμεί`);
-        queryClient.invalidateQueries({ queryKey: ["assignments"] });
-      } else {
-        toast.info(result.message || "Δεν βρέθηκαν αναθέσεις σε προδέσμευση");
-      }
-    } catch (err: any) {
-      toast.error("Σφάλμα: " + (err.message || "Αποτυχία ελέγχου"));
-    } finally {
-      setCheckingPrecommit(false);
-    }
-  };
 
   const assignments = dbAssignments
     ? dbAssignments.map((a) => ({
