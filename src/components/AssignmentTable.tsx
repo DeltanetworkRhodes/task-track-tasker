@@ -784,7 +784,7 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
                     onDragOver={(e) => handleColumnDragOver(e, col.key)}
                     onDragEnd={handleColumnDragEnd}
                     onDragLeave={handleColumnDragLeave}
-                    className={`py-2.5 px-2 text-left font-medium text-muted-foreground text-[11px] uppercase tracking-wider whitespace-nowrap cursor-grab active:cursor-grabbing select-none transition-colors ${dragOverKey === col.key ? 'bg-primary/10' : ''}`}
+                    className={`py-2 px-1.5 text-left font-medium text-muted-foreground text-[10px] uppercase tracking-wider cursor-grab active:cursor-grabbing select-none transition-colors break-words ${dragOverKey === col.key ? 'bg-primary/10' : ''}`}
                   >
                     {col.label}
                   </th>
