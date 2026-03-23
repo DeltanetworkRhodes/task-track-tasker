@@ -760,8 +760,8 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
       </div>
 
       {/* Desktop/Tablet Table View */}
-      <div className="hidden md:block overflow-x-auto">
-        <table className="w-full text-sm">
+      <div className="hidden md:block">
+        <table className="w-full text-sm table-fixed">
           <thead>
             <tr className="border-b border-border/50">
               {onSelectionChange && (
