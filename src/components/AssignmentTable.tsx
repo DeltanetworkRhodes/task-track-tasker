@@ -817,7 +817,7 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
                   // SR ID - clickable
                   if (col.key === "srId") {
                     return (
-                      <td key={col.key} className="py-2 px-1.5 font-bold text-primary cursor-pointer text-[11px] break-all leading-tight" onClick={() => setSelected(a)}>
+                      <td key={col.key} className="py-2.5 px-2 font-bold text-primary cursor-pointer text-xs whitespace-nowrap" onClick={() => setSelected(a)}>
                         {a.srId}
                       </td>
                     );
