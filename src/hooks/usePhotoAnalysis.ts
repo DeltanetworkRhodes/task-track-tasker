@@ -13,6 +13,8 @@ export interface PhotoAnalysisResult {
 export interface ConstructionPhotoAnalysisResult {
   isApproved: boolean;
   qualityScore: number;
+  stageIdentified?: string;
+  detectedElements?: string[];
   issuesFound: string[];
   feedbackForTechnician: string;
   skipped?: boolean;
