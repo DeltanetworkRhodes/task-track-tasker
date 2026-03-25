@@ -1347,6 +1347,10 @@ export type Database = {
           email: string | null
           full_name: string
           id: string
+          is_online: boolean
+          last_lat: number | null
+          last_long: number | null
+          last_seen: string | null
           organization_id: string | null
           phone: string | null
           updated_at: string
@@ -1358,6 +1362,10 @@ export type Database = {
           email?: string | null
           full_name?: string
           id?: string
+          is_online?: boolean
+          last_lat?: number | null
+          last_long?: number | null
+          last_seen?: string | null
           organization_id?: string | null
           phone?: string | null
           updated_at?: string
@@ -1369,6 +1377,10 @@ export type Database = {
           email?: string | null
           full_name?: string
           id?: string
+          is_online?: boolean
+          last_lat?: number | null
+          last_long?: number | null
+          last_seen?: string | null
           organization_id?: string | null
           phone?: string | null
           updated_at?: string
