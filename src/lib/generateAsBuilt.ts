@@ -589,7 +589,7 @@ function logPreview(d: AsBuiltData) {
   bepPaths.forEach((op, i) => {
     console.log(`BEP Label ${i + 1}:`, generateBepLabelString(op.path, bmoFbMap));
   });
-  const bmoFbPaths = d.opticalPaths.filter(op => op.type === "BMO-FB").slice(0, 2);
+  const bmoFbPaths = d.opticalPaths.filter(op => op.type === "BMO-FB" || op.type === "BMO").slice(0, 2);
   bmoFbPaths.forEach((op, i) => {
     console.log(`BMO Label ${i + 1}:`, generateBmoLabelString(op.path));
   });
