@@ -309,6 +309,7 @@ Deno.serve(async (req) => {
     const gisPayload = {
       assignment_id: assignmentId,
       sr_id: srId,
+      organization_id: assignment.organization_id,
       ...buildingData,
       floor_details: floorDetails,
       optical_paths: opticalPaths,
