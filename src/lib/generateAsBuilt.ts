@@ -509,8 +509,8 @@ function fillEpimetrisiSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
     ws.getCell(r, 9).value = i + 1;                 // I = index
   }
 
-  // ── 5b. BEP-BMO paths ── Use RAW strings from GIS OPTICAL PATHS
-  const bepBmoPaths = d.opticalPaths.filter(op => op.type === "BEP-BMO" || op.type === "BEP");
+  // ── 5b. BEP-BMO paths ── Use RAW strings from GIS OPTICAL PATHS (handle BCP-BEP too)
+  const bepBmoPaths = d.opticalPaths.filter(op => op.type === "BEP-BMO" || op.type === "BEP" || op.type === "BCP-BEP");
   for (let i = 0; i < bepBmoPaths.length && i < 8; i++) {
     const r = 61 + i;
     ws.getCell(r, 6).value = bepBmoPaths[i].path;  // F = raw optical path string
