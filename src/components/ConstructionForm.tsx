@@ -2284,14 +2284,14 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
       {(Object.keys(existingPhotoCounts).length > 0 || Object.keys(existingOtdrCounts).length > 0) && (
         <Alert className="border-blue-500/30 bg-blue-500/5">
           <CheckCircle className="h-4 w-4 text-blue-600" />
-          <AlertTitle className="text-xs font-semibold text-blue-700">Ήδη ανεβασμένα αρχεία</AlertTitle>
+          <AlertTitle className="text-xs font-semibold text-blue-700">Αρχεία στο Google Drive</AlertTitle>
           <AlertDescription className="text-xs text-blue-600 space-y-1">
             {Object.entries(existingPhotoCounts).map(([key, count]) => {
               const cat = ALL_PHOTO_CATEGORIES.find(c => c.key === key);
-              return <div key={key}>📷 {cat?.label || key}: {count} φωτογραφίες</div>;
+              return <div key={key}>✅ {cat?.label || key}: {count} φωτογραφίες</div>;
             })}
             {Object.entries(existingOtdrCounts).map(([key, count]) => (
-              <div key={key}>📊 OTDR {key}: {count} αρχεία</div>
+              <div key={key}>✅ OTDR {key}: {count} αρχεία</div>
             ))}
           </AlertDescription>
         </Alert>

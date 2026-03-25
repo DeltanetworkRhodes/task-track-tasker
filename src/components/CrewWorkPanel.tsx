@@ -421,16 +421,11 @@ const PhotoUploadArea = ({
 }) => {
   return (
     <div className="space-y-2">
-      {/* Existing photos from DB */}
+      {/* Existing photos (archived to Drive) */}
       {existingPhotos.length > 0 && (
-        <div className="grid grid-cols-4 gap-1.5">
-          {existingPhotos.map((p: any) => (
-            <div key={p.id} className="relative">
-              <div className="w-full h-16 rounded border border-border bg-muted flex items-center justify-center text-[10px] text-muted-foreground">
-                📸
-              </div>
-            </div>
-          ))}
+        <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground bg-muted/50 rounded px-2 py-1.5 border border-border">
+          <span>✅</span>
+          <span>{existingPhotos.length} φωτογραφίες αρχειοθετημένες στο Drive</span>
         </div>
       )}
 
