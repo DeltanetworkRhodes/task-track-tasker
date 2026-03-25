@@ -305,8 +305,8 @@ const AdminLiveMapInner = () => {
               const loc = locations[techId];
               const name = profileMap[techId] || "Τεχνικός";
               const assignment = techAssignmentMap[techId];
-              const online = loc && isFresh(loc.updated_at);
-              const stale = !loc || isStale(loc.updated_at);
+              const online = profileOnlineMap[techId]?.is_online ?? false;
+              const stale = !online;
 
               return (
                 <div
