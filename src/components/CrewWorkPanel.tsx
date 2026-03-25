@@ -6,6 +6,7 @@ import { useOrganization } from "@/contexts/OrganizationContext";
 import { useWorkCategories, useMyCrewAssignments, useCrewPhotos } from "@/hooks/useCrewData";
 import { compressImage } from "@/lib/imageCompression";
 import { applyWatermark, type WatermarkData } from "@/lib/watermark";
+import { uploadPhotoDrive } from "@/lib/driveUpload";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
