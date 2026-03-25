@@ -380,8 +380,8 @@ function fillLabelsBepSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
 }
 
 function fillLabelsBmoSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
-  // Get BMO-FB paths - use RAW strings from GIS
-  const bmoFbPaths = d.opticalPaths.filter(op => op.type === "BMO-FB");
+  // Get BMO-FB paths - use RAW strings from GIS (also handle BMO paths)
+  const bmoFbPaths = d.opticalPaths.filter(op => op.type === "BMO-FB" || op.type === "BMO");
 
   // Clear old label data
   clearDataRows(ws, 2, 40, 25);
