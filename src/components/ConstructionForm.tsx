@@ -1726,98 +1726,66 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
         </div>
       </Card>
 
-      {/* ─── GIS Work Instructions: Optical Paths ─── */}
-      {gisData && (
-        <Card className="p-4 space-y-3 border-blue-500/20 bg-blue-50/30 dark:bg-blue-950/10">
-          <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-            <GitMerge className="h-3.5 w-3.5 text-blue-600" />
-            Οπτικές Διαδρομές (Από Μελέτη GIS)
+      {/* GIS GUIDE: Building Topology */}
+      {gisData && Array.isArray(gisData.floor_details) && (gisData.floor_details as any[]).length > 0 && (
+        <Card className="p-4 space-y-3 bg-blue-50/50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-900">
+          <Label className="text-xs font-bold uppercase tracking-wider text-blue-700 dark:text-blue-400 flex items-center gap-1.5">
+            🏢 Δομή Κτιρίου (Από Μελέτη)
           </Label>
-          {(() => {
-            const paths = Array.isArray(gisData.optical_paths) ? (gisData.optical_paths as any[]) : [];
-            if (paths.length === 0) {
-              return <p className="text-xs text-muted-foreground italic">Δεν βρέθηκαν οπτικές διαδρομές στο GIS</p>;
-            }
-            return (
-              <div className="space-y-1.5">
-                {paths.map((p: any, i: number) => {
-                  const pathType = p?.type || p?.["OPTICAL PATH TYPE"] || p?.optical_path_type || "";
-                  const pathName = p?.path || p?.["OPTICAL PATH"] || p?.optical_path || p?.name || "";
-                  return (
-                    <div key={i} className="flex items-start gap-2 rounded-lg border border-border/60 bg-background p-2.5">
-                      <Badge variant="outline" className="shrink-0 text-[10px] font-bold border-blue-500/40 text-blue-700 dark:text-blue-400">
-                        {pathType || `#${i + 1}`}
-                      </Badge>
-                      <span className="text-xs font-mono break-all text-foreground/80">{pathName || "—"}</span>
-                    </div>
-                  );
-                })}
-              </div>
-            );
-          })()}
-        </Card>
-      )}
+          <div className="space-y-2">
+            {(gisData.floor_details as any[]).map((floorItem: any, idx: number) => {
+              const row = floorItem.raw || floorItem;
+              const floorName = row["ΟΡΟΦΟΣ"] || row["FLOOR"] || "-";
+              const apartments = row["ΔΙΑΜΕΡΙΣΜΑΤΑ"] || row["APARTMENTS"] || "0";
+              const fbType = row["FB01 TYPE"] || row["FB02 TYPE"] || row["FB03 TYPE"] || row["FB04 TYPE"] || "-";
+              const customerRoom = row["ΑΡΙΘΜΗΣΗ ΧΩΡΟΥ ΠΕΛΑΤΗ"] || row["FB ΠΕΛΑΤΗ"];
 
-      {/* ─── GIS Work Instructions: Building Topology ─── */}
-      {gisData && (
-        <Card className="p-4 space-y-3 border-emerald-500/20 bg-emerald-50/30 dark:bg-emerald-950/10">
-          <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-            <Building2 className="h-3.5 w-3.5 text-emerald-600" />
-            Δομή Κτιρίου (Από Μελέτη GIS)
-          </Label>
-          {(() => {
-            const floors = Array.isArray(gisData.floor_details) ? (gisData.floor_details as any[]) : [];
-            if (floors.length === 0) {
-              return <p className="text-xs text-muted-foreground italic">Δεν βρέθηκαν στοιχεία ορόφων στο GIS</p>;
-            }
-            return (
-              <div className="space-y-1.5">
-                {/* Header */}
-                <div className="grid grid-cols-[60px_1fr_1fr] gap-2 text-[10px] font-bold uppercase text-muted-foreground px-2">
-                  <span>Όροφος</span>
-                  <span>Διαμ/τα</span>
-                  <span>Floor Box</span>
+              return (
+                <div key={idx} className="flex flex-col gap-1 p-2.5 border border-blue-100 dark:border-blue-900/50 rounded-md bg-background text-sm shadow-sm">
+                  <div className="flex justify-between items-center font-bold text-foreground">
+                    <span>Όροφος {floorName}</span>
+                    <Badge variant="outline" className="bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border-blue-200">
+                      {apartments} Διαμερίσματα
+                    </Badge>
+                  </div>
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center text-xs text-muted-foreground mt-1 gap-1">
+                    <span className="flex items-center gap-1">📦 Κουτί: <span className="font-medium text-foreground">{fbType}</span></span>
+                    {customerRoom && <span className="flex items-center gap-1">👤 Πελάτης: <span className="font-medium text-foreground">{customerRoom}</span></span>}
+                  </div>
                 </div>
-                {floors.map((fd: any, i: number) => {
-                  const row = fd.raw && typeof fd.raw === "object" ? fd.raw : fd;
-                  const floorName = row.floor ?? row.FLOOR ?? row["ΟΡΟΦΟΣ"] ?? `+${String(i).padStart(2, "0")}`;
-                  const apartments = row.apartments ?? row.APARTMENTS ?? row["ΔΙΑΜΕΡΙΣΜΑΤΑ"] ?? "—";
-
-                  // Collect FB info from all FB keys
-                  const fbInfo: string[] = [];
-                  const keys = Object.keys(row);
-                  for (const key of keys) {
-                    const uk = key.toUpperCase().trim();
-                    if (/^FB\s?\d+$/i.test(uk) || uk === "FB" || uk === "FLOOR BOX") {
-                      const qty = row[key];
-                      if (!qty || parseInt(String(qty)) <= 0) continue;
-                      const typeKey = keys.find((k) => k.toUpperCase().trim() === uk + " TYPE" || k.toUpperCase().trim() === uk + "_TYPE");
-                      const fbType = typeKey ? String(row[typeKey] || "") : "";
-                      fbInfo.push(`${key}: ${qty}${fbType ? ` (${fbType})` : ""}`);
-                    }
-                  }
-                  // Fallback: fb_count
-                  if (fbInfo.length === 0 && (row.fb_count || row.FB_COUNT)) {
-                    fbInfo.push(`FB: ${row.fb_count || row.FB_COUNT}`);
-                  }
-
-                  return (
-                    <div key={i} className="grid grid-cols-[60px_1fr_1fr] gap-2 rounded-lg border border-border/60 bg-background p-2.5 text-xs">
-                      <Badge variant="secondary" className="text-[10px] font-bold justify-center">{String(floorName)}</Badge>
-                      <span className="text-foreground/80">{String(apartments)}</span>
-                      <span className="text-foreground/80 break-all">{fbInfo.length > 0 ? fbInfo.join(", ") : "—"}</span>
-                    </div>
-                  );
-                })}
-              </div>
-            );
-          })()}
+              );
+            })}
+          </div>
           {/* Extra GIS metadata */}
           <div className="flex flex-wrap gap-2 pt-1">
             {gisData.bep_type && <Badge variant="outline" className="text-[10px]">BEP: {gisData.bep_type}</Badge>}
             {gisData.bmo_type && <Badge variant="outline" className="text-[10px]">BMO: {gisData.bmo_type}</Badge>}
             {gisData.bep_template && <Badge variant="outline" className="text-[10px]">Template: {gisData.bep_template}</Badge>}
             {gisData.area_type && <Badge variant="outline" className="text-[10px]">Περιοχή: {gisData.area_type}</Badge>}
+          </div>
+        </Card>
+      )}
+
+      {/* GIS GUIDE: Optical Paths */}
+      {gisData && Array.isArray(gisData.optical_paths) && (gisData.optical_paths as any[]).length > 0 && (
+        <Card className="p-4 space-y-3 bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-900">
+          <Label className="text-xs font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5">
+            🔗 Οπτικές Διαδρομές (Από Μελέτη)
+          </Label>
+          <div className="space-y-2">
+            {(gisData.optical_paths as any[]).map((pathItem: any, idx: number) => {
+              const pathType = pathItem["OPTICAL PATH TYPE"] || pathItem.optical_path_type || "-";
+              const pathString = pathItem["OPTICAL PATH"] || pathItem.optical_path || "-";
+
+              return (
+                <div key={idx} className="flex flex-col gap-1.5 text-sm p-2.5 border border-emerald-100 dark:border-emerald-900/50 rounded-md bg-background shadow-sm">
+                  <Badge variant="secondary" className="w-fit bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300 hover:bg-emerald-100">
+                    {pathType}
+                  </Badge>
+                  <span className="font-mono text-xs break-all text-foreground font-medium">{pathString}</span>
+                </div>
+              );
+            })}
           </div>
         </Card>
       )}
