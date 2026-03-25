@@ -937,6 +937,36 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
   const totalPhotos = Object.values(categorizedPhotos).reduce((sum, arr) => sum + arr.length, 0);
   const totalOtdrFiles = Object.values(otdrFiles).reduce((sum, arr) => sum + arr.length, 0);
 
+  // Validation: mandatory photo categories must have at least 1 photo (new or existing) and no unresolved rejections
+  const mandatoryPhotosValid = useMemo(() => {
+    for (const key of mandatoryPhotoKeys) {
+      const newCount = (categorizedPhotos[key] || []).length;
+      const existingCount = existingPhotoCounts[key] || 0;
+      if (newCount + existingCount === 0) return false; // no photos at all
+      // Check new photos for unresolved rejections
+      for (let i = 0; i < newCount; i++) {
+        const result = getConstructionResult(key, i);
+        if (result && !result.skipped && !result.overriddenBy && (!result.isApproved || result.qualityScore < 7)) {
+          return false; // has rejected photo without override
+        }
+      }
+    }
+    return true;
+  }, [mandatoryPhotoKeys, categorizedPhotos, existingPhotoCounts, getConstructionResult]);
+
+  const missingMandatoryCategories = useMemo(() => {
+    const missing: string[] = [];
+    for (const key of mandatoryPhotoKeys) {
+      const newCount = (categorizedPhotos[key] || []).length;
+      const existingCount = existingPhotoCounts[key] || 0;
+      if (newCount + existingCount === 0) {
+        const cat = ALL_PHOTO_CATEGORIES.find((c) => c.key === key);
+        missing.push(cat?.label || key);
+      }
+    }
+    return missing;
+  }, [mandatoryPhotoKeys, categorizedPhotos, existingPhotoCounts]);
+
   // OTDR PDF handlers
   const handleOtdrSelect = (category: string, e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []).filter((f) => f.type === "application/pdf");
