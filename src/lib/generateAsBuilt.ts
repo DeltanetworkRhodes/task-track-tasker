@@ -339,19 +339,13 @@ function generateBmoLabelString(path: string): string {
 }
 
 function fillLabelsBepSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
-  // Build BMO->FB mapping from BMO-FB paths
-  const bmoFbMap = new Map<string, string>();
-  const bmoFbPaths = d.opticalPaths.filter(op => op.type === "BMO-FB");
-  bmoFbPaths.forEach(op => {
-    const bmoMatch = op.path.match(/(BMO\d+_\d+a)/);
-    const fbMatch = op.path.match(/(FB\([^)]+\)\.\d+_\d+)/);
-    if (bmoMatch && fbMatch) {
-      bmoFbMap.set(bmoMatch[1], fbMatch[1]);
-    }
-  });
-
-  // Get BEP-BMO and BEP paths (splitter port paths)
+  // Get BEP-BMO paths - use RAW strings from GIS
   const bepPaths = d.opticalPaths.filter(op => op.type === "BEP-BMO" || op.type === "BEP");
+
+  // Clear old label data (rows 2-20, cols 1-25)
+  clearDataRows(ws, 2, 20, 25);
+  // Clear visible label area (rows 5-14, cols 1-10)
+  clearDataRows(ws, 5, 14, 10);
 
   // Write raw paths into col Y (25) for formula references
   for (let i = 0; i < 18; i++) {
@@ -359,29 +353,26 @@ function fillLabelsBepSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
     ws.getCell(r, 25).value = i < bepPaths.length ? bepPaths[i].path : "";
   }
 
-  // Write computed label strings into visible "Medium BEP" section (rows 5-12, cols A-B/C-D)
-  // Medium BEP section: Row 7-10 col B (Α) and col D (Β) with pairs
+  // Write RAW optical path strings into visible label cells (rows 7+, paired in B/D)
   for (let i = 0; i < bepPaths.length && i < 12; i++) {
-    const label = generateBepLabelString(bepPaths[i].path, bmoFbMap);
     const pairIdx = Math.floor(i / 2);
     const isSecond = i % 2 === 1;
     const targetRow = 7 + pairIdx;
-    
+
     if (!isSecond) {
-      ws.getCell(targetRow, 2).value = label;  // Col B (Α side)
+      ws.getCell(targetRow, 2).value = bepPaths[i].path;  // Col B - raw path
     } else {
-      ws.getCell(targetRow, 4).value = label;  // Col D (Β side)
+      ws.getCell(targetRow, 4).value = bepPaths[i].path;  // Col D - raw path
     }
   }
 
-  // Write "χωρίς ports" for empty slots
+  // Fill empty slots
   for (let i = bepPaths.length; i < 12; i++) {
     const pairIdx = Math.floor(i / 2);
     const isSecond = i % 2 === 1;
     const targetRow = 7 + pairIdx;
     if (!isSecond) {
       ws.getCell(targetRow, 2).value = "-";
-      ws.getCell(targetRow + (i >= 10 ? 0 : 0), 5).value = "χωρίς ports";
     } else {
       ws.getCell(targetRow, 4).value = "-";
     }
@@ -389,8 +380,12 @@ function fillLabelsBepSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
 }
 
 function fillLabelsBmoSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
-  // Get BMO-FB paths
+  // Get BMO-FB paths - use RAW strings from GIS
   const bmoFbPaths = d.opticalPaths.filter(op => op.type === "BMO-FB");
+
+  // Clear old label data
+  clearDataRows(ws, 2, 40, 25);
+  clearDataRows(ws, 5, 20, 10);
 
   // Write raw paths into col Y (25) for formula references
   for (let i = 0; i < 36; i++) {
@@ -398,27 +393,26 @@ function fillLabelsBmoSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
     ws.getCell(r, 25).value = i < bmoFbPaths.length ? bmoFbPaths[i].path : "";
   }
 
-  // Write computed BMO label strings into visible "Medium BEP" section
+  // Write RAW optical path strings into visible label cells (rows 7+, paired in B/D)
   for (let i = 0; i < bmoFbPaths.length && i < 12; i++) {
-    const label = generateBmoLabelString(bmoFbPaths[i].path);
     const pairIdx = Math.floor(i / 2);
     const isSecond = i % 2 === 1;
     const targetRow = 7 + pairIdx;
-    
+
     if (!isSecond) {
-      ws.getCell(targetRow, 2).value = label;
+      ws.getCell(targetRow, 2).value = bmoFbPaths[i].path;  // Col B - raw path
     } else {
-      ws.getCell(targetRow, 4).value = label;
+      ws.getCell(targetRow, 4).value = bmoFbPaths[i].path;  // Col D - raw path
     }
   }
 
+  // Fill empty slots
   for (let i = bmoFbPaths.length; i < 12; i++) {
     const pairIdx = Math.floor(i / 2);
     const isSecond = i % 2 === 1;
     const targetRow = 7 + pairIdx;
     if (!isSecond) {
       ws.getCell(targetRow, 2).value = "-";
-      ws.getCell(targetRow, 5).value = "χωρίς ports";
     } else {
       ws.getCell(targetRow, 4).value = "-";
     }
