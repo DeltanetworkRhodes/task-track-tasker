@@ -18,9 +18,15 @@ async function parseXlsx(data: Uint8Array): Promise<{ sheetsByName: Record<strin
   let sharedStrings: string[] = [];
   if (sharedStringsEntry) {
     const xml = await sharedStringsEntry.getData(new TextWriter());
-    const matches = xml.matchAll(/<t[^>]*>([\s\S]*?)<\/t>/g);
-    for (const m of matches) {
-      sharedStrings.push(m[1].replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">"));
+    // Each <si> element is one shared string; concatenate all <t> tags within it
+    const siMatches = xml.matchAll(/<si>([\s\S]*?)<\/si>/g);
+    for (const si of siMatches) {
+      const tMatches = si[1].matchAll(/<t[^>]*>([\s\S]*?)<\/t>/g);
+      let value = "";
+      for (const t of tMatches) {
+        value += t[1];
+      }
+      sharedStrings.push(value.replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">"));
     }
   }
 
