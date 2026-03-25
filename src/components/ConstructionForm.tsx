@@ -2141,7 +2141,11 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                   <div className="flex items-center gap-1.5">
                     <span className="text-sm">{cat.icon}</span>
                     <span className="text-xs font-medium">{cat.label}</span>
-                    {cat.workPrefixes.length > 0 && <span className="text-[10px] text-muted-foreground">(προαιρ.)</span>}
+                    {mandatoryPhotoKeys.has(cat.key) ? (
+                      <Badge variant="destructive" className="text-[9px] h-4 px-1">ΥΠΟΧΡ.</Badge>
+                    ) : (
+                      cat.workPrefixes.length > 0 && <span className="text-[10px] text-muted-foreground">(προαιρ.)</span>
+                    )}
                   </div>
                   <div className="flex items-center gap-2">
                     {existingPhotoCounts[cat.key] > 0 && (
