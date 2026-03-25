@@ -75,10 +75,9 @@ const AdminLiveMapInner = () => {
     queryKey: ["technician-profiles-map", organizationId],
     enabled: !!organizationId,
     queryFn: async () => {
-      // Get profiles for this org first, then filter by technician role
       const { data: orgProfiles } = await supabase
         .from("profiles")
-        .select("user_id, full_name")
+        .select("user_id, full_name, is_online, last_lat, last_long, last_seen")
         .eq("organization_id", organizationId!);
       if (!orgProfiles?.length) return [];
       const ids = orgProfiles.map((p) => p.user_id);
@@ -91,6 +90,7 @@ const AdminLiveMapInner = () => {
       const techIds = new Set(roles.map((r) => r.user_id));
       return orgProfiles.filter((p) => techIds.has(p.user_id));
     },
+    refetchInterval: 15000,
   });
 
   const profileMap = useMemo(() => {
