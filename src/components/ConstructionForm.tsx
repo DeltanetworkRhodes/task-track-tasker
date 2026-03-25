@@ -125,11 +125,11 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
   // Photo categories mapped to work code prefixes
   // storageName uses ASCII for Supabase Storage compatibility
   const ALL_PHOTO_CATEGORIES = [
-    { key: "ΣΚΑΜΑ", storageName: "SKAMA", label: "Σκάμα", icon: "⛏️", workPrefixes: [] },
-    { key: "ΟΔΕΥΣΗ", storageName: "ODEFSI", label: "Όδευση", icon: "🛤️", workPrefixes: [] },
+    { key: "ΣΚΑΜΑ", storageName: "SKAMA", label: "Σκάμα", icon: "⛏️", workPrefixes: ["1991", "1965"] },
+    { key: "ΟΔΕΥΣΗ", storageName: "ODEFSI", label: "Όδευση", icon: "🛤️", workPrefixes: ["1963", "1993"] },
     { key: "BCP", storageName: "BCP", label: "BCP", icon: "📦", workPrefixes: ["1991", "1993"] },
-    { key: "BEP", storageName: "BEP", label: "BEP", icon: "🔌", workPrefixes: [] },
-    { key: "BMO", storageName: "BMO", label: "BMO", icon: "📡", workPrefixes: [] },
+    { key: "BEP", storageName: "BEP", label: "BEP", icon: "🔌", workPrefixes: ["1963", "1965", "1970"] },
+    { key: "BMO", storageName: "BMO", label: "BMO", icon: "📡", workPrefixes: ["1970"] },
     { key: "FB", storageName: "FB", label: "Floor Box", icon: "📋", workPrefixes: ["1984", "1985", "1986"] },
     { key: "ΚΑΜΠΙΝΑ", storageName: "KAMPINA", label: "Καμπίνα", icon: "🏗️", workPrefixes: ["1980"] },
     { key: "Γ_ΦΑΣΗ", storageName: "G_FASI", label: "Γ' Φάση", icon: "👤", workPrefixes: ["1955"] },
