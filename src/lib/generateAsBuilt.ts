@@ -578,7 +578,7 @@ function logPreview(d: AsBuiltData) {
 
   // LABELS preview
   const bmoFbMap = new Map<string, string>();
-  d.opticalPaths.filter(op => op.type === "BMO-FB").forEach(op => {
+  d.opticalPaths.filter(op => op.type === "BMO-FB" || op.type === "BMO").forEach(op => {
     const bmoMatch = op.path.match(/(BMO\d+_\d+a)/);
     const fbMatch = op.path.match(/(FB\([^)]+\)\.\d+_\d+)/);
     if (bmoMatch && fbMatch) bmoFbMap.set(bmoMatch[1], fbMatch[1]);
