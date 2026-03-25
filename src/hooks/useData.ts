@@ -102,7 +102,7 @@ export const useGisDataByOrg = () => {
   });
 };
 
-
+export const useAssignmentHistory = (assignmentId: string | null) => {
   return useQuery({
     queryKey: ["assignment_history", assignmentId],
     queryFn: async () => {
