@@ -148,8 +148,8 @@ export function useConstructionPhotoAnalysis() {
       const result = data as ConstructionPhotoAnalysisResult;
       updateResult(category, index, result);
 
-      if (!result.isApproved || (result.qualityScore < 7)) {
-        toast.error(`🚫 ΑΠΟΡΡΙΨΗ ΟΤΕ: ${result.feedbackForTechnician}`, { duration: 8000 });
+      if (!result.isApproved || (result.qualityScore < 6)) {
+        toast.error(`🚫 ΑΠΟΡΡΙΨΗ: ${result.feedbackForTechnician}`, { duration: 8000 });
       } else if (!result.skipped) {
         toast.success(`✅ Εγκρίθηκε (${result.qualityScore}/10)`, { duration: 3000 });
       }
