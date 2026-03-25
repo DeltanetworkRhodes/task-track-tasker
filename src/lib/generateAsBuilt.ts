@@ -500,8 +500,8 @@ function fillEpimetrisiSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
   }
   console.log("✅ Cleared G48:I56 (CAB-BEP) and F61:H68 (BEP-BMO) old data");
 
-  // ── 5. CAB-BEP paths ── Use RAW strings from GIS OPTICAL PATHS
-  const cabBepPaths = d.opticalPaths.filter(op => op.type === "CAB-BEP");
+  // ── 5. CAB-BEP/CAB-BCP paths ── Use RAW strings from GIS OPTICAL PATHS
+  const cabBepPaths = d.opticalPaths.filter(op => op.type === "CAB-BEP" || op.type === "CAB-BCP");
   for (let i = 0; i < cabBepPaths.length && i < 9; i++) {
     const r = 48 + i;
     ws.getCell(r, 7).value = cabBepPaths[i].path;  // G = raw optical path string
