@@ -189,7 +189,7 @@ export function useConstructionPhotoAnalysis() {
     for (const cat of Object.values(state)) {
       for (const result of cat.results.values()) {
         if (result.overriddenBy) continue; // overridden = approved
-        if (!result.isApproved || result.qualityScore < 7) return true;
+        if (!result.isApproved || result.qualityScore < 6) return true;
       }
     }
     return false;
