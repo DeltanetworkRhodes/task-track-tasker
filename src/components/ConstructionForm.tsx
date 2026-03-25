@@ -1138,6 +1138,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                 .from("photos")
                 .upload(storagePath, photo, { upsert: true });
               if (uploadErr) console.error(`Photo upload error ${folderName}/${i}:`, uploadErr);
+              else uploadPhotoDrive(assignment.sr_id, catDef?.label || category, storagePath);
               uploaded++;
               setSubmitProgress(`Ανέβασμα φωτογραφιών (${uploaded}/${totalPhotoCount})...`);
             }
