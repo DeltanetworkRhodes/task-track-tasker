@@ -6,8 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { FileSpreadsheet, Download, Search, CheckCircle2, Loader2, FlaskConical, Eye, MapPin, Building2, FolderArchive } from "lucide-react";
-import { useAssignments, useConstructions } from "@/hooks/useData";
+import { FileSpreadsheet, Download, Search, CheckCircle2, Loader2, FlaskConical, Eye, MapPin, Building2, FolderArchive, Layers, Cable, Hash } from "lucide-react";
+import { useAssignments, useConstructions, useGisDataByOrg } from "@/hooks/useData";
 import { generateAsBuilt, generateAsBuiltFromData, getDemoAsBuiltData } from "@/lib/generateAsBuilt";
 import { generateConstructionZip } from "@/lib/generateConstructionZip";
 import { useDemo } from "@/contexts/DemoContext";
@@ -17,6 +17,7 @@ const DocumentGenerator = () => {
   const { isDemo, demoAssignments, demoConstructions } = useDemo();
   const { data: realAssignments, isLoading: assignmentsLoading } = useAssignments();
   const { data: realConstructions } = useConstructions();
+  const { data: gisDataList } = useGisDataByOrg();
 
   const assignments = isDemo ? demoAssignments : (realAssignments || []);
   const constructions = isDemo
@@ -52,8 +53,14 @@ const DocumentGenerator = () => {
     return (constructions.find((x: any) => x.sr_id === srId) as any)?.status || null;
   };
 
+  const getGisData = (assignmentId: string) => {
+    if (!gisDataList) return null;
+    return gisDataList.find((g: any) => g.assignment_id === assignmentId) || null;
+  };
+
   const selectedAssignment = assignments.find((a: any) => a.sr_id === selectedSrId);
   const selectedConstruction = constructions.find((c: any) => c.sr_id === selectedSrId);
+  const selectedGis = selectedAssignment ? getGisData((selectedAssignment as any).id) : null;
 
   const handleGenerate = async (srId: string) => {
     setGeneratingId(srId);
@@ -97,7 +104,7 @@ const DocumentGenerator = () => {
         srId,
         (assignment as any).address || "",
         (construction as any).id,
-        null // AS-BUILD Excel could be included separately if needed
+        null
       );
 
       if (result.warnings.length > 0) {
@@ -115,6 +122,16 @@ const DocumentGenerator = () => {
     } finally {
       setZippingId(null);
     }
+  };
+
+  const countOpticalPaths = (gis: any) => {
+    if (!gis?.optical_paths) return 0;
+    return Array.isArray(gis.optical_paths) ? gis.optical_paths.length : 0;
+  };
+
+  const countFloors = (gis: any) => {
+    if (!gis?.floor_details) return 0;
+    return Array.isArray(gis.floor_details) ? gis.floor_details.length : 0;
   };
 
   return (
@@ -178,6 +195,7 @@ const DocumentGenerator = () => {
           <div className="grid gap-3">
             {filteredAssignments.map((assignment: any) => {
               const cStatus = getConstructionStatus(assignment.sr_id);
+              const gis = getGisData(assignment.id);
 
               return (
                 <Card
@@ -199,10 +217,33 @@ const DocumentGenerator = () => {
                           Σε εξέλιξη
                         </Badge>
                       )}
+                      {gis && (
+                        <Badge variant="outline" className="bg-blue-500/10 text-blue-600 border-blue-500/20 text-[10px]">
+                          GIS ✓
+                        </Badge>
+                      )}
                     </div>
                     <p className="text-xs text-muted-foreground mt-0.5 truncate">
                       {assignment.area}{assignment.address ? ` • ${assignment.address}` : ""}
+                      {gis?.building_id ? ` • ${gis.building_id}` : ""}
                     </p>
+                    {gis && (
+                      <div className="flex items-center gap-3 mt-1 text-[10px] text-muted-foreground">
+                        <span className="flex items-center gap-0.5">
+                          <Layers className="h-3 w-3" />
+                          {countFloors(gis)} όροφοι
+                        </span>
+                        <span className="flex items-center gap-0.5">
+                          <Cable className="h-3 w-3" />
+                          {countOpticalPaths(gis)} paths
+                        </span>
+                        {gis.conduit && (
+                          <span className="flex items-center gap-0.5">
+                            {gis.conduit}
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </div>
                   <Button
                     size="sm"
@@ -237,14 +278,91 @@ const DocumentGenerator = () => {
                 {/* SR Info */}
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   <div className="flex items-center gap-2 text-muted-foreground">
-                    <MapPin className="h-4 w-4" />
-                    <span>{(selectedAssignment as any).address || "—"}</span>
+                    <MapPin className="h-4 w-4 shrink-0" />
+                    <span className="truncate">{(selectedAssignment as any).address || "—"}</span>
                   </div>
                   <div className="flex items-center gap-2 text-muted-foreground">
-                    <Building2 className="h-4 w-4" />
+                    <Building2 className="h-4 w-4 shrink-0" />
                     <span>{(selectedAssignment as any).area}</span>
                   </div>
                 </div>
+
+                {/* GIS Data */}
+                {selectedGis && (
+                  <div className="p-3 rounded-lg bg-blue-500/5 border border-blue-500/10 space-y-2">
+                    <p className="text-xs font-semibold text-blue-700 flex items-center gap-1">
+                      <Hash className="h-3 w-3" /> Δεδομένα GIS
+                    </p>
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Building ID:</span>
+                        <span className="font-medium">{selectedGis.building_id || "—"}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Τύπος:</span>
+                        <span className="font-medium">{selectedGis.area_type || "—"}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Όροφοι:</span>
+                        <span className="font-medium">{selectedGis.floors || 0}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Conduit:</span>
+                        <span className="font-medium">{selectedGis.conduit || "—"}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">BEP:</span>
+                        <span className="font-medium text-[10px]">{selectedGis.bep_type || "—"}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">BMO:</span>
+                        <span className="font-medium text-[10px]">{selectedGis.bmo_type || "—"}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Απόσταση CAB:</span>
+                        <span className="font-medium">{selectedGis.distance_from_cabinet || 0}m</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Optical Paths:</span>
+                        <span className="font-medium">{countOpticalPaths(selectedGis)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Όροφος BEP:</span>
+                        <span className="font-medium">{selectedGis.bep_floor || "—"}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Όροφος Πελάτη:</span>
+                        <span className="font-medium">{selectedGis.customer_floor || "—"}</span>
+                      </div>
+                    </div>
+
+                    {/* Optical Path Types Summary */}
+                    {selectedGis.optical_paths && Array.isArray(selectedGis.optical_paths) && selectedGis.optical_paths.length > 0 && (
+                      <div className="pt-1 border-t border-blue-500/10">
+                        <p className="text-[10px] text-muted-foreground mb-1">Τύποι Διαδρομών:</p>
+                        <div className="flex flex-wrap gap-1">
+                          {Object.entries(
+                            (selectedGis.optical_paths as any[]).reduce((acc: Record<string, number>, p: any) => {
+                              const t = p["OPTICAL PATH TYPE"] || p.type || "?";
+                              acc[t] = (acc[t] || 0) + 1;
+                              return acc;
+                            }, {})
+                          ).map(([type, count]) => (
+                            <Badge key={type} variant="outline" className="text-[9px] bg-blue-500/5">
+                              {type}: {count as number}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {!selectedGis && !isDemo && (
+                  <div className="p-3 rounded-lg bg-amber-500/5 border border-amber-500/10 text-xs text-amber-700">
+                    ⚠️ Δεν βρέθηκαν GIS δεδομένα — το AS-BUILD θα έχει ελλιπή δεδομένα
+                  </div>
+                )}
 
                 {/* Construction Status */}
                 <div className="p-3 rounded-lg bg-muted/50">
