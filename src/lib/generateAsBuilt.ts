@@ -339,8 +339,8 @@ function generateBmoLabelString(path: string): string {
 }
 
 function fillLabelsBepSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
-  // Get BEP-BMO paths - use RAW strings from GIS
-  const bepPaths = d.opticalPaths.filter(op => op.type === "BEP-BMO" || op.type === "BEP");
+  // Get BEP-BMO paths - use RAW strings from GIS (handle both BEP-BMO and BCP-BEP types)
+  const bepPaths = d.opticalPaths.filter(op => op.type === "BEP-BMO" || op.type === "BEP" || op.type === "BCP-BEP");
 
   // Clear old label data (rows 2-20, cols 1-25)
   clearDataRows(ws, 2, 20, 25);
@@ -380,8 +380,8 @@ function fillLabelsBepSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
 }
 
 function fillLabelsBmoSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
-  // Get BMO-FB paths - use RAW strings from GIS
-  const bmoFbPaths = d.opticalPaths.filter(op => op.type === "BMO-FB");
+  // Get BMO-FB paths - use RAW strings from GIS (also handle BMO paths)
+  const bmoFbPaths = d.opticalPaths.filter(op => op.type === "BMO-FB" || op.type === "BMO");
 
   // Clear old label data
   clearDataRows(ws, 2, 40, 25);
@@ -500,8 +500,8 @@ function fillEpimetrisiSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
   }
   console.log("✅ Cleared G48:I56 (CAB-BEP) and F61:H68 (BEP-BMO) old data");
 
-  // ── 5. CAB-BEP paths ── Use RAW strings from GIS OPTICAL PATHS
-  const cabBepPaths = d.opticalPaths.filter(op => op.type === "CAB-BEP");
+  // ── 5. CAB-BEP/CAB-BCP paths ── Use RAW strings from GIS OPTICAL PATHS
+  const cabBepPaths = d.opticalPaths.filter(op => op.type === "CAB-BEP" || op.type === "CAB-BCP");
   for (let i = 0; i < cabBepPaths.length && i < 9; i++) {
     const r = 48 + i;
     ws.getCell(r, 7).value = cabBepPaths[i].path;  // G = raw optical path string
@@ -509,8 +509,8 @@ function fillEpimetrisiSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
     ws.getCell(r, 9).value = i + 1;                 // I = index
   }
 
-  // ── 5b. BEP-BMO paths ── Use RAW strings from GIS OPTICAL PATHS
-  const bepBmoPaths = d.opticalPaths.filter(op => op.type === "BEP-BMO" || op.type === "BEP");
+  // ── 5b. BEP-BMO paths ── Use RAW strings from GIS OPTICAL PATHS (handle BCP-BEP too)
+  const bepBmoPaths = d.opticalPaths.filter(op => op.type === "BEP-BMO" || op.type === "BEP" || op.type === "BCP-BEP");
   for (let i = 0; i < bepBmoPaths.length && i < 8; i++) {
     const r = 61 + i;
     ws.getCell(r, 6).value = bepBmoPaths[i].path;  // F = raw optical path string
@@ -518,7 +518,7 @@ function fillEpimetrisiSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
   }
 
   // ── 5c. BMO-FB paths section (clear + fill) ──
-  const bmoFbPaths = d.opticalPaths.filter(op => op.type === "BMO-FB");
+  const bmoFbPaths = d.opticalPaths.filter(op => op.type === "BMO-FB" || op.type === "BMO");
   // Clear old BMO section (rows 50-62, cols U-X = 21-24)
   for (let r = 50; r <= 62; r++) {
     for (let c = 21; c <= 24; c++) {
@@ -566,7 +566,7 @@ function logPreview(d: AsBuiltData) {
   console.log("Floors:", d.floors, "| CAB:", d.cabId, "| Conduit:", d.conduit);
 
   // OPTICAL PATHS preview (first 2 of each type)
-  const types = ["CAB-BEP", "BEP-BMO", "BEP", "BMO-FB"];
+  const types = ["CAB-BEP", "CAB-BCP", "BCP-BEP", "BEP-BMO", "BEP", "BMO-FB"];
   console.group("🔗 OPTICAL PATHS (first 2 per type)");
   types.forEach(t => {
     const items = d.opticalPaths.filter(op => op.type === t).slice(0, 2);
@@ -578,18 +578,18 @@ function logPreview(d: AsBuiltData) {
 
   // LABELS preview
   const bmoFbMap = new Map<string, string>();
-  d.opticalPaths.filter(op => op.type === "BMO-FB").forEach(op => {
+  d.opticalPaths.filter(op => op.type === "BMO-FB" || op.type === "BMO").forEach(op => {
     const bmoMatch = op.path.match(/(BMO\d+_\d+a)/);
     const fbMatch = op.path.match(/(FB\([^)]+\)\.\d+_\d+)/);
     if (bmoMatch && fbMatch) bmoFbMap.set(bmoMatch[1], fbMatch[1]);
   });
 
   console.group("🏷️ LABELS (first 2)");
-  const bepPaths = d.opticalPaths.filter(op => op.type === "BEP-BMO" || op.type === "BEP").slice(0, 2);
+  const bepPaths = d.opticalPaths.filter(op => op.type === "BEP-BMO" || op.type === "BEP" || op.type === "BCP-BEP").slice(0, 2);
   bepPaths.forEach((op, i) => {
     console.log(`BEP Label ${i + 1}:`, generateBepLabelString(op.path, bmoFbMap));
   });
-  const bmoFbPaths = d.opticalPaths.filter(op => op.type === "BMO-FB").slice(0, 2);
+  const bmoFbPaths = d.opticalPaths.filter(op => op.type === "BMO-FB" || op.type === "BMO").slice(0, 2);
   bmoFbPaths.forEach((op, i) => {
     console.log(`BMO Label ${i + 1}:`, generateBmoLabelString(op.path));
   });
