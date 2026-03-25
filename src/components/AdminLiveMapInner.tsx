@@ -260,10 +260,10 @@ const AdminLiveMapInner = () => {
 
   const locationsList = Object.values(locations);
   const allTechIds = profiles?.map((p) => p.user_id) || [];
-  const onlineCount = locationsList.filter((l) => isFresh(l.updated_at)).length;
-  const offlineCount = allTechIds.filter(
-    (id) => !locations[id] || isStale(locations[id].updated_at)
+  const onlineCount = allTechIds.filter(
+    (id) => profileOnlineMap[id]?.is_online
   ).length;
+  const offlineCount = allTechIds.length - onlineCount;
 
   return (
     <div className="space-y-4">
