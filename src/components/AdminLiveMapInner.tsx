@@ -4,7 +4,7 @@ import L from "leaflet";
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/contexts/OrganizationContext";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -65,6 +65,7 @@ function createMarkerIcon(name: string, fresh: boolean) {
 
 const AdminLiveMapInner = () => {
   const { organizationId } = useOrganization();
+  const queryClient = useQueryClient();
   const [locations, setLocations] = useState<Record<string, TechLocation>>({});
   const [, setTick] = useState(0);
   const mapRef = useRef<L.Map | null>(null);
@@ -75,10 +76,9 @@ const AdminLiveMapInner = () => {
     queryKey: ["technician-profiles-map", organizationId],
     enabled: !!organizationId,
     queryFn: async () => {
-      // Get profiles for this org first, then filter by technician role
       const { data: orgProfiles } = await supabase
         .from("profiles")
-        .select("user_id, full_name")
+        .select("user_id, full_name, is_online, last_lat, last_long, last_seen")
         .eq("organization_id", organizationId!);
       if (!orgProfiles?.length) return [];
       const ids = orgProfiles.map((p) => p.user_id);
@@ -91,12 +91,21 @@ const AdminLiveMapInner = () => {
       const techIds = new Set(roles.map((r) => r.user_id));
       return orgProfiles.filter((p) => techIds.has(p.user_id));
     },
+    refetchInterval: 15000,
   });
 
   const profileMap = useMemo(() => {
     const m: Record<string, string> = {};
     profiles?.forEach((p) => {
       m[p.user_id] = p.full_name;
+    });
+    return m;
+  }, [profiles]);
+
+  const profileOnlineMap = useMemo(() => {
+    const m: Record<string, { is_online: boolean; last_seen: string | null }> = {};
+    profiles?.forEach((p: any) => {
+      m[p.user_id] = { is_online: !!p.is_online, last_seen: p.last_seen };
     });
     return m;
   }, [profiles]);
@@ -240,6 +249,31 @@ const AdminLiveMapInner = () => {
     };
   }, [organizationId]);
 
+  // Realtime subscription for profile online status changes
+  useEffect(() => {
+    if (!organizationId) return;
+    const channel = supabase
+      .channel("profiles-online-status")
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "profiles",
+        },
+        (payload: any) => {
+          if (payload.new?.organization_id === organizationId) {
+            queryClient.invalidateQueries({ queryKey: ["technician-profiles-map", organizationId] });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [organizationId, queryClient]);
+
   // Refresh "ago" labels every 30s
   useEffect(() => {
     const id = setInterval(() => setTick((t) => t + 1), 30000);
@@ -252,10 +286,10 @@ const AdminLiveMapInner = () => {
 
   const locationsList = Object.values(locations);
   const allTechIds = profiles?.map((p) => p.user_id) || [];
-  const onlineCount = locationsList.filter((l) => isFresh(l.updated_at)).length;
-  const offlineCount = allTechIds.filter(
-    (id) => !locations[id] || isStale(locations[id].updated_at)
+  const onlineCount = allTechIds.filter(
+    (id) => profileOnlineMap[id]?.is_online
   ).length;
+  const offlineCount = allTechIds.length - onlineCount;
 
   return (
     <div className="space-y-4">
@@ -297,8 +331,8 @@ const AdminLiveMapInner = () => {
               const loc = locations[techId];
               const name = profileMap[techId] || "Τεχνικός";
               const assignment = techAssignmentMap[techId];
-              const online = loc && isFresh(loc.updated_at);
-              const stale = !loc || isStale(loc.updated_at);
+              const online = profileOnlineMap[techId]?.is_online ?? false;
+              const stale = !online;
 
               return (
                 <div
