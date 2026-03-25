@@ -65,6 +65,7 @@ function createMarkerIcon(name: string, fresh: boolean) {
 
 const AdminLiveMapInner = () => {
   const { organizationId } = useOrganization();
+  const queryClient = useQueryClient();
   const [locations, setLocations] = useState<Record<string, TechLocation>>({});
   const [, setTick] = useState(0);
   const mapRef = useRef<L.Map | null>(null);
