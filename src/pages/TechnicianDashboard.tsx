@@ -103,6 +103,7 @@ const TechnicianDashboard = () => {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            <GpsOnlineToggle />
             <NotificationBell />
             <button
               onClick={signOut}
