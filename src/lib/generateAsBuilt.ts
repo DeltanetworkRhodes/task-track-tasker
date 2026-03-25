@@ -566,7 +566,7 @@ function logPreview(d: AsBuiltData) {
   console.log("Floors:", d.floors, "| CAB:", d.cabId, "| Conduit:", d.conduit);
 
   // OPTICAL PATHS preview (first 2 of each type)
-  const types = ["CAB-BEP", "BEP-BMO", "BEP", "BMO-FB"];
+  const types = ["CAB-BEP", "CAB-BCP", "BCP-BEP", "BEP-BMO", "BEP", "BMO-FB"];
   console.group("🔗 OPTICAL PATHS (first 2 per type)");
   types.forEach(t => {
     const items = d.opticalPaths.filter(op => op.type === t).slice(0, 2);
