@@ -1726,6 +1726,73 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
         </div>
       </Card>
 
+      {/* GIS: Δομή Κτιρίου */}
+      {gisData && Array.isArray(gisData.floor_details) && (gisData.floor_details as any[]).length > 0 && (
+        <Card className="p-4 space-y-3 border-primary/20 bg-primary/5">
+          <Label className="text-xs font-bold uppercase tracking-wider text-primary flex items-center gap-1.5">
+            🏢 Δομή Κτιρίου (GIS)
+          </Label>
+          {/* Metadata badges */}
+          <div className="flex flex-wrap gap-1.5">
+            {gisData.bep_type && <Badge variant="outline" className="text-[10px]">BEP: {gisData.bep_type}</Badge>}
+            {gisData.bmo_type && <Badge variant="outline" className="text-[10px]">BMO: {gisData.bmo_type}</Badge>}
+            {gisData.bep_template && <Badge variant="outline" className="text-[10px]">Template: {gisData.bep_template}</Badge>}
+            {gisData.area_type && <Badge variant="outline" className="text-[10px]">Περιοχή: {gisData.area_type}</Badge>}
+            {gisData.building_id && <Badge variant="outline" className="text-[10px]">Building: {gisData.building_id}</Badge>}
+          </div>
+          <div className="space-y-1.5">
+            {(gisData.floor_details as any[]).map((f: any, idx: number) => (
+              <div key={idx} className="flex items-center justify-between p-2 border border-border rounded-md bg-background text-sm">
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold text-foreground">Όροφος {f["ΟΡΟΦΟΣ"] || "-"}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {f["ΔΙΑΜΕΡΙΣΜΑΤΑ"] || "0"} διαμ. / {f["ΚΑΤΑΣΤΗΜΑΤΑ"] || "0"} κατ.
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 text-xs">
+                  <Badge variant="secondary" className="text-[10px]">{f["FB01 TYPE"] || "-"}</Badge>
+                  <span className="text-muted-foreground">×{f["FB01"] || "0"}</span>
+                  {f["FB ΠΕΛΑΤΗ"] && <span className="text-primary font-medium">👤 {f["FB ΠΕΛΑΤΗ"]}</span>}
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+
+      {/* GIS: Οπτικές Διαδρομές */}
+      {gisData && Array.isArray(gisData.optical_paths) && (gisData.optical_paths as any[]).length > 0 && (
+        <Card className="p-4 space-y-3 border-accent/30 bg-accent/5">
+          <Label className="text-xs font-bold uppercase tracking-wider text-accent-foreground flex items-center gap-1.5">
+            🔗 Οπτικές Διαδρομές (GIS) — {(gisData.optical_paths as any[]).length} συνολικά
+          </Label>
+          {(() => {
+            const paths = gisData.optical_paths as any[];
+            const grouped: Record<string, any[]> = {};
+            paths.forEach((p: any) => {
+              const type = p["OPTICAL PATH TYPE"] || "Άλλο";
+              if (!grouped[type]) grouped[type] = [];
+              grouped[type].push(p);
+            });
+            return Object.entries(grouped).map(([type, items]) => (
+              <div key={type} className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <Badge variant="secondary" className="text-[10px]">{type}</Badge>
+                  <span className="text-[10px] text-muted-foreground">({items.length})</span>
+                </div>
+                <div className="space-y-0.5">
+                  {items.map((p: any, i: number) => (
+                    <div key={i} className="font-mono text-[11px] text-foreground px-2 py-1 bg-background border border-border rounded break-all">
+                      {p["OPTICAL PATH"] || "-"}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ));
+          })()}
+        </Card>
+      )}
+
       {/* ΔΙΑΔΡΟΜΕΣ */}
       <Card className="p-4 space-y-3">
         <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
