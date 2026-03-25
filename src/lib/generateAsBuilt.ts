@@ -339,19 +339,13 @@ function generateBmoLabelString(path: string): string {
 }
 
 function fillLabelsBepSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
-  // Build BMO->FB mapping from BMO-FB paths
-  const bmoFbMap = new Map<string, string>();
-  const bmoFbPaths = d.opticalPaths.filter(op => op.type === "BMO-FB");
-  bmoFbPaths.forEach(op => {
-    const bmoMatch = op.path.match(/(BMO\d+_\d+a)/);
-    const fbMatch = op.path.match(/(FB\([^)]+\)\.\d+_\d+)/);
-    if (bmoMatch && fbMatch) {
-      bmoFbMap.set(bmoMatch[1], fbMatch[1]);
-    }
-  });
-
-  // Get BEP-BMO and BEP paths (splitter port paths)
+  // Get BEP-BMO paths - use RAW strings from GIS
   const bepPaths = d.opticalPaths.filter(op => op.type === "BEP-BMO" || op.type === "BEP");
+
+  // Clear old label data (rows 2-20, cols 1-25)
+  clearDataRows(ws, 2, 20, 25);
+  // Clear visible label area (rows 5-14, cols 1-10)
+  clearDataRows(ws, 5, 14, 10);
 
   // Write raw paths into col Y (25) for formula references
   for (let i = 0; i < 18; i++) {
@@ -359,29 +353,26 @@ function fillLabelsBepSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
     ws.getCell(r, 25).value = i < bepPaths.length ? bepPaths[i].path : "";
   }
 
-  // Write computed label strings into visible "Medium BEP" section (rows 5-12, cols A-B/C-D)
-  // Medium BEP section: Row 7-10 col B (Α) and col D (Β) with pairs
+  // Write RAW optical path strings into visible label cells (rows 7+, paired in B/D)
   for (let i = 0; i < bepPaths.length && i < 12; i++) {
-    const label = generateBepLabelString(bepPaths[i].path, bmoFbMap);
     const pairIdx = Math.floor(i / 2);
     const isSecond = i % 2 === 1;
     const targetRow = 7 + pairIdx;
-    
+
     if (!isSecond) {
-      ws.getCell(targetRow, 2).value = label;  // Col B (Α side)
+      ws.getCell(targetRow, 2).value = bepPaths[i].path;  // Col B - raw path
     } else {
-      ws.getCell(targetRow, 4).value = label;  // Col D (Β side)
+      ws.getCell(targetRow, 4).value = bepPaths[i].path;  // Col D - raw path
     }
   }
 
-  // Write "χωρίς ports" for empty slots
+  // Fill empty slots
   for (let i = bepPaths.length; i < 12; i++) {
     const pairIdx = Math.floor(i / 2);
     const isSecond = i % 2 === 1;
     const targetRow = 7 + pairIdx;
     if (!isSecond) {
       ws.getCell(targetRow, 2).value = "-";
-      ws.getCell(targetRow + (i >= 10 ? 0 : 0), 5).value = "χωρίς ports";
     } else {
       ws.getCell(targetRow, 4).value = "-";
     }
@@ -389,8 +380,12 @@ function fillLabelsBepSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
 }
 
 function fillLabelsBmoSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
-  // Get BMO-FB paths
+  // Get BMO-FB paths - use RAW strings from GIS
   const bmoFbPaths = d.opticalPaths.filter(op => op.type === "BMO-FB");
+
+  // Clear old label data
+  clearDataRows(ws, 2, 40, 25);
+  clearDataRows(ws, 5, 20, 10);
 
   // Write raw paths into col Y (25) for formula references
   for (let i = 0; i < 36; i++) {
@@ -398,27 +393,26 @@ function fillLabelsBmoSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
     ws.getCell(r, 25).value = i < bmoFbPaths.length ? bmoFbPaths[i].path : "";
   }
 
-  // Write computed BMO label strings into visible "Medium BEP" section
+  // Write RAW optical path strings into visible label cells (rows 7+, paired in B/D)
   for (let i = 0; i < bmoFbPaths.length && i < 12; i++) {
-    const label = generateBmoLabelString(bmoFbPaths[i].path);
     const pairIdx = Math.floor(i / 2);
     const isSecond = i % 2 === 1;
     const targetRow = 7 + pairIdx;
-    
+
     if (!isSecond) {
-      ws.getCell(targetRow, 2).value = label;
+      ws.getCell(targetRow, 2).value = bmoFbPaths[i].path;  // Col B - raw path
     } else {
-      ws.getCell(targetRow, 4).value = label;
+      ws.getCell(targetRow, 4).value = bmoFbPaths[i].path;  // Col D - raw path
     }
   }
 
+  // Fill empty slots
   for (let i = bmoFbPaths.length; i < 12; i++) {
     const pairIdx = Math.floor(i / 2);
     const isSecond = i % 2 === 1;
     const targetRow = 7 + pairIdx;
     if (!isSecond) {
       ws.getCell(targetRow, 2).value = "-";
-      ws.getCell(targetRow, 5).value = "χωρίς ports";
     } else {
       ws.getCell(targetRow, 4).value = "-";
     }
@@ -491,65 +485,54 @@ function fillEpimetrisiSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
     ws.getCell(r, 17).value = fd.pipe_type || "";    // Q = ΕΙΔΟΣ
   });
 
-  // ── 5. ΣΤΟΙΧΕΙΑ ΚΑΜΠΙΝΑΣ / LABEL BEP ── Rows 44+ (F=type, G=path)
+  // ══════════════════════════════════════════════════════════════
+  // CLEAR OLD DATA: Πίνακας CAB-BEP (G48:I56) & BEP-BMO (F61:H68)
+  // ══════════════════════════════════════════════════════════════
+  for (let r = 48; r <= 56; r++) {
+    for (let c = 7; c <= 9; c++) { // G=7, H=8, I=9
+      ws.getCell(r, c).value = null;
+    }
+  }
+  for (let r = 61; r <= 68; r++) {
+    for (let c = 6; c <= 8; c++) { // F=6, G=7, H=8
+      ws.getCell(r, c).value = null;
+    }
+  }
+  console.log("✅ Cleared G48:I56 (CAB-BEP) and F61:H68 (BEP-BMO) old data");
+
+  // ── 5. CAB-BEP paths ── Use RAW strings from GIS OPTICAL PATHS
   const cabBepPaths = d.opticalPaths.filter(op => op.type === "CAB-BEP");
-  for (let i = 0; i < 8; i++) {
-    const r = 44 + i;
-    if (i < cabBepPaths.length) {
-      ws.getCell(r, 6).value = cabBepPaths[i].type;  // F
-      ws.getCell(r, 7).value = cabBepPaths[i].path;  // G
-    } else {
-      ws.getCell(r, 6).value = null;
-      ws.getCell(r, 7).value = null;
-    }
+  for (let i = 0; i < cabBepPaths.length && i < 9; i++) {
+    const r = 48 + i;
+    ws.getCell(r, 7).value = cabBepPaths[i].path;  // G = raw optical path string
+    ws.getCell(r, 8).value = d.address;             // H = address
+    ws.getCell(r, 9).value = i + 1;                 // I = index
   }
 
-  // ── 5b. BEP label section (rows 61-70, F-J) ──
-  const bepPaths = d.opticalPaths.filter(op => op.type === "BEP-BMO" || op.type === "BEP");
-  
-  // Build BMO->FB mapping
-  const bmoFbMap = new Map<string, string>();
-  d.opticalPaths.filter(op => op.type === "BMO-FB").forEach(op => {
-    const bmoMatch = op.path.match(/(BMO\d+_\d+a)/);
-    const fbMatch = op.path.match(/(FB\([^)]+\)\.\d+_\d+)/);
-    if (bmoMatch && fbMatch) bmoFbMap.set(bmoMatch[1], fbMatch[1]);
-  });
-  
-  // Fill BEP label cells (rows 63-70, paired in F/G and H/I)
-  for (let i = 0; i < 12; i++) {
-    const pairIdx = Math.floor(i / 2);
-    const r = 63 + pairIdx;
-    const isSecond = i % 2 === 1;
-    if (i < bepPaths.length) {
-      const label = generateBepLabelString(bepPaths[i].path, bmoFbMap);
-      if (!isSecond) {
-        ws.getCell(r, 7).value = label;  // G
-      } else {
-        ws.getCell(r, 9).value = label;  // I
-      }
-    } else {
-      if (!isSecond) {
-        ws.getCell(r, 7).value = "-";
-        ws.getCell(r, 10).value = "χωρίς ports"; // J
-      } else {
-        ws.getCell(r, 9).value = "-";
-      }
-    }
+  // ── 5b. BEP-BMO paths ── Use RAW strings from GIS OPTICAL PATHS
+  const bepBmoPaths = d.opticalPaths.filter(op => op.type === "BEP-BMO" || op.type === "BEP");
+  for (let i = 0; i < bepBmoPaths.length && i < 8; i++) {
+    const r = 61 + i;
+    ws.getCell(r, 6).value = bepBmoPaths[i].path;  // F = raw optical path string
+    ws.getCell(r, 7).value = bepBmoPaths[i].type;  // G = type
   }
 
-  // ── 5c. BMO label section (rows 48-71, U-X) ──
+  // ── 5c. BMO-FB paths section (clear + fill) ──
   const bmoFbPaths = d.opticalPaths.filter(op => op.type === "BMO-FB");
-  for (let i = 0; i < 24; i++) {
+  // Clear old BMO section (rows 50-62, cols U-X = 21-24)
+  for (let r = 50; r <= 62; r++) {
+    for (let c = 21; c <= 24; c++) {
+      ws.getCell(r, c).value = null;
+    }
+  }
+  for (let i = 0; i < bmoFbPaths.length && i < 24; i++) {
     const pairIdx = Math.floor(i / 2);
-    const r = 50 + pairIdx; // Start at row 50
+    const r = 50 + pairIdx;
     const isSecond = i % 2 === 1;
-    if (i < bmoFbPaths.length) {
-      const label = generateBmoLabelString(bmoFbPaths[i].path);
-      if (!isSecond) {
-        ws.getCell(r, 21).value = label;  // U
-      } else {
-        ws.getCell(r, 23).value = label;  // W
-      }
+    if (!isSecond) {
+      ws.getCell(r, 21).value = bmoFbPaths[i].path;  // U = raw path
+    } else {
+      ws.getCell(r, 23).value = bmoFbPaths[i].path;  // W = raw path
     }
   }
 
@@ -557,19 +540,6 @@ function fillEpimetrisiSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
   ws.getCell("V85").value = d.isNewInfrastructure ? "ΝΕΑ ΥΠΟΔΟΜΗ" : "";
   ws.getCell("U86").value = d.distanceFromCabinet || "";
   ws.getCell("U91").value = d.trenchLengthM || "";
-
-  // ── CAB-BEP label in section 5 ──
-  if (cabBepPaths.length > 0) {
-    // Write CAB ID and first path details into the BEP label section
-    ws.getCell("F53").value = 1;
-    ws.getCell("G53").value = cabBepPaths.length > 0 ? extractCableIndex(cabBepPaths[0].path) : "";
-    ws.getCell("H53").value = d.address;
-    for (let i = 1; i < cabBepPaths.length && i < 4; i++) {
-      ws.getCell(53 + i, 6).value = i + 1;
-      ws.getCell(53 + i, 7).value = extractCableIndex(cabBepPaths[i].path);
-      ws.getCell(53 + i, 8).value = d.address;
-    }
-  }
 }
 
 /** Extract cable index number from CAB-BEP path string */
