@@ -125,11 +125,11 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
   // Photo categories mapped to work code prefixes
   // storageName uses ASCII for Supabase Storage compatibility
   const ALL_PHOTO_CATEGORIES = [
-    { key: "ΣΚΑΜΑ", storageName: "SKAMA", label: "Σκάμα", icon: "⛏️", workPrefixes: [] },
-    { key: "ΟΔΕΥΣΗ", storageName: "ODEFSI", label: "Όδευση", icon: "🛤️", workPrefixes: [] },
+    { key: "ΣΚΑΜΑ", storageName: "SKAMA", label: "Σκάμα", icon: "⛏️", workPrefixes: ["1991", "1965"] },
+    { key: "ΟΔΕΥΣΗ", storageName: "ODEFSI", label: "Όδευση", icon: "🛤️", workPrefixes: ["1963", "1993"] },
     { key: "BCP", storageName: "BCP", label: "BCP", icon: "📦", workPrefixes: ["1991", "1993"] },
-    { key: "BEP", storageName: "BEP", label: "BEP", icon: "🔌", workPrefixes: [] },
-    { key: "BMO", storageName: "BMO", label: "BMO", icon: "📡", workPrefixes: [] },
+    { key: "BEP", storageName: "BEP", label: "BEP", icon: "🔌", workPrefixes: ["1963", "1965", "1970"] },
+    { key: "BMO", storageName: "BMO", label: "BMO", icon: "📡", workPrefixes: ["1970"] },
     { key: "FB", storageName: "FB", label: "Floor Box", icon: "📋", workPrefixes: ["1984", "1985", "1986"] },
     { key: "ΚΑΜΠΙΝΑ", storageName: "KAMPINA", label: "Καμπίνα", icon: "🏗️", workPrefixes: ["1980"] },
     { key: "Γ_ΦΑΣΗ", storageName: "G_FASI", label: "Γ' Φάση", icon: "👤", workPrefixes: ["1955"] },
@@ -185,6 +185,17 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
   const selectedWorkPrefixes = new Set(workItems.map((w) => WORK_CATEGORIES.find((c) => w.code.startsWith(c.prefix))?.prefix).filter(Boolean));
 
   const crewFilteredPhotoCategories = ALL_PHOTO_CATEGORIES.filter((cat) => normalizedCrewPhotoKeys.has(cat.key));
+
+  // Mandatory photo categories: categories whose workPrefixes match selected works
+  const mandatoryPhotoKeys = useMemo(() => {
+    const keys = new Set<string>();
+    for (const cat of ALL_PHOTO_CATEGORIES) {
+      if (cat.workPrefixes.length > 0 && cat.workPrefixes.some((p) => selectedWorkPrefixes.has(p))) {
+        keys.add(cat.key);
+      }
+    }
+    return keys;
+  }, [workItems]);
 
   // In crew mode, show filtered categories with alias support (fallback: show all)
   // In normal mode, show categories based on selected works
@@ -925,6 +936,36 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
 
   const totalPhotos = Object.values(categorizedPhotos).reduce((sum, arr) => sum + arr.length, 0);
   const totalOtdrFiles = Object.values(otdrFiles).reduce((sum, arr) => sum + arr.length, 0);
+
+  // Validation: mandatory photo categories must have at least 1 photo (new or existing) and no unresolved rejections
+  const mandatoryPhotosValid = useMemo(() => {
+    for (const key of mandatoryPhotoKeys) {
+      const newCount = (categorizedPhotos[key] || []).length;
+      const existingCount = existingPhotoCounts[key] || 0;
+      if (newCount + existingCount === 0) return false; // no photos at all
+      // Check new photos for unresolved rejections
+      for (let i = 0; i < newCount; i++) {
+        const result = getConstructionResult(key, i);
+        if (result && !result.skipped && !result.overriddenBy && (!result.isApproved || result.qualityScore < 7)) {
+          return false; // has rejected photo without override
+        }
+      }
+    }
+    return true;
+  }, [mandatoryPhotoKeys, categorizedPhotos, existingPhotoCounts, getConstructionResult]);
+
+  const missingMandatoryCategories = useMemo(() => {
+    const missing: string[] = [];
+    for (const key of mandatoryPhotoKeys) {
+      const newCount = (categorizedPhotos[key] || []).length;
+      const existingCount = existingPhotoCounts[key] || 0;
+      if (newCount + existingCount === 0) {
+        const cat = ALL_PHOTO_CATEGORIES.find((c) => c.key === key);
+        missing.push(cat?.label || key);
+      }
+    }
+    return missing;
+  }, [mandatoryPhotoKeys, categorizedPhotos, existingPhotoCounts]);
 
   // OTDR PDF handlers
   const handleOtdrSelect = (category: string, e: React.ChangeEvent<HTMLInputElement>) => {
@@ -2100,7 +2141,11 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                   <div className="flex items-center gap-1.5">
                     <span className="text-sm">{cat.icon}</span>
                     <span className="text-xs font-medium">{cat.label}</span>
-                    {cat.workPrefixes.length > 0 && <span className="text-[10px] text-muted-foreground">(προαιρ.)</span>}
+                    {mandatoryPhotoKeys.has(cat.key) ? (
+                      <Badge variant="destructive" className="text-[9px] h-4 px-1">ΥΠΟΧΡ.</Badge>
+                    ) : (
+                      cat.workPrefixes.length > 0 && <span className="text-[10px] text-muted-foreground">(προαιρ.)</span>
+                    )}
                   </div>
                   <div className="flex items-center gap-2">
                     {existingPhotoCounts[cat.key] > 0 && (
@@ -2387,10 +2432,21 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
 
         {isCrewMode && (
           <>
+            {!mandatoryPhotosValid && mandatoryPhotoKeys.size > 0 && (
+              <Alert className="border-destructive/30 bg-destructive/5">
+                <ShieldAlert className="h-4 w-4 text-destructive" />
+                <AlertTitle className="text-xs font-semibold text-destructive">Υποχρεωτικές φωτογραφίες</AlertTitle>
+                <AlertDescription className="text-xs text-destructive/80">
+                  {missingMandatoryCategories.length > 0
+                    ? `Λείπουν φωτογραφίες: ${missingMandatoryCategories.join(", ")}`
+                    : "Υπάρχουν απορριφθείσες φωτογραφίες χωρίς override."}
+                </AlertDescription>
+              </Alert>
+            )}
             <AlertDialog open={showCompleteConfirm} onOpenChange={setShowCompleteConfirm}>
               <AlertDialogTrigger asChild>
                 <Button
-                  disabled={submitting || completing}
+                  disabled={submitting || completing || (!mandatoryPhotosValid && mandatoryPhotoKeys.size > 0)}
                   variant="default"
                   className="w-full py-6 text-sm font-bold gap-2 bg-green-600 hover:bg-green-700 text-white"
                 >
