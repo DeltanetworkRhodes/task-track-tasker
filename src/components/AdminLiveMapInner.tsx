@@ -249,6 +249,31 @@ const AdminLiveMapInner = () => {
     };
   }, [organizationId]);
 
+  // Realtime subscription for profile online status changes
+  useEffect(() => {
+    if (!organizationId) return;
+    const channel = supabase
+      .channel("profiles-online-status")
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "profiles",
+        },
+        (payload: any) => {
+          if (payload.new?.organization_id === organizationId) {
+            queryClient.invalidateQueries({ queryKey: ["technician-profiles-map", organizationId] });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [organizationId, queryClient]);
+
   // Refresh "ago" labels every 30s
   useEffect(() => {
     const id = setInterval(() => setTick((t) => t + 1), 30000);
