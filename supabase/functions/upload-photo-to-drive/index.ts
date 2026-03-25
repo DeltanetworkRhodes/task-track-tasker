@@ -114,13 +114,18 @@ async function createDriveFolder(
   return (await res.json()).id;
 }
 
+interface DriveUploadResult {
+  id: string;
+  webViewLink: string;
+}
+
 async function uploadFileToDrive(
   accessToken: string,
   fileBytes: Uint8Array,
   fileName: string,
   mimeType: string,
   parentFolderId: string
-): Promise<string> {
+): Promise<DriveUploadResult> {
   const metadata = JSON.stringify({
     name: fileName,
     parents: [parentFolderId],
@@ -130,7 +135,6 @@ async function uploadFileToDrive(
   const delimiter = `\r\n--${boundary}\r\n`;
   const closeDelimiter = `\r\n--${boundary}--`;
 
-  // Build multipart body manually
   const metaPart =
     delimiter +
     "Content-Type: application/json; charset=UTF-8\r\n\r\n" +
@@ -154,8 +158,9 @@ async function uploadFileToDrive(
   body.set(fileBytes, metaBytes.length + filePartBytes.length);
   body.set(closeBytes, metaBytes.length + filePartBytes.length + fileBytes.length);
 
+  // Request webViewLink in the response fields
   const res = await fetch(
-    "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&supportsAllDrives=true",
+    "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&supportsAllDrives=true&fields=id,webViewLink",
     {
       method: "POST",
       headers: {
@@ -167,7 +172,8 @@ async function uploadFileToDrive(
   );
 
   if (!res.ok) throw new Error(`Upload failed: ${await res.text()}`);
-  return (await res.json()).id;
+  const data = await res.json();
+  return { id: data.id, webViewLink: data.webViewLink || "" };
 }
 
 // ── Main handler ──
@@ -201,8 +207,9 @@ Deno.serve(async (req) => {
     );
 
     if (srFolders.length === 0) {
+      // SR folder not found — keep file in Storage as fallback, don't delete
       return new Response(
-        JSON.stringify({ error: `SR folder not found for ${sr_id}`, uploaded: false }),
+        JSON.stringify({ error: `SR folder not found for ${sr_id}`, uploaded: false, deleted: false }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -248,7 +255,7 @@ Deno.serve(async (req) => {
     const finalFileName = file_name || file_path.split("/").pop() || "photo.jpg";
 
     // Step E: Upload to Drive
-    const driveFileId = await uploadFileToDrive(
+    const driveResult = await uploadFileToDrive(
       accessToken,
       fileBytes,
       finalFileName,
@@ -256,10 +263,28 @@ Deno.serve(async (req) => {
       categoryFolderId
     );
 
+    // Step F (CRITICAL): Delete from Supabase Storage to save costs
+    let deleted = false;
+    try {
+      const { error: removeErr } = await supabase.storage
+        .from("photos")
+        .remove([file_path]);
+      if (removeErr) {
+        console.error(`Failed to delete ${file_path} from storage:`, removeErr);
+      } else {
+        deleted = true;
+        console.log(`Deleted ${file_path} from storage after Drive upload`);
+      }
+    } catch (delErr) {
+      console.error(`Storage delete error for ${file_path}:`, delErr);
+    }
+
     return new Response(
       JSON.stringify({
         uploaded: true,
-        driveFileId,
+        deleted,
+        driveFileId: driveResult.id,
+        webViewLink: driveResult.webViewLink,
         srFolderId: srFolder.id,
         categoryFolderId,
         categoryName: category,
@@ -269,7 +294,7 @@ Deno.serve(async (req) => {
   } catch (err: any) {
     console.error("upload-photo-to-drive error:", err);
     return new Response(
-      JSON.stringify({ error: err.message, uploaded: false }),
+      JSON.stringify({ error: err.message, uploaded: false, deleted: false }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
