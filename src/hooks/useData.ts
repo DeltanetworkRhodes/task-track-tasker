@@ -86,6 +86,22 @@ export const useProfiles = () => {
   });
 };
 
+export const useGisDataByOrg = () => {
+  const { organizationId } = useOrganization();
+  return useQuery({
+    queryKey: ["gis_data_org", organizationId],
+    enabled: !!organizationId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("gis_data")
+        .select("assignment_id, sr_id, building_id, floors, bep_type, bmo_type, conduit, area_type, optical_paths, floor_details, distance_from_cabinet, bep_floor, customer_floor")
+        .eq("organization_id", organizationId!);
+      if (error) throw error;
+      return data || [];
+    },
+  });
+};
+
 export const useAssignmentHistory = (assignmentId: string | null) => {
   return useQuery({
     queryKey: ["assignment_history", assignmentId],
