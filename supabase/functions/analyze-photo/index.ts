@@ -300,6 +300,15 @@ isApproved = true ΜΟΝΟ αν score >= 7 ΚΑΙ η φωτογραφία αντ
                 type: "number",
                 description: "Quality score from 1 to 10. Score < 7 means rejected.",
               },
+              stageIdentified: {
+                type: "string",
+                description: "For ΣΚΑΜΑ: one of 'Open Trench', 'Warning Tape', 'Base Layer', 'Final Surface'. For other categories: the main element identified (e.g. 'BCP Installation', 'Routing Channel'). Empty string if unrecognizable.",
+              },
+              detectedElements: {
+                type: "array",
+                items: { type: "string" },
+                description: "List of specific elements detected in the photo (e.g. 'HDPE pipe', 'yellow warning tape', 'red bricks', 'concrete fill', 'Ω clips', 'velcro'). Helps auditors understand what the AI saw.",
+              },
               issuesFound: {
                 type: "array",
                 items: { type: "string" },
@@ -307,10 +316,10 @@ isApproved = true ΜΟΝΟ αν score >= 7 ΚΑΙ η φωτογραφία αντ
               },
               feedbackForTechnician: {
                 type: "string",
-                description: "Detailed feedback in Greek for the technician explaining why approved or rejected, referencing specific Cosmote specs (e.g. missing warning tape, missing Ω clips, wrong material usage)",
+                description: "Detailed feedback in Greek for the technician explaining why approved or rejected, referencing specific Cosmote specs. E.g. 'Η αποκατάσταση είναι τέλεια, 10/10' or 'Λείπει το κίτρινο πλέγμα σήμανσης'.",
               },
             },
-            required: ["isApproved", "qualityScore", "issuesFound", "feedbackForTechnician"],
+            required: ["isApproved", "qualityScore", "stageIdentified", "detectedElements", "issuesFound", "feedbackForTechnician"],
             additionalProperties: false,
           },
         },
