@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from "react";
+import { uploadPhotoDrive } from "@/lib/driveUpload";
 import { hapticFeedback } from "@/lib/haptics";
 import { compressImage } from "@/lib/imageCompression";
 import { applyWatermark, type WatermarkData } from "@/lib/watermark";
