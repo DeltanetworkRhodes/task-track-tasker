@@ -2038,7 +2038,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                   <div className="flex items-center gap-2">
                     {existingPhotoCounts[cat.key] > 0 && (
                       <Badge variant="secondary" className="text-[10px] h-5 bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300">
-                        ☁️ {existingPhotoCounts[cat.key]}
+                        ✅ {existingPhotoCounts[cat.key]}
                       </Badge>
                     )}
                     {catPhotos.length > 0 && (
