@@ -44,3 +44,6 @@ verify_jwt = false
 
 [functions.parse-payment-doc]
 verify_jwt = false
+
+[functions.upload-photo-to-drive]
+verify_jwt = false
