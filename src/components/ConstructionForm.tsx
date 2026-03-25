@@ -8,7 +8,7 @@ import { useOrganization } from "@/contexts/OrganizationContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Trash2, Loader2, CheckCircle, HardHat, Package, Wrench, Camera, X, ChevronDown, ChevronRight, Plus, Minus, MapPin, Route, BrainCircuit, ShieldCheck, ShieldAlert, AlertTriangle, Save } from "lucide-react";
+import { Trash2, Loader2, CheckCircle, HardHat, Package, Wrench, Camera, X, ChevronDown, ChevronRight, Plus, Minus, MapPin, Route, BrainCircuit, ShieldCheck, ShieldAlert, AlertTriangle, Save, GitMerge, Building2 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -1725,6 +1725,102 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
           </div>
         </div>
       </Card>
+
+      {/* ─── GIS Work Instructions: Optical Paths ─── */}
+      {gisData && (
+        <Card className="p-4 space-y-3 border-blue-500/20 bg-blue-50/30 dark:bg-blue-950/10">
+          <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+            <GitMerge className="h-3.5 w-3.5 text-blue-600" />
+            Οπτικές Διαδρομές (Από Μελέτη GIS)
+          </Label>
+          {(() => {
+            const paths = Array.isArray(gisData.optical_paths) ? (gisData.optical_paths as any[]) : [];
+            if (paths.length === 0) {
+              return <p className="text-xs text-muted-foreground italic">Δεν βρέθηκαν οπτικές διαδρομές στο GIS</p>;
+            }
+            return (
+              <div className="space-y-1.5">
+                {paths.map((p: any, i: number) => {
+                  const pathType = p?.type || p?.["OPTICAL PATH TYPE"] || p?.optical_path_type || "";
+                  const pathName = p?.path || p?.["OPTICAL PATH"] || p?.optical_path || p?.name || "";
+                  return (
+                    <div key={i} className="flex items-start gap-2 rounded-lg border border-border/60 bg-background p-2.5">
+                      <Badge variant="outline" className="shrink-0 text-[10px] font-bold border-blue-500/40 text-blue-700 dark:text-blue-400">
+                        {pathType || `#${i + 1}`}
+                      </Badge>
+                      <span className="text-xs font-mono break-all text-foreground/80">{pathName || "—"}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
+        </Card>
+      )}
+
+      {/* ─── GIS Work Instructions: Building Topology ─── */}
+      {gisData && (
+        <Card className="p-4 space-y-3 border-emerald-500/20 bg-emerald-50/30 dark:bg-emerald-950/10">
+          <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+            <Building2 className="h-3.5 w-3.5 text-emerald-600" />
+            Δομή Κτιρίου (Από Μελέτη GIS)
+          </Label>
+          {(() => {
+            const floors = Array.isArray(gisData.floor_details) ? (gisData.floor_details as any[]) : [];
+            if (floors.length === 0) {
+              return <p className="text-xs text-muted-foreground italic">Δεν βρέθηκαν στοιχεία ορόφων στο GIS</p>;
+            }
+            return (
+              <div className="space-y-1.5">
+                {/* Header */}
+                <div className="grid grid-cols-[60px_1fr_1fr] gap-2 text-[10px] font-bold uppercase text-muted-foreground px-2">
+                  <span>Όροφος</span>
+                  <span>Διαμ/τα</span>
+                  <span>Floor Box</span>
+                </div>
+                {floors.map((fd: any, i: number) => {
+                  const row = fd.raw && typeof fd.raw === "object" ? fd.raw : fd;
+                  const floorName = row.floor ?? row.FLOOR ?? row["ΟΡΟΦΟΣ"] ?? `+${String(i).padStart(2, "0")}`;
+                  const apartments = row.apartments ?? row.APARTMENTS ?? row["ΔΙΑΜΕΡΙΣΜΑΤΑ"] ?? "—";
+
+                  // Collect FB info from all FB keys
+                  const fbInfo: string[] = [];
+                  const keys = Object.keys(row);
+                  for (const key of keys) {
+                    const uk = key.toUpperCase().trim();
+                    if (/^FB\s?\d+$/i.test(uk) || uk === "FB" || uk === "FLOOR BOX") {
+                      const qty = row[key];
+                      if (!qty || parseInt(String(qty)) <= 0) continue;
+                      const typeKey = keys.find((k) => k.toUpperCase().trim() === uk + " TYPE" || k.toUpperCase().trim() === uk + "_TYPE");
+                      const fbType = typeKey ? String(row[typeKey] || "") : "";
+                      fbInfo.push(`${key}: ${qty}${fbType ? ` (${fbType})` : ""}`);
+                    }
+                  }
+                  // Fallback: fb_count
+                  if (fbInfo.length === 0 && (row.fb_count || row.FB_COUNT)) {
+                    fbInfo.push(`FB: ${row.fb_count || row.FB_COUNT}`);
+                  }
+
+                  return (
+                    <div key={i} className="grid grid-cols-[60px_1fr_1fr] gap-2 rounded-lg border border-border/60 bg-background p-2.5 text-xs">
+                      <Badge variant="secondary" className="text-[10px] font-bold justify-center">{String(floorName)}</Badge>
+                      <span className="text-foreground/80">{String(apartments)}</span>
+                      <span className="text-foreground/80 break-all">{fbInfo.length > 0 ? fbInfo.join(", ") : "—"}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
+          {/* Extra GIS metadata */}
+          <div className="flex flex-wrap gap-2 pt-1">
+            {gisData.bep_type && <Badge variant="outline" className="text-[10px]">BEP: {gisData.bep_type}</Badge>}
+            {gisData.bmo_type && <Badge variant="outline" className="text-[10px]">BMO: {gisData.bmo_type}</Badge>}
+            {gisData.bep_template && <Badge variant="outline" className="text-[10px]">Template: {gisData.bep_template}</Badge>}
+            {gisData.area_type && <Badge variant="outline" className="text-[10px]">Περιοχή: {gisData.area_type}</Badge>}
+          </div>
+        </Card>
+      )}
 
       {/* ΔΙΑΔΡΟΜΕΣ */}
       <Card className="p-4 space-y-3">
