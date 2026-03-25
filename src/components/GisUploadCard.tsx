@@ -94,6 +94,7 @@ const GisUploadCard = ({ assignment, hasExistingGis, onUploadSuccess, compact = 
       queryClient.invalidateQueries({ queryKey: ["technician-assignments"] });
       queryClient.invalidateQueries({ queryKey: ["assignment-gis"] });
       queryClient.invalidateQueries({ queryKey: ["gis-assignment-ids"] });
+      queryClient.invalidateQueries({ queryKey: ["gis_data_for_construction"] });
 
       onUploadSuccess?.(result);
     } catch (err: any) {
