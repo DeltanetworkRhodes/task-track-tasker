@@ -6,6 +6,7 @@ import { useOrganization } from "@/contexts/OrganizationContext";
 import { useWorkCategories, useMyCrewAssignments, useCrewPhotos } from "@/hooks/useCrewData";
 import { compressImage } from "@/lib/imageCompression";
 import { applyWatermark, type WatermarkData } from "@/lib/watermark";
+import { uploadPhotoDrive } from "@/lib/driveUpload";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -187,6 +188,9 @@ const CrewCategoryForm = ({ crewAssignment, assignment }: { crewAssignment: any;
               console.error("Photo upload error:", uploadErr);
               continue;
             }
+
+            // Mirror to Google Drive (fire-and-forget)
+            uploadPhotoDrive(assignment?.sr_id || "", photoCat, storagePath);
 
             await supabase.from("sr_crew_photos" as any).insert({
               crew_assignment_id: crewAssignment.id,

@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from "react";
+import { uploadPhotoDrive } from "@/lib/driveUpload";
 import { hapticFeedback } from "@/lib/haptics";
 import { compressImage } from "@/lib/imageCompression";
 import { applyWatermark, type WatermarkData } from "@/lib/watermark";
@@ -1137,6 +1138,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                 .from("photos")
                 .upload(storagePath, photo, { upsert: true });
               if (uploadErr) console.error(`Photo upload error ${folderName}/${i}:`, uploadErr);
+              else uploadPhotoDrive(assignment.sr_id, catDef?.label || category, storagePath);
               uploaded++;
               setSubmitProgress(`Ανέβασμα φωτογραφιών (${uploaded}/${totalPhotoCount})...`);
             }
@@ -1159,6 +1161,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                 .from("photos")
                 .upload(storagePath, pdf, { upsert: true, contentType: "application/pdf" });
               if (uploadErr) console.error(`OTDR upload error ${folderName}/${i}:`, uploadErr);
+              else uploadPhotoDrive(assignment.sr_id, `OTDR_${catDef?.label || category}`, storagePath, pdf.name);
               otdrUploaded++;
               setSubmitProgress(`Ανέβασμα OTDR μετρήσεων (${otdrUploaded}/${totalOtdrCount})...`);
             }
@@ -1533,7 +1536,10 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
               .from("photos")
               .upload(storagePath, photo, { upsert: true });
             if (uploadErr) console.error(`Photo upload error ${folderName}/${i}:`, uploadErr);
-            else photoPaths.push(storagePath);
+            else {
+              photoPaths.push(storagePath);
+              uploadPhotoDrive(assignment.sr_id, catDef?.label || category, storagePath);
+            }
             uploaded++;
             setSubmitProgress(`Ανέβασμα φωτογραφιών (${uploaded}/${totalPhotoCount})...`);
           }
@@ -1559,7 +1565,10 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
               .from("photos")
               .upload(storagePath, pdf, { upsert: true, contentType: "application/pdf" });
             if (uploadErr) console.error(`OTDR upload error ${folderName}/${i}:`, uploadErr);
-            else otdrPaths.push(storagePath);
+            else {
+              otdrPaths.push(storagePath);
+              uploadPhotoDrive(assignment.sr_id, `OTDR_${catDef?.label || category}`, storagePath, pdf.name);
+            }
             otdrUploaded++;
             setSubmitProgress(`Ανέβασμα OTDR μετρήσεων (${otdrUploaded}/${totalOtdrCount})...`);
           }
