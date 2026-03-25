@@ -171,7 +171,7 @@ Deno.serve(async (req) => {
     // Verify technician owns this assignment
     const { data: assignment, error: assignErr } = await supabase
       .from("assignments")
-      .select("id, technician_id")
+      .select("id, technician_id, organization_id")
       .eq("id", assignmentId)
       .single();
 
@@ -309,6 +309,7 @@ Deno.serve(async (req) => {
     const gisPayload = {
       assignment_id: assignmentId,
       sr_id: srId,
+      organization_id: assignment.organization_id,
       ...buildingData,
       floor_details: floorDetails,
       optical_paths: opticalPaths,
