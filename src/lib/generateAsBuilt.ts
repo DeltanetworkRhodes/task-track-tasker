@@ -585,7 +585,7 @@ function logPreview(d: AsBuiltData) {
   });
 
   console.group("🏷️ LABELS (first 2)");
-  const bepPaths = d.opticalPaths.filter(op => op.type === "BEP-BMO" || op.type === "BEP").slice(0, 2);
+  const bepPaths = d.opticalPaths.filter(op => op.type === "BEP-BMO" || op.type === "BEP" || op.type === "BCP-BEP").slice(0, 2);
   bepPaths.forEach((op, i) => {
     console.log(`BEP Label ${i + 1}:`, generateBepLabelString(op.path, bmoFbMap));
   });
