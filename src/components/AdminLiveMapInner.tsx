@@ -101,6 +101,14 @@ const AdminLiveMapInner = () => {
     return m;
   }, [profiles]);
 
+  const profileOnlineMap = useMemo(() => {
+    const m: Record<string, { is_online: boolean; last_seen: string | null }> = {};
+    profiles?.forEach((p: any) => {
+      m[p.user_id] = { is_online: !!p.is_online, last_seen: p.last_seen };
+    });
+    return m;
+  }, [profiles]);
+
   const { data: activeAssignments } = useQuery({
     queryKey: ["technician-active-assignments-map", organizationId],
     enabled: !!organizationId,
