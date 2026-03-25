@@ -11,6 +11,7 @@ import NotificationBell from "@/components/NotificationBell";
 import NotificationPermissionCard from "@/components/NotificationPermissionCard";
 import TechnicianAssignments from "@/components/TechnicianAssignments";
 import TechnicianMap from "@/components/TechnicianMap";
+import GpsOnlineToggle from "@/components/GpsOnlineToggle";
 
 const statusFilters = [
   { value: "all", label: "Όλα" },
