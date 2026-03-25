@@ -186,6 +186,17 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
 
   const crewFilteredPhotoCategories = ALL_PHOTO_CATEGORIES.filter((cat) => normalizedCrewPhotoKeys.has(cat.key));
 
+  // Mandatory photo categories: categories whose workPrefixes match selected works
+  const mandatoryPhotoKeys = useMemo(() => {
+    const keys = new Set<string>();
+    for (const cat of ALL_PHOTO_CATEGORIES) {
+      if (cat.workPrefixes.length > 0 && cat.workPrefixes.some((p) => selectedWorkPrefixes.has(p))) {
+        keys.add(cat.key);
+      }
+    }
+    return keys;
+  }, [workItems]);
+
   // In crew mode, show filtered categories with alias support (fallback: show all)
   // In normal mode, show categories based on selected works
   const visiblePhotoCategories = filterPhotoCatKeys
