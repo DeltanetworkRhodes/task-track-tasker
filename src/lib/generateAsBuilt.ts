@@ -339,8 +339,8 @@ function generateBmoLabelString(path: string): string {
 }
 
 function fillLabelsBepSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
-  // Get BEP-BMO paths - use RAW strings from GIS
-  const bepPaths = d.opticalPaths.filter(op => op.type === "BEP-BMO" || op.type === "BEP");
+  // Get BEP-BMO paths - use RAW strings from GIS (handle both BEP-BMO and BCP-BEP types)
+  const bepPaths = d.opticalPaths.filter(op => op.type === "BEP-BMO" || op.type === "BEP" || op.type === "BCP-BEP");
 
   // Clear old label data (rows 2-20, cols 1-25)
   clearDataRows(ws, 2, 20, 25);
