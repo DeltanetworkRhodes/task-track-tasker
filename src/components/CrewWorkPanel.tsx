@@ -189,6 +189,9 @@ const CrewCategoryForm = ({ crewAssignment, assignment }: { crewAssignment: any;
               continue;
             }
 
+            // Mirror to Google Drive (fire-and-forget)
+            uploadPhotoDrive(assignment?.sr_id || "", photoCat, storagePath);
+
             await supabase.from("sr_crew_photos" as any).insert({
               crew_assignment_id: crewAssignment.id,
               organization_id: organizationId,
