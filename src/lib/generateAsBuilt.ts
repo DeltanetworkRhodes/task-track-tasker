@@ -518,7 +518,7 @@ function fillEpimetrisiSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
   }
 
   // ── 5c. BMO-FB paths section (clear + fill) ──
-  const bmoFbPaths = d.opticalPaths.filter(op => op.type === "BMO-FB");
+  const bmoFbPaths = d.opticalPaths.filter(op => op.type === "BMO-FB" || op.type === "BMO");
   // Clear old BMO section (rows 50-62, cols U-X = 21-24)
   for (let r = 50; r <= 62; r++) {
     for (let c = 21; c <= 24; c++) {
