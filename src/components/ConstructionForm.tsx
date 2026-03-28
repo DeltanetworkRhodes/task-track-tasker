@@ -1278,6 +1278,11 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
             } as any)
             .eq("id", assignment.id);
 
+          // Move SR folder to "ΠΑΡΑΔΩΤΕΑ" in Drive (fire-and-forget)
+          supabase.functions.invoke("move-sr-folder", {
+            body: { sr_id: assignment.sr_id, target_folder: "ΠΑΡΑΔΩΤΕΑ", organization_id: assignment.organization_id },
+          }).catch(console.error);
+
           // Collect ALL photo paths from storage for this construction
           setSubmitProgress("Συλλογή αρχείων...");
           const safeSrIdAll = assignment.sr_id.replace(/[^a-zA-Z0-9_-]/g, "_");
