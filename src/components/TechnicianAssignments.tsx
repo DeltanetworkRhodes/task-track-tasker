@@ -283,34 +283,6 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
 
       const assignment = assignments.find((a) => a.id === assignmentId);
 
-      // Auto-create survey record on pre_committed (fallback for trigger)
-      if (newStatus === "pre_committed" && assignment) {
-        try {
-          const { data: existingSurvey } = await supabase
-            .from("surveys")
-            .select("id")
-            .eq("sr_id", assignment.sr_id)
-            .limit(1);
-          if (!existingSurvey || existingSurvey.length === 0) {
-            const { data: profile } = await supabase
-              .from("profiles")
-              .select("organization_id")
-              .eq("user_id", user!.id)
-              .single();
-            await supabase.from("surveys").insert({
-              sr_id: assignment.sr_id,
-              area: assignment.area,
-              technician_id: user!.id,
-              organization_id: profile?.organization_id || null,
-              status: "ΠΡΟΔΕΣΜΕΥΣΗ ΥΛΙΚΩΝ",
-              comments: "",
-            });
-          }
-        } catch (surveyErr) {
-          console.error("Fallback survey creation error:", surveyErr);
-        }
-      }
-
       // Auto-fetch Drive folder URLs on pre_committed
       if (newStatus === "pre_committed" && assignment) {
         try {
