@@ -279,7 +279,6 @@ Deno.serve(async (req) => {
       categoryFolderId = await createDriveFolder(accessToken, category, srFolder.id);
       console.log(`Created new '${category}' folder (${categoryFolderId}) in SR folder ${srFolder.name}`);
     }
-    }
 
     // Step D: Download the file from Supabase Storage
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
