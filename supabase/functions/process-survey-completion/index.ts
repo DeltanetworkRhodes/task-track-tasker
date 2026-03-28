@@ -562,8 +562,22 @@ Deno.serve(async (req) => {
         }
       }
       console.log(`Downloaded ${downloadedFiles.length}/${surveyFiles.length} files`);
+    } else if (hasDriveFolder && serviceAccountKeyStr) {
+      // No local files but Drive folder exists — download from Drive
+      console.log(`No local survey_files — downloading from Google Drive...`);
+      try {
+        const serviceAccountKey = JSON.parse(serviceAccountKeyStr);
+        const driveAccessToken = await getAccessToken(serviceAccountKey);
+        const driveFiles = await downloadDriveFiles(driveAccessToken, sr_id);
+        for (const df of driveFiles) {
+          downloadedFiles.push(df);
+        }
+        console.log(`Downloaded ${downloadedFiles.length} files from Drive for ZIP creation`);
+      } catch (driveDownloadErr: any) {
+        console.error(`Drive download error: ${driveDownloadErr.message}`);
+      }
     } else {
-      console.log(`No local survey_files — trigger-created survey, skipping file processing`);
+      console.log(`No local survey_files and no Drive folder — skipping file processing`);
     }
 
     // 3. Google Drive: create folder structure & upload
