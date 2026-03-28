@@ -286,7 +286,7 @@ const Surveys = () => {
       const matchesStatus = statusFilter === "all" || s.status === statusFilter;
       return matchesSearch && matchesArea && matchesStatus;
     });
-  }, [surveys, search, areaFilter, statusFilter, assignmentMap]);
+  }, [surveys, search, areaFilter, statusFilter, assignmentMap, constructionSrIds]);
 
   const groupedFiles = useMemo(() => {
     return (surveyFiles || []).reduce((acc: Record<string, any[]>, f) => {
