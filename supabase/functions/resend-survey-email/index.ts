@@ -110,6 +110,15 @@ Deno.serve(async (req) => {
       .createSignedUrl(zipStoragePath, 7 * 24 * 60 * 60);
     zipDownloadUrl = signedData?.signedUrl || "";
 
+    // Get Drive folder URL as fallback
+    const { data: assignmentDrive } = await adminClient
+      .from("assignments")
+      .select("drive_folder_url")
+      .eq("sr_id", sr_id)
+      .maybeSingle();
+    const driveFolderUrl = assignmentDrive?.drive_folder_url || "";
+    const showDriveFolderLink = !zipDownloadUrl && !!driveFolderUrl;
+
     const isComplete = survey.status === "ΠΡΟΔΕΣΜΕΥΣΗ ΥΛΙΚΩΝ";
     const statusLabel = isComplete ? "ΠΡΟΔΕΣΜΕΥΣΗ ΥΛΙΚΩΝ" : "ΕΛΛΙΠΗΣ ΑΥΤΟΨΙΑ";
     const headerIcon = isComplete ? "📋" : "⚠️";

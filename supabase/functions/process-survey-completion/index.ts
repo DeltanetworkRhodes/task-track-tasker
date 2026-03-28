@@ -832,7 +832,7 @@ Deno.serve(async (req) => {
           const errText = await emailRes.text();
           console.error("Resend error:", errText);
         } else {
-          console.log(`Email sent to: ${recipients.join(", ")} (download link: ${showDownloadLink})`);
+          console.log(`Email sent to: ${recipients.join(", ")} (download link: ${showDownloadLink}, drive link: ${showDriveFolderLink})`);
           emailSent = true;
         }
         
