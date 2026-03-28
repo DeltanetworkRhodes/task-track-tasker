@@ -118,6 +118,13 @@ const Surveys = () => {
     }, {});
   }, [profiles]);
 
+  const assignmentMap = useMemo(() => {
+    return (dbAssignments || []).reduce((acc: Record<string, any>, a) => {
+      acc[a.sr_id] = a;
+      return acc;
+    }, {});
+  }, [dbAssignments]);
+
   // Signed URLs are now generated in the surveyFiles query
 
   const handleStatusChange = async (surveyId: string, newStatus: string) => {
