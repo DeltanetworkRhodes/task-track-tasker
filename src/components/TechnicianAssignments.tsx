@@ -316,6 +316,11 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
         } catch (driveFetchErr) {
           console.error("Drive auto-fetch error:", driveFetchErr);
         }
+
+        // Move SR folder to ΠΡΟΔΕΣΜΕΥΣΗ ΓΙΑ ΚΑΤΑΣΚΕΥΗ in Drive (fire-and-forget)
+        supabase.functions.invoke("move-sr-folder", {
+          body: { sr_id: assignment.sr_id, target_folder: "ΠΡΟΔΕΣΜΕΥΣΗ ΓΙΑ ΚΑΤΑΣΚΕΥΗ", organization_id: assignment.organization_id },
+        }).catch(console.error);
       }
     } catch (err: any) {
       // Rollback optimistic update
