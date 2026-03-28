@@ -64,9 +64,10 @@ async function getAccessToken(serviceAccountKey: any): Promise<string> {
 async function driveSearch(
   accessToken: string,
   query: string,
+  driveId?: string,
   fallback = false
 ): Promise<any[]> {
-  const SHARED_DRIVE_ID = "0AN9VpmNEa7QBUk9PVA";
+  const SHARED_DRIVE_ID = driveId || "0AN9VpmNEa7QBUk9PVA";
   const corpora = fallback
     ? "allDrives"
     : `drive&driveId=${SHARED_DRIVE_ID}`;
@@ -75,7 +76,7 @@ async function driveSearch(
     `https://www.googleapis.com/drive/v3/files` +
     `?q=${encodeURIComponent(query)}` +
     `&fields=files(id,name,mimeType,createdTime)` +
-    `&pageSize=50` +
+    `&pageSize=100` +
     `&supportsAllDrives=true` +
     `&includeItemsFromAllDrives=true` +
     `&corpora=${corpora}`;
@@ -84,10 +85,47 @@ async function driveSearch(
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   if (!res.ok) {
-    if (!fallback) return driveSearch(accessToken, query, true);
+    if (!fallback) return driveSearch(accessToken, query, driveId, true);
     throw new Error(await res.text());
   }
   return (await res.json()).files || [];
+}
+
+// Search for a subfolder by name inside a specific parent, with direct list as fallback
+async function findSubfolder(
+  accessToken: string,
+  parentId: string,
+  folderName: string
+): Promise<string | null> {
+  // Method 1: Search query
+  const results = await driveSearch(
+    accessToken,
+    `name = '${folderName}' and mimeType = 'application/vnd.google-apps.folder' and '${parentId}' in parents and trashed = false`
+  );
+  if (results.length > 0) return results[0].id;
+
+  // Method 2: List children of parent directly (more reliable for shared drives)
+  const listUrl =
+    `https://www.googleapis.com/drive/v3/files` +
+    `?q=${encodeURIComponent(`'${parentId}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`)}` +
+    `&fields=files(id,name)` +
+    `&pageSize=100` +
+    `&supportsAllDrives=true` +
+    `&includeItemsFromAllDrives=true` +
+    `&corpora=allDrives`;
+
+  const res = await fetch(listUrl, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (res.ok) {
+    const data = await res.json();
+    const match = (data.files || []).find(
+      (f: any) => f.name.toLowerCase() === folderName.toLowerCase()
+    );
+    if (match) return match.id;
+  }
+
+  return null;
 }
 
 async function createDriveFolder(
