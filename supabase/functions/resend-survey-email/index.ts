@@ -565,7 +565,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    console.log(`Email resent for SR: ${sr_id} to: ${recipients.join(", ")} (zip: ${!!zipDownloadUrl}, drive: ${showDriveFolderLink})`);
+    console.log(`Email resent for SR: ${sr_id} to: ${recipients.join(", ")} (zip: true)`);
 
     await adminClient.from("surveys").update({ email_sent: true }).eq("id", survey_id);
 
