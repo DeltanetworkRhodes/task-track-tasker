@@ -192,7 +192,7 @@ async function downloadDriveFilesForZip(
   if (downloadedCount === 0) return null;
 
   console.log(`Building ZIP from ${downloadedCount} Drive files...`);
-  const zipBytes = zipSync(zipInput, { level: 0 });
+  const zipBytes = zipSync(zipInput, { level: 6 });
   console.log(`ZIP created: ${(zipBytes.length / 1024 / 1024).toFixed(1)}MB`);
 
   return { zipBytes, fileCount: downloadedCount };
