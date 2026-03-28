@@ -424,7 +424,8 @@ async function downloadDriveFiles(
 ): Promise<{ sf: { file_name: string; file_type: string; folder_path?: string }; data: Uint8Array }[]> {
   console.log(`Fetching files from Google Drive for SR ${srId}...`);
 
-  const folder = await resolveSrDriveFolder(accessToken, srId, preferredFolderUrl);
+  // Try preferred folder first, then fall back to search by SR ID
+  let folder = await resolveSrDriveFolder(accessToken, srId, preferredFolderUrl);
   if (!folder) {
     console.log(`No Drive folder found for SR ${srId}`);
     return [];
@@ -439,67 +440,85 @@ async function downloadDriveFiles(
     return "other";
   };
 
-  const allFiles: { id: string; name: string; folderPath: string; fileType: string }[] = [];
-  const visitedFolderIds = new Set<string>();
+  const collectFromFolder = async (folderId: string): Promise<{ id: string; name: string; folderPath: string; fileType: string }[]> => {
+    const allFiles: { id: string; name: string; folderPath: string; fileType: string }[] = [];
+    const visitedFolderIds = new Set<string>();
 
-  const collectFilesRecursive = async (folderId: string, currentPath = ""): Promise<void> => {
-    if (visitedFolderIds.has(folderId)) return;
-    visitedFolderIds.add(folderId);
+    const collectFilesRecursive = async (fId: string, currentPath = ""): Promise<void> => {
+      if (visitedFolderIds.has(fId)) return;
+      visitedFolderIds.add(fId);
 
-    const children = await driveSearch(
-      accessToken,
-      `'${folderId}' in parents and trashed = false`
-    );
+      const children = await driveSearch(
+        accessToken,
+        `'${fId}' in parents and trashed = false`
+      );
 
-    for (const child of children) {
-      const childName = child.name || "unnamed";
-      const childPath = currentPath ? `${currentPath}/${childName}` : childName;
-      const childMimeType = child.mimeType || "";
+      for (const child of children) {
+        const childName = child.name || "unnamed";
+        const childPath = currentPath ? `${currentPath}/${childName}` : childName;
+        const childMimeType = child.mimeType || "";
 
-      if (childMimeType === "application/vnd.google-apps.folder") {
-        await collectFilesRecursive(child.id, childPath);
-        continue;
-      }
+        if (childMimeType === "application/vnd.google-apps.folder") {
+          await collectFilesRecursive(child.id, childPath);
+          continue;
+        }
 
-      if (childMimeType === "application/vnd.google-apps.shortcut") {
-        const targetId = child.shortcutDetails?.targetId;
-        const targetMimeType = child.shortcutDetails?.targetMimeType || "";
-        if (!targetId) continue;
+        if (childMimeType === "application/vnd.google-apps.shortcut") {
+          const targetId = child.shortcutDetails?.targetId;
+          const targetMimeType = child.shortcutDetails?.targetMimeType || "";
+          if (!targetId) continue;
 
-        if (targetMimeType === "application/vnd.google-apps.folder") {
-          await collectFilesRecursive(targetId, childPath);
+          if (targetMimeType === "application/vnd.google-apps.folder") {
+            await collectFilesRecursive(targetId, childPath);
+            continue;
+          }
+
+          allFiles.push({
+            id: targetId,
+            name: childName,
+            folderPath: currentPath,
+            fileType: inferFileTypeFromPath(childPath),
+          });
+          continue;
+        }
+
+        if (childMimeType.startsWith("application/vnd.google-apps")) {
+          console.log(`Skipping non-downloadable Google file: ${childPath} (${childMimeType})`);
           continue;
         }
 
         allFiles.push({
-          id: targetId,
+          id: child.id,
           name: childName,
           folderPath: currentPath,
           fileType: inferFileTypeFromPath(childPath),
         });
-        continue;
       }
+    };
 
-      if (childMimeType.startsWith("application/vnd.google-apps")) {
-        console.log(`Skipping non-downloadable Google file: ${childPath} (${childMimeType})`);
-        continue;
-      }
-
-      allFiles.push({
-        id: child.id,
-        name: childName,
-        folderPath: currentPath,
-        fileType: inferFileTypeFromPath(childPath),
-      });
-    }
+    await collectFilesRecursive(folderId);
+    return allFiles;
   };
 
-  await collectFilesRecursive(folder.id);
-  
-  console.log(`Found ${allFiles.length} files in Drive folder`);
+  let allFiles = await collectFromFolder(folder.id);
+  console.log(`Found ${allFiles.length} files in Drive folder: ${folder.name}`);
+
+  // If preferred folder returned 0 files, try searching by SR ID (the preferred URL may point to an empty copy folder)
+  if (allFiles.length === 0 && preferredFolderUrl) {
+    console.log(`Preferred folder is empty — falling back to SR search for ${srId}...`);
+    const searchFolder = await resolveSrDriveFolder(accessToken, srId); // search without preferred URL
+    if (searchFolder && searchFolder.id !== folder.id) {
+      console.log(`Found alternative folder: ${searchFolder.name} (${searchFolder.id})`);
+      allFiles = await collectFromFolder(searchFolder.id);
+      console.log(`Found ${allFiles.length} files in alternative folder`);
+      if (allFiles.length > 0) {
+        folder = searchFolder; // use this folder going forward
+      }
+    }
+  }
   
   // Download files serially (2 at a time) to manage memory
-  const result: { sf: { file_name: string; file_type: string }; data: Uint8Array }[] = [];
+  const result: { sf: { file_name: string; file_type: string; folder_path?: string }; data: Uint8Array }[] = [];
   const BATCH = 2;
   
   for (let i = 0; i < allFiles.length; i += BATCH) {
