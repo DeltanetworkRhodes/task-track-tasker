@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { zipSync } from "https://esm.sh/fflate@0.8.2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -13,6 +14,8 @@ const DEFAULT_SIGNATURE = `<div style="font-size: 12px; color: #718096;">
   <p style="margin: 2px 0;">M: +30 690 710 5282 | E: <a href="mailto:info@deltanetwork.gr" style="color: #1a9a8a; text-decoration: none;">info@deltanetwork.gr</a></p>
 </div>`;
 
+const SHARED_DRIVE_ID = "0AN9VpmNEa7QBUk9PVA";
+
 function escapeHtml(str: string): string {
   return String(str)
     .replace(/&/g, "&amp;")
@@ -20,6 +23,179 @@ function escapeHtml(str: string): string {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
+}
+
+function uint8ToBase64(bytes: Uint8Array): string {
+  let binary = "";
+  const chunkSize = 8192;
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    const chunk = bytes.subarray(i, i + chunkSize);
+    binary += String.fromCharCode(...chunk);
+  }
+  return btoa(binary);
+}
+
+// ─── Google Drive helpers ────────────────────────────────────────────
+
+async function getAccessToken(serviceAccountKey: any): Promise<string> {
+  const now = Math.floor(Date.now() / 1000);
+  const header = btoa(JSON.stringify({ alg: "RS256", typ: "JWT" }));
+  const payload = btoa(
+    JSON.stringify({
+      iss: serviceAccountKey.client_email,
+      scope: "https://www.googleapis.com/auth/drive.readonly",
+      aud: "https://oauth2.googleapis.com/token",
+      exp: now + 3600,
+      iat: now,
+    })
+  );
+
+  const pemContent = serviceAccountKey.private_key
+    .replace(/-----BEGIN PRIVATE KEY-----/, "")
+    .replace(/-----END PRIVATE KEY-----/, "")
+    .replace(/\n/g, "");
+  const binaryKey = Uint8Array.from(atob(pemContent), (c) => c.charCodeAt(0));
+
+  const cryptoKey = await crypto.subtle.importKey(
+    "pkcs8",
+    binaryKey,
+    { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
+    false,
+    ["sign"]
+  );
+
+  const signatureInput = new TextEncoder().encode(`${header}.${payload}`);
+  const signature = await crypto.subtle.sign("RSASSA-PKCS1-v1_5", cryptoKey, signatureInput);
+
+  const signatureB64 = uint8ToBase64(new Uint8Array(signature))
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
+
+  const jwt = `${header}.${payload}.${signatureB64}`;
+  const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: `grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Ajwt-bearer&assertion=${jwt}`,
+  });
+
+  if (!tokenRes.ok) throw new Error(`Token exchange failed: ${await tokenRes.text()}`);
+  return (await tokenRes.json()).access_token;
+}
+
+async function driveSearch(accessToken: string, query: string): Promise<any[]> {
+  const url = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&fields=files(id,name,mimeType,webViewLink)&pageSize=100&supportsAllDrives=true&includeItemsFromAllDrives=true&corpora=drive&driveId=${SHARED_DRIVE_ID}`;
+  const res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+  if (!res.ok) {
+    // Fallback to allDrives
+    const fallbackUrl = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&fields=files(id,name,mimeType,webViewLink)&pageSize=100&supportsAllDrives=true&includeItemsFromAllDrives=true&corpora=allDrives`;
+    const fallbackRes = await fetch(fallbackUrl, { headers: { Authorization: `Bearer ${accessToken}` } });
+    if (!fallbackRes.ok) throw new Error(await fallbackRes.text());
+    return (await fallbackRes.json()).files || [];
+  }
+  return (await res.json()).files || [];
+}
+
+async function downloadDriveFilesForZip(
+  accessToken: string,
+  srId: string,
+  customerName: string
+): Promise<{ zipBytes: Uint8Array; fileCount: number } | null> {
+  console.log(`Fetching files from Google Drive for SR ${srId}...`);
+
+  const folders = await driveSearch(
+    accessToken,
+    `name contains '${srId}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`
+  );
+
+  if (folders.length === 0) {
+    console.log(`No Drive folder found for SR ${srId}`);
+    return null;
+  }
+
+  const folder = folders[0];
+  console.log(`Found Drive folder: ${folder.name} (${folder.id})`);
+
+  // List subfolders
+  const subfolders = await driveSearch(
+    accessToken,
+    `'${folder.id}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`
+  );
+
+  // Collect all file references
+  const allFiles: { id: string; name: string; zipPath: string }[] = [];
+  const safeName = (customerName || "").replace(/[\/\\:*?"<>|]/g, "_").trim();
+  const rootFolder = `SR ${srId}${safeName ? ` ${safeName}` : ""}`;
+
+  // Files in main folder
+  const mainFiles = await driveSearch(
+    accessToken,
+    `'${folder.id}' in parents and mimeType != 'application/vnd.google-apps.folder' and trashed = false`
+  );
+  for (const f of mainFiles) {
+    allFiles.push({ id: f.id, name: f.name, zipPath: `${rootFolder}/${f.name}` });
+  }
+
+  // Files in subfolders
+  for (const sub of subfolders) {
+    const subFiles = await driveSearch(
+      accessToken,
+      `'${sub.id}' in parents and mimeType != 'application/vnd.google-apps.folder' and trashed = false`
+    );
+    for (const f of subFiles) {
+      allFiles.push({ id: f.id, name: f.name, zipPath: `${rootFolder}/${sub.name}/${f.name}` });
+    }
+  }
+
+  if (allFiles.length === 0) {
+    console.log(`No files found in Drive folder`);
+    return null;
+  }
+
+  console.log(`Found ${allFiles.length} files in Drive, downloading...`);
+
+  // Download files 2 at a time
+  const zipInput: Record<string, Uint8Array> = {};
+  let downloadedCount = 0;
+  const BATCH = 2;
+
+  for (let i = 0; i < allFiles.length; i += BATCH) {
+    const batch = allFiles.slice(i, i + BATCH);
+    const downloads = await Promise.all(
+      batch.map(async (file) => {
+        try {
+          const res = await fetch(
+            `https://www.googleapis.com/drive/v3/files/${file.id}?alt=media&supportsAllDrives=true`,
+            { headers: { Authorization: `Bearer ${accessToken}` } }
+          );
+          if (!res.ok) {
+            console.error(`Failed to download ${file.name}: ${res.status}`);
+            return null;
+          }
+          const data = new Uint8Array(await res.arrayBuffer());
+          console.log(`Downloaded: ${file.name} (${(data.length / 1024).toFixed(0)}KB)`);
+          return { zipPath: file.zipPath, data };
+        } catch (e: any) {
+          console.error(`Download error for ${file.name}: ${e.message}`);
+          return null;
+        }
+      })
+    );
+    for (const d of downloads) {
+      if (d) {
+        zipInput[d.zipPath] = d.data;
+        downloadedCount++;
+      }
+    }
+  }
+
+  if (downloadedCount === 0) return null;
+
+  console.log(`Building ZIP from ${downloadedCount} Drive files...`);
+  const zipBytes = zipSync(zipInput, { level: 0 });
+  console.log(`ZIP created: ${(zipBytes.length / 1024 / 1024).toFixed(1)}MB`);
+
+  return { zipBytes, fileCount: downloadedCount };
 }
 
 Deno.serve(async (req) => {
@@ -68,10 +244,11 @@ Deno.serve(async (req) => {
 
     // Get assignment info
     const { data: assignment } = await adminClient
-      .from("assignments").select("customer_name, address, cab").eq("sr_id", sr_id).maybeSingle();
+      .from("assignments").select("customer_name, address, cab, drive_folder_url").eq("sr_id", sr_id).maybeSingle();
     const customerName = assignment?.customer_name || "";
     const address = assignment?.address || "";
     const cab = assignment?.cab || "";
+    const driveFolderUrl = assignment?.drive_folder_url || "";
 
     // Get technician name
     const { data: techProfile } = await adminClient
@@ -100,7 +277,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Create signed URL for ZIP
+    // Try to get existing ZIP signed URL
     const safeSrId = sr_id.replace(/[^a-zA-Z0-9_-]/g, "_");
     const zipStoragePath = `surveys/${safeSrId}/Autopsia_${safeSrId}.zip`;
     let zipDownloadUrl = "";
@@ -110,13 +287,41 @@ Deno.serve(async (req) => {
       .createSignedUrl(zipStoragePath, 7 * 24 * 60 * 60);
     zipDownloadUrl = signedData?.signedUrl || "";
 
-    // Get Drive folder URL as fallback
-    const { data: assignmentDrive } = await adminClient
-      .from("assignments")
-      .select("drive_folder_url")
-      .eq("sr_id", sr_id)
-      .maybeSingle();
-    const driveFolderUrl = assignmentDrive?.drive_folder_url || "";
+    // If no ZIP exists in storage, try to build one from Google Drive
+    if (!zipDownloadUrl && driveFolderUrl) {
+      const serviceAccountKeyStr = Deno.env.get("GOOGLE_SERVICE_ACCOUNT_KEY");
+      if (serviceAccountKeyStr) {
+        try {
+          console.log(`No ZIP in storage, building from Google Drive for SR ${sr_id}...`);
+          const serviceAccountKey = JSON.parse(serviceAccountKeyStr);
+          const accessToken = await getAccessToken(serviceAccountKey);
+          const result = await downloadDriveFilesForZip(accessToken, sr_id, customerName);
+
+          if (result) {
+            // Upload ZIP to storage
+            const { error: uploadErr } = await adminClient.storage
+              .from("photos")
+              .upload(zipStoragePath, result.zipBytes, {
+                contentType: "application/zip",
+                upsert: true,
+              });
+
+            if (uploadErr) {
+              console.error(`ZIP upload error:`, uploadErr);
+            } else {
+              const { data: newSignedData } = await adminClient.storage
+                .from("photos")
+                .createSignedUrl(zipStoragePath, 7 * 24 * 60 * 60);
+              zipDownloadUrl = newSignedData?.signedUrl || "";
+              console.log(`ZIP created from Drive (${result.fileCount} files) and uploaded to storage`);
+            }
+          }
+        } catch (driveErr: any) {
+          console.error(`Drive ZIP creation error: ${driveErr.message}`);
+        }
+      }
+    }
+
     const showDriveFolderLink = !zipDownloadUrl && !!driveFolderUrl;
 
     const isComplete = survey.status === "ΠΡΟΔΕΣΜΕΥΣΗ ΥΛΙΚΩΝ";
@@ -239,7 +444,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    console.log(`Email resent for SR: ${sr_id} to: ${recipients.join(", ")} (download: ${!!zipDownloadUrl})`);
+    console.log(`Email resent for SR: ${sr_id} to: ${recipients.join(", ")} (zip: ${!!zipDownloadUrl}, drive: ${showDriveFolderLink})`);
 
     await adminClient.from("surveys").update({ email_sent: true }).eq("id", survey_id);
 
