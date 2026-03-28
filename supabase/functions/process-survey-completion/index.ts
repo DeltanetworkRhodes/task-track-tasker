@@ -430,12 +430,7 @@ Deno.serve(async (req) => {
     const technicianName = profileRes.data?.full_name || "Technician";
     const surveyFiles = filesRes.data;
 
-    if (!surveyFiles || surveyFiles.length === 0) {
-      return new Response(JSON.stringify({ error: "No files found for survey" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    const hasLocalFiles = surveyFiles && surveyFiles.length > 0;
 
     const presentTypes = [...new Set(surveyFiles.map((f: any) => f.file_type))];
     const missingTypes = REQUIRED_FILE_TYPES.filter((t) => !presentTypes.includes(t));
