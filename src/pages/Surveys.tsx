@@ -103,6 +103,16 @@ const Surveys = () => {
   });
 
   const { data: dbAssignments } = useAssignments();
+  const { data: constructionSrIds } = useQuery({
+    queryKey: ["construction-sr-ids"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("constructions")
+        .select("sr_id");
+      if (error) throw error;
+      return new Set((data || []).map((c) => normalizeSrId(c.sr_id)));
+    },
+  });
   const { data: appointments } = useQuery({
     queryKey: ["appointments"],
     queryFn: async () => {
@@ -266,14 +276,17 @@ const Surveys = () => {
     return (surveys || []).filter((s) => {
       if (!SURVEY_STATUSES.includes(s.status)) return false;
       // Exclude SRs that have moved to construction or later
-      const asg = assignmentMap[normalizeSrId(s.sr_id)];
+      const normalizedId = normalizeSrId(s.sr_id);
+      const asg = assignmentMap[normalizedId];
       if (asg && CONSTRUCTION_STATUSES.includes(asg.status)) return false;
+      // Also exclude if a construction record exists for this SR
+      if (constructionSrIds?.has(normalizedId)) return false;
       const matchesSearch = s.sr_id.toLowerCase().includes(search.toLowerCase());
       const matchesArea = areaFilter === "all" || s.area === areaFilter;
       const matchesStatus = statusFilter === "all" || s.status === statusFilter;
       return matchesSearch && matchesArea && matchesStatus;
     });
-  }, [surveys, search, areaFilter, statusFilter, assignmentMap]);
+  }, [surveys, search, areaFilter, statusFilter, assignmentMap, constructionSrIds]);
 
   const groupedFiles = useMemo(() => {
     return (surveyFiles || []).reduce((acc: Record<string, any[]>, f) => {
