@@ -424,7 +424,7 @@ async function downloadDriveFiles(
 ): Promise<{ sf: { file_name: string; file_type: string; folder_path?: string }; data: Uint8Array }[]> {
   console.log(`Fetching files from Google Drive for SR ${srId}...`);
 
-  // Try preferred folder first, then fall back to search by SR ID
+  // Try preferred/best folder first
   let folder = await resolveSrDriveFolder(accessToken, srId, preferredFolderUrl);
   if (!folder) {
     console.log(`No Drive folder found for SR ${srId}`);
@@ -503,16 +503,33 @@ async function downloadDriveFiles(
   let allFiles = await collectFromFolder(folder.id);
   console.log(`Found ${allFiles.length} files in Drive folder: ${folder.name}`);
 
-  // If preferred folder returned 0 files, try searching by SR ID (the preferred URL may point to an empty copy folder)
-  if (allFiles.length === 0 && preferredFolderUrl) {
-    console.log(`Preferred folder is empty — falling back to SR search for ${srId}...`);
-    const searchFolder = await resolveSrDriveFolder(accessToken, srId); // search without preferred URL
-    if (searchFolder && searchFolder.id !== folder.id) {
-      console.log(`Found alternative folder: ${searchFolder.name} (${searchFolder.id})`);
-      allFiles = await collectFromFolder(searchFolder.id);
-      console.log(`Found ${allFiles.length} files in alternative folder`);
-      if (allFiles.length > 0) {
-        folder = searchFolder; // use this folder going forward
+  // If the selected folder is empty, scan all SR-matching folders and pick the first with real files
+  if (allFiles.length === 0) {
+    console.log(`Selected folder is empty — scanning all matching SR folders for ${srId}...`);
+    const escapedSrId = escapeDriveQueryValue(srId);
+    const candidates = await driveSearch(
+      accessToken,
+      `name contains '${escapedSrId}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`
+    );
+
+    const sortedCandidates = candidates
+      .filter((c) => c?.id && c.id !== folder.id)
+      .sort((a, b) => {
+        const scoreDiff = scoreSrFolderCandidate(b?.name || "", srId) - scoreSrFolderCandidate(a?.name || "", srId);
+        if (scoreDiff !== 0) return scoreDiff;
+        const aTs = a?.createdTime ? Date.parse(a.createdTime) : 0;
+        const bTs = b?.createdTime ? Date.parse(b.createdTime) : 0;
+        return bTs - aTs;
+      });
+
+    for (const candidate of sortedCandidates) {
+      const candidateFiles = await collectFromFolder(candidate.id);
+      console.log(`Candidate folder ${candidate.name} (${candidate.id}) has ${candidateFiles.length} files`);
+      if (candidateFiles.length > 0) {
+        folder = candidate;
+        allFiles = candidateFiles;
+        console.log(`Using non-empty alternative folder: ${folder.name} (${folder.id})`);
+        break;
       }
     }
   }

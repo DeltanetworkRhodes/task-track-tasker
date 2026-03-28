@@ -169,67 +169,106 @@ async function downloadDriveFilesForZip(
 ): Promise<{ zipBytes: Uint8Array; fileCount: number } | null> {
   console.log(`Fetching files from Google Drive for SR ${srId}...`);
 
-  const folder = await resolveSrDriveFolder(accessToken, srId, preferredFolderUrl);
-  if (!folder) {
+  const initialFolder = await resolveSrDriveFolder(accessToken, srId, preferredFolderUrl);
+  if (!initialFolder) {
     console.log(`No Drive folder found for SR ${srId}`);
     return null;
   }
 
-  console.log(`Found Drive folder: ${folder.name} (${folder.id})`);
+  const escapedSrId = escapeDriveQueryValue(srId);
+  const searchFolders = await driveSearch(
+    accessToken,
+    `name contains '${escapedSrId}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`
+  );
 
-  const allFiles: { id: string; name: string; zipPath: string }[] = [];
-  const visitedFolderIds = new Set<string>();
+  const candidateMap = new Map<string, any>();
+  candidateMap.set(initialFolder.id, initialFolder);
+  for (const f of searchFolders) {
+    if (f?.id && !candidateMap.has(f.id)) candidateMap.set(f.id, f);
+  }
+
+  const folderCandidates = Array.from(candidateMap.values()).sort((a, b) => {
+    const scoreDiff = scoreSrFolderCandidate(b?.name || "", srId) - scoreSrFolderCandidate(a?.name || "", srId);
+    if (scoreDiff !== 0) return scoreDiff;
+    const aTs = a?.createdTime ? Date.parse(a.createdTime) : 0;
+    const bTs = b?.createdTime ? Date.parse(b.createdTime) : 0;
+    return bTs - aTs;
+  });
+
   const safeName = (customerName || "").replace(/[\/\\:*?"<>|]/g, "_").trim();
   const rootFolder = `SR ${srId}${safeName ? ` ${safeName}` : ""}`;
 
-  const collectFilesRecursive = async (folderId: string, currentPath = ""): Promise<void> => {
-    if (visitedFolderIds.has(folderId)) return;
-    visitedFolderIds.add(folderId);
+  const collectFromFolder = async (folderId: string): Promise<{ id: string; name: string; zipPath: string }[]> => {
+    const allFiles: { id: string; name: string; zipPath: string }[] = [];
+    const visitedFolderIds = new Set<string>();
 
-    const children = await driveSearch(
-      accessToken,
-      `'${folderId}' in parents and trashed = false`
-    );
+    const collectFilesRecursive = async (currentFolderId: string, currentPath = ""): Promise<void> => {
+      if (visitedFolderIds.has(currentFolderId)) return;
+      visitedFolderIds.add(currentFolderId);
 
-    for (const child of children) {
-      const childName = child.name || "unnamed";
-      const childPath = currentPath ? `${currentPath}/${childName}` : childName;
-      const childMimeType = child.mimeType || "";
+      const children = await driveSearch(
+        accessToken,
+        `'${currentFolderId}' in parents and trashed = false`
+      );
 
-      if (childMimeType === "application/vnd.google-apps.folder") {
-        await collectFilesRecursive(child.id, childPath);
-        continue;
-      }
+      for (const child of children) {
+        const childName = child.name || "unnamed";
+        const childPath = currentPath ? `${currentPath}/${childName}` : childName;
+        const childMimeType = child.mimeType || "";
 
-      if (childMimeType === "application/vnd.google-apps.shortcut") {
-        const targetId = child.shortcutDetails?.targetId;
-        const targetMimeType = child.shortcutDetails?.targetMimeType || "";
-        if (!targetId) continue;
+        if (childMimeType === "application/vnd.google-apps.folder") {
+          await collectFilesRecursive(child.id, childPath);
+          continue;
+        }
 
-        if (targetMimeType === "application/vnd.google-apps.folder") {
-          await collectFilesRecursive(targetId, childPath);
+        if (childMimeType === "application/vnd.google-apps.shortcut") {
+          const targetId = child.shortcutDetails?.targetId;
+          const targetMimeType = child.shortcutDetails?.targetMimeType || "";
+          if (!targetId) continue;
+
+          if (targetMimeType === "application/vnd.google-apps.folder") {
+            await collectFilesRecursive(targetId, childPath);
+            continue;
+          }
+
+          const folderPath = currentPath ? `${rootFolder}/${currentPath}` : rootFolder;
+          allFiles.push({ id: targetId, name: childName, zipPath: `${folderPath}/${childName}` });
+          continue;
+        }
+
+        if (childMimeType.startsWith("application/vnd.google-apps")) {
+          console.log(`Skipping non-downloadable Google file: ${childPath} (${childMimeType})`);
           continue;
         }
 
         const folderPath = currentPath ? `${rootFolder}/${currentPath}` : rootFolder;
-        allFiles.push({ id: targetId, name: childName, zipPath: `${folderPath}/${childName}` });
-        continue;
+        allFiles.push({ id: child.id, name: childName, zipPath: `${folderPath}/${childName}` });
       }
+    };
 
-      if (childMimeType.startsWith("application/vnd.google-apps")) {
-        console.log(`Skipping non-downloadable Google file: ${childPath} (${childMimeType})`);
-        continue;
-      }
-
-      const folderPath = currentPath ? `${rootFolder}/${currentPath}` : rootFolder;
-      allFiles.push({ id: child.id, name: childName, zipPath: `${folderPath}/${childName}` });
-    }
+    await collectFilesRecursive(folderId);
+    return allFiles;
   };
 
-  await collectFilesRecursive(folder.id);
+  let folder = folderCandidates[0];
+  let allFiles = await collectFromFolder(folder.id);
+  console.log(`Found ${allFiles.length} files in Drive folder: ${folder.name} (${folder.id})`);
 
   if (allFiles.length === 0) {
-    console.log(`No files found in Drive folder`);
+    for (const candidate of folderCandidates.slice(1)) {
+      const candidateFiles = await collectFromFolder(candidate.id);
+      console.log(`Candidate folder ${candidate.name} (${candidate.id}) has ${candidateFiles.length} files`);
+      if (candidateFiles.length > 0) {
+        folder = candidate;
+        allFiles = candidateFiles;
+        console.log(`Using non-empty alternative folder: ${folder.name} (${folder.id})`);
+        break;
+      }
+    }
+  }
+
+  if (allFiles.length === 0) {
+    console.log(`No files found in any Drive folder for SR ${srId}`);
     return null;
   }
 
