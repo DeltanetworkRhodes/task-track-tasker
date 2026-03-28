@@ -256,16 +256,22 @@ const Surveys = () => {
 
   const SURVEY_STATUSES = ["submitted", "ΠΡΟΔΕΣΜΕΥΣΗ ΥΛΙΚΩΝ", "ΕΛΛΙΠΗΣ ΑΥΤΟΨΙΑ", "ΑΠΑΙΤΕΙΤΑΙ ΕΝΕΡΓΕΙΑ", "BLOCKER", "ΡΑΝΤΕΒΟΥ"];
 
+  // Statuses that mean the SR has moved past the survey phase
+  const CONSTRUCTION_STATUSES = ["construction", "completed", "submitted", "paid", "rejected"];
+
   // Filtering
   const filtered = useMemo(() => {
     return (surveys || []).filter((s) => {
       if (!SURVEY_STATUSES.includes(s.status)) return false;
+      // Exclude SRs that have moved to construction or later
+      const asg = assignmentMap[s.sr_id];
+      if (asg && CONSTRUCTION_STATUSES.includes(asg.status)) return false;
       const matchesSearch = s.sr_id.toLowerCase().includes(search.toLowerCase());
       const matchesArea = areaFilter === "all" || s.area === areaFilter;
       const matchesStatus = statusFilter === "all" || s.status === statusFilter;
       return matchesSearch && matchesArea && matchesStatus;
     });
-  }, [surveys, search, areaFilter, statusFilter]);
+  }, [surveys, search, areaFilter, statusFilter, assignmentMap]);
 
   const groupedFiles = useMemo(() => {
     return (surveyFiles || []).reduce((acc: Record<string, any[]>, f) => {
