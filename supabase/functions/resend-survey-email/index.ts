@@ -570,7 +570,7 @@ Deno.serve(async (req) => {
     await adminClient.from("surveys").update({ email_sent: true }).eq("id", survey_id);
 
     return new Response(
-      JSON.stringify({ success: true, has_download_link: !!zipDownloadUrl }),
+      JSON.stringify({ success: true, has_download_link: true }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err: any) {
