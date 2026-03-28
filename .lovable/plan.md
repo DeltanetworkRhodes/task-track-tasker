@@ -1,43 +1,58 @@
 
 
-## Plan: Εμφάνιση αρχείων Google Drive στο modal Αυτοψιών + Αφαίρεση στήλης Drive
+## Plan: Κατέβασμα αρχείων από Google Drive για ZIP στην επανεπεξεργασία
 
 ### Πρόβλημα
-- Τα SR που δημιουργήθηκαν αυτόματα (trigger) δεν έχουν εγγραφές στον πίνακα `survey_files` — τα αρχεία τους υπάρχουν μόνο στο Google Drive
-- Το modal δείχνει "Δεν βρέθηκαν αρχεία" παρόλο που ο φάκελος Drive υπάρχει
-- Η στήλη "Drive" στον πίνακα πρέπει να αφαιρεθεί
+Όταν κάνεις "Επανεπεξεργασία" σε survey που δημιουργήθηκε από trigger (χωρίς τοπικά αρχεία στο `survey_files`), η function δεν φτιάχνει ZIP γιατί το `downloadedFiles` είναι κενό. Αντί να κατεβάζει τα αρχεία από το Google Drive folder, στέλνει απλά link στο Drive.
 
-### Αλλαγές στο `src/pages/Surveys.tsx`
+### Λύση
+Όταν δεν υπάρχουν τοπικά αρχεία (`hasLocalFiles === false`) αλλά υπάρχει Drive folder, η function θα:
+1. Βρίσκει τον φάκελο SR στο Google Drive
+2. Κατεβάζει όλα τα αρχεία (φωτογραφίες, PDFs) από τους υποφακέλους
+3. Τα συμπιέζει σε ZIP
+4. Ανεβάζει το ZIP στο Supabase Storage
+5. Στέλνει email με signed download URL
 
-**1. Αφαίρεση στήλης Drive από τον πίνακα**
-- Αφαίρεση του `<th>Drive</th>` header (γραμμή 720)
-- Αφαίρεση του `<td>` με το FolderOpen icon (γραμμές 754-762)
-- Ανακατανομή των widths στις υπόλοιπες στήλες
+### Αλλαγές
 
-**2. Fetch αρχείων από Google Drive όταν δεν υπάρχουν survey_files**
-- Προσθήκη νέου `useQuery` που καλεί το edge function `google-drive-files` με action `sr_folder` όταν:
-  - Υπάρχει `selectedSurvey`
-  - Δεν υπάρχουν `surveyFiles` (ή είναι κενά)
-  - Υπάρχει `drive_folder_url` στο αντίστοιχο assignment
-- Αυτό θα επιστρέψει τη λίστα αρχείων και υποφακέλων από το Drive
+**Αρχείο: `supabase/functions/process-survey-completion/index.ts`**
 
-**3. Εμφάνιση αρχείων Drive στο modal**
-- Στο section αρχείων (γραμμές 1000-1026), αν δεν υπάρχουν `survey_files` αλλά υπάρχουν Drive files, εμφάνιση αυτών ομαδοποιημένα ανά υποφάκελο (π.χ. ΣΚΑΜΑ, BEP, ΟΔΕΥΣΗ)
-- Thumbnails για εικόνες, icons για PDFs
-- Links που ανοίγουν απευθείας στο Google Drive
+1. Νέα helper function `downloadDriveFiles()`:
+   - Δέχεται `accessToken` και `sr_id`
+   - Ψάχνει τον SR folder στο Shared Drive (`name contains '{sr_id}'`)
+   - Λίστα υποφακέλων (ΕΓΓΡΑΦΑ, ΠΡΟΜΕΛΕΤΗ κλπ)
+   - Λίστα αρχείων σε κάθε υποφάκελο
+   - Κατεβάζει κάθε αρχείο μέσω `https://www.googleapis.com/drive/v3/files/{id}?alt=media`
+   - Επιστρέφει array `{ name, data, folderName }`
+
+2. Στο main flow (μετά το block `else` στη γραμμή ~470), αν `!hasLocalFiles && accessToken && hasDriveFolder`:
+   - Καλεί `downloadDriveFiles()`
+   - Γεμίζει το `downloadedFiles` array με τα Drive αρχεία
+   - Η υπόλοιπη λογική (ZIP build, upload, email) τρέχει κανονικά
+
+3. Ίδια αλλαγή στο `resend-survey-email/index.ts`:
+   - Αντί να δείχνει μόνο link στο Drive, κατεβάζει τα αρχεία, φτιάχνει ZIP, ανεβάζει στο Storage, στέλνει signed URL
 
 ### Technical Details
 
 ```text
-Modal opens → selectedSurvey set
-  ├─ Fetch survey_files (existing logic)
-  ├─ If survey_files empty AND assignment has drive_folder_url:
-  │   └─ Call google-drive-files edge function (action: 'sr_folder', sr_id)
-  │       └─ Returns subfolders + files with thumbnails/webViewLinks
-  └─ Render whichever source has files
+Flow (trigger-created survey reprocessing):
+  hasLocalFiles = false
+  hasDriveFolder = true
+  accessToken = valid
+  │
+  ├─ Search Drive: name contains '{sr_id}' (shared drive)
+  ├─ List subfolders (ΕΓΓΡΑΦΑ, ΠΡΟΜΕΛΕΤΗ, etc.)
+  ├─ List files in each subfolder
+  ├─ Download each file via Drive API (alt=media)
+  │   └─ Serial downloads (2 at a time) to manage memory
+  ├─ Build ZIP with fflate (same as local files path)
+  ├─ Upload ZIP to Supabase Storage
+  ├─ Create signed URL (7 days)
+  └─ Send email with ZIP download link
 ```
 
-- Το edge function `google-drive-files` ήδη υποστηρίζει action `sr_folder` που επιστρέφει φακέλους και αρχεία
-- Τα Google Drive thumbnails είναι διαθέσιμα μέσω `thumbnailLink` στο API response
-- Fallback: αν αποτύχει το Drive fetch, εμφάνιση μόνο του link "Φάκελος SR"
+- Τα αρχεία κατεβαίνουν σειριακά (2 τη φορά) για αποφυγή memory limits
+- Χρησιμοποιείται η ίδια δομή ZIP folders (SR name / subfolder / filename)
+- Η function ήδη έχει τον `getAccessToken` και Drive search helpers
 
