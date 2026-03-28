@@ -124,7 +124,7 @@ const Surveys = () => {
 
   const assignmentMap = useMemo(() => {
     return (dbAssignments || []).reduce((acc: Record<string, any>, a) => {
-      acc[a.sr_id] = a;
+      acc[normalizeSrId(a.sr_id)] = a;
       return acc;
     }, {});
   }, [dbAssignments]);
