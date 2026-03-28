@@ -954,7 +954,27 @@ const Surveys = () => {
                         <User className="h-4 w-4 shrink-0" />
                         <span>{profileMap[selectedSurvey.technician_id]?.full_name || "—"}</span>
                       </div>
-                    </div>
+                      {(() => {
+                        const asg = assignmentMap[selectedSurvey.sr_id];
+                        if (!asg) return null;
+                        const links = [
+                          { url: asg.drive_folder_url, label: "Φάκελος SR" },
+                          { url: asg.drive_egrafa_url, label: "ΕΓΓΡΑΦΑ" },
+                          { url: asg.drive_promeleti_url, label: "ΠΡΟΜΕΛΕΤΗ" },
+                        ].filter(l => l.url);
+                        if (links.length === 0) return null;
+                        return (
+                          <div className="col-span-2 flex items-center gap-2 flex-wrap">
+                            <FolderOpen className="h-4 w-4 text-muted-foreground shrink-0" />
+                            {links.map(l => (
+                              <a key={l.label} href={l.url} target="_blank" rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 text-xs text-primary hover:underline">
+                                {l.label} <ExternalLink className="h-3 w-3" />
+                              </a>
+                            ))}
+                          </div>
+                        );
+                      })()}
                   </Card>
 
                   {/* Comments */}
