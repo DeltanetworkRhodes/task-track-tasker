@@ -41,6 +41,8 @@ const statusConfig: Record<string, { label: string; color: string; icon: typeof 
   "ΡΑΝΤΕΒΟΥ": { label: "Ραντεβού", color: "bg-purple-500/10 text-purple-600 border-purple-500/20", icon: CalendarPlus, chartColor: "hsl(270 60% 55%)" },
 };
 
+const normalizeSrId = (srId: string | null | undefined) => (srId || "").trim().toLowerCase();
+
 const Surveys = () => {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
@@ -122,7 +124,7 @@ const Surveys = () => {
 
   const assignmentMap = useMemo(() => {
     return (dbAssignments || []).reduce((acc: Record<string, any>, a) => {
-      acc[a.sr_id] = a;
+      acc[normalizeSrId(a.sr_id)] = a;
       return acc;
     }, {});
   }, [dbAssignments]);
@@ -264,7 +266,7 @@ const Surveys = () => {
     return (surveys || []).filter((s) => {
       if (!SURVEY_STATUSES.includes(s.status)) return false;
       // Exclude SRs that have moved to construction or later
-      const asg = assignmentMap[s.sr_id];
+      const asg = assignmentMap[normalizeSrId(s.sr_id)];
       if (asg && CONSTRUCTION_STATUSES.includes(asg.status)) return false;
       const matchesSearch = s.sr_id.toLowerCase().includes(search.toLowerCase());
       const matchesArea = areaFilter === "all" || s.area === areaFilter;
@@ -979,7 +981,7 @@ const Surveys = () => {
                         <span>{profileMap[selectedSurvey.technician_id]?.full_name || "—"}</span>
                       </div>
                       {(() => {
-                        const asg = assignmentMap[selectedSurvey.sr_id];
+                        const asg = assignmentMap[normalizeSrId(selectedSurvey.sr_id)];
                         if (!asg) return null;
                         const links = [
                           { url: asg.drive_folder_url, label: "Φάκελος SR" },
