@@ -788,13 +788,6 @@ const Surveys = () => {
                           <td className="px-3 py-2.5">
                             <Badge variant="outline" className={`text-[10px] whitespace-nowrap ${sc.color}`}>{sc.label}</Badge>
                           </td>
-                          <td className="px-3 py-2.5 truncate">
-                            {s.comments ? (
-                              <span className="text-xs text-muted-foreground">{s.comments}</span>
-                            ) : (
-                              <span className="text-xs text-muted-foreground/40">—</span>
-                            )}
-                          </td>
                           <td className="px-3 py-2.5 text-muted-foreground text-xs font-bold whitespace-nowrap">
                             {new Date(s.created_at).toLocaleDateString("el-GR")}
                           </td>
