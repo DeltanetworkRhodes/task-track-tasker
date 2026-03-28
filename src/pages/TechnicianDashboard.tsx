@@ -28,7 +28,7 @@ const TechnicianDashboard = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
 
-  const hiddenStatuses = ["cancelled", "completed"];
+  const hiddenStatuses = ["cancelled", "completed", "submitted", "paid", "rejected"];
 
   const { data: profile } = useQuery({
     queryKey: ["profile", user?.id],
