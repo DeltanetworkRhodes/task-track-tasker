@@ -89,18 +89,7 @@ const Surveys = () => {
     enabled: !!selectedSurvey,
   });
 
-  // Fallback: fetch files from Google Drive when survey_files is empty
-  const { data: driveFilesData, isLoading: driveFilesLoading } = useQuery({
-    queryKey: ["drive-files", selectedSurvey?.sr_id],
-    queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke("google-drive-files", {
-        body: { action: "sr_folder", sr_id: selectedSurvey!.sr_id },
-      });
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!selectedSurvey && (!surveyFiles || surveyFiles.length === 0) && !!assignmentMap[selectedSurvey?.sr_id || ""]?.drive_folder_url,
-  });
+
 
   const { data: profiles } = useQuery({
     queryKey: ["all-profiles"],
