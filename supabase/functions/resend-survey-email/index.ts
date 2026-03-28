@@ -442,7 +442,12 @@ Deno.serve(async (req) => {
       }
     }
 
-    const showDriveFolderLink = !zipDownloadUrl && !!driveFolderUrl;
+    if (!zipDownloadUrl) {
+      console.error(`Resend aborted for SR ${sr_id}: ZIP link not available`);
+      return new Response(JSON.stringify({ error: "ZIP_NOT_AVAILABLE", details: "Δεν βρέθηκε ZIP για αποστολή email." }), {
+        status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     const isComplete = survey.status === "ΠΡΟΔΕΣΜΕΥΣΗ ΥΛΙΚΩΝ";
     const statusLabel = isComplete ? "ΠΡΟΔΕΣΜΕΥΣΗ ΥΛΙΚΩΝ" : "ΕΛΛΙΠΗΣ ΑΥΤΟΨΙΑ";
