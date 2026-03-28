@@ -600,16 +600,20 @@ Deno.serve(async (req) => {
       }
     }
 
-    // 4. Update status based on completeness
-    const newSurveyStatus = isComplete ? "ΠΡΟΔΕΣΜΕΥΣΗ ΥΛΙΚΩΝ" : "ΕΛΛΙΠΗΣ ΑΥΤΟΨΙΑ";
-    const newAssignmentStatus = isComplete ? "pre_committed" : "pending";
-    
-    await Promise.all([
-      adminClient.from("assignments").update({ status: newAssignmentStatus }).eq("sr_id", sr_id),
-      adminClient.from("surveys").update({ status: newSurveyStatus }).eq("id", survey_id),
-    ]);
-    
-    console.log(`Assignment ${sr_id} status → ${newAssignmentStatus}, Survey → ${newSurveyStatus}`);
+    // 4. Update status based on completeness — but don't downgrade trigger-created surveys
+    if (hasLocalFiles || !hasDriveFolder) {
+      const newSurveyStatus = isComplete ? "ΠΡΟΔΕΣΜΕΥΣΗ ΥΛΙΚΩΝ" : "ΕΛΛΙΠΗΣ ΑΥΤΟΨΙΑ";
+      const newAssignmentStatus = isComplete ? "pre_committed" : "pending";
+      
+      await Promise.all([
+        adminClient.from("assignments").update({ status: newAssignmentStatus }).eq("sr_id", sr_id),
+        adminClient.from("surveys").update({ status: newSurveyStatus }).eq("id", survey_id),
+      ]);
+      
+      console.log(`Assignment ${sr_id} status → ${newAssignmentStatus}, Survey → ${newSurveyStatus}`);
+    } else {
+      console.log(`Skipping status update for trigger-created survey with existing Drive folder`);
+    }
 
     // 5. Build ZIP and upload to Storage, then create signed download URL
     let zipBytes: Uint8Array | null = null;
