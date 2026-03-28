@@ -755,21 +755,24 @@ const Surveys = () => {
                 <table className="w-full text-sm table-fixed">
                   <thead>
                     <tr className="bg-muted/50 text-muted-foreground text-[11px] uppercase tracking-wider">
-                      <th className="text-left px-2 py-2.5 font-medium w-[11%]">SR ID</th>
-                      <th className="text-left px-2 py-2.5 font-medium w-[9%]">Περιοχή</th>
-                      <th className="text-left px-2 py-2.5 font-medium w-[14%]">Τεχνικός</th>
-                      <th className="text-left px-2 py-2.5 font-medium w-[13%]">Κατάσταση</th>
-                      <th className="text-left px-2 py-2.5 font-medium w-[19%]">Σχόλια</th>
-                      <th className="text-left px-2 py-2.5 font-medium w-[11%]">Ημερομηνία</th>
-                      <th className="text-center px-2 py-2.5 font-medium w-[5%]">Email</th>
-                      <th className="text-center px-2 py-2.5 font-medium w-[5%]">Ενέργεια</th>
-                      <th className="text-center px-1 py-2.5 w-[4%]"></th>
+                      <th className="text-left px-2 py-2.5 font-medium w-[10%]">SR ID</th>
+                      <th className="text-left px-2 py-2.5 font-medium w-[7%]">Περιοχή</th>
+                      <th className="text-left px-2 py-2.5 font-medium w-[14%]">Πελάτης</th>
+                      <th className="text-left px-2 py-2.5 font-medium w-[14%]">Διεύθυνση</th>
+                      <th className="text-left px-2 py-2.5 font-medium w-[10%]">Τεχνικός</th>
+                      <th className="text-left px-2 py-2.5 font-medium w-[11%]">Κατάσταση</th>
+                      <th className="text-left px-2 py-2.5 font-medium w-[12%]">Σχόλια</th>
+                      <th className="text-left px-2 py-2.5 font-medium w-[8%]">Ημερομηνία</th>
+                      <th className="text-center px-2 py-2.5 font-medium w-[4%]">Email</th>
+                      <th className="text-center px-2 py-2.5 font-medium w-[4%]">Ενέργεια</th>
+                      <th className="text-center px-1 py-2.5 w-[3%]"></th>
                     </tr>
                   </thead>
                   <tbody>
                     {filtered.map((s) => {
                       const tech = profileMap[s.technician_id];
                       const sc = statusConfig[s.status] || statusConfig["submitted"];
+                      const asg = assignmentMap[normalizeSrId(s.sr_id)];
                       return (
                         <tr
                           key={s.id}
@@ -780,6 +783,8 @@ const Surveys = () => {
                           <td className="px-2 py-2.5">
                             <Badge variant="outline" className="text-[10px]">{s.area}</Badge>
                           </td>
+                          <td className="px-2 py-2.5 text-xs truncate">{asg?.customer_name || "—"}</td>
+                          <td className="px-2 py-2.5 text-xs text-muted-foreground truncate">{asg?.address || "—"}</td>
                           <td className="px-2 py-2.5 text-muted-foreground text-xs truncate">{tech?.full_name || "—"}</td>
                           <td className="px-2 py-2.5">
                             <Badge variant="outline" className={`text-[10px] ${sc.color}`}>{sc.label}</Badge>
