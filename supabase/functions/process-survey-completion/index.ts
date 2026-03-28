@@ -432,9 +432,10 @@ Deno.serve(async (req) => {
 
     const hasLocalFiles = surveyFiles && surveyFiles.length > 0;
 
-    const presentTypes = [...new Set(surveyFiles.map((f: any) => f.file_type))];
+    const presentTypes = hasLocalFiles ? [...new Set(surveyFiles.map((f: any) => f.file_type))] : [];
     const missingTypes = REQUIRED_FILE_TYPES.filter((t) => !presentTypes.includes(t));
-    const isComplete = missingTypes.length === 0;
+    // If no local files, check if Drive folder already exists (trigger-created surveys)
+    const isComplete = hasLocalFiles ? missingTypes.length === 0 : false;
 
     console.log(`File check: present=${presentTypes.join(",")}, missing=${missingTypes.join(",")}, complete=${isComplete}`);
 
