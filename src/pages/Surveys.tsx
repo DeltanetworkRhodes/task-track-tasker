@@ -55,6 +55,9 @@ const Surveys = () => {
   const [deleting, setDeleting] = useState(false);
   const [reprocessing, setReprocessing] = useState(false);
   const [resendingEmail, setResendingEmail] = useState(false);
+  const [editingComment, setEditingComment] = useState(false);
+  const [commentDraft, setCommentDraft] = useState("");
+  const [savingComment, setSavingComment] = useState(false);
 
   const { data: surveys, isLoading } = useQuery({
     queryKey: ["admin-surveys"],
@@ -755,14 +758,13 @@ const Surveys = () => {
                 <table className="w-full text-sm" style={{ minWidth: '1100px' }}>
                   <thead>
                     <tr className="bg-muted/50 text-muted-foreground text-[11px] uppercase tracking-wider">
-                      <th className="text-left px-3 py-2.5 font-medium" style={{ width: '11%' }}>SR ID</th>
-                      <th className="text-left px-3 py-2.5 font-medium" style={{ width: '7%' }}>Περιοχή</th>
-                      <th className="text-left px-3 py-2.5 font-medium" style={{ width: '13%' }}>Πελάτης</th>
-                      <th className="text-left px-3 py-2.5 font-medium" style={{ width: '15%' }}>Διεύθυνση</th>
-                      <th className="text-left px-3 py-2.5 font-medium" style={{ width: '11%' }}>Τεχνικός</th>
-                      <th className="text-left px-3 py-2.5 font-medium" style={{ width: '13%' }}>Κατάσταση</th>
-                      <th className="text-left px-3 py-2.5 font-medium" style={{ width: '14%' }}>Σχόλια</th>
-                      <th className="text-left px-3 py-2.5 font-medium" style={{ width: '8%' }}>Ημερομηνία</th>
+                      <th className="text-left px-3 py-2.5 font-medium" style={{ width: '13%' }}>SR ID</th>
+                      <th className="text-left px-3 py-2.5 font-medium" style={{ width: '8%' }}>Περιοχή</th>
+                      <th className="text-left px-3 py-2.5 font-medium" style={{ width: '15%' }}>Πελάτης</th>
+                      <th className="text-left px-3 py-2.5 font-medium" style={{ width: '18%' }}>Διεύθυνση</th>
+                      <th className="text-left px-3 py-2.5 font-medium" style={{ width: '13%' }}>Τεχνικός</th>
+                      <th className="text-left px-3 py-2.5 font-medium" style={{ width: '14%' }}>Κατάσταση</th>
+                      <th className="text-left px-3 py-2.5 font-medium" style={{ width: '9%' }}>Ημερομηνία</th>
                       <th className="text-center px-2 py-2.5 font-medium" style={{ width: '4%' }}>Email</th>
                       <th className="text-center px-2 py-2.5 font-medium" style={{ width: '4%' }}></th>
                       <th className="text-center px-1 py-2.5" style={{ width: '3%' }}></th>
@@ -788,13 +790,6 @@ const Surveys = () => {
                           <td className="px-3 py-2.5 text-muted-foreground text-xs whitespace-nowrap">{tech?.full_name || "—"}</td>
                           <td className="px-3 py-2.5">
                             <Badge variant="outline" className={`text-[10px] whitespace-nowrap ${sc.color}`}>{sc.label}</Badge>
-                          </td>
-                          <td className="px-3 py-2.5 truncate">
-                            {s.comments ? (
-                              <span className="text-xs text-muted-foreground">{s.comments}</span>
-                            ) : (
-                              <span className="text-xs text-muted-foreground/40">—</span>
-                            )}
                           </td>
                           <td className="px-3 py-2.5 text-muted-foreground text-xs font-bold whitespace-nowrap">
                             {new Date(s.created_at).toLocaleDateString("el-GR")}
@@ -1028,14 +1023,77 @@ const Surveys = () => {
                   </Card>
 
                   {/* Comments */}
-                  {selectedSurvey.comments && (
-                    <Card className="p-4">
-                      <div className="flex items-start gap-2 text-sm">
-                        <MessageSquare className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
-                        <p className="text-foreground">{selectedSurvey.comments}</p>
+                  <Card className="p-4 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                        <MessageSquare className="h-3.5 w-3.5" />
+                        Σχόλια
+                      </p>
+                      {!editingComment && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-6 text-[10px] px-2"
+                          onClick={() => {
+                            setEditingComment(true);
+                            setCommentDraft(selectedSurvey.comments || "");
+                          }}
+                        >
+                          Επεξεργασία
+                        </Button>
+                      )}
+                    </div>
+                    {editingComment ? (
+                      <div className="space-y-2">
+                        <textarea
+                          className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm min-h-[80px] focus:outline-none focus:ring-2 focus:ring-primary/30"
+                          value={commentDraft}
+                          onChange={(e) => setCommentDraft(e.target.value)}
+                          placeholder="Γράψτε σχόλιο..."
+                          autoFocus
+                        />
+                        <div className="flex gap-2 justify-end">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 text-xs"
+                            onClick={() => setEditingComment(false)}
+                          >
+                            Ακύρωση
+                          </Button>
+                          <Button
+                            size="sm"
+                            className="h-7 text-xs"
+                            disabled={savingComment}
+                            onClick={async () => {
+                              setSavingComment(true);
+                              try {
+                                const { error } = await supabase
+                                  .from("surveys")
+                                  .update({ comments: commentDraft })
+                                  .eq("id", selectedSurvey.id);
+                                if (error) throw error;
+                                setSelectedSurvey({ ...selectedSurvey, comments: commentDraft });
+                                setEditingComment(false);
+                                toast.success("Σχόλιο αποθηκεύτηκε");
+                                queryClient.invalidateQueries({ queryKey: ["admin-surveys"] });
+                              } catch (err: any) {
+                                toast.error("Σφάλμα: " + (err.message || "Δοκιμάστε ξανά"));
+                              } finally {
+                                setSavingComment(false);
+                              }
+                            }}
+                          >
+                            {savingComment ? "Αποθήκευση..." : "Αποθήκευση"}
+                          </Button>
+                        </div>
                       </div>
-                    </Card>
-                  )}
+                    ) : (
+                      <p className="text-sm text-foreground">
+                        {selectedSurvey.comments || <span className="text-muted-foreground/50 italic">Χωρίς σχόλια</span>}
+                      </p>
+                    )}
+                  </Card>
 
                   {/* Files */}
                   {Object.entries(groupedFiles).map(([type, files]) => {
