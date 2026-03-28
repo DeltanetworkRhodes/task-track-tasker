@@ -261,18 +261,24 @@ Deno.serve(async (req) => {
               new Date(b.createdTime).getTime() - new Date(a.createdTime).getTime()
           )[0];
 
-    // Step B: Find or create category subfolder
-    const subFolders = await driveSearch(
-      accessToken,
-      `name = '${category}' and mimeType = 'application/vnd.google-apps.folder' and '${srFolder.id}' in parents and trashed = false`
-    );
+    // Step B: Find category subfolder — search across ALL SR folders first
+    let categoryFolderId: string | null = null;
 
-    let categoryFolderId: string;
-    if (subFolders.length > 0) {
-      categoryFolderId = subFolders[0].id;
-    } else {
-      // Step C: Create it
+    // Check all SR folders for existing category subfolder (handles duplicates)
+    for (const folder of srFolders) {
+      const found = await findSubfolder(accessToken, folder.id, category);
+      if (found) {
+        categoryFolderId = found;
+        console.log(`Found existing '${category}' folder (${found}) in SR folder ${folder.name}`);
+        break;
+      }
+    }
+
+    // Only create if truly not found anywhere
+    if (!categoryFolderId) {
       categoryFolderId = await createDriveFolder(accessToken, category, srFolder.id);
+      console.log(`Created new '${category}' folder (${categoryFolderId}) in SR folder ${srFolder.name}`);
+    }
     }
 
     // Step D: Download the file from Supabase Storage
