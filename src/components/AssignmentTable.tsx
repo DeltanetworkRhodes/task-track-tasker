@@ -550,6 +550,23 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
         } catch (driveFetchErr) {
           console.error("Drive auto-fetch error:", driveFetchErr);
         }
+
+        // Move SR folder to ΠΡΟΔΕΣΜΕΥΣΗ ΓΙΑ ΚΑΤΑΣΚΕΥΗ in Drive
+        supabase.functions.invoke("move-sr-folder", {
+          body: { sr_id: assignment.sr_id || assignment.srId, target_folder: "ΠΡΟΔΕΣΜΕΥΣΗ ΓΙΑ ΚΑΤΑΣΚΕΥΗ", organization_id: assignment.organization_id },
+        }).catch(console.error);
+      }
+
+      if (newStatus === "construction" && assignment) {
+        supabase.functions.invoke("move-sr-folder", {
+          body: { sr_id: assignment.sr_id || assignment.srId, target_folder: "ΣΕ ΚΑΤΑΣΚΕΥΗ", organization_id: assignment.organization_id },
+        }).catch(console.error);
+      }
+
+      if (newStatus === "submitted" && assignment) {
+        supabase.functions.invoke("move-sr-folder", {
+          body: { sr_id: assignment.sr_id || assignment.srId, target_folder: "ΠΑΡΑΔΩΤΕΑ", organization_id: assignment.organization_id },
+        }).catch(console.error);
       }
 
       if (newStatus === "cancelled" && assignment) {
