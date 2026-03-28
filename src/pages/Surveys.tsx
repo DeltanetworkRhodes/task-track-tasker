@@ -975,6 +975,7 @@ const Surveys = () => {
                           </div>
                         );
                       })()}
+                    </div>
                   </Card>
 
                   {/* Comments */}
