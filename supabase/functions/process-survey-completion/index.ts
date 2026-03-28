@@ -954,7 +954,7 @@ Deno.serve(async (req) => {
     downloadedFiles.length = 0;
     inspectionPdfBytes = null;
 
-    // 6. Send email with ZIP attachment (or fallback to Drive link if too large)
+    // 6. Send email only when ZIP link exists (never fallback to Drive link)
     let emailSent = false;
     const resendApiKey = Deno.env.get("RESEND_API_KEY");
 
@@ -973,7 +973,9 @@ Deno.serve(async (req) => {
     const recipients = toEmails.split(",").map((e: string) => e.trim()).filter(Boolean);
     const ccRecipients = ccEmails.split(",").map((e: string) => e.trim()).filter(Boolean);
 
-    if (resendApiKey && recipients.length > 0) {
+    if (!zipDownloadUrl) {
+      console.error(`Skipping email for SR ${sr_id}: ZIP link not available`);
+    } else if (resendApiKey && recipients.length > 0) {
       try {
         const statusLabel = isComplete ? "ΠΡΟΔΕΣΜΕΥΣΗ ΥΛΙΚΩΝ" : "ΕΛΛΙΠΗΣ ΑΥΤΟΨΙΑ";
         const headerIcon = isComplete ? "📋" : "⚠️";
