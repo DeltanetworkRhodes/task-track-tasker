@@ -507,8 +507,29 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
 
       const assignment = assignments.find((a: any) => a.id === assignmentId) as any;
 
+      // Auto-create survey record on pre_committed (fallback for trigger)
       if (newStatus === "pre_committed" && assignment) {
         const srId = assignment.sr_id || assignment.srId;
+        try {
+          const { data: existingSurvey } = await supabase
+            .from("surveys")
+            .select("id")
+            .eq("sr_id", srId)
+            .limit(1);
+          if (!existingSurvey || existingSurvey.length === 0) {
+            const techId = assignment.technician_id || assignment.technicianId;
+            await supabase.from("surveys").insert({
+              sr_id: srId,
+              area: assignment.area,
+              technician_id: techId || user?.id,
+              organization_id: orgId || null,
+              status: "ΠΡΟΔΕΣΜΕΥΣΗ ΥΛΙΚΩΝ",
+              comments: "",
+            } as any);
+          }
+        } catch (surveyErr) {
+          console.error("Fallback survey creation error:", surveyErr);
+        }
         try {
           const { data: driveResult, error: driveErr } = await supabase.functions.invoke("google-drive-files", {
             body: { action: "sr_folder", sr_id: srId },
