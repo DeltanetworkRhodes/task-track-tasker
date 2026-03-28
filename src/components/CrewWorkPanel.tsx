@@ -176,6 +176,7 @@ const CrewCategoryForm = ({ crewAssignment, assignment }: { crewAssignment: any;
         const catName = (category.name || "").replace(/[^a-zA-Z0-9_-]/g, "_");
 
         for (const [photoCat, files] of Object.entries(photos)) {
+          // Upload first photo and AWAIT Drive folder creation to prevent duplicates
           for (let i = 0; i < files.length; i++) {
             const photo = files[i];
             const ext = photo.name.split(".").pop() || "jpg";
@@ -189,8 +190,12 @@ const CrewCategoryForm = ({ crewAssignment, assignment }: { crewAssignment: any;
               continue;
             }
 
-            // Mirror to Google Drive (fire-and-forget)
-            uploadPhotoDrive(assignment?.sr_id || "", photoCat, storagePath);
+            // Mirror to Google Drive — await first upload per category to ensure folder exists
+            if (i === 0) {
+              await uploadPhotoDrive(assignment?.sr_id || "", photoCat, storagePath);
+            } else {
+              uploadPhotoDrive(assignment?.sr_id || "", photoCat, storagePath);
+            }
 
             await supabase.from("sr_crew_photos" as any).insert({
               crew_assignment_id: crewAssignment.id,
