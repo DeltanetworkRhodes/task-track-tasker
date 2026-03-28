@@ -751,7 +751,15 @@ const Surveys = () => {
                           <td className="px-2 py-2.5 text-muted-foreground text-xs font-bold">
                             {new Date(s.created_at).toLocaleDateString("el-GR")}
                           </td>
-                          <td className="px-2 py-2.5 text-center">
+                          <td className="px-2 py-2.5 text-center" onClick={(e) => e.stopPropagation()}>
+                            {assignmentMap[s.sr_id]?.drive_folder_url ? (
+                              <a href={assignmentMap[s.sr_id].drive_folder_url} target="_blank" rel="noopener noreferrer"
+                                className="inline-flex items-center justify-center text-primary hover:text-primary/80">
+                                <FolderOpen className="h-3.5 w-3.5" />
+                              </a>
+                            ) : (
+                              <span className="text-muted-foreground/30">—</span>
+                            )}
                             {s.email_sent ? (
                               <Mail className="h-3.5 w-3.5 text-green-600 mx-auto" />
                             ) : (
