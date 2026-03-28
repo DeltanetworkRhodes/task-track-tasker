@@ -38,7 +38,7 @@ const SuspendedScreen = () => {
   );
 };
 
-const AppLayout = ({ children, fullWidth = false }: { children: ReactNode; fullWidth?: boolean }) => {
+const AppLayout = ({ children }: { children: ReactNode }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { online, pendingCount, pendingSurveyCount, pendingConstructionCount, syncAll } = useOfflineSync();
   useLocationTracking();
