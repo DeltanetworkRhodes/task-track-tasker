@@ -91,7 +91,7 @@ const TechnicianKPIs = () => {
 
   return (
     <AppLayout>
-      <div className="space-y-6 max-w-[1400px] mx-auto">
+      <div className="space-y-6 w-full">
         <div>
           <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight flex items-center gap-2">
             <Users className="h-6 w-6 text-primary" />
