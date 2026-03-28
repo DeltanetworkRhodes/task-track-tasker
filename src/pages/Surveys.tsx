@@ -41,6 +41,8 @@ const statusConfig: Record<string, { label: string; color: string; icon: typeof 
   "ΡΑΝΤΕΒΟΥ": { label: "Ραντεβού", color: "bg-purple-500/10 text-purple-600 border-purple-500/20", icon: CalendarPlus, chartColor: "hsl(270 60% 55%)" },
 };
 
+const normalizeSrId = (srId: string | null | undefined) => (srId || "").trim().toLowerCase();
+
 const Surveys = () => {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
