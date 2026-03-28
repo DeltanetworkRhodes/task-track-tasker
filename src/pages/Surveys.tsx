@@ -19,7 +19,7 @@ import {
   Eye, Calendar, MapPin, User, MessageSquare, FileImage, Image, FileText,
   Download, CheckCircle, AlertTriangle, Clock, Mail, Send, Settings, XCircle,
   CalendarPlus, Bell, Search, Filter, ClipboardCheck, FileCheck, FileWarning, ShieldAlert, Trash2,
-  RefreshCw, Loader2
+  RefreshCw, Loader2, FolderOpen, ExternalLink
 } from "lucide-react";
 
 const fileTypeLabels: Record<string, string> = {
@@ -117,6 +117,13 @@ const Surveys = () => {
       return acc;
     }, {});
   }, [profiles]);
+
+  const assignmentMap = useMemo(() => {
+    return (dbAssignments || []).reduce((acc: Record<string, any>, a) => {
+      acc[a.sr_id] = a;
+      return acc;
+    }, {});
+  }, [dbAssignments]);
 
   // Signed URLs are now generated in the surveyFiles query
 
@@ -708,9 +715,10 @@ const Surveys = () => {
                       <th className="text-left px-2 py-2.5 font-medium w-[8%]">Περιοχή</th>
                       <th className="text-left px-2 py-2.5 font-medium w-[13%]">Τεχνικός</th>
                       <th className="text-left px-2 py-2.5 font-medium w-[13%]">Κατάσταση</th>
-                      <th className="text-left px-2 py-2.5 font-medium w-[20%]">Σχόλια</th>
+                      <th className="text-left px-2 py-2.5 font-medium w-[17%]">Σχόλια</th>
                       <th className="text-left px-2 py-2.5 font-medium w-[10%]">Ημερομηνία</th>
-                      <th className="text-center px-2 py-2.5 font-medium w-[6%]">Email</th>
+                      <th className="text-center px-2 py-2.5 font-medium w-[4%]">Drive</th>
+                      <th className="text-center px-2 py-2.5 font-medium w-[5%]">Email</th>
                       <th className="text-center px-2 py-2.5 font-medium w-[5%]">Ενέργεια</th>
                       <th className="text-center px-1 py-2.5 w-[4%]"></th>
                     </tr>
@@ -743,7 +751,15 @@ const Surveys = () => {
                           <td className="px-2 py-2.5 text-muted-foreground text-xs font-bold">
                             {new Date(s.created_at).toLocaleDateString("el-GR")}
                           </td>
-                          <td className="px-2 py-2.5 text-center">
+                          <td className="px-2 py-2.5 text-center" onClick={(e) => e.stopPropagation()}>
+                            {assignmentMap[s.sr_id]?.drive_folder_url ? (
+                              <a href={assignmentMap[s.sr_id].drive_folder_url} target="_blank" rel="noopener noreferrer"
+                                className="inline-flex items-center justify-center text-primary hover:text-primary/80">
+                                <FolderOpen className="h-3.5 w-3.5" />
+                              </a>
+                            ) : (
+                              <span className="text-muted-foreground/30">—</span>
+                            )}
                             {s.email_sent ? (
                               <Mail className="h-3.5 w-3.5 text-green-600 mx-auto" />
                             ) : (
@@ -947,6 +963,27 @@ const Surveys = () => {
                         <User className="h-4 w-4 shrink-0" />
                         <span>{profileMap[selectedSurvey.technician_id]?.full_name || "—"}</span>
                       </div>
+                      {(() => {
+                        const asg = assignmentMap[selectedSurvey.sr_id];
+                        if (!asg) return null;
+                        const links = [
+                          { url: asg.drive_folder_url, label: "Φάκελος SR" },
+                          { url: asg.drive_egrafa_url, label: "ΕΓΓΡΑΦΑ" },
+                          { url: asg.drive_promeleti_url, label: "ΠΡΟΜΕΛΕΤΗ" },
+                        ].filter(l => l.url);
+                        if (links.length === 0) return null;
+                        return (
+                          <div className="col-span-2 flex items-center gap-2 flex-wrap">
+                            <FolderOpen className="h-4 w-4 text-muted-foreground shrink-0" />
+                            {links.map(l => (
+                              <a key={l.label} href={l.url} target="_blank" rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 text-xs text-primary hover:underline">
+                                {l.label} <ExternalLink className="h-3 w-3" />
+                              </a>
+                            ))}
+                          </div>
+                        );
+                      })()}
                     </div>
                   </Card>
 
