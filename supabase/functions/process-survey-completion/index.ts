@@ -816,17 +816,22 @@ Deno.serve(async (req) => {
             }
           }
 
-          // Update assignment with Drive folder URLs
-          const egrafaUrl = egrafaFolder.webViewLink || `https://drive.google.com/drive/folders/${egrafaFolder.id}`;
-          const promeletiUrl = promelethFolder.webViewLink || `https://drive.google.com/drive/folders/${promelethFolder.id}`;
-          await adminClient
-            .from("assignments")
-            .update({ 
-              drive_folder_url: driveFolderUrl,
-              drive_egrafa_url: egrafaUrl,
-              drive_promeleti_url: promeletiUrl,
-            })
-            .eq("sr_id", sr_id);
+          // Only update drive_folder_url if we actually uploaded files (avoid overwriting with empty folder)
+          if (filesUploadedCount > 0) {
+            const egrafaUrl = egrafaFolder.webViewLink || `https://drive.google.com/drive/folders/${egrafaFolder.id}`;
+            const promeletiUrl = promelethFolder.webViewLink || `https://drive.google.com/drive/folders/${promelethFolder.id}`;
+            await adminClient
+              .from("assignments")
+              .update({ 
+                drive_folder_url: driveFolderUrl,
+                drive_egrafa_url: egrafaUrl,
+                drive_promeleti_url: promeletiUrl,
+              })
+              .eq("sr_id", sr_id);
+            console.log(`Updated drive_folder_url for SR ${sr_id}`);
+          } else {
+            console.log(`No files uploaded — keeping existing drive_folder_url for SR ${sr_id}`);
+          }
         }
       } catch (driveErr) {
         console.error("Drive error (non-blocking):", driveErr);
