@@ -1127,6 +1127,7 @@ Deno.serve(async (req) => {
         drive_folder_url: driveFolderUrl || null,
         drive_target: driveTargetType,
         email_sent: emailSent,
+        zip_available: !!zipDownloadUrl,
         files_count: filesUploadedCount,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
