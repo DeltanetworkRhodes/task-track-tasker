@@ -721,8 +721,9 @@ Deno.serve(async (req) => {
         const emailSignature = emailSettingsMap["email_signature"] || DEFAULT_SIGNATURE;
         const surveyComments = survey?.comments || "";
 
-        // Always show download link, never attach ZIP
+        // Show download link (ZIP or Drive folder fallback)
         const showDownloadLink = !!zipDownloadUrl;
+        const showDriveFolderLink = !showDownloadLink && !!driveFolderUrl;
 
         const emailHtml = `
           <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f5f7fa;">
