@@ -55,6 +55,9 @@ const Surveys = () => {
   const [deleting, setDeleting] = useState(false);
   const [reprocessing, setReprocessing] = useState(false);
   const [resendingEmail, setResendingEmail] = useState(false);
+  const [editingComment, setEditingComment] = useState(false);
+  const [commentDraft, setCommentDraft] = useState("");
+  const [savingComment, setSavingComment] = useState(false);
 
   const { data: surveys, isLoading } = useQuery({
     queryKey: ["admin-surveys"],
