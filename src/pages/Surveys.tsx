@@ -19,7 +19,7 @@ import {
   Eye, Calendar, MapPin, User, MessageSquare, FileImage, Image, FileText,
   Download, CheckCircle, AlertTriangle, Clock, Mail, Send, Settings, XCircle,
   CalendarPlus, Bell, Search, Filter, ClipboardCheck, FileCheck, FileWarning, ShieldAlert, Trash2,
-  RefreshCw, Loader2
+  RefreshCw, Loader2, FolderOpen, ExternalLink
 } from "lucide-react";
 
 const fileTypeLabels: Record<string, string> = {
