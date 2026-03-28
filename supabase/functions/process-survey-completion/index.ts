@@ -341,6 +341,102 @@ function getMime(fileName: string): string {
   return mimeMap[ext] || "application/octet-stream";
 }
 
+// ─── Download files from Google Drive when no local files exist ──────
+async function downloadDriveFiles(
+  accessToken: string,
+  srId: string
+): Promise<{ sf: { file_name: string; file_type: string }; data: Uint8Array }[]> {
+  console.log(`Fetching files from Google Drive for SR ${srId}...`);
+  
+  // Search for the SR folder in the shared drive
+  const folders = await driveSearch(
+    accessToken,
+    `name contains '${srId}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`
+  );
+  
+  if (folders.length === 0) {
+    console.log(`No Drive folder found for SR ${srId}`);
+    return [];
+  }
+  
+  // Pick the most recent folder if multiple found
+  const folder = folders.length === 1 ? folders[0] : folders[0]; // already sorted by Drive
+  console.log(`Found Drive folder: ${folder.name} (${folder.id})`);
+  
+  // List subfolders
+  const subfolders = await driveSearch(
+    accessToken,
+    `'${folder.id}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`
+  );
+  
+  // List files in main folder
+  const mainFiles = await driveSearch(
+    accessToken,
+    `'${folder.id}' in parents and mimeType != 'application/vnd.google-apps.folder' and trashed = false`
+  );
+  
+  // Collect all files with their subfolder info
+  const allFiles: { id: string; name: string; folderName: string; fileType: string }[] = [];
+  
+  for (const f of mainFiles) {
+    allFiles.push({ id: f.id, name: f.name, folderName: "", fileType: "other" });
+  }
+  
+  for (const sub of subfolders) {
+    const subFiles = await driveSearch(
+      accessToken,
+      `'${sub.id}' in parents and mimeType != 'application/vnd.google-apps.folder' and trashed = false`
+    );
+    const subName = sub.name.toUpperCase();
+    let fileType = "other";
+    if (subName.includes("ΠΡΟΜΕΛΕΤΗ") || subName.includes("ΦΩΤΟ")) fileType = "building_photo";
+    else if (subName.includes("ΕΓΓΡΑΦΑ") || subName.includes("SCREENSHOT")) fileType = "screenshot";
+    
+    for (const f of subFiles) {
+      allFiles.push({ id: f.id, name: f.name, folderName: sub.name, fileType });
+    }
+  }
+  
+  console.log(`Found ${allFiles.length} files in Drive folder`);
+  
+  // Download files serially (2 at a time) to manage memory
+  const result: { sf: { file_name: string; file_type: string }; data: Uint8Array }[] = [];
+  const BATCH = 2;
+  
+  for (let i = 0; i < allFiles.length; i += BATCH) {
+    const batch = allFiles.slice(i, i + BATCH);
+    const downloads = await Promise.all(
+      batch.map(async (file) => {
+        try {
+          const res = await fetch(
+            `https://www.googleapis.com/drive/v3/files/${file.id}?alt=media&supportsAllDrives=true`,
+            { headers: { Authorization: `Bearer ${accessToken}` } }
+          );
+          if (!res.ok) {
+            console.error(`Failed to download ${file.name}: ${res.status}`);
+            return null;
+          }
+          const data = new Uint8Array(await res.arrayBuffer());
+          console.log(`Downloaded: ${file.folderName ? file.folderName + "/" : ""}${file.name} (${(data.length / 1024).toFixed(0)}KB)`);
+          return {
+            sf: { file_name: file.name, file_type: file.fileType },
+            data,
+          };
+        } catch (e: any) {
+          console.error(`Download error for ${file.name}: ${e.message}`);
+          return null;
+        }
+      })
+    );
+    for (const d of downloads) {
+      if (d) result.push(d);
+    }
+  }
+  
+  console.log(`Successfully downloaded ${result.length}/${allFiles.length} files from Drive`);
+  return result;
+}
+
 function escapeHtml(str: string): string {
   return str.replace(/[<>&"']/g, (c: string) => `&#${c.charCodeAt(0)};`);
 }
@@ -466,8 +562,22 @@ Deno.serve(async (req) => {
         }
       }
       console.log(`Downloaded ${downloadedFiles.length}/${surveyFiles.length} files`);
+    } else if (hasDriveFolder && serviceAccountKeyStr) {
+      // No local files but Drive folder exists — download from Drive
+      console.log(`No local survey_files — downloading from Google Drive...`);
+      try {
+        const serviceAccountKey = JSON.parse(serviceAccountKeyStr);
+        const driveAccessToken = await getAccessToken(serviceAccountKey);
+        const driveFiles = await downloadDriveFiles(driveAccessToken, sr_id);
+        for (const df of driveFiles) {
+          downloadedFiles.push(df);
+        }
+        console.log(`Downloaded ${downloadedFiles.length} files from Drive for ZIP creation`);
+      } catch (driveDownloadErr: any) {
+        console.error(`Drive download error: ${driveDownloadErr.message}`);
+      }
     } else {
-      console.log(`No local survey_files — trigger-created survey, skipping file processing`);
+      console.log(`No local survey_files and no Drive folder — skipping file processing`);
     }
 
     // 3. Google Drive: create folder structure & upload
