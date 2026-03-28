@@ -721,8 +721,9 @@ Deno.serve(async (req) => {
         const emailSignature = emailSettingsMap["email_signature"] || DEFAULT_SIGNATURE;
         const surveyComments = survey?.comments || "";
 
-        // Always show download link, never attach ZIP
+        // Show download link (ZIP or Drive folder fallback)
         const showDownloadLink = !!zipDownloadUrl;
+        const showDriveFolderLink = !showDownloadLink && !!driveFolderUrl;
 
         const emailHtml = `
           <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f5f7fa;">
@@ -792,6 +793,11 @@ Deno.serve(async (req) => {
                 Ισχύει για 7 ημέρες
               </p>` : ""}
 
+              ${showDriveFolderLink ? `
+              <div style="text-align: center; margin: 24px 0;">
+                <a href="${driveFolderUrl}" style="background: ${brandDark}; color: white; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-size: 14px; font-weight: 700; display: inline-block; letter-spacing: 0.3px;">📂 Φάκελος Google Drive</a>
+              </div>` : ""}
+
               <p style="color: ${textSecondary}; font-size: 14px; line-height: 1.6; margin-top: 28px;">Με εκτίμηση,</p>
               
               <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 24px 0;" />
@@ -826,7 +832,7 @@ Deno.serve(async (req) => {
           const errText = await emailRes.text();
           console.error("Resend error:", errText);
         } else {
-          console.log(`Email sent to: ${recipients.join(", ")} (download link: ${showDownloadLink})`);
+          console.log(`Email sent to: ${recipients.join(", ")} (download link: ${showDownloadLink}, drive link: ${showDriveFolderLink})`);
           emailSent = true;
         }
         

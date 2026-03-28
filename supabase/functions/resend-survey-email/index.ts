@@ -110,6 +110,15 @@ Deno.serve(async (req) => {
       .createSignedUrl(zipStoragePath, 7 * 24 * 60 * 60);
     zipDownloadUrl = signedData?.signedUrl || "";
 
+    // Get Drive folder URL as fallback
+    const { data: assignmentDrive } = await adminClient
+      .from("assignments")
+      .select("drive_folder_url")
+      .eq("sr_id", sr_id)
+      .maybeSingle();
+    const driveFolderUrl = assignmentDrive?.drive_folder_url || "";
+    const showDriveFolderLink = !zipDownloadUrl && !!driveFolderUrl;
+
     const isComplete = survey.status === "ΠΡΟΔΕΣΜΕΥΣΗ ΥΛΙΚΩΝ";
     const statusLabel = isComplete ? "ΠΡΟΔΕΣΜΕΥΣΗ ΥΛΙΚΩΝ" : "ΕΛΛΙΠΗΣ ΑΥΤΟΨΙΑ";
     const headerIcon = isComplete ? "📋" : "⚠️";
@@ -189,6 +198,11 @@ Deno.serve(async (req) => {
           <p style="color: ${textMuted}; font-size: 11px; text-align: center; margin-top: 4px;">
             Ισχύει για 7 ημέρες
           </p>` : ""}
+
+          ${showDriveFolderLink ? `
+          <div style="text-align: center; margin: 24px 0;">
+            <a href="${driveFolderUrl}" style="background: ${brandDark}; color: white; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-size: 14px; font-weight: 700; display: inline-block;">📂 Φάκελος Google Drive</a>
+          </div>` : ""}
           
           <p style="color: ${textSecondary}; font-size: 14px; line-height: 1.6; margin-top: 28px;">Με εκτίμηση,</p>
           
