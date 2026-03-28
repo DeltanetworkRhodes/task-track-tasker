@@ -722,14 +722,23 @@ Deno.serve(async (req) => {
         if (target) {
           driveTargetType = target.folderType;
 
+          // Search by SR ID (contains) instead of exact name to avoid duplicates
+          const escapedSrIdForFolder = sr_id.replace(/'/g, "\\'");
           const existingInTarget = await driveSearch(
             accessToken,
-            `name = '${folderName}' and '${target.folderId}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`
+            `name contains '${escapedSrIdForFolder}' and '${target.folderId}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`
           );
 
+          // Pick the best match by score
+          const scoredInTarget = existingInTarget
+            .map(f => ({ ...f, score: scoreSrFolderCandidate(f.name, sr_id) }))
+            .filter(f => f.score > 0)
+            .sort((a, b) => b.score - a.score);
+
           let folder: any;
-          if (existingInTarget.length > 0) {
-            folder = existingInTarget[0];
+          if (scoredInTarget.length > 0) {
+            folder = scoredInTarget[0];
+            console.log(`Found existing folder in ${target.folderType}: ${folder.name} (${folder.id})`);
           } else {
             const otherTargetName = isComplete ? "ΑΝΑΜΟΝΗ" : "ΟΛΟΚΛΗΡΩΜΕΝΕΣ ΑΥΤΟΨΙΕΣ";
             const rootId = areaRootFolders[area];
@@ -745,13 +754,18 @@ Deno.serve(async (req) => {
                 `name = '${otherTargetName}' and '${monthFolders[0].id}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`
               );
               if (otherFolders.length > 0) {
+                // Also search by contains in the other folder
                 const existingInOther = await driveSearch(
                   accessToken,
-                  `name = '${folderName}' and '${otherFolders[0].id}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`
+                  `name contains '${escapedSrIdForFolder}' and '${otherFolders[0].id}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`
                 );
-                if (existingInOther.length > 0) {
-                  await moveDriveFile(accessToken, existingInOther[0].id, otherFolders[0].id, target.folderId);
-                  folder = existingInOther[0];
+                const scoredInOther = existingInOther
+                  .map(f => ({ ...f, score: scoreSrFolderCandidate(f.name, sr_id) }))
+                  .filter(f => f.score > 0)
+                  .sort((a, b) => b.score - a.score);
+                if (scoredInOther.length > 0) {
+                  await moveDriveFile(accessToken, scoredInOther[0].id, otherFolders[0].id, target.folderId);
+                  folder = scoredInOther[0];
                   console.log(`Moved folder from ${otherTargetName} to ${target.folderType}`);
                 }
               }
