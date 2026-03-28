@@ -432,10 +432,20 @@ Deno.serve(async (req) => {
 
     const hasLocalFiles = surveyFiles && surveyFiles.length > 0;
 
+    // For trigger-created surveys with no local files, check if Drive folder already exists
+    const existingDriveUrl = assignment ? await adminClient
+      .from("assignments")
+      .select("drive_folder_url")
+      .eq("sr_id", sr_id)
+      .single()
+      .then(r => r.data?.drive_folder_url || "")
+      : "";
+    const hasDriveFolder = !!existingDriveUrl;
+
     const presentTypes = hasLocalFiles ? [...new Set(surveyFiles.map((f: any) => f.file_type))] : [];
     const missingTypes = REQUIRED_FILE_TYPES.filter((t) => !presentTypes.includes(t));
-    // If no local files, check if Drive folder already exists (trigger-created surveys)
-    const isComplete = hasLocalFiles ? missingTypes.length === 0 : false;
+    // Complete if local files are present and valid, OR if no local files but Drive folder exists
+    const isComplete = hasLocalFiles ? missingTypes.length === 0 : hasDriveFolder;
 
     console.log(`File check: present=${presentTypes.join(",")}, missing=${missingTypes.join(",")}, complete=${isComplete}`);
 
@@ -590,16 +600,20 @@ Deno.serve(async (req) => {
       }
     }
 
-    // 4. Update status based on completeness
-    const newSurveyStatus = isComplete ? "ΠΡΟΔΕΣΜΕΥΣΗ ΥΛΙΚΩΝ" : "ΕΛΛΙΠΗΣ ΑΥΤΟΨΙΑ";
-    const newAssignmentStatus = isComplete ? "pre_committed" : "pending";
-    
-    await Promise.all([
-      adminClient.from("assignments").update({ status: newAssignmentStatus }).eq("sr_id", sr_id),
-      adminClient.from("surveys").update({ status: newSurveyStatus }).eq("id", survey_id),
-    ]);
-    
-    console.log(`Assignment ${sr_id} status → ${newAssignmentStatus}, Survey → ${newSurveyStatus}`);
+    // 4. Update status based on completeness — but don't downgrade trigger-created surveys
+    if (hasLocalFiles || !hasDriveFolder) {
+      const newSurveyStatus = isComplete ? "ΠΡΟΔΕΣΜΕΥΣΗ ΥΛΙΚΩΝ" : "ΕΛΛΙΠΗΣ ΑΥΤΟΨΙΑ";
+      const newAssignmentStatus = isComplete ? "pre_committed" : "pending";
+      
+      await Promise.all([
+        adminClient.from("assignments").update({ status: newAssignmentStatus }).eq("sr_id", sr_id),
+        adminClient.from("surveys").update({ status: newSurveyStatus }).eq("id", survey_id),
+      ]);
+      
+      console.log(`Assignment ${sr_id} status → ${newAssignmentStatus}, Survey → ${newSurveyStatus}`);
+    } else {
+      console.log(`Skipping status update for trigger-created survey with existing Drive folder`);
+    }
 
     // 5. Build ZIP and upload to Storage, then create signed download URL
     let zipBytes: Uint8Array | null = null;
