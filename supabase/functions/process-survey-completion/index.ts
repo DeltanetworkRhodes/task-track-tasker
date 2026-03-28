@@ -105,6 +105,72 @@ async function driveSearch(accessToken: string, query: string, useFallback = tru
   return (await res.json()).files || [];
 }
 
+function escapeDriveQueryValue(value: string): string {
+  return String(value).replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+}
+
+function extractDriveFolderId(folderUrl?: string): string | null {
+  if (!folderUrl) return null;
+  const folderMatch = folderUrl.match(/\/folders\/([a-zA-Z0-9_-]+)/);
+  if (folderMatch?.[1]) return folderMatch[1];
+  const idMatch = folderUrl.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+  return idMatch?.[1] || null;
+}
+
+async function getDriveFolderById(accessToken: string, folderId: string): Promise<any | null> {
+  const res = await fetch(
+    `https://www.googleapis.com/drive/v3/files/${folderId}?fields=id,name,mimeType,webViewLink,createdTime&supportsAllDrives=true`,
+    { headers: { Authorization: `Bearer ${accessToken}` } }
+  );
+  if (!res.ok) return null;
+  const data = await res.json();
+  if (data?.mimeType !== "application/vnd.google-apps.folder") return null;
+  return data;
+}
+
+function scoreSrFolderCandidate(folderName: string, srId: string): number {
+  const name = folderName.toUpperCase();
+  const sr = srId.toUpperCase();
+  if (name.startsWith(`SR ${sr} `) || name === `SR ${sr}`) return 100;
+  if (name.includes(`SR ${sr}`)) return 80;
+  if (name.includes(sr)) return 60;
+  return 10;
+}
+
+async function resolveSrDriveFolder(
+  accessToken: string,
+  srId: string,
+  preferredFolderUrl?: string
+): Promise<any | null> {
+  const preferredFolderId = extractDriveFolderId(preferredFolderUrl);
+  if (preferredFolderId) {
+    const preferredFolder = await getDriveFolderById(accessToken, preferredFolderId);
+    if (preferredFolder) {
+      console.log(`Using assignment Drive folder for SR ${srId}: ${preferredFolder.name} (${preferredFolder.id})`);
+      return preferredFolder;
+    }
+    console.log(`Assignment drive_folder_url exists but folder is inaccessible for SR ${srId}; falling back to search`);
+  }
+
+  const escapedSrId = escapeDriveQueryValue(srId);
+  const folders = await driveSearch(
+    accessToken,
+    `name contains '${escapedSrId}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`
+  );
+
+  if (folders.length === 0) return null;
+
+  const sorted = [...folders].sort((a, b) => {
+    const scoreDiff = scoreSrFolderCandidate(b?.name || "", srId) - scoreSrFolderCandidate(a?.name || "", srId);
+    if (scoreDiff !== 0) return scoreDiff;
+    const aTs = a?.createdTime ? Date.parse(a.createdTime) : 0;
+    const bTs = b?.createdTime ? Date.parse(b.createdTime) : 0;
+    return bTs - aTs;
+  });
+
+  return sorted[0] || null;
+}
+
 async function createDriveFolder(accessToken: string, name: string, parentId: string): Promise<any> {
   const res = await fetch("https://www.googleapis.com/drive/v3/files?fields=id,name,webViewLink&supportsAllDrives=true", {
     method: "POST",
@@ -353,27 +419,17 @@ function getMime(fileName: string): string {
 // ─── Download files from Google Drive when no local files exist ──────
 async function downloadDriveFiles(
   accessToken: string,
-  srId: string
-): Promise<{ sf: { file_name: string; file_type: string }; data: Uint8Array }[]> {
+  srId: string,
+  preferredFolderUrl?: string
+): Promise<{ sf: { file_name: string; file_type: string; folder_path?: string }; data: Uint8Array }[]> {
   console.log(`Fetching files from Google Drive for SR ${srId}...`);
-  
-  // Search for the SR folder in the shared drive
-  const folders = await driveSearch(
-    accessToken,
-    `name contains '${srId}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`
-  );
-  
-  if (folders.length === 0) {
+
+  const folder = await resolveSrDriveFolder(accessToken, srId, preferredFolderUrl);
+  if (!folder) {
     console.log(`No Drive folder found for SR ${srId}`);
     return [];
   }
 
-  // Pick the most recent folder if multiple found
-  const folder = [...folders].sort((a, b) => {
-    const aTs = a?.createdTime ? Date.parse(a.createdTime) : 0;
-    const bTs = b?.createdTime ? Date.parse(b.createdTime) : 0;
-    return bTs - aTs;
-  })[0];
   console.log(`Found Drive folder: ${folder.name} (${folder.id})`);
 
   const inferFileTypeFromPath = (relativePath: string): string => {
@@ -548,7 +604,7 @@ Deno.serve(async (req) => {
     // 1. Get assignment + survey info in parallel
     const [assignmentRes, surveyRes] = await Promise.all([
       adminClient.from("assignments")
-        .select("customer_name, address, phone, cab, organization_id")
+        .select("customer_name, address, phone, cab, organization_id, drive_folder_url")
         .eq("sr_id", sr_id).limit(1).single(),
       adminClient.from("surveys")
         .select("technician_id, comments")
@@ -576,19 +632,13 @@ Deno.serve(async (req) => {
     const hasLocalFiles = surveyFiles && surveyFiles.length > 0;
 
     // For trigger-created surveys with no local files, check if Drive folder already exists
-    const existingDriveUrl = assignment ? await adminClient
-      .from("assignments")
-      .select("drive_folder_url")
-      .eq("sr_id", sr_id)
-      .single()
-      .then(r => r.data?.drive_folder_url || "")
-      : "";
-    const hasDriveFolder = !!existingDriveUrl;
+    const existingDriveUrl = assignment?.drive_folder_url || "";
+    let hasDriveFolder = !!existingDriveUrl;
 
     const presentTypes = hasLocalFiles ? [...new Set(surveyFiles.map((f: any) => f.file_type))] : [];
     const missingTypes = REQUIRED_FILE_TYPES.filter((t) => !presentTypes.includes(t));
     // Complete if local files are present and valid, OR if no local files but Drive folder exists
-    const isComplete = hasLocalFiles ? missingTypes.length === 0 : hasDriveFolder;
+    let isComplete = hasLocalFiles ? missingTypes.length === 0 : hasDriveFolder;
 
     console.log(`File check: present=${presentTypes.join(",")}, missing=${missingTypes.join(",")}, complete=${isComplete}`);
 
@@ -609,23 +659,29 @@ Deno.serve(async (req) => {
         }
       }
       console.log(`Downloaded ${downloadedFiles.length}/${surveyFiles.length} files`);
-    } else if (hasDriveFolder && Deno.env.get("GOOGLE_SERVICE_ACCOUNT_KEY")) {
-      // No local files but Drive folder exists — download from Drive
-      console.log(`No local survey_files — downloading from Google Drive...`);
+    } else if (Deno.env.get("GOOGLE_SERVICE_ACCOUNT_KEY")) {
+      // No local survey_files — always try Drive by SR, even if drive_folder_url is missing/stale
+      console.log(`No local survey_files — trying Google Drive download for SR ${sr_id}...`);
       try {
         const saKeyStr = Deno.env.get("GOOGLE_SERVICE_ACCOUNT_KEY")!;
         const serviceAccountKey = JSON.parse(saKeyStr);
         const driveAccessToken = await getAccessToken(serviceAccountKey);
-        const driveFiles = await downloadDriveFiles(driveAccessToken, sr_id);
+        const driveFiles = await downloadDriveFiles(driveAccessToken, sr_id, existingDriveUrl);
         for (const df of driveFiles) {
           downloadedFiles.push(df);
         }
+        if (driveFiles.length > 0) hasDriveFolder = true;
         console.log(`Downloaded ${downloadedFiles.length} files from Drive for ZIP creation`);
       } catch (driveDownloadErr: any) {
         console.error(`Drive download error: ${driveDownloadErr.message}`);
       }
     } else {
       console.log(`No local survey_files and no Drive folder — skipping file processing`);
+    }
+
+    if (!hasLocalFiles) {
+      isComplete = hasDriveFolder || downloadedFiles.length > 0;
+      console.log(`Drive-backed completeness for SR ${sr_id}: folder=${hasDriveFolder}, files=${downloadedFiles.length}, complete=${isComplete}`);
     }
 
     // 3. Google Drive: create folder structure & upload
