@@ -442,7 +442,12 @@ Deno.serve(async (req) => {
       }
     }
 
-    const showDriveFolderLink = !zipDownloadUrl && !!driveFolderUrl;
+    if (!zipDownloadUrl) {
+      console.error(`Resend aborted for SR ${sr_id}: ZIP link not available`);
+      return new Response(JSON.stringify({ error: "ZIP_NOT_AVAILABLE", details: "Δεν βρέθηκε ZIP για αποστολή email." }), {
+        status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     const isComplete = survey.status === "ΠΡΟΔΕΣΜΕΥΣΗ ΥΛΙΚΩΝ";
     const statusLabel = isComplete ? "ΠΡΟΔΕΣΜΕΥΣΗ ΥΛΙΚΩΝ" : "ΕΛΛΙΠΗΣ ΑΥΤΟΨΙΑ";
@@ -524,10 +529,6 @@ Deno.serve(async (req) => {
             Ισχύει για 7 ημέρες
           </p>` : ""}
 
-          ${showDriveFolderLink ? `
-          <div style="text-align: center; margin: 24px 0;">
-            <a href="${driveFolderUrl}" style="background: ${brandDark}; color: white; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-size: 14px; font-weight: 700; display: inline-block;">📂 Φάκελος Google Drive</a>
-          </div>` : ""}
           
           <p style="color: ${textSecondary}; font-size: 14px; line-height: 1.6; margin-top: 28px;">Με εκτίμηση,</p>
           
@@ -564,12 +565,12 @@ Deno.serve(async (req) => {
       });
     }
 
-    console.log(`Email resent for SR: ${sr_id} to: ${recipients.join(", ")} (zip: ${!!zipDownloadUrl}, drive: ${showDriveFolderLink})`);
+    console.log(`Email resent for SR: ${sr_id} to: ${recipients.join(", ")} (zip: true)`);
 
     await adminClient.from("surveys").update({ email_sent: true }).eq("id", survey_id);
 
     return new Response(
-      JSON.stringify({ success: true, has_download_link: !!zipDownloadUrl }),
+      JSON.stringify({ success: true, has_download_link: true }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err: any) {
