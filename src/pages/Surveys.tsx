@@ -711,13 +711,12 @@ const Surveys = () => {
                 <table className="w-full text-sm table-fixed">
                   <thead>
                     <tr className="bg-muted/50 text-muted-foreground text-[11px] uppercase tracking-wider">
-                      <th className="text-left px-2 py-2.5 font-medium w-[10%]">SR ID</th>
-                      <th className="text-left px-2 py-2.5 font-medium w-[8%]">Περιοχή</th>
-                      <th className="text-left px-2 py-2.5 font-medium w-[13%]">Τεχνικός</th>
+                      <th className="text-left px-2 py-2.5 font-medium w-[11%]">SR ID</th>
+                      <th className="text-left px-2 py-2.5 font-medium w-[9%]">Περιοχή</th>
+                      <th className="text-left px-2 py-2.5 font-medium w-[14%]">Τεχνικός</th>
                       <th className="text-left px-2 py-2.5 font-medium w-[13%]">Κατάσταση</th>
-                      <th className="text-left px-2 py-2.5 font-medium w-[17%]">Σχόλια</th>
-                      <th className="text-left px-2 py-2.5 font-medium w-[10%]">Ημερομηνία</th>
-                      <th className="text-center px-2 py-2.5 font-medium w-[4%]">Drive</th>
+                      <th className="text-left px-2 py-2.5 font-medium w-[19%]">Σχόλια</th>
+                      <th className="text-left px-2 py-2.5 font-medium w-[11%]">Ημερομηνία</th>
                       <th className="text-center px-2 py-2.5 font-medium w-[5%]">Email</th>
                       <th className="text-center px-2 py-2.5 font-medium w-[5%]">Ενέργεια</th>
                       <th className="text-center px-1 py-2.5 w-[4%]"></th>
