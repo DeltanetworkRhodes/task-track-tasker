@@ -89,10 +89,19 @@ async function getAccessToken(serviceAccountKey: any): Promise<string> {
   return (await tokenRes.json()).access_token;
 }
 
-async function driveSearch(accessToken: string, query: string): Promise<any[]> {
-  const url = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&fields=files(id,name,mimeType,webViewLink)&pageSize=50&supportsAllDrives=true&includeItemsFromAllDrives=true&corpora=drive&driveId=${SHARED_DRIVE_ID}`;
+async function driveSearch(accessToken: string, query: string, useFallback = true): Promise<any[]> {
+  const url = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&fields=files(id,name,mimeType,webViewLink,createdTime)&pageSize=100&supportsAllDrives=true&includeItemsFromAllDrives=true&corpora=drive&driveId=${SHARED_DRIVE_ID}`;
   const res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
-  if (!res.ok) throw new Error(await res.text());
+  if (!res.ok) {
+    if (useFallback) {
+      console.log(`Drive search failed with corpora=drive, falling back to allDrives`);
+      const fallbackUrl = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&fields=files(id,name,mimeType,webViewLink,createdTime)&pageSize=100&supportsAllDrives=true&includeItemsFromAllDrives=true&corpora=allDrives`;
+      const fallbackRes = await fetch(fallbackUrl, { headers: { Authorization: `Bearer ${accessToken}` } });
+      if (!fallbackRes.ok) throw new Error(await fallbackRes.text());
+      return (await fallbackRes.json()).files || [];
+    }
+    throw new Error(await res.text());
+  }
   return (await res.json()).files || [];
 }
 
