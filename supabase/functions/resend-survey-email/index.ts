@@ -84,11 +84,11 @@ async function getAccessToken(serviceAccountKey: any): Promise<string> {
 }
 
 async function driveSearch(accessToken: string, query: string): Promise<any[]> {
-  const url = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&fields=files(id,name,mimeType,webViewLink)&pageSize=100&supportsAllDrives=true&includeItemsFromAllDrives=true&corpora=drive&driveId=${SHARED_DRIVE_ID}`;
+  const fields = "files(id,name,mimeType,webViewLink,createdTime,shortcutDetails(targetId,targetMimeType))";
+  const url = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&fields=${fields}&pageSize=100&supportsAllDrives=true&includeItemsFromAllDrives=true&corpora=drive&driveId=${SHARED_DRIVE_ID}`;
   const res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
   if (!res.ok) {
-    // Fallback to allDrives
-    const fallbackUrl = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&fields=files(id,name,mimeType,webViewLink)&pageSize=100&supportsAllDrives=true&includeItemsFromAllDrives=true&corpora=allDrives`;
+    const fallbackUrl = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&fields=${fields}&pageSize=100&supportsAllDrives=true&includeItemsFromAllDrives=true&corpora=allDrives`;
     const fallbackRes = await fetch(fallbackUrl, { headers: { Authorization: `Bearer ${accessToken}` } });
     if (!fallbackRes.ok) throw new Error(await fallbackRes.text());
     return (await fallbackRes.json()).files || [];
@@ -96,56 +96,137 @@ async function driveSearch(accessToken: string, query: string): Promise<any[]> {
   return (await res.json()).files || [];
 }
 
+function escapeDriveQueryValue(value: string): string {
+  return String(value).replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+}
+
+function extractDriveFolderId(folderUrl?: string): string | null {
+  if (!folderUrl) return null;
+  const folderMatch = folderUrl.match(/\/folders\/([a-zA-Z0-9_-]+)/);
+  if (folderMatch?.[1]) return folderMatch[1];
+  const idMatch = folderUrl.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+  return idMatch?.[1] || null;
+}
+
+async function getDriveFolderById(accessToken: string, folderId: string): Promise<any | null> {
+  const res = await fetch(
+    `https://www.googleapis.com/drive/v3/files/${folderId}?fields=id,name,mimeType,webViewLink,createdTime&supportsAllDrives=true`,
+    { headers: { Authorization: `Bearer ${accessToken}` } }
+  );
+  if (!res.ok) return null;
+  const data = await res.json();
+  if (data?.mimeType !== "application/vnd.google-apps.folder") return null;
+  return data;
+}
+
+function scoreSrFolderCandidate(folderName: string, srId: string): number {
+  const name = folderName.toUpperCase();
+  const sr = srId.toUpperCase();
+  if (name.startsWith(`SR ${sr} `) || name === `SR ${sr}`) return 100;
+  if (name.includes(`SR ${sr}`)) return 80;
+  if (name.includes(sr)) return 60;
+  return 10;
+}
+
+async function resolveSrDriveFolder(
+  accessToken: string,
+  srId: string,
+  preferredFolderUrl?: string
+): Promise<any | null> {
+  const preferredFolderId = extractDriveFolderId(preferredFolderUrl);
+  if (preferredFolderId) {
+    const preferredFolder = await getDriveFolderById(accessToken, preferredFolderId);
+    if (preferredFolder) {
+      console.log(`Using assignment Drive folder for SR ${srId}: ${preferredFolder.name} (${preferredFolder.id})`);
+      return preferredFolder;
+    }
+  }
+
+  const escapedSrId = escapeDriveQueryValue(srId);
+  const folders = await driveSearch(
+    accessToken,
+    `name contains '${escapedSrId}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`
+  );
+
+  if (folders.length === 0) return null;
+
+  const sorted = [...folders].sort((a, b) => {
+    const scoreDiff = scoreSrFolderCandidate(b?.name || "", srId) - scoreSrFolderCandidate(a?.name || "", srId);
+    if (scoreDiff !== 0) return scoreDiff;
+    const aTs = a?.createdTime ? Date.parse(a.createdTime) : 0;
+    const bTs = b?.createdTime ? Date.parse(b.createdTime) : 0;
+    return bTs - aTs;
+  });
+
+  return sorted[0] || null;
+}
+
 async function downloadDriveFilesForZip(
   accessToken: string,
   srId: string,
-  customerName: string
+  customerName: string,
+  preferredFolderUrl?: string
 ): Promise<{ zipBytes: Uint8Array; fileCount: number } | null> {
   console.log(`Fetching files from Google Drive for SR ${srId}...`);
 
-  const folders = await driveSearch(
-    accessToken,
-    `name contains '${srId}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`
-  );
-
-  if (folders.length === 0) {
+  const folder = await resolveSrDriveFolder(accessToken, srId, preferredFolderUrl);
+  if (!folder) {
     console.log(`No Drive folder found for SR ${srId}`);
     return null;
   }
 
-  const folder = folders[0];
   console.log(`Found Drive folder: ${folder.name} (${folder.id})`);
 
-  // List subfolders
-  const subfolders = await driveSearch(
-    accessToken,
-    `'${folder.id}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`
-  );
-
-  // Collect all file references
   const allFiles: { id: string; name: string; zipPath: string }[] = [];
+  const visitedFolderIds = new Set<string>();
   const safeName = (customerName || "").replace(/[\/\\:*?"<>|]/g, "_").trim();
   const rootFolder = `SR ${srId}${safeName ? ` ${safeName}` : ""}`;
 
-  // Files in main folder
-  const mainFiles = await driveSearch(
-    accessToken,
-    `'${folder.id}' in parents and mimeType != 'application/vnd.google-apps.folder' and trashed = false`
-  );
-  for (const f of mainFiles) {
-    allFiles.push({ id: f.id, name: f.name, zipPath: `${rootFolder}/${f.name}` });
-  }
+  const collectFilesRecursive = async (folderId: string, currentPath = ""): Promise<void> => {
+    if (visitedFolderIds.has(folderId)) return;
+    visitedFolderIds.add(folderId);
 
-  // Files in subfolders
-  for (const sub of subfolders) {
-    const subFiles = await driveSearch(
+    const children = await driveSearch(
       accessToken,
-      `'${sub.id}' in parents and mimeType != 'application/vnd.google-apps.folder' and trashed = false`
+      `'${folderId}' in parents and trashed = false`
     );
-    for (const f of subFiles) {
-      allFiles.push({ id: f.id, name: f.name, zipPath: `${rootFolder}/${sub.name}/${f.name}` });
+
+    for (const child of children) {
+      const childName = child.name || "unnamed";
+      const childPath = currentPath ? `${currentPath}/${childName}` : childName;
+      const childMimeType = child.mimeType || "";
+
+      if (childMimeType === "application/vnd.google-apps.folder") {
+        await collectFilesRecursive(child.id, childPath);
+        continue;
+      }
+
+      if (childMimeType === "application/vnd.google-apps.shortcut") {
+        const targetId = child.shortcutDetails?.targetId;
+        const targetMimeType = child.shortcutDetails?.targetMimeType || "";
+        if (!targetId) continue;
+
+        if (targetMimeType === "application/vnd.google-apps.folder") {
+          await collectFilesRecursive(targetId, childPath);
+          continue;
+        }
+
+        const folderPath = currentPath ? `${rootFolder}/${currentPath}` : rootFolder;
+        allFiles.push({ id: targetId, name: childName, zipPath: `${folderPath}/${childName}` });
+        continue;
+      }
+
+      if (childMimeType.startsWith("application/vnd.google-apps")) {
+        console.log(`Skipping non-downloadable Google file: ${childPath} (${childMimeType})`);
+        continue;
+      }
+
+      const folderPath = currentPath ? `${rootFolder}/${currentPath}` : rootFolder;
+      allFiles.push({ id: child.id, name: childName, zipPath: `${folderPath}/${childName}` });
     }
-  }
+  };
+
+  await collectFilesRecursive(folder.id);
 
   if (allFiles.length === 0) {
     console.log(`No files found in Drive folder`);
@@ -288,14 +369,14 @@ Deno.serve(async (req) => {
     zipDownloadUrl = signedData?.signedUrl || "";
 
     // If no ZIP exists in storage, try to build one from Google Drive
-    if (!zipDownloadUrl && driveFolderUrl) {
+    if (!zipDownloadUrl) {
       const serviceAccountKeyStr = Deno.env.get("GOOGLE_SERVICE_ACCOUNT_KEY");
       if (serviceAccountKeyStr) {
         try {
           console.log(`No ZIP in storage, building from Google Drive for SR ${sr_id}...`);
           const serviceAccountKey = JSON.parse(serviceAccountKeyStr);
           const accessToken = await getAccessToken(serviceAccountKey);
-          const result = await downloadDriveFilesForZip(accessToken, sr_id, customerName);
+          const result = await downloadDriveFilesForZip(accessToken, sr_id, customerName, driveFolderUrl);
 
           if (result) {
             // Upload ZIP to storage
