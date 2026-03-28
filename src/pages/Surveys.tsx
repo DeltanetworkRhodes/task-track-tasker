@@ -254,9 +254,12 @@ const Surveys = () => {
     }
   };
 
+  const SURVEY_STATUSES = ["submitted", "ΠΡΟΔΕΣΜΕΥΣΗ ΥΛΙΚΩΝ", "ΕΛΛΙΠΗΣ ΑΥΤΟΨΙΑ", "ΑΠΑΙΤΕΙΤΑΙ ΕΝΕΡΓΕΙΑ", "BLOCKER", "ΡΑΝΤΕΒΟΥ"];
+
   // Filtering
   const filtered = useMemo(() => {
     return (surveys || []).filter((s) => {
+      if (!SURVEY_STATUSES.includes(s.status)) return false;
       const matchesSearch = s.sr_id.toLowerCase().includes(search.toLowerCase());
       const matchesArea = areaFilter === "all" || s.area === areaFilter;
       const matchesStatus = statusFilter === "all" || s.status === statusFilter;
