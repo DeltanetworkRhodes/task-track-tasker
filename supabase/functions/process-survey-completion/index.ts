@@ -1065,10 +1065,6 @@ Deno.serve(async (req) => {
                 Ισχύει για 7 ημέρες
               </p>` : ""}
 
-              ${showDriveFolderLink ? `
-              <div style="text-align: center; margin: 24px 0;">
-                <a href="${driveFolderUrl}" style="background: ${brandDark}; color: white; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-size: 14px; font-weight: 700; display: inline-block; letter-spacing: 0.3px;">📂 Φάκελος Google Drive</a>
-              </div>` : ""}
 
               <p style="color: ${textSecondary}; font-size: 14px; line-height: 1.6; margin-top: 28px;">Με εκτίμηση,</p>
               
