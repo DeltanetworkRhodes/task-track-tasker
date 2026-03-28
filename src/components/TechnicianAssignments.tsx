@@ -569,6 +569,10 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
                       .eq("id", assignment.id);
                     if (error) throw error;
                     queryClient.invalidateQueries({ queryKey: ["technician-assignments"] });
+                    // Move SR folder to "ΣΕ ΚΑΤΑΣΚΕΥΗ" in Drive (fire-and-forget)
+                    supabase.functions.invoke("move-sr-folder", {
+                      body: { sr_id: assignment.sr_id, target_folder: "ΣΕ ΚΑΤΑΣΚΕΥΗ", organization_id: assignment.organization_id },
+                    }).catch(console.error);
                     setSelectedAssignment({ ...assignment, status: "construction" });
                   } else {
                     updateDemoAssignment(assignment.id, { status: "construction" });
