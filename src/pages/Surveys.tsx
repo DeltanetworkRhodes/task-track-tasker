@@ -410,7 +410,7 @@ const Surveys = () => {
   );
 
   return (
-    <AppLayout>
+    <AppLayout fullWidth>
       <div className="space-y-6 w-full">
         {/* Header */}
         <div className="flex items-start justify-between">
