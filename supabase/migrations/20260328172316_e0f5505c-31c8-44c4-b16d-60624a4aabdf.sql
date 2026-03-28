@@ -1,0 +1,2 @@
+UPDATE assignments SET status = 'pre_committed' WHERE sr_id = '2-340069927197' AND status = 'pending';
+UPDATE surveys SET status = 'ΠΡΟΔΕΣΜΕΥΣΗ ΥΛΙΚΩΝ' WHERE sr_id = '2-340069927197' AND status = 'ΕΛΛΙΠΗΣ ΑΥΤΟΨΙΑ';
