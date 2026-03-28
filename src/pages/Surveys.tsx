@@ -408,7 +408,7 @@ const Surveys = () => {
 
   return (
     <AppLayout>
-      <div className="space-y-6 max-w-[1400px] mx-auto">
+      <div className="space-y-6 w-full">
         {/* Header */}
         <div className="flex items-start justify-between">
           <div>
@@ -751,21 +751,21 @@ const Surveys = () => {
               </div>
 
               {/* Desktop Table View */}
-              <div className="hidden lg:block">
-                <table className="w-full text-sm table-fixed">
+              <div className="hidden lg:block overflow-x-auto">
+                <table className="w-full text-sm" style={{ minWidth: '1100px' }}>
                   <thead>
                     <tr className="bg-muted/50 text-muted-foreground text-[11px] uppercase tracking-wider">
-                      <th className="text-left px-2 py-2.5 font-medium w-[10%]">SR ID</th>
-                      <th className="text-left px-2 py-2.5 font-medium w-[7%]">Περιοχή</th>
-                      <th className="text-left px-2 py-2.5 font-medium w-[14%]">Πελάτης</th>
-                      <th className="text-left px-2 py-2.5 font-medium w-[14%]">Διεύθυνση</th>
-                      <th className="text-left px-2 py-2.5 font-medium w-[10%]">Τεχνικός</th>
-                      <th className="text-left px-2 py-2.5 font-medium w-[11%]">Κατάσταση</th>
-                      <th className="text-left px-2 py-2.5 font-medium w-[12%]">Σχόλια</th>
-                      <th className="text-left px-2 py-2.5 font-medium w-[8%]">Ημερομηνία</th>
-                      <th className="text-center px-2 py-2.5 font-medium w-[4%]">Email</th>
-                      <th className="text-center px-2 py-2.5 font-medium w-[4%]">Ενέργεια</th>
-                      <th className="text-center px-1 py-2.5 w-[3%]"></th>
+                      <th className="text-left px-3 py-2.5 font-medium" style={{ width: '11%' }}>SR ID</th>
+                      <th className="text-left px-3 py-2.5 font-medium" style={{ width: '7%' }}>Περιοχή</th>
+                      <th className="text-left px-3 py-2.5 font-medium" style={{ width: '13%' }}>Πελάτης</th>
+                      <th className="text-left px-3 py-2.5 font-medium" style={{ width: '15%' }}>Διεύθυνση</th>
+                      <th className="text-left px-3 py-2.5 font-medium" style={{ width: '11%' }}>Τεχνικός</th>
+                      <th className="text-left px-3 py-2.5 font-medium" style={{ width: '13%' }}>Κατάσταση</th>
+                      <th className="text-left px-3 py-2.5 font-medium" style={{ width: '14%' }}>Σχόλια</th>
+                      <th className="text-left px-3 py-2.5 font-medium" style={{ width: '8%' }}>Ημερομηνία</th>
+                      <th className="text-center px-2 py-2.5 font-medium" style={{ width: '4%' }}>Email</th>
+                      <th className="text-center px-2 py-2.5 font-medium" style={{ width: '4%' }}></th>
+                      <th className="text-center px-1 py-2.5" style={{ width: '3%' }}></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -779,24 +779,24 @@ const Surveys = () => {
                           className="border-t border-border/50 hover:bg-muted/30 cursor-pointer transition-colors"
                           onClick={() => setSelectedSurvey(s)}
                         >
-                          <td className="px-2 py-2.5 font-bold text-primary text-xs truncate">{s.sr_id}</td>
-                          <td className="px-2 py-2.5">
+                          <td className="px-3 py-2.5 font-bold text-primary text-xs whitespace-nowrap">{s.sr_id}</td>
+                          <td className="px-3 py-2.5">
                             <Badge variant="outline" className="text-[10px]">{s.area}</Badge>
                           </td>
-                          <td className="px-2 py-2.5 text-xs truncate">{asg?.customer_name || "—"}</td>
-                          <td className="px-2 py-2.5 text-xs text-muted-foreground truncate">{asg?.address || "—"}</td>
-                          <td className="px-2 py-2.5 text-muted-foreground text-xs truncate">{tech?.full_name || "—"}</td>
-                          <td className="px-2 py-2.5">
-                            <Badge variant="outline" className={`text-[10px] ${sc.color}`}>{sc.label}</Badge>
+                          <td className="px-3 py-2.5 text-xs truncate">{asg?.customer_name || "—"}</td>
+                          <td className="px-3 py-2.5 text-xs text-muted-foreground truncate">{asg?.address || "—"}</td>
+                          <td className="px-3 py-2.5 text-muted-foreground text-xs whitespace-nowrap">{tech?.full_name || "—"}</td>
+                          <td className="px-3 py-2.5">
+                            <Badge variant="outline" className={`text-[10px] whitespace-nowrap ${sc.color}`}>{sc.label}</Badge>
                           </td>
-                          <td className="px-2 py-2.5 truncate">
+                          <td className="px-3 py-2.5 truncate">
                             {s.comments ? (
                               <span className="text-xs text-muted-foreground">{s.comments}</span>
                             ) : (
                               <span className="text-xs text-muted-foreground/40">—</span>
                             )}
                           </td>
-                          <td className="px-2 py-2.5 text-muted-foreground text-xs font-bold">
+                          <td className="px-3 py-2.5 text-muted-foreground text-xs font-bold whitespace-nowrap">
                             {new Date(s.created_at).toLocaleDateString("el-GR")}
                           </td>
                           <td className="px-2 py-2.5 text-center" onClick={(e) => e.stopPropagation()}>
