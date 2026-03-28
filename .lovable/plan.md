@@ -1,44 +1,31 @@
 
 
-# Revised Plan: Database Expansion + Smart Import
+## Plan: Auto-create Survey Record on Pre-Committed Status
 
-## New Columns to Add (10 only)
+### Problem
+When an assignment moves to `pre_committed` status, it only updates the `assignments` table. The Surveys page (`/surveys`) reads from the `surveys` table, so these assignments never appear there.
 
-| Column | Type | Source |
-|--------|------|--------|
-| `work_type` | text | IFS-FSM (Τύπος εργασίας) |
-| `request_category` | text | IFS-FSM (Κατηγορία Αιτήματος) |
-| `floor` | text | Both (Όροφος) |
-| `municipality` | text | Both (Δήμος) |
-| `customer_mobile` | text | CRM Raw (Κινητό Πελάτη) |
-| `customer_landline` | text | CRM Raw (Σταθερό Πελάτη) |
-| `customer_email` | text | CRM Raw (E-mail Πελάτη) |
-| `manager_name` | text | CRM Raw (Ονοματεπώνυμο Διαχειριστή) |
-| `manager_mobile` | text | CRM Raw (Κινητό Διαχειριστή) |
-| `manager_email` | text | CRM Raw (E-mail Διαχειριστή) |
+### Solution
+Automatically create a `surveys` record whenever an assignment transitions to `pre_committed` status. This ensures the SR appears in the Surveys tab immediately.
 
-Note: `phone`, `customer_name`, `cab`, `building_id_hemd`, `address` already exist.
+### Changes
 
-## Steps
+**1. Database: Create a trigger function**
+- Create a PostgreSQL trigger on the `assignments` table that fires on UPDATE
+- When `status` changes TO `pre_committed`, automatically INSERT a row into the `surveys` table with:
+  - `sr_id`, `area`, `technician_id`, `organization_id` copied from the assignment
+  - `status` = `'ΠΡΟΔΕΣΜΕΥΣΗ ΥΛΙΚΩΝ'`
+  - `assignment_id` linking back to the source assignment
+- Use `ON CONFLICT (sr_id)` to avoid duplicates if a survey already exists for that SR
 
-### 1. Database Migration
-Add the 10 new nullable text columns to `assignments`.
+**2. Update `src/components/TechnicianAssignments.tsx`**
+- In the `handleStatusChange` function, after successfully updating assignment status to `pre_committed`, also upsert a survey record via the Supabase client as a fallback (in case the trigger hasn't fired yet or for immediate UI feedback)
 
-### 2. Update AssignmentsImport.tsx
-- **Import tab (IFS-FSM)**: Map `work_type`, `request_category`, `floor`, `municipality` from the formatted Excel alongside existing fields (SR ID, area, address, coordinates).
-- **Enrichment tab (CRM Raw)**: Map `customer_mobile`, `customer_landline`, `customer_email`, `manager_name`, `manager_mobile`, `manager_email` plus existing fields (`phone`, `customer_name`, `cab`, `building_id_hemd`).
-- Add a grouped checkbox UI so users can toggle which field categories to import:
-  - **Βασικά** (always on): SR ID, Περιοχή
-  - **Διεύθυνση**: Οδός, Αριθμός, Όροφος, Δήμος
-  - **Πελάτης**: Όνομα, Κινητό, Σταθερό, Email
-  - **Διαχειριστής**: Όνομα, Κινητό, Email
-  - **Τεχνικά**: Τύπος Εργασίας, Κατηγορία, CAB, Building ID
+**3. Update `src/components/IncompleteSurveys.tsx`**
+- Same pattern: when this component sets an assignment to `pre_committed`, also ensure a survey record is created with status `'ΠΡΟΔΕΣΜΕΥΣΗ ΥΛΙΚΩΝ'`
 
-### 3. Update AssignmentTable / Detail Views
-Show the new fields (manager info, customer contacts) in the assignment detail panel where relevant.
-
-### Files to Modify
-1. New migration — `ALTER TABLE assignments ADD COLUMN ...` (10 columns)
-2. `src/components/AssignmentsImport.tsx` — expanded mapping + checkbox UI
-3. `src/components/AssignmentTable.tsx` — display new fields in detail view
+### Technical Details
+- The `surveys` table already has columns: `sr_id`, `area`, `technician_id`, `organization_id`, `status`, `comments`, `created_at`
+- The trigger approach ensures no assignment can reach `pre_committed` without a matching survey record, regardless of how the status change happens (UI, bulk import, direct DB update)
+- Survey status will be `'ΠΡΟΔΕΣΜΕΥΣΗ ΥΛΙΚΩΝ'` which already has styling configured in the Surveys page
 
