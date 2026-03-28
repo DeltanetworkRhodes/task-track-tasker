@@ -268,17 +268,18 @@ const Surveys = () => {
 
   const SURVEY_STATUSES = ["submitted", "ΠΡΟΔΕΣΜΕΥΣΗ ΥΛΙΚΩΝ", "ΕΛΛΙΠΗΣ ΑΥΤΟΨΙΑ", "ΑΠΑΙΤΕΙΤΑΙ ΕΝΕΡΓΕΙΑ", "BLOCKER", "ΡΑΝΤΕΒΟΥ"];
 
-  // Statuses that mean the SR has moved past the survey phase
-  const CONSTRUCTION_STATUSES = ["construction", "completed", "submitted", "paid", "rejected"];
+  // Only show surveys whose assignment is in these statuses (survey-phase statuses)
+  const SURVEY_PHASE_STATUSES = ["pre_committed", "inspection"];
 
   // Filtering
   const filtered = useMemo(() => {
     return (surveys || []).filter((s) => {
       if (!SURVEY_STATUSES.includes(s.status)) return false;
-      // Exclude SRs that have moved to construction or later
+      // Only show surveys whose assignment is in the survey phase
       const normalizedId = normalizeSrId(s.sr_id);
       const asg = assignmentMap[normalizedId];
-      if (asg && CONSTRUCTION_STATUSES.includes(asg.status)) return false;
+      // If assignment exists but is NOT in a survey-phase status, exclude it
+      if (asg && !SURVEY_PHASE_STATUSES.includes(asg.status)) return false;
       // Also exclude if a construction record exists for this SR
       if (constructionSrIds?.has(normalizedId)) return false;
       const matchesSearch = s.sr_id.toLowerCase().includes(search.toLowerCase());
