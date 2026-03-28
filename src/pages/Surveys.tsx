@@ -981,7 +981,7 @@ const Surveys = () => {
                         <span>{profileMap[selectedSurvey.technician_id]?.full_name || "—"}</span>
                       </div>
                       {(() => {
-                        const asg = assignmentMap[selectedSurvey.sr_id];
+                        const asg = assignmentMap[normalizeSrId(selectedSurvey.sr_id)];
                         if (!asg) return null;
                         const links = [
                           { url: asg.drive_folder_url, label: "Φάκελος SR" },
