@@ -770,7 +770,7 @@ Deno.serve(async (req) => {
       if (zipFiles.length > 0) {
         const zipInput: Record<string, Uint8Array> = {};
         for (const file of zipFiles) zipInput[file.name] = file.data;
-        zipBytes = zipSync(zipInput, { level: 0 });
+        zipBytes = zipSync(zipInput, { level: 6 });
         console.log(`Built ZIP: ${zipFiles.length} files, ${(zipBytes.length / 1024 / 1024).toFixed(1)}MB, root=${rootFolder}`);
 
         // Always upload ZIP to storage for signed URL
