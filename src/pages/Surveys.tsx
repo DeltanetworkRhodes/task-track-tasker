@@ -696,9 +696,9 @@ const Surveys = () => {
                     <tr className="bg-muted/50 text-muted-foreground text-[10px] uppercase tracking-wider">
                       <th className="text-left px-1.5 py-2 font-medium w-[14%]">SR ID</th>
                       <th className="text-left px-1.5 py-2 font-medium w-[10%]">Περιοχή</th>
-                      <th className="text-left px-1.5 py-2 font-medium w-[16%]">Τεχνικός</th>
-                      <th className="text-left px-1.5 py-2 font-medium w-[18%]">Κατάσταση</th>
-                      <th className="text-left px-1.5 py-2 font-medium w-[12%]">Ημ/νία</th>
+                      <th className="text-left px-1.5 py-2 font-medium w-[16%]">Πελάτης / Διεύθυνση</th>
+                      <th className="text-left px-1.5 py-2 font-medium w-[14%]">Κατάσταση</th>
+                      <th className="text-left px-1.5 py-2 font-medium w-[10%]">Ημ/νία</th>
                       <th className="text-center px-1.5 py-2 font-medium w-[6%]">Email</th>
                       <th className="text-center px-1 py-2 w-[5%]"></th>
                     </tr>
@@ -707,6 +707,7 @@ const Surveys = () => {
                     {filtered.map((s) => {
                       const tech = profileMap[s.technician_id];
                       const sc = statusConfig[s.status] || statusConfig["submitted"];
+                      const asg = assignmentMap[normalizeSrId(s.sr_id)];
                       return (
                         <tr
                           key={s.id}
@@ -717,7 +718,10 @@ const Surveys = () => {
                           <td className="px-1.5 py-2">
                             <Badge variant="outline" className="text-[9px]">{s.area}</Badge>
                           </td>
-                          <td className="px-1.5 py-2 text-muted-foreground text-[11px] truncate">{tech?.full_name || "—"}</td>
+                          <td className="px-1.5 py-2">
+                            <div className="text-[11px] font-medium truncate">{asg?.customer_name || "—"}</div>
+                            <div className="text-[10px] text-muted-foreground truncate">{asg?.address || "—"}</div>
+                          </td>
                           <td className="px-1.5 py-2">
                             <Badge variant="outline" className={`text-[9px] ${sc.color}`}>{sc.label}</Badge>
                           </td>
