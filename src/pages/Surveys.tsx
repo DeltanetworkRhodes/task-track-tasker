@@ -89,6 +89,8 @@ const Surveys = () => {
     enabled: !!selectedSurvey,
   });
 
+
+
   const { data: profiles } = useQuery({
     queryKey: ["all-profiles"],
     queryFn: async () => {
@@ -124,6 +126,19 @@ const Surveys = () => {
       return acc;
     }, {});
   }, [dbAssignments]);
+
+  // Fallback: fetch files from Google Drive when survey_files is empty
+  const { data: driveFilesData, isLoading: driveFilesLoading } = useQuery({
+    queryKey: ["drive-files", selectedSurvey?.sr_id],
+    queryFn: async () => {
+      const { data, error } = await supabase.functions.invoke("google-drive-files", {
+        body: { action: "sr_folder", sr_id: selectedSurvey!.sr_id },
+      });
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!selectedSurvey && (!surveyFiles || surveyFiles.length === 0) && !!assignmentMap[selectedSurvey?.sr_id || ""]?.drive_folder_url,
+  });
 
   // Signed URLs are now generated in the surveyFiles query
 
@@ -711,13 +726,12 @@ const Surveys = () => {
                 <table className="w-full text-sm table-fixed">
                   <thead>
                     <tr className="bg-muted/50 text-muted-foreground text-[11px] uppercase tracking-wider">
-                      <th className="text-left px-2 py-2.5 font-medium w-[10%]">SR ID</th>
-                      <th className="text-left px-2 py-2.5 font-medium w-[8%]">Περιοχή</th>
-                      <th className="text-left px-2 py-2.5 font-medium w-[13%]">Τεχνικός</th>
+                      <th className="text-left px-2 py-2.5 font-medium w-[11%]">SR ID</th>
+                      <th className="text-left px-2 py-2.5 font-medium w-[9%]">Περιοχή</th>
+                      <th className="text-left px-2 py-2.5 font-medium w-[14%]">Τεχνικός</th>
                       <th className="text-left px-2 py-2.5 font-medium w-[13%]">Κατάσταση</th>
-                      <th className="text-left px-2 py-2.5 font-medium w-[17%]">Σχόλια</th>
-                      <th className="text-left px-2 py-2.5 font-medium w-[10%]">Ημερομηνία</th>
-                      <th className="text-center px-2 py-2.5 font-medium w-[4%]">Drive</th>
+                      <th className="text-left px-2 py-2.5 font-medium w-[19%]">Σχόλια</th>
+                      <th className="text-left px-2 py-2.5 font-medium w-[11%]">Ημερομηνία</th>
                       <th className="text-center px-2 py-2.5 font-medium w-[5%]">Email</th>
                       <th className="text-center px-2 py-2.5 font-medium w-[5%]">Ενέργεια</th>
                       <th className="text-center px-1 py-2.5 w-[4%]"></th>
@@ -752,14 +766,6 @@ const Surveys = () => {
                             {new Date(s.created_at).toLocaleDateString("el-GR")}
                           </td>
                           <td className="px-2 py-2.5 text-center" onClick={(e) => e.stopPropagation()}>
-                            {assignmentMap[s.sr_id]?.drive_folder_url ? (
-                              <a href={assignmentMap[s.sr_id].drive_folder_url} target="_blank" rel="noopener noreferrer"
-                                className="inline-flex items-center justify-center text-primary hover:text-primary/80">
-                                <FolderOpen className="h-3.5 w-3.5" />
-                              </a>
-                            ) : (
-                              <span className="text-muted-foreground/30">—</span>
-                            )}
                             {s.email_sent ? (
                               <Mail className="h-3.5 w-3.5 text-green-600 mx-auto" />
                             ) : (
@@ -1021,7 +1027,76 @@ const Surveys = () => {
                     );
                   })}
 
-                  {Object.keys(groupedFiles).length === 0 && (
+                  {Object.keys(groupedFiles).length === 0 && driveFilesLoading && (
+                    <div className="flex items-center justify-center gap-2 py-4">
+                      <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                      <p className="text-sm text-muted-foreground">Αναζήτηση αρχείων στο Drive...</p>
+                    </div>
+                  )}
+
+                  {Object.keys(groupedFiles).length === 0 && !driveFilesLoading && driveFilesData?.found && (
+                    <>
+                      {/* Main folder files */}
+                      {driveFilesData.files?.length > 0 && (
+                        <div className="space-y-2">
+                          <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                            <FolderOpen className="h-3.5 w-3.5" />
+                            Αρχεία Φακέλου ({driveFilesData.files.length})
+                          </h3>
+                          <div className="grid grid-cols-3 gap-2">
+                            {driveFilesData.files.map((f: any) => (
+                              <a key={f.id} href={f.webViewLink || "#"} target="_blank" rel="noopener noreferrer" className="group relative block">
+                                {f.thumbnailLink ? (
+                                  <img src={f.thumbnailLink} alt={f.name} className="h-28 w-full object-cover rounded-lg border border-border group-hover:border-primary transition-colors" />
+                                ) : (
+                                  <div className="h-28 w-full rounded-lg border border-border group-hover:border-primary transition-colors flex items-center justify-center bg-muted/30">
+                                    <FileText className="h-8 w-8 text-muted-foreground/50" />
+                                  </div>
+                                )}
+                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 rounded-lg flex items-center justify-center transition-colors">
+                                  <ExternalLink className="h-5 w-5 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                                </div>
+                                <p className="text-[10px] text-muted-foreground mt-1 truncate">{f.name}</p>
+                              </a>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {/* Subfolder files */}
+                      {Object.entries(driveFilesData.subfolders || {}).map(([folderName, folderData]: [string, any]) => (
+                        folderData.files?.length > 0 && (
+                          <div key={folderName} className="space-y-2">
+                            <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                              <FolderOpen className="h-3.5 w-3.5" />
+                              {folderName} ({folderData.files.length})
+                              <a href={folderData.webViewLink} target="_blank" rel="noopener noreferrer" className="ml-auto text-primary hover:underline flex items-center gap-0.5">
+                                <ExternalLink className="h-3 w-3" />
+                              </a>
+                            </h3>
+                            <div className="grid grid-cols-3 gap-2">
+                              {folderData.files.map((f: any) => (
+                                <a key={f.id} href={f.webViewLink || "#"} target="_blank" rel="noopener noreferrer" className="group relative block">
+                                  {f.thumbnailLink ? (
+                                    <img src={f.thumbnailLink} alt={f.name} className="h-28 w-full object-cover rounded-lg border border-border group-hover:border-primary transition-colors" />
+                                  ) : (
+                                    <div className="h-28 w-full rounded-lg border border-border group-hover:border-primary transition-colors flex items-center justify-center bg-muted/30">
+                                      <FileText className="h-8 w-8 text-muted-foreground/50" />
+                                    </div>
+                                  )}
+                                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 rounded-lg flex items-center justify-center transition-colors">
+                                    <ExternalLink className="h-5 w-5 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                                  </div>
+                                  <p className="text-[10px] text-muted-foreground mt-1 truncate">{f.name}</p>
+                                </a>
+                              ))}
+                            </div>
+                          </div>
+                        )
+                      ))}
+                    </>
+                  )}
+
+                  {Object.keys(groupedFiles).length === 0 && !driveFilesLoading && !driveFilesData?.found && (
                     <p className="text-sm text-muted-foreground text-center py-4">Δεν βρέθηκαν αρχεία</p>
                   )}
                 </div>
