@@ -441,20 +441,24 @@ Deno.serve(async (req) => {
 
     // 2. Download ALL files ONCE (used for Drive upload, ZIP, and email)
     const downloadedFiles: { sf: any; data: Uint8Array }[] = [];
-    const BATCH_SIZE = 3;
-    for (let i = 0; i < surveyFiles.length; i += BATCH_SIZE) {
-      const batch = surveyFiles.slice(i, i + BATCH_SIZE);
-      const results = await Promise.all(
-        batch.map(async (sf: any) => {
-          const data = await downloadFile(adminClient, sf.file_path);
-          return data ? { sf, data } : null;
-        })
-      );
-      for (const r of results) {
-        if (r) downloadedFiles.push(r);
+    if (hasLocalFiles) {
+      const BATCH_SIZE = 3;
+      for (let i = 0; i < surveyFiles.length; i += BATCH_SIZE) {
+        const batch = surveyFiles.slice(i, i + BATCH_SIZE);
+        const results = await Promise.all(
+          batch.map(async (sf: any) => {
+            const data = await downloadFile(adminClient, sf.file_path);
+            return data ? { sf, data } : null;
+          })
+        );
+        for (const r of results) {
+          if (r) downloadedFiles.push(r);
+        }
       }
+      console.log(`Downloaded ${downloadedFiles.length}/${surveyFiles.length} files`);
+    } else {
+      console.log(`No local survey_files — trigger-created survey, skipping file processing`);
     }
-    console.log(`Downloaded ${downloadedFiles.length}/${surveyFiles.length} files`);
 
     // 3. Google Drive: create folder structure & upload
     const folderName = `${sr_id} - ${customerName}`;
