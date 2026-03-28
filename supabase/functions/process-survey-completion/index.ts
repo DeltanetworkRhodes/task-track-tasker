@@ -430,35 +430,35 @@ Deno.serve(async (req) => {
     const technicianName = profileRes.data?.full_name || "Technician";
     const surveyFiles = filesRes.data;
 
-    if (!surveyFiles || surveyFiles.length === 0) {
-      return new Response(JSON.stringify({ error: "No files found for survey" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    const hasLocalFiles = surveyFiles && surveyFiles.length > 0;
 
-    const presentTypes = [...new Set(surveyFiles.map((f: any) => f.file_type))];
+    const presentTypes = hasLocalFiles ? [...new Set(surveyFiles.map((f: any) => f.file_type))] : [];
     const missingTypes = REQUIRED_FILE_TYPES.filter((t) => !presentTypes.includes(t));
-    const isComplete = missingTypes.length === 0;
+    // If no local files, check if Drive folder already exists (trigger-created surveys)
+    const isComplete = hasLocalFiles ? missingTypes.length === 0 : false;
 
     console.log(`File check: present=${presentTypes.join(",")}, missing=${missingTypes.join(",")}, complete=${isComplete}`);
 
     // 2. Download ALL files ONCE (used for Drive upload, ZIP, and email)
     const downloadedFiles: { sf: any; data: Uint8Array }[] = [];
-    const BATCH_SIZE = 3;
-    for (let i = 0; i < surveyFiles.length; i += BATCH_SIZE) {
-      const batch = surveyFiles.slice(i, i + BATCH_SIZE);
-      const results = await Promise.all(
-        batch.map(async (sf: any) => {
-          const data = await downloadFile(adminClient, sf.file_path);
-          return data ? { sf, data } : null;
-        })
-      );
-      for (const r of results) {
-        if (r) downloadedFiles.push(r);
+    if (hasLocalFiles) {
+      const BATCH_SIZE = 3;
+      for (let i = 0; i < surveyFiles.length; i += BATCH_SIZE) {
+        const batch = surveyFiles.slice(i, i + BATCH_SIZE);
+        const results = await Promise.all(
+          batch.map(async (sf: any) => {
+            const data = await downloadFile(adminClient, sf.file_path);
+            return data ? { sf, data } : null;
+          })
+        );
+        for (const r of results) {
+          if (r) downloadedFiles.push(r);
+        }
       }
+      console.log(`Downloaded ${downloadedFiles.length}/${surveyFiles.length} files`);
+    } else {
+      console.log(`No local survey_files — trigger-created survey, skipping file processing`);
     }
-    console.log(`Downloaded ${downloadedFiles.length}/${surveyFiles.length} files`);
 
     // 3. Google Drive: create folder structure & upload
     const folderName = `${sr_id} - ${customerName}`;
