@@ -751,21 +751,21 @@ const Surveys = () => {
               </div>
 
               {/* Desktop Table View */}
-              <div className="hidden lg:block">
-                <table className="w-full text-sm table-fixed">
+              <div className="hidden lg:block overflow-x-auto">
+                <table className="w-full text-sm" style={{ minWidth: '1100px' }}>
                   <thead>
                     <tr className="bg-muted/50 text-muted-foreground text-[11px] uppercase tracking-wider">
-                      <th className="text-left px-2 py-2.5 font-medium w-[10%]">SR ID</th>
-                      <th className="text-left px-2 py-2.5 font-medium w-[7%]">Περιοχή</th>
-                      <th className="text-left px-2 py-2.5 font-medium w-[14%]">Πελάτης</th>
-                      <th className="text-left px-2 py-2.5 font-medium w-[14%]">Διεύθυνση</th>
-                      <th className="text-left px-2 py-2.5 font-medium w-[10%]">Τεχνικός</th>
-                      <th className="text-left px-2 py-2.5 font-medium w-[11%]">Κατάσταση</th>
-                      <th className="text-left px-2 py-2.5 font-medium w-[12%]">Σχόλια</th>
-                      <th className="text-left px-2 py-2.5 font-medium w-[8%]">Ημερομηνία</th>
-                      <th className="text-center px-2 py-2.5 font-medium w-[4%]">Email</th>
-                      <th className="text-center px-2 py-2.5 font-medium w-[4%]">Ενέργεια</th>
-                      <th className="text-center px-1 py-2.5 w-[3%]"></th>
+                      <th className="text-left px-3 py-2.5 font-medium" style={{ width: '11%' }}>SR ID</th>
+                      <th className="text-left px-3 py-2.5 font-medium" style={{ width: '7%' }}>Περιοχή</th>
+                      <th className="text-left px-3 py-2.5 font-medium" style={{ width: '13%' }}>Πελάτης</th>
+                      <th className="text-left px-3 py-2.5 font-medium" style={{ width: '15%' }}>Διεύθυνση</th>
+                      <th className="text-left px-3 py-2.5 font-medium" style={{ width: '11%' }}>Τεχνικός</th>
+                      <th className="text-left px-3 py-2.5 font-medium" style={{ width: '13%' }}>Κατάσταση</th>
+                      <th className="text-left px-3 py-2.5 font-medium" style={{ width: '14%' }}>Σχόλια</th>
+                      <th className="text-left px-3 py-2.5 font-medium" style={{ width: '8%' }}>Ημερομηνία</th>
+                      <th className="text-center px-2 py-2.5 font-medium" style={{ width: '4%' }}>Email</th>
+                      <th className="text-center px-2 py-2.5 font-medium" style={{ width: '4%' }}></th>
+                      <th className="text-center px-1 py-2.5" style={{ width: '3%' }}></th>
                     </tr>
                   </thead>
                   <tbody>
