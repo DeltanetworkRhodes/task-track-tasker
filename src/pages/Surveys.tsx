@@ -103,6 +103,16 @@ const Surveys = () => {
   });
 
   const { data: dbAssignments } = useAssignments();
+  const { data: constructionSrIds } = useQuery({
+    queryKey: ["construction-sr-ids"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("constructions")
+        .select("sr_id");
+      if (error) throw error;
+      return new Set((data || []).map((c) => normalizeSrId(c.sr_id)));
+    },
+  });
   const { data: appointments } = useQuery({
     queryKey: ["appointments"],
     queryFn: async () => {
