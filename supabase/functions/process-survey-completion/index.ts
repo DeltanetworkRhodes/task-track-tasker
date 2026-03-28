@@ -562,11 +562,12 @@ Deno.serve(async (req) => {
         }
       }
       console.log(`Downloaded ${downloadedFiles.length}/${surveyFiles.length} files`);
-    } else if (hasDriveFolder && serviceAccountKeyStr) {
+    } else if (hasDriveFolder && Deno.env.get("GOOGLE_SERVICE_ACCOUNT_KEY")) {
       // No local files but Drive folder exists — download from Drive
       console.log(`No local survey_files — downloading from Google Drive...`);
       try {
-        const serviceAccountKey = JSON.parse(serviceAccountKeyStr);
+        const saKeyStr = Deno.env.get("GOOGLE_SERVICE_ACCOUNT_KEY")!;
+        const serviceAccountKey = JSON.parse(saKeyStr);
         const driveAccessToken = await getAccessToken(serviceAccountKey);
         const driveFiles = await downloadDriveFiles(driveAccessToken, sr_id);
         for (const df of driveFiles) {
