@@ -209,7 +209,7 @@ const Index = () => {
 
   return (
     <AppLayout>
-      <div className="space-y-5 sm:space-y-6 max-w-[1400px] mx-auto">
+      <div className="space-y-5 sm:space-y-6 w-full">
         {/* Hero Banner */}
         <div className="relative rounded-2xl overflow-hidden shadow-xl bg-sidebar">
           {/* Gradient background instead of image for better mobile performance */}

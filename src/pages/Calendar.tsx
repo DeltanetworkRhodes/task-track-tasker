@@ -11,7 +11,7 @@ const Calendar = () => {
 
   return (
     <AppLayout>
-      <div className="space-y-5 max-w-[1400px] mx-auto">
+      <div className="space-y-5 w-full">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight">Ημερολόγιο & Πρόγραμμα</h1>

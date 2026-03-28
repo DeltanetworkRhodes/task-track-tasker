@@ -150,7 +150,7 @@ const WorkPricing = () => {
 
   return (
     <AppLayout>
-      <div className="space-y-6 max-w-[1400px] mx-auto">
+      <div className="space-y-6 w-full">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
