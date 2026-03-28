@@ -755,14 +755,13 @@ const Surveys = () => {
                 <table className="w-full text-sm" style={{ minWidth: '1100px' }}>
                   <thead>
                     <tr className="bg-muted/50 text-muted-foreground text-[11px] uppercase tracking-wider">
-                      <th className="text-left px-3 py-2.5 font-medium" style={{ width: '11%' }}>SR ID</th>
-                      <th className="text-left px-3 py-2.5 font-medium" style={{ width: '7%' }}>Περιοχή</th>
-                      <th className="text-left px-3 py-2.5 font-medium" style={{ width: '13%' }}>Πελάτης</th>
-                      <th className="text-left px-3 py-2.5 font-medium" style={{ width: '15%' }}>Διεύθυνση</th>
-                      <th className="text-left px-3 py-2.5 font-medium" style={{ width: '11%' }}>Τεχνικός</th>
-                      <th className="text-left px-3 py-2.5 font-medium" style={{ width: '13%' }}>Κατάσταση</th>
-                      <th className="text-left px-3 py-2.5 font-medium" style={{ width: '14%' }}>Σχόλια</th>
-                      <th className="text-left px-3 py-2.5 font-medium" style={{ width: '8%' }}>Ημερομηνία</th>
+                      <th className="text-left px-3 py-2.5 font-medium" style={{ width: '13%' }}>SR ID</th>
+                      <th className="text-left px-3 py-2.5 font-medium" style={{ width: '8%' }}>Περιοχή</th>
+                      <th className="text-left px-3 py-2.5 font-medium" style={{ width: '15%' }}>Πελάτης</th>
+                      <th className="text-left px-3 py-2.5 font-medium" style={{ width: '18%' }}>Διεύθυνση</th>
+                      <th className="text-left px-3 py-2.5 font-medium" style={{ width: '13%' }}>Τεχνικός</th>
+                      <th className="text-left px-3 py-2.5 font-medium" style={{ width: '14%' }}>Κατάσταση</th>
+                      <th className="text-left px-3 py-2.5 font-medium" style={{ width: '9%' }}>Ημερομηνία</th>
                       <th className="text-center px-2 py-2.5 font-medium" style={{ width: '4%' }}>Email</th>
                       <th className="text-center px-2 py-2.5 font-medium" style={{ width: '4%' }}></th>
                       <th className="text-center px-1 py-2.5" style={{ width: '3%' }}></th>
