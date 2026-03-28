@@ -90,12 +90,12 @@ async function getAccessToken(serviceAccountKey: any): Promise<string> {
 }
 
 async function driveSearch(accessToken: string, query: string, useFallback = true): Promise<any[]> {
-  const url = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&fields=files(id,name,mimeType,webViewLink,createdTime)&pageSize=100&supportsAllDrives=true&includeItemsFromAllDrives=true&corpora=drive&driveId=${SHARED_DRIVE_ID}`;
+  const url = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&fields=files(id,name,mimeType,webViewLink,createdTime,shortcutDetails(targetId,targetMimeType))&pageSize=100&supportsAllDrives=true&includeItemsFromAllDrives=true&corpora=drive&driveId=${SHARED_DRIVE_ID}`;
   const res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
   if (!res.ok) {
     if (useFallback) {
       console.log(`Drive search failed with corpora=drive, falling back to allDrives`);
-      const fallbackUrl = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&fields=files(id,name,mimeType,webViewLink,createdTime)&pageSize=100&supportsAllDrives=true&includeItemsFromAllDrives=true&corpora=allDrives`;
+      const fallbackUrl = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&fields=files(id,name,mimeType,webViewLink,createdTime,shortcutDetails(targetId,targetMimeType))&pageSize=100&supportsAllDrives=true&includeItemsFromAllDrives=true&corpora=allDrives`;
       const fallbackRes = await fetch(fallbackUrl, { headers: { Authorization: `Bearer ${accessToken}` } });
       if (!fallbackRes.ok) throw new Error(await fallbackRes.text());
       return (await fallbackRes.json()).files || [];
@@ -367,44 +367,78 @@ async function downloadDriveFiles(
     console.log(`No Drive folder found for SR ${srId}`);
     return [];
   }
-  
+
   // Pick the most recent folder if multiple found
-  const folder = folders.length === 1 ? folders[0] : folders[0]; // already sorted by Drive
+  const folder = [...folders].sort((a, b) => {
+    const aTs = a?.createdTime ? Date.parse(a.createdTime) : 0;
+    const bTs = b?.createdTime ? Date.parse(b.createdTime) : 0;
+    return bTs - aTs;
+  })[0];
   console.log(`Found Drive folder: ${folder.name} (${folder.id})`);
-  
-  // List subfolders
-  const subfolders = await driveSearch(
-    accessToken,
-    `'${folder.id}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`
-  );
-  
-  // List files in main folder
-  const mainFiles = await driveSearch(
-    accessToken,
-    `'${folder.id}' in parents and mimeType != 'application/vnd.google-apps.folder' and trashed = false`
-  );
-  
-  // Collect all files with their subfolder info
-  const allFiles: { id: string; name: string; folderName: string; fileType: string }[] = [];
-  
-  for (const f of mainFiles) {
-    allFiles.push({ id: f.id, name: f.name, folderName: "", fileType: "other" });
-  }
-  
-  for (const sub of subfolders) {
-    const subFiles = await driveSearch(
+
+  const inferFileTypeFromPath = (relativePath: string): string => {
+    const upper = relativePath.toUpperCase();
+    if (upper.includes("ΠΡΟΜΕΛΕΤΗ") || upper.includes("ΦΩΤΟ")) return "building_photo";
+    if (upper.includes("ΕΓΓΡΑΦΑ") || upper.includes("SCREENSHOT")) return "screenshot";
+    return "other";
+  };
+
+  const allFiles: { id: string; name: string; folderPath: string; fileType: string }[] = [];
+  const visitedFolderIds = new Set<string>();
+
+  const collectFilesRecursive = async (folderId: string, currentPath = ""): Promise<void> => {
+    if (visitedFolderIds.has(folderId)) return;
+    visitedFolderIds.add(folderId);
+
+    const children = await driveSearch(
       accessToken,
-      `'${sub.id}' in parents and mimeType != 'application/vnd.google-apps.folder' and trashed = false`
+      `'${folderId}' in parents and trashed = false`
     );
-    const subName = sub.name.toUpperCase();
-    let fileType = "other";
-    if (subName.includes("ΠΡΟΜΕΛΕΤΗ") || subName.includes("ΦΩΤΟ")) fileType = "building_photo";
-    else if (subName.includes("ΕΓΓΡΑΦΑ") || subName.includes("SCREENSHOT")) fileType = "screenshot";
-    
-    for (const f of subFiles) {
-      allFiles.push({ id: f.id, name: f.name, folderName: sub.name, fileType });
+
+    for (const child of children) {
+      const childName = child.name || "unnamed";
+      const childPath = currentPath ? `${currentPath}/${childName}` : childName;
+      const childMimeType = child.mimeType || "";
+
+      if (childMimeType === "application/vnd.google-apps.folder") {
+        await collectFilesRecursive(child.id, childPath);
+        continue;
+      }
+
+      if (childMimeType === "application/vnd.google-apps.shortcut") {
+        const targetId = child.shortcutDetails?.targetId;
+        const targetMimeType = child.shortcutDetails?.targetMimeType || "";
+        if (!targetId) continue;
+
+        if (targetMimeType === "application/vnd.google-apps.folder") {
+          await collectFilesRecursive(targetId, childPath);
+          continue;
+        }
+
+        allFiles.push({
+          id: targetId,
+          name: childName,
+          folderPath: currentPath,
+          fileType: inferFileTypeFromPath(childPath),
+        });
+        continue;
+      }
+
+      if (childMimeType.startsWith("application/vnd.google-apps")) {
+        console.log(`Skipping non-downloadable Google file: ${childPath} (${childMimeType})`);
+        continue;
+      }
+
+      allFiles.push({
+        id: child.id,
+        name: childName,
+        folderPath: currentPath,
+        fileType: inferFileTypeFromPath(childPath),
+      });
     }
-  }
+  };
+
+  await collectFilesRecursive(folder.id);
   
   console.log(`Found ${allFiles.length} files in Drive folder`);
   
@@ -426,9 +460,13 @@ async function downloadDriveFiles(
             return null;
           }
           const data = new Uint8Array(await res.arrayBuffer());
-          console.log(`Downloaded: ${file.folderName ? file.folderName + "/" : ""}${file.name} (${(data.length / 1024).toFixed(0)}KB)`);
+          console.log(`Downloaded: ${file.folderPath ? file.folderPath + "/" : ""}${file.name} (${(data.length / 1024).toFixed(0)}KB)`);
           return {
-            sf: { file_name: file.name, file_type: file.fileType },
+            sf: {
+              file_name: file.name,
+              file_type: file.fileType,
+              folder_path: file.folderPath,
+            },
             data,
           };
         } catch (e: any) {
@@ -755,7 +793,9 @@ Deno.serve(async (req) => {
       const rootFolder = `SR ${sr_id}${safeName ? ` ${safeName}` : ""}`;
       
       const zipFiles: { name: string; data: Uint8Array }[] = downloadedFiles.map(({ sf, data }) => ({
-        name: `${rootFolder}/${getZipFolder(sf.file_type)}/${sf.file_name}`,
+        name: sf.folder_path
+          ? `${rootFolder}/${String(sf.folder_path).replace(/^\/+|\/+$/g, "")}/${sf.file_name}`
+          : `${rootFolder}/${getZipFolder(sf.file_type)}/${sf.file_name}`,
         data,
       }));
       
