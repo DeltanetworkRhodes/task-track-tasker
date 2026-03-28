@@ -266,7 +266,7 @@ const Surveys = () => {
     return (surveys || []).filter((s) => {
       if (!SURVEY_STATUSES.includes(s.status)) return false;
       // Exclude SRs that have moved to construction or later
-      const asg = assignmentMap[s.sr_id];
+      const asg = assignmentMap[normalizeSrId(s.sr_id)];
       if (asg && CONSTRUCTION_STATUSES.includes(asg.status)) return false;
       const matchesSearch = s.sr_id.toLowerCase().includes(search.toLowerCase());
       const matchesArea = areaFilter === "all" || s.area === areaFilter;
