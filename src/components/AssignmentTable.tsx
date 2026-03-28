@@ -521,8 +521,8 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
             await supabase.from("surveys").insert({
               sr_id: srId,
               area: assignment.area,
-              technician_id: techId || user?.id,
-              organization_id: orgId || null,
+              technician_id: techId || assignment.technician_id,
+              organization_id: organizationId || null,
               status: "ΠΡΟΔΕΣΜΕΥΣΗ ΥΛΙΚΩΝ",
               comments: "",
             } as any);
