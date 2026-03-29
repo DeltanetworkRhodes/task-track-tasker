@@ -162,14 +162,8 @@ const TechnicianInventoryView = () => {
           </div>
         </div>
       )}
-      {user && (
-        <ReturnToWarehouseDialog
-          open={returnOpen}
-          onOpenChange={setReturnOpen}
-          technicianId={user.id}
-          technicianName="Εγώ"
-        />
-      )}
+    </div>
+  );
     </div>
   );
 };
