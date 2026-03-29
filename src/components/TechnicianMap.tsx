@@ -23,8 +23,8 @@ const TechnicianMap = ({ assignments }: Props) => {
     if (a.latitude && a.longitude) {
       return `${a.latitude},${a.longitude}`;
     }
-    // Append area/municipality to address for accurate geocoding
-    const parts = [a.address, a.municipality, a.area].filter(Boolean);
+    // Append area/municipality + country for accurate geocoding
+    const parts = [a.address, a.municipality, a.area, "Ελλάδα"].filter(Boolean);
     return parts.join(", ");
   };
 
