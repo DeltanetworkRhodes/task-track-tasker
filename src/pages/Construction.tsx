@@ -128,7 +128,45 @@ const ConstructionPage = () => {
     return map;
   }, [dbAssignments]);
 
-  // Stats
+  // Post-construction assignments (submitted, paid, rejected)
+  const postConstructionAssignments = useMemo(() => {
+    return (dbAssignments || [])
+      .filter(a => ["submitted", "paid", "rejected"].includes(a.status))
+      .map(a => ({
+        id: a.id,
+        srId: a.sr_id,
+        status: a.status,
+        customerName: (a as any).customer_name || "",
+        address: (a as any).address || "",
+        area: a.area,
+        date: a.updated_at?.split("T")[0] || a.created_at.split("T")[0],
+        paymentAmount: (a as any).payment_amount || 0,
+        paymentDate: (a as any).payment_date || "",
+        paymentNotes: (a as any).payment_notes || "",
+        driveUrl: a.drive_folder_url || "",
+        submittedAt: (a as any).submitted_at || "",
+        paidAt: (a as any).paid_at || "",
+      }));
+  }, [dbAssignments]);
+
+  const postConstructionCounts = useMemo(() => ({
+    submitted: postConstructionAssignments.filter(a => a.status === "submitted").length,
+    paid: postConstructionAssignments.filter(a => a.status === "paid").length,
+    rejected: postConstructionAssignments.filter(a => a.status === "rejected").length,
+  }), [postConstructionAssignments]);
+
+  const filteredPostConstruction = useMemo(() => {
+    return postConstructionAssignments.filter(a => {
+      if (topTab !== "submitted" && topTab !== "paid" && topTab !== "rejected") return false;
+      if (a.status !== topTab) return false;
+      if (search) {
+        const q = search.toLowerCase();
+        return a.srId.toLowerCase().includes(q) || a.customerName.toLowerCase().includes(q);
+      }
+      return true;
+    });
+  }, [postConstructionAssignments, topTab, search]);
+
   const totalRevenue = constructions.reduce((s, c) => s + c.revenue, 0);
   const totalCost = constructions.reduce((s, c) => s + c.materialCost, 0);
   const totalProfit = constructions.reduce((s, c) => s + c.profit, 0);
