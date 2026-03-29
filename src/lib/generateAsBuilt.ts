@@ -666,6 +666,12 @@ function fillEpimetrisiSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
   console.log(`✅ CAB-BEP: wrote ${Math.min(cabBepPaths.length, 4)} paths to F44:G47`);
 
   // ══════════════════════════════════════════════════════════════
+  // 5a2. Write BMO type header at I46 and BEP type header at B61
+  // ══════════════════════════════════════════════════════════════
+  ws.getCell("I46").value = getBmoHeader(d.bmoType);
+  ws.getCell("B61").value = getBepHeader(d.bepType);
+
+  // ══════════════════════════════════════════════════════════════
   // 5b. BCP CABLE INDICES (rows 53-58, F=index, G=cable_number, H=address)
   // Fill ONLY when BCP πραγματικά υπάρχει στα δεδομένα
   // ══════════════════════════════════════════════════════════════
@@ -681,7 +687,9 @@ function fillEpimetrisiSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
     op => (op.type || "").toUpperCase() === "CAB-BCP" || /\bBCP\b/i.test(op.path || "")
   );
 
+  // Write BCP header at F51
   if (hasBcp) {
+    ws.getCell("F51").value = getBcpHeader(d.newBcp);
     for (let i = 0; i < bcpCablePaths.length && i < 6; i++) {
       const r = 53 + i;
       const cableNum = extractCableIndex(bcpCablePaths[i].path);
