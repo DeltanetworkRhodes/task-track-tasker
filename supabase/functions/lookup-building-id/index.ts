@@ -83,7 +83,7 @@ function parseAddress(address: string): { street: string; number: string } {
     .trim();
 
   // Try to split street name from number - number is usually at the end
-  const match = cleaned.match(/^(.+?)\s+(\d+[\-\d]*)$/);
+  const match = cleaned.match(/^(.+?)\s+(\d+[\-\d]*[A-ZΑ-Ω]?)$/i);
   if (match) {
     return { street: match[1].trim(), number: match[2].trim() };
   }
