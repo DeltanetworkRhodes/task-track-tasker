@@ -210,6 +210,10 @@ const TechnicianDashboard = () => {
           )}
         </TabsContent>
 
+        <TabsContent value="inventory">
+          <TechnicianInventoryView />
+        </TabsContent>
+
         <TabsContent value="map">
           <TechnicianMap assignments={assignments || []} />
         </TabsContent>
