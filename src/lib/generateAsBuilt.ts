@@ -272,6 +272,55 @@ function fillOrofoiSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
     ws.getCell(r, 13).value = fd.customer_space || ""; // ΑΡΙΘΜΗΣΗ ΧΩΡΟΥ ΠΕΛΑΤΗ
   });
 }
+/* ────────────────────────────────────────────
+   Helper: Derive BEP/BMO/BCP template header strings
+   from GIS bepType/bmoType/newBcp fields
+   ──────────────────────────────────────────── */
+
+function extractSizeFromType(typeStr: string): string {
+  // GIS stores e.g. "LARGE/28/RAYCAP", "MEDIUM/48/RAYCAP", "SMALL/4/ZTT"
+  const upper = (typeStr || "").toUpperCase().trim();
+  if (upper.startsWith("XLARGE") || upper.includes("/XLARGE")) return "XLARGE";
+  if (upper.startsWith("LARGE") || upper.includes("/LARGE")) return "LARGE";
+  if (upper.startsWith("MEDIUM") || upper.includes("/MEDIUM")) return "MEDIUM";
+  if (upper.startsWith("SMALL") || upper.includes("/SMALL")) return "SMALL";
+  // Fallback: try to find keyword anywhere
+  if (upper.includes("XLARGE")) return "XLARGE";
+  if (upper.includes("LARGE")) return "LARGE";
+  if (upper.includes("MEDIUM")) return "MEDIUM";
+  if (upper.includes("SMALL")) return "SMALL";
+  return "";
+}
+
+function getBepHeader(bepType: string): string {
+  const size = extractSizeFromType(bepType);
+  const headers: Record<string, string> = {
+    "XLARGE": "XLARGE BEP with 1 splitter ",
+    "LARGE": "LARGE BEP with 1 splitter ",
+    "MEDIUM": "Medium BEP with 1 splitter ",
+    "SMALL": "SMALL BEP with 1 splitter ",
+  };
+  return headers[size] || `${size || "?"} BEP with 1 splitter `;
+}
+
+function getBmoHeader(bmoType: string): string {
+  const size = extractSizeFromType(bmoType);
+  const headers: Record<string, string> = {
+    "XLARGE": "ΒΜΟ XLARGE BEP with 1 splitter ",
+    "LARGE": "ΒΜΟ LARGE BEP with 1 splitter ",
+    "MEDIUM": "ΒΜΟ MEDIUM BEP with 1 splitter ",
+    "SMALL": "ΒΜΟ SMALL BEP with 1 splitter ",
+  };
+  return headers[size] || `ΒΜΟ ${size || "?"} BEP with 1 splitter `;
+}
+
+function getBcpHeader(newBcp: string): string {
+  if (!newBcp || !newBcp.trim()) return "";
+  // e.g. "SMALL/4/ZTT"
+  const size = extractSizeFromType(newBcp);
+  const brand = newBcp.split("/").pop() || "";
+  return `${size || "?"} BCP with 1 splitter  ${brand}`.trim();
+}
 
 /* ────────────────────────────────────────────
    Sheet 3: OPTICAL PATHS (clear row 2+ then fill)
@@ -349,6 +398,9 @@ function generateBmoLabelString(path: string): string {
 }
 
 function fillLabelsBepSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
+  // Write BEP type header to H2
+  ws.getCell("H2").value = getBepHeader(d.bepType);
+
   // Structure from reference AS-BUILD:
   // Column A: ALL BEP paths (BEP-BMO first, then BEP-only, then "χωρίς ports", then CAB-BEP)
   // Column Y: BEP-BMO paths (raw data)
@@ -453,6 +505,9 @@ function fillLabelsBepSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
 }
 
 function fillLabelsBmoSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
+  // Write BMO type header to H2
+  ws.getCell("H2").value = getBmoHeader(d.bmoType);
+
   // Structure from reference AS-BUILD:
   // Column A: ALL BEP paths (same as LABELS BEP column A)
   // Column Y: BMO-FB paths (raw data)
@@ -611,6 +666,12 @@ function fillEpimetrisiSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
   console.log(`✅ CAB-BEP: wrote ${Math.min(cabBepPaths.length, 4)} paths to F44:G47`);
 
   // ══════════════════════════════════════════════════════════════
+  // 5a2. Write BMO type header at I46 and BEP type header at B61
+  // ══════════════════════════════════════════════════════════════
+  ws.getCell("I46").value = getBmoHeader(d.bmoType);
+  ws.getCell("B61").value = getBepHeader(d.bepType);
+
+  // ══════════════════════════════════════════════════════════════
   // 5b. BCP CABLE INDICES (rows 53-58, F=index, G=cable_number, H=address)
   // Fill ONLY when BCP πραγματικά υπάρχει στα δεδομένα
   // ══════════════════════════════════════════════════════════════
@@ -626,7 +687,9 @@ function fillEpimetrisiSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
     op => (op.type || "").toUpperCase() === "CAB-BCP" || /\bBCP\b/i.test(op.path || "")
   );
 
+  // Write BCP header at F51
   if (hasBcp) {
+    ws.getCell("F51").value = getBcpHeader(d.newBcp);
     for (let i = 0; i < bcpCablePaths.length && i < 6; i++) {
       const r = 53 + i;
       const cableNum = extractCableIndex(bcpCablePaths[i].path);
