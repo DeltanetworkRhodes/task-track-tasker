@@ -1616,7 +1616,8 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
             if (uploadErr) console.error(`OTDR upload error ${folderName}/${i}:`, uploadErr);
             else {
               otdrPaths.push(storagePath);
-              uploadPhotoDrive(assignment.sr_id, `OTDR_${catDef?.label || category}`, storagePath, pdf.name);
+              if (i === 0) await uploadPhotoDrive(assignment.sr_id, `OTDR_${catDef?.label || category}`, storagePath, pdf.name);
+              else uploadPhotoDrive(assignment.sr_id, `OTDR_${catDef?.label || category}`, storagePath, pdf.name);
             }
             otdrUploaded++;
             setSubmitProgress(`Ανέβασμα OTDR μετρήσεων (${otdrUploaded}/${totalOtdrCount})...`);
