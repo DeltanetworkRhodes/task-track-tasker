@@ -92,7 +92,7 @@ const TechnicianMap = ({ assignments }: Props) => {
       if (data?.results?.length > 0) {
         const best = data.results[0];
         if (best.latitude && best.longitude) {
-          openHemdDeepLink(best.latitude, best.longitude);
+          openHemdDeepLink(best.latitude, best.longitude, best.coverid, best.address);
           return;
         }
       }
