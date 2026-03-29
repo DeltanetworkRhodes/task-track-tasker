@@ -1168,7 +1168,7 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
                   <div className="flex-1">
                     <EditableField editing={editing} icon={Hash} label="Building ID" value={editData.building_id_hemd} fallback={(selected as any)?.buildingId} onChange={(v) => setEditData(d => ({ ...d, building_id_hemd: v }))} />
                   </div>
-                  {isAdmin && (selected as any)?.latitude && (selected as any)?.longitude && (
+                  {isAdmin && ((selected as any)?.latitude || selected?.address) && (
                     <Button
                       size="sm"
                       variant="outline"
