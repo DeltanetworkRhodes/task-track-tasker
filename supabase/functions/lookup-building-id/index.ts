@@ -104,10 +104,27 @@ async function lookupByAddress(address: string, area?: string) {
     longitude: number;
   }> = [];
 
+  // Build area filter once
+  let areaFilter = "";
+  if (area) {
+    const areaUpper = normalizeGreekAddress(area);
+    if (areaUpper.includes("ΡΟΔΟ") || areaUpper === "ΡΟΔΟΣ") {
+      areaFilter = "&address=ilike.*ΡΟΔΟΥ*";
+    } else if (areaUpper.includes("ΚΩΣ") || areaUpper === "ΚΩΣ") {
+      areaFilter = "&address=ilike.*ΚΩ*";
+    } else if (areaUpper.includes("ΚΑΛΥΜΝ")) {
+      areaFilter = "&address=ilike.*ΚΑΛΥΜΝ*";
+    } else if (areaUpper.includes("ΛΕΡ")) {
+      areaFilter = "&address=ilike.*ΛΕΡ*";
+    } else if (areaUpper.includes("ΠΑΤΜ")) {
+      areaFilter = "&address=ilike.*ΠΑΤΜ*";
+    }
+  }
+
   // Strategy 1: Search by street name + number (most specific)
   if (number) {
     const pattern1 = `*${street}*${number}*`;
-    const url1 = `${HEMD_API}/a3b_coverpointftthcoax?select=coverid,address,point&limit=10&address=ilike.${encodeURIComponent(pattern1)}`;
+    const url1 = `${HEMD_API}/a3b_coverpointftthcoax?select=coverid,address,point&limit=10&address=ilike.${encodeURIComponent(pattern1)}${areaFilter}`;
     console.log("Address search (street+number):", url1);
     try {
       const res = await fetch(url1, {
@@ -140,23 +157,6 @@ async function lookupByAddress(address: string, area?: string) {
     // Use only the main street name words (skip very short words)
     const streetWords = street.split(/\s+/).filter(w => w.length > 2);
     const pattern2 = `*${streetWords.join("*")}*`;
-    
-    // Add area filter if available
-    let areaFilter = "";
-    if (area) {
-      const areaUpper = normalizeGreekAddress(area);
-      if (areaUpper.includes("ΡΟΔΟ") || areaUpper === "ΡΟΔΟΣ") {
-        areaFilter = "&address=ilike.*ΡΟΔΟΥ*";
-      } else if (areaUpper.includes("ΚΩΣ") || areaUpper === "ΚΩΣ") {
-        areaFilter = "&address=ilike.*ΚΩ*";
-      } else if (areaUpper.includes("ΚΑΛΥΜΝ")) {
-        areaFilter = "&address=ilike.*ΚΑΛΥΜΝ*";
-      } else if (areaUpper.includes("ΛΕΡ")) {
-        areaFilter = "&address=ilike.*ΛΕΡ*";
-      } else if (areaUpper.includes("ΠΑΤΜ")) {
-        areaFilter = "&address=ilike.*ΠΑΤΜ*";
-      }
-    }
 
     const url2 = `${HEMD_API}/a3b_coverpointftthcoax?select=coverid,address,point&limit=10&address=ilike.${encodeURIComponent(pattern2)}${areaFilter}`;
     console.log("Address search (street only):", url2);
