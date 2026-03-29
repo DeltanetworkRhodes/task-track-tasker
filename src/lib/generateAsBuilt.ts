@@ -370,16 +370,18 @@ function fillLabelsBepSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
     if (bmoMatch && fbMatch) bmoFbMap.set(bmoMatch[1], fbMatch[1]);
   });
 
-  // Clear data columns A, Y, and computed columns AA-AG
+  // Clear data columns A, Y, and ALL shared formula columns (shared formulas extend to row 96)
+  for (let r = 1; r <= 96; r++) {
+    ws.getCell(r, 25).value = r === 1 ? "OPTICAL PATH" : "";  // Y
+    ws.getCell(r, 27).value = "";  // AA
+    ws.getCell(r, 28).value = "";  // AB
+    ws.getCell(r, 29).value = "";  // AC
+    ws.getCell(r, 30).value = "";  // AD
+    ws.getCell(r, 32).value = "";  // AF
+    ws.getCell(r, 33).value = "";  // AG
+  }
   for (let r = 2; r <= 20; r++) {
     ws.getCell(r, 1).value = null;   // A
-    ws.getCell(r, 25).value = null;  // Y
-    ws.getCell(r, 27).value = null;  // AA
-    ws.getCell(r, 28).value = null;  // AB
-    ws.getCell(r, 29).value = null;  // AC
-    ws.getCell(r, 30).value = null;  // AD
-    ws.getCell(r, 32).value = null;  // AF
-    ws.getCell(r, 33).value = null;  // AG
   }
 
   // Column A: Write all BEP paths, then "χωρίς ports" padding, then CAB-BEP paths
@@ -447,13 +449,6 @@ function fillLabelsBepSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
     ws.getCell(r, 33).value = label;
   }
 
-  // Fill empty AG slots with placeholders
-  for (let i = allBepPaths.length; i < 18; i++) {
-    const r = 2 + i;
-    ws.getCell(r, 32).value = i + 1;
-    ws.getCell(r, 33).value = "_";
-  }
-
   console.log(`✅ LABELS BEP: wrote ${allBepPaths.length} BEP paths to Y + pre-computed AA-AG, ${aRow - 2} total to A`);
 }
 
@@ -471,14 +466,17 @@ function fillLabelsBmoSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
   const bmoFbPaths = d.opticalPaths.filter(op => op.type === "BMO-FB" || op.type === "BMO");
   const allBepPaths = [...bepBmoPaths, ...bepOnlyPaths];
 
-  // Clear data columns A, Y, and computed columns Z-AE
+  // Clear data columns A, Y, and ALL shared formula columns (shared formulas extend to row 96)
+  for (let r = 1; r <= 96; r++) {
+    ws.getCell(r, 25).value = r === 1 ? "OPTICAL PATH" : "";  // Y
+    ws.getCell(r, 26).value = "";  // Z
+    ws.getCell(r, 27).value = "";  // AA
+    ws.getCell(r, 29).value = "";  // AC
+    ws.getCell(r, 30).value = "";  // AD
+    ws.getCell(r, 31).value = "";  // AE
+  }
   for (let r = 2; r <= 40; r++) {
     ws.getCell(r, 1).value = null;   // A
-    ws.getCell(r, 25).value = null;  // Y
-    ws.getCell(r, 26).value = null;  // Z
-    ws.getCell(r, 27).value = null;  // AA
-    ws.getCell(r, 30).value = null;  // AD
-    ws.getCell(r, 31).value = null;  // AE
   }
 
   // Column A: Write all BEP paths, then "χωρίς ports" padding, then CAB-BEP paths
