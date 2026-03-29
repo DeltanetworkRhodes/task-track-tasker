@@ -71,16 +71,6 @@ const TechnicianInventoryView = () => {
 
   return (
     <div className="space-y-4">
-      {/* Return button */}
-      {inventoryItems.length > 0 && (
-        <button
-          onClick={() => setReturnOpen(true)}
-          className="flex items-center gap-1.5 rounded-xl border-2 border-orange-500/30 bg-card px-3 py-2 text-xs font-bold text-orange-600 hover:bg-orange-500/10 transition-all w-full justify-center"
-        >
-          <Undo2 className="h-3.5 w-3.5" />
-          Επιστροφή Υλικών στην Αποθήκη
-        </button>
-      )}
 
       {/* Summary */}
       <div className="grid grid-cols-2 gap-3">
