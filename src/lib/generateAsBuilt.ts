@@ -486,60 +486,131 @@ function fillEpimetrisiSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
   });
 
   // ══════════════════════════════════════════════════════════════
-  // CLEAR OLD DATA: Πίνακας CAB-BEP (G48:I56) & BEP-BMO (F61:H68)
+  // 5. CAB-BEP OPTICAL PATHS (rows 44-47, F=type, G=path)
   // ══════════════════════════════════════════════════════════════
-  for (let r = 48; r <= 56; r++) {
-    for (let c = 7; c <= 9; c++) { // G=7, H=8, I=9
-      ws.getCell(r, c).value = null;
-    }
-  }
-  for (let r = 61; r <= 68; r++) {
-    for (let c = 6; c <= 8; c++) { // F=6, G=7, H=8
-      ws.getCell(r, c).value = null;
-    }
-  }
-  console.log("✅ Cleared G48:I56 (CAB-BEP) and F61:H68 (BEP-BMO) old data");
-
-  // ── 5. CAB-BEP/CAB-BCP paths ── Use RAW strings from GIS OPTICAL PATHS
   const cabBepPaths = d.opticalPaths.filter(op => op.type === "CAB-BEP" || op.type === "CAB-BCP");
-  for (let i = 0; i < cabBepPaths.length && i < 9; i++) {
-    const r = 48 + i;
-    ws.getCell(r, 7).value = cabBepPaths[i].path;  // G = raw optical path string
-    ws.getCell(r, 8).value = d.address;             // H = address
-    ws.getCell(r, 9).value = i + 1;                 // I = index
+
+  // Clear old CAB-BEP data (rows 44-47)
+  for (let r = 44; r <= 47; r++) {
+    ws.getCell(r, 6).value = null; // F
+    ws.getCell(r, 7).value = null; // G
+  }
+  for (let i = 0; i < cabBepPaths.length && i < 4; i++) {
+    const r = 44 + i;
+    ws.getCell(r, 6).value = cabBepPaths[i].type;  // F = OPTICAL PATH TYPE
+    ws.getCell(r, 7).value = cabBepPaths[i].path;  // G = OPTICAL PATH
+  }
+  console.log(`✅ CAB-BEP: wrote ${Math.min(cabBepPaths.length, 4)} paths to F44:G47`);
+
+  // ══════════════════════════════════════════════════════════════
+  // 5b. BCP CABLE INDICES (rows 53-58, F=index, G=cable_number, H=address)
+  // Extract cable numbers from CAB-BEP paths
+  // ══════════════════════════════════════════════════════════════
+  for (let r = 53; r <= 58; r++) {
+    ws.getCell(r, 6).value = 0;  // F = index
+    ws.getCell(r, 7).value = 0;  // G = cable number
+    ws.getCell(r, 8).value = null; // H = address
+  }
+  for (let i = 0; i < cabBepPaths.length && i < 6; i++) {
+    const r = 53 + i;
+    const cableNum = extractCableIndex(cabBepPaths[i].path);
+    ws.getCell(r, 6).value = i + 1;                           // F = index
+    ws.getCell(r, 7).value = cableNum ? Number(cableNum) : 0; // G = cable number
+    ws.getCell(r, 8).value = d.address;                        // H = address
   }
 
-  // ── 5b. BEP-BMO paths ── Use RAW strings from GIS OPTICAL PATHS (handle BCP-BEP too)
+  // ══════════════════════════════════════════════════════════════
+  // 5c. BEP LABELS section (rows 65-70, G=label_A, I=label_B)
+  // Computed from BEP-BMO optical paths
+  // ══════════════════════════════════════════════════════════════
   const bepBmoPaths = d.opticalPaths.filter(op => op.type === "BEP-BMO" || op.type === "BEP" || op.type === "BCP-BEP");
-  for (let i = 0; i < bepBmoPaths.length && i < 8; i++) {
-    const r = 61 + i;
-    ws.getCell(r, 6).value = bepBmoPaths[i].path;  // F = raw optical path string
-    ws.getCell(r, 7).value = bepBmoPaths[i].type;  // G = type
+
+  // Build BMO→FB map for label generation
+  const bmoFbMap = new Map<string, string>();
+  d.opticalPaths.filter(op => op.type === "BMO-FB" || op.type === "BMO").forEach(op => {
+    const bmoMatch = op.path.match(/(BMO\d+[_]\d+a?)/);
+    const fbMatch = op.path.match(/(FB\([^)]+\)\.\d+_\d+)/);
+    if (bmoMatch && fbMatch) bmoFbMap.set(bmoMatch[1], fbMatch[1]);
+  });
+
+  // Clear old BEP labels (rows 65-70, cols G-J)
+  for (let r = 65; r <= 70; r++) {
+    ws.getCell(r, 7).value = null;  // G
+    ws.getCell(r, 8).value = null;  // H (unused but clean)
+    ws.getCell(r, 9).value = null;  // I
+    ws.getCell(r, 10).value = null; // J
   }
 
-  // ── 5c. BMO-FB paths section (clear + fill) ──
-  const bmoFbPaths = d.opticalPaths.filter(op => op.type === "BMO-FB" || op.type === "BMO");
-  // Clear old BMO section (rows 50-62, cols U-X = 21-24)
-  for (let r = 50; r <= 62; r++) {
-    for (let c = 21; c <= 24; c++) {
-      ws.getCell(r, c).value = null;
+  // Write computed BEP labels paired: G=A side, I=B side
+  for (let i = 0; i < bepBmoPaths.length && i < 12; i++) {
+    const rowIdx = Math.floor(i / 2);
+    const r = 65 + rowIdx;
+    const isB = i % 2 === 1;
+    const label = computeBepLabel(bepBmoPaths[i].path, bmoFbMap);
+    if (!isB) {
+      ws.getCell(r, 7).value = label;  // G = A side
+    } else {
+      ws.getCell(r, 9).value = label;  // I = B side
     }
   }
-  for (let i = 0; i < bmoFbPaths.length && i < 24; i++) {
+
+  // Fill empty label slots
+  const bepLabelCount = Math.min(bepBmoPaths.length, 12);
+  for (let i = bepLabelCount; i < 12; i++) {
+    const rowIdx = Math.floor(i / 2);
+    const r = 65 + rowIdx;
+    const isB = i % 2 === 1;
+    if (!isB) {
+      ws.getCell(r, 7).value = "-";
+    } else {
+      ws.getCell(r, 9).value = "-";
+    }
+  }
+  console.log(`✅ BEP labels: wrote ${bepLabelCount} labels to G65:I70`);
+
+  // ══════════════════════════════════════════════════════════════
+  // 5d. BMO-FB section (rows 50-71, U=FB_A, W=FB_B)
+  // ══════════════════════════════════════════════════════════════
+  const bmoFbPaths = d.opticalPaths.filter(op => op.type === "BMO-FB" || op.type === "BMO");
+
+  // Clear old BMO-FB data (rows 50-68, cols U-X = 21-24)
+  for (let r = 50; r <= 68; r++) {
+    ws.getCell(r, 21).value = 0;   // U
+    ws.getCell(r, 23).value = 0;   // W
+  }
+
+  // Extract FB paths from BMO-FB paths and write them paired
+  for (let i = 0; i < bmoFbPaths.length && i < 36; i++) {
     const pairIdx = Math.floor(i / 2);
     const r = 50 + pairIdx;
-    const isSecond = i % 2 === 1;
-    if (!isSecond) {
-      ws.getCell(r, 21).value = bmoFbPaths[i].path;  // U = raw path
+    const isB = i % 2 === 1;
+    // Extract the FB part: "BMO01_1_FB(+00).1_01" -> "FB(+00).1_01"
+    const fbMatch = bmoFbPaths[i].path.match(/(FB\([^)]+\)\.\d+_\d+)/);
+    const fbLabel = fbMatch ? fbMatch[1] : bmoFbPaths[i].path;
+    if (!isB) {
+      ws.getCell(r, 21).value = fbLabel;  // U = FB path A
     } else {
-      ws.getCell(r, 23).value = bmoFbPaths[i].path;  // W = raw path
+      ws.getCell(r, 23).value = fbLabel;  // W = FB path B
     }
   }
+
+  // Fill remaining with 0 or -
+  const bmoWritten = Math.min(bmoFbPaths.length, 36);
+  for (let i = bmoWritten; i < 36; i++) {
+    const pairIdx = Math.floor(i / 2);
+    const r = 50 + pairIdx;
+    const isB = i % 2 === 1;
+    if (r <= 68) {
+      if (!isB) ws.getCell(r, 21).value = 0;
+      else ws.getCell(r, 23).value = 0;
+    }
+  }
+  console.log(`✅ BMO-FB: wrote ${bmoWritten} FB paths to U50:W68`);
 
   // ── 6. ΟΡΙΖΟΝΤΟΓΡΑΦΙΑ ──
   ws.getCell("V85").value = d.isNewInfrastructure ? "ΝΕΑ ΥΠΟΔΟΜΗ" : "";
-  ws.getCell("U86").value = d.distanceFromCabinet || "";
-  ws.getCell("U91").value = d.trenchLengthM || "";
+  ws.getCell("V86").value = d.distanceFromCabinet || "";
+  ws.getCell("V91").value = d.trenchLengthM || "";
 }
 
 /** Extract cable index number from CAB-BEP path string */
