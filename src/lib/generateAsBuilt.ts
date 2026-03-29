@@ -369,27 +369,29 @@ function fillErgasiesSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
 
 /** Compute a BEP label string from a BEP-BMO optical path.
  *  E.g. "BEP01(b04)_SB01(1:8).01_05a_BMO01_01a" -> "SB01.01_FB(+00).1_01_BMO01_01a"
+ *  Also handles paths without trailing 'a': "BEP01_SB01(1:8).01_03a_BMO01_1" -> "SB01.01_FB(+01).1_01_BMO01_1"
  */
 function computeBepLabel(path: string, bmoFbMap: Map<string, string>): string {
-  // Extract SB port: SB01(1:8).XX -> XX
-  const sbMatch = path.match(/SB\d+\([\d:]+\)\.(\d+)/);
-  const sbPort = sbMatch ? sbMatch[1] : "";
+  // Extract SB ID and port: SB01(1:8).XX or SB02(1:8).XX
+  const sbMatch = path.match(/(SB\d+)\([\d:]+\)\.(\d+)/);
+  const sbId = sbMatch ? sbMatch[1] : "SB01";
+  const sbPort = sbMatch ? sbMatch[2] : "";
 
-  // Extract BMO part: BMO01_XXa or BMO01_XX
-  const bmoMatch = path.match(/(BMO\d+[_]\d+a?)/);
+  // Extract BMO part: BMO01_XXa or BMO01_XX (with or without trailing 'a')
+  const bmoMatch = path.match(/(BMO\d+_\d+a?)/);
   const bmoId = bmoMatch ? bmoMatch[1] : "";
 
   // Find FB path via BMO→FB map
   const fbPath = bmoId ? (bmoFbMap.get(bmoId) || "") : "";
 
   if (sbPort && fbPath && bmoId) {
-    return `SB01.${sbPort}_${fbPath}_${bmoId}`;
+    return `${sbId}.${sbPort}_${fbPath}_${bmoId}`;
   }
   if (sbPort && bmoId) {
-    return `SB01.${sbPort}_${bmoId}`;
+    return `${sbId}.${sbPort}_${bmoId}`;
   }
   if (sbPort) {
-    return `SB01.${sbPort}_`;
+    return `${sbId}.${sbPort}__`;
   }
   return path;
 }
