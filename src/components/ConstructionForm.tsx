@@ -1586,7 +1586,8 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
             if (uploadErr) console.error(`Photo upload error ${folderName}/${i}:`, uploadErr);
             else {
               photoPaths.push(storagePath);
-              uploadPhotoDrive(assignment.sr_id, catDef?.label || category, storagePath);
+              if (i === 0) await uploadPhotoDrive(assignment.sr_id, catDef?.label || category, storagePath);
+              else uploadPhotoDrive(assignment.sr_id, catDef?.label || category, storagePath);
             }
             uploaded++;
             setSubmitProgress(`Ανέβασμα φωτογραφιών (${uploaded}/${totalPhotoCount})...`);
