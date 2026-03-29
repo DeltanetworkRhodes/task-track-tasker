@@ -6,53 +6,133 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-// Convert WGS84 (lat/lng) to EPSG:2100 (Greek Grid / GGRS87)
-function wgs84ToEpsg2100(lat: number, lng: number): { x: number; y: number } {
-  const a = 6378137.0; // GRS80 semi-major axis
-  const f = 1 / 298.257222101;
-  const e2 = 2 * f - f * f;
-  const k0 = 0.9996;
-  const lng0 = 24; // central meridian for GGRS87
-  const FE = 500000;
+const HEMD_API = "https://www.broadband-assist.gov.gr/api";
 
-  const latR = (lat * Math.PI) / 180;
-  const lngR = (lng * Math.PI) / 180;
-  const lng0R = (lng0 * Math.PI) / 180;
+// Haversine distance in meters between two WGS84 points
+function haversine(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371000;
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
 
-  const sinLat = Math.sin(latR);
-  const cosLat = Math.cos(latR);
-  const tanLat = Math.tan(latR);
+// Lookup by coordinates using spatial bounding box
+async function lookupByCoords(lat: number, lng: number, radius: number) {
+  // ~0.001 degrees ≈ 111m at equator, adjust for latitude
+  const degPerMeter = 1 / 111320;
+  const latDelta = radius * degPerMeter;
+  const lngDelta = radius * degPerMeter / Math.cos((lat * Math.PI) / 180);
 
-  const N = a / Math.sqrt(1 - e2 * sinLat * sinLat);
-  const T = tanLat * tanLat;
-  const C = (e2 / (1 - e2)) * cosLat * cosLat;
-  const A = (lngR - lng0R) * cosLat;
+  const x1 = lng - lngDelta, y1 = lat - latDelta;
+  const x2 = lng + lngDelta, y2 = lat + latDelta;
+  const polygon = `SRID=4326;POLYGON((${x1} ${y1},${x2} ${y1},${x2} ${y2},${x1} ${y2},${x1} ${y1}))`;
 
-  const M =
-    a *
-    ((1 - e2 / 4 - (3 * e2 * e2) / 64 - (5 * e2 * e2 * e2) / 256) * latR -
-      ((3 * e2) / 8 + (3 * e2 * e2) / 32 + (45 * e2 * e2 * e2) / 1024) * Math.sin(2 * latR) +
-      ((15 * e2 * e2) / 256 + (45 * e2 * e2 * e2) / 1024) * Math.sin(4 * latR) -
-      ((35 * e2 * e2 * e2) / 3072) * Math.sin(6 * latR));
+  const url = `${HEMD_API}/a3b_coverpointftthcoax?select=coverid,address,point&limit=10&point=ov.${encodeURIComponent(polygon)}`;
 
-  const x =
-    FE +
-    k0 *
-      N *
-      (A +
-        ((1 - T + C) * A * A * A) / 6 +
-        ((5 - 18 * T + T * T + 72 * C - 58 * (e2 / (1 - e2))) * A * A * A * A * A) / 120);
+  const res = await fetch(url, {
+    headers: { Accept: "application/json" },
+    signal: AbortSignal.timeout(15000),
+  });
 
-  const y =
-    k0 *
-    (M +
-      N *
-        tanLat *
-        ((A * A) / 2 +
-          ((5 - T + 9 * C + 4 * C * C) * A * A * A * A) / 24 +
-          ((61 - 58 * T + T * T + 600 * C - 330 * (e2 / (1 - e2))) * A * A * A * A * A * A) / 720));
+  if (!res.ok) throw new Error(`ΧΕΜΔ API error: ${res.status}`);
 
-  return { x, y };
+  const points: Array<{
+    coverid: string;
+    address: string;
+    point: { coordinates: [number, number] };
+  }> = await res.json();
+
+  return points.map((p) => {
+    const [pLng, pLat] = p.point.coordinates;
+    const dist = Math.round(haversine(lat, lng, pLat, pLng));
+    return {
+      coverid: p.coverid,
+      address: p.address,
+      distance: dist,
+      latitude: pLat,
+      longitude: pLng,
+    };
+  }).sort((a, b) => a.distance - b.distance);
+}
+
+// Lookup by address text search
+async function lookupByAddress(address: string, area?: string) {
+  // Normalize Greek address for search
+  const parts = address
+    .toUpperCase()
+    .replace(/[,.\-\/\\]/g, " ")
+    .split(/\s+/)
+    .filter((p) => p.length > 1);
+
+  if (parts.length === 0) return [];
+
+  // Build ilike pattern - search for key words
+  // Format in DB: "postal_code,street,number,city" e.g. "82132,ΒΕΝΕΤΟΚΛΕΩΝ,71-73,Δ. ΡΟΔΟΥ"
+  let pattern = "*" + parts.join("*") + "*";
+  
+  // If area is provided, add it to narrow results
+  let areaFilter = "";
+  if (area) {
+    const areaUpper = area.toUpperCase();
+    if (areaUpper.includes("ΡΟΔΟ") || areaUpper === "ΡΟΔΟΣ") {
+      areaFilter = "&address=ilike.*ΡΟΔΟΥ*";
+    } else if (areaUpper.includes("ΚΩΣ")) {
+      areaFilter = "&address=ilike.*ΚΩ*";
+    }
+  }
+
+  const url = `${HEMD_API}/a3b_coverpointftthcoax?select=coverid,address,point&limit=10&address=ilike.${encodeURIComponent(pattern)}${areaFilter}`;
+
+  const res = await fetch(url, {
+    headers: { Accept: "application/json" },
+    signal: AbortSignal.timeout(15000),
+  });
+
+  if (!res.ok) throw new Error(`ΧΕΜΔ API error: ${res.status}`);
+
+  const points: Array<{
+    coverid: string;
+    address: string;
+    point: { coordinates: [number, number] };
+  }> = await res.json();
+
+  return points.map((p) => ({
+    coverid: p.coverid,
+    address: p.address,
+    latitude: p.point.coordinates[1],
+    longitude: p.point.coordinates[0],
+  }));
+}
+
+// Enrich results with provider details from coverage_ftth_data
+async function enrichResults(results: Array<{ coverid: string; [key: string]: any }>) {
+  const enriched = [];
+  for (const item of results.slice(0, 5)) {
+    try {
+      const res = await fetch(
+        `${HEMD_API}/coverage_ftth_data?id=eq.${encodeURIComponent(item.coverid)}`,
+        { headers: { Accept: "application/json" }, signal: AbortSignal.timeout(5000) }
+      );
+      if (res.ok) {
+        const arr = await res.json();
+        if (arr.length > 0) {
+          const details = arr[0].details?.[0] || {};
+          enriched.push({
+            ...item,
+            provider: details["Πάροχος"] || "",
+            spaces: details["Ανεξάρτητοι χώροι"] || 0,
+            connected: details["Έχει συνδεθεί στο δίκτυο FTTH/B"] || "",
+            start_date: details["Έναρξη υποδομής"] || "",
+          });
+          continue;
+        }
+      }
+    } catch { /* skip */ }
+    enriched.push(item);
+  }
+  return enriched;
 }
 
 Deno.serve(async (req) => {
@@ -61,88 +141,33 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { latitude, longitude, assignment_id, radius = 200 } = await req.json();
+    const body = await req.json();
+    const { latitude, longitude, address, area, assignment_id, radius = 200, auto_save = true } = body;
 
-    if (!latitude || !longitude) {
-      return new Response(JSON.stringify({ error: "Απαιτούνται συντεταγμένες (latitude, longitude)" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    let results: any[] = [];
+
+    // Strategy 1: Search by coordinates (most accurate)
+    if (latitude && longitude) {
+      results = await lookupByCoords(latitude, longitude, radius);
     }
 
-    // Convert to EPSG:2100
-    const { x, y } = wgs84ToEpsg2100(latitude, longitude);
-    const half = radius; // meters
-
-    // Build bounding box polygon for spatial query
-    const x1 = x - half, y1 = y - half, x2 = x + half, y2 = y + half;
-    const polygon = `SRID=2100;POLYGON((${x1} ${y1},${x2} ${y1},${x2} ${y2},${x1} ${y2},${x1} ${y1}))`;
-
-    // Query geo_coverage_ftth with spatial filter
-    const apiUrl = `https://www.broadband-assist.gov.gr/api/geo_coverage_ftth?select=coverid,geom&limit=10&geom=ov.${encodeURIComponent(polygon)}`;
-
-    const geoRes = await fetch(apiUrl, {
-      headers: { Accept: "application/json" },
-      signal: AbortSignal.timeout(15000),
-    });
-
-    if (!geoRes.ok) {
-      throw new Error(`ΧΕΜΔ API error: ${geoRes.status}`);
+    // Strategy 2: Search by address text (fallback or primary when no coords)
+    if (results.length === 0 && address) {
+      results = await lookupByAddress(address, area);
     }
 
-    const points: Array<{
-      coverid: string;
-      geom: { coordinates: [number, number] };
-    }> = await geoRes.json();
-
-    if (!points || points.length === 0) {
+    if (results.length === 0) {
       return new Response(
-        JSON.stringify({ error: "Δεν βρέθηκε κτίριο στην περιοχή", results: [] }),
+        JSON.stringify({ error: "Δεν βρέθηκε κτίριο", results: [] }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Calculate distances and sort by nearest
-    const withDist = points.map((p) => {
-      const [px, py] = p.geom.coordinates;
-      const dist = Math.sqrt((px - x) ** 2 + (py - y) ** 2);
-      return { coverid: p.coverid, distance: Math.round(dist), x: px, y: py };
-    });
-    withDist.sort((a, b) => a.distance - b.distance);
+    // Enrich with provider details
+    results = await enrichResults(results);
 
-    // Get details for the closest results (max 5)
-    const top = withDist.slice(0, 5);
-    const results = [];
-
-    for (const item of top) {
-      try {
-        const detailRes = await fetch(
-          `https://www.broadband-assist.gov.gr/api/coverage_ftth_data?id=eq.${encodeURIComponent(item.coverid)}`,
-          { headers: { Accept: "application/json" }, signal: AbortSignal.timeout(5000) }
-        );
-        if (detailRes.ok) {
-          const detailArr = await detailRes.json();
-          if (detailArr.length > 0) {
-            const details = detailArr[0].details?.[0] || {};
-            results.push({
-              coverid: item.coverid,
-              distance: item.distance,
-              address: details["Διεύθυνση"] || "",
-              provider: details["Πάροχος"] || "",
-              spaces: details["Ανεξάρτητοι χώροι"] || 0,
-              connected: details["Έχει συνδεθεί στο δίκτυο FTTH/B"] || "",
-              start_date: details["Έναρξη υποδομής"] || "",
-            });
-          }
-        }
-      } catch {
-        // Skip failed lookups
-        results.push({ coverid: item.coverid, distance: item.distance });
-      }
-    }
-
-    // If assignment_id provided and we found results, update the assignment
-    if (assignment_id && results.length > 0) {
+    // Auto-save to assignment if requested
+    if (auto_save && assignment_id && results.length > 0) {
       const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
       const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
       const sb = createClient(supabaseUrl, serviceKey);
