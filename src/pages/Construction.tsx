@@ -567,6 +567,94 @@ const ConstructionPage = () => {
             </>
           )}
         </div>
+        </>) : (
+          /* Post-construction assignments (submitted/paid/rejected) */
+          <div className="space-y-4">
+            {/* Search */}
+            <div className="relative max-w-xs">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Αναζήτηση SR ID ή πελάτη..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+
+            {/* Table */}
+            <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
+              {filteredPostConstruction.length === 0 ? (
+                <div className="py-12 text-center text-muted-foreground">
+                  <AlertCircle className="h-8 w-8 mx-auto mb-2 opacity-30" />
+                  <p className="text-sm">Δεν βρέθηκαν αναθέσεις σε αυτή τη κατηγορία</p>
+                </div>
+              ) : (
+                <>
+                  {/* Mobile */}
+                  <div className="md:hidden divide-y divide-border">
+                    {filteredPostConstruction.map((a) => (
+                      <div key={a.id} className="p-3.5">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="font-bold text-primary text-sm">{a.srId}</span>
+                          <Badge variant="outline" className={`text-[10px] ${assignmentStatusColors[a.status] || ""}`}>
+                            {assignmentStatusLabels[a.status] || a.status}
+                          </Badge>
+                        </div>
+                        <div className="text-xs text-muted-foreground space-y-0.5">
+                          {a.customerName && <p>{a.customerName}</p>}
+                          {a.address && <p>{a.address}</p>}
+                          {a.paymentAmount > 0 && <p className="font-bold text-foreground">{a.paymentAmount.toLocaleString('el-GR')}€</p>}
+                        </div>
+                        <div className="flex items-center justify-between mt-2 text-[10px] text-muted-foreground">
+                          <span>{a.area}</span>
+                          <span>{a.date}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  {/* Desktop */}
+                  <div className="hidden md:block">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-border bg-muted/50">
+                          <th className="py-2.5 px-3 text-left font-medium text-muted-foreground text-[11px] uppercase tracking-wider">SR ID</th>
+                          <th className="py-2.5 px-3 text-left font-medium text-muted-foreground text-[11px] uppercase tracking-wider">Πελάτης</th>
+                          <th className="py-2.5 px-3 text-left font-medium text-muted-foreground text-[11px] uppercase tracking-wider">Διεύθυνση</th>
+                          <th className="py-2.5 px-3 text-left font-medium text-muted-foreground text-[11px] uppercase tracking-wider">Περιοχή</th>
+                          <th className="py-2.5 px-3 text-left font-medium text-muted-foreground text-[11px] uppercase tracking-wider">Κατάσταση</th>
+                          <th className="py-2.5 px-3 text-right font-medium text-muted-foreground text-[11px] uppercase tracking-wider">Ποσό</th>
+                          <th className="py-2.5 px-3 text-right font-medium text-muted-foreground text-[11px] uppercase tracking-wider">Ημ/νία</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredPostConstruction.map((a) => (
+                          <tr key={a.id} className="border-b border-border/30 hover:bg-muted/50 transition-colors">
+                            <td className="py-2.5 px-3 font-bold text-primary text-xs">{a.srId}</td>
+                            <td className="py-2.5 px-3 text-xs truncate max-w-[150px]">{a.customerName || '—'}</td>
+                            <td className="py-2.5 px-3 text-xs truncate max-w-[200px]">{a.address || '—'}</td>
+                            <td className="py-2.5 px-3 text-xs">{a.area}</td>
+                            <td className="py-2.5 px-3">
+                              <Badge variant="outline" className={`text-[10px] ${assignmentStatusColors[a.status] || ""}`}>
+                                {assignmentStatusLabels[a.status] || a.status}
+                              </Badge>
+                            </td>
+                            <td className="py-2.5 px-3 text-right text-xs font-bold">
+                              {a.paymentAmount > 0 ? `${a.paymentAmount.toLocaleString('el-GR')}€` : '—'}
+                            </td>
+                            <td className="py-2.5 px-3 text-right text-xs text-muted-foreground">{a.date}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              )}
+            </div>
+            <span className="text-xs text-muted-foreground font-bold bg-muted px-2.5 py-1.5 rounded-full">
+              {filteredPostConstruction.length} εγγραφές
+            </span>
+          </div>
+        )}
 
         {/* Detail Dialog */}
         <Dialog open={!!selectedConstruction} onOpenChange={(open) => { if (!open) setSelectedConstruction(null); }}>
