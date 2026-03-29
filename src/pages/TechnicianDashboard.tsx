@@ -6,12 +6,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { LogOut, ClipboardList, MapPin, Search, X } from "lucide-react";
+import { LogOut, ClipboardList, MapPin, Search, X, Package } from "lucide-react";
 import NotificationBell from "@/components/NotificationBell";
 import NotificationPermissionCard from "@/components/NotificationPermissionCard";
 import TechnicianAssignments from "@/components/TechnicianAssignments";
 import TechnicianMap from "@/components/TechnicianMap";
 import GpsOnlineToggle from "@/components/GpsOnlineToggle";
+import TechnicianInventoryView from "@/components/TechnicianInventoryView";
 
 const statusFilters = [
   { value: "all", label: "Όλα" },
