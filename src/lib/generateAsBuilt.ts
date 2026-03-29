@@ -278,13 +278,11 @@ function fillOrofoiSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
    ──────────────────────────────────────────── */
 
 function extractSizeFromType(typeStr: string): string {
-  // GIS stores e.g. "LARGE/28/RAYCAP", "MEDIUM/48/RAYCAP", "SMALL/4/ZTT"
   const upper = (typeStr || "").toUpperCase().trim();
   if (upper.startsWith("XLARGE") || upper.includes("/XLARGE")) return "XLARGE";
   if (upper.startsWith("LARGE") || upper.includes("/LARGE")) return "LARGE";
   if (upper.startsWith("MEDIUM") || upper.includes("/MEDIUM")) return "MEDIUM";
   if (upper.startsWith("SMALL") || upper.includes("/SMALL")) return "SMALL";
-  // Fallback: try to find keyword anywhere
   if (upper.includes("XLARGE")) return "XLARGE";
   if (upper.includes("LARGE")) return "LARGE";
   if (upper.includes("MEDIUM")) return "MEDIUM";
@@ -292,33 +290,30 @@ function extractSizeFromType(typeStr: string): string {
   return "";
 }
 
+function extractBrandFromType(typeStr: string): string {
+  // "LARGE/28/RAYCAP" → "RAYCAP", "SMALL/4/ZTT" → "ZTT"
+  const parts = (typeStr || "").split("/");
+  if (parts.length >= 3) return parts[parts.length - 1].trim().split(" ")[0];
+  if (parts.length === 2) return parts[1].trim().split(" ")[0];
+  return "";
+}
+
 function getBepHeader(bepType: string): string {
   const size = extractSizeFromType(bepType);
-  const headers: Record<string, string> = {
-    "XLARGE": "XLARGE BEP with 1 splitter ",
-    "LARGE": "LARGE BEP with 1 splitter ",
-    "MEDIUM": "Medium BEP with 1 splitter ",
-    "SMALL": "SMALL BEP with 1 splitter ",
-  };
-  return headers[size] || `${size || "?"} BEP with 1 splitter `;
+  const brand = extractBrandFromType(bepType);
+  return `${size || "?"} BEP with 1 splitter  ${brand}`.trim();
 }
 
 function getBmoHeader(bmoType: string): string {
   const size = extractSizeFromType(bmoType);
-  const headers: Record<string, string> = {
-    "XLARGE": "ΒΜΟ XLARGE BEP with 1 splitter ",
-    "LARGE": "ΒΜΟ LARGE BEP with 1 splitter ",
-    "MEDIUM": "ΒΜΟ MEDIUM BEP with 1 splitter ",
-    "SMALL": "ΒΜΟ SMALL BEP with 1 splitter ",
-  };
-  return headers[size] || `ΒΜΟ ${size || "?"} BEP with 1 splitter `;
+  const brand = extractBrandFromType(bmoType);
+  return `ΒΜΟ ${size || "?"} with 1 splitter  ${brand}`.trim();
 }
 
 function getBcpHeader(newBcp: string): string {
   if (!newBcp || !newBcp.trim()) return "";
-  // e.g. "SMALL/4/ZTT"
   const size = extractSizeFromType(newBcp);
-  const brand = newBcp.split("/").pop() || "";
+  const brand = extractBrandFromType(newBcp);
   return `${size || "?"} BCP with 1 splitter  ${brand}`.trim();
 }
 
