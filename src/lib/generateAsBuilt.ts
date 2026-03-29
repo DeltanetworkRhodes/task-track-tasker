@@ -505,6 +505,9 @@ function fillLabelsBepSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
 }
 
 function fillLabelsBmoSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
+  // Write BMO type header to H2
+  ws.getCell("H2").value = getBmoHeader(d.bmoType);
+
   // Structure from reference AS-BUILD:
   // Column A: ALL BEP paths (same as LABELS BEP column A)
   // Column Y: BMO-FB paths (raw data)
