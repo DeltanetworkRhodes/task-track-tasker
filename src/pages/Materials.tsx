@@ -3,7 +3,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import AppLayout from "@/components/AppLayout";
 import { useMaterials, useProfiles } from "@/hooks/useData";
 import { useOrganization } from "@/contexts/OrganizationContext";
-import { Package, AlertTriangle, Search, Plus, Box, ArrowUpDown, Check, X, Pencil, Upload, FileText, Trash2, Download, History } from "lucide-react";
+import { Package, AlertTriangle, Search, Plus, Box, ArrowUpDown, Check, X, Pencil, Upload, FileText, Trash2, Download, History, Truck } from "lucide-react";
+import ChargeToTechnicianDialog from "@/components/ChargeToTechnicianDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -260,6 +261,7 @@ const Materials = () => {
   const [uploadResult, setUploadResult] = useState<any>(null);
   const [previewData, setPreviewData] = useState<{ source: string; materials: { code: string; name: string; quantity: number; unit: string }[] } | null>(null);
   const [confirmingUpload, setConfirmingUpload] = useState(false);
+  const [chargeOpen, setChargeOpen] = useState(false);
   const queryClient = useQueryClient();
 
   const [form, setForm] = useState({ code: '', name: '', source: 'OTE' as string, stock: '', unit: 'τεμ.', price: '' });
@@ -536,6 +538,13 @@ const Materials = () => {
                   Νέο Υλικό
                 </button>
               </DialogTrigger>
+            <button
+              onClick={() => setChargeOpen(true)}
+              className="flex items-center gap-1.5 rounded-xl border-2 border-primary/30 bg-card px-3 py-2 text-xs sm:text-sm font-bold text-primary hover:bg-primary/10 transition-all"
+            >
+              <Truck className="h-3.5 w-3.5" />
+              Χρέωση σε Τεχνικό
+            </button>
             <DialogContent className="sm:max-w-md">
               <DialogHeader>
                 <DialogTitle>Προσθήκη Υλικού</DialogTitle>
@@ -896,6 +905,8 @@ const Materials = () => {
             </div>
           </DialogContent>
         </Dialog>
+
+        <ChargeToTechnicianDialog open={chargeOpen} onOpenChange={setChargeOpen} />
       </div>
     </AppLayout>
   );

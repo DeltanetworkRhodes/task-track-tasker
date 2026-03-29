@@ -72,7 +72,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Admins/Super admins can always update stock
+    // Check roles
     const { data: roleRows, error: roleError } = await supabase
       .from("user_roles")
       .select("role")
@@ -87,36 +87,31 @@ Deno.serve(async (req) => {
 
     const roles = new Set((roleRows || []).map((r: any) => r.role));
     const isAdmin = roles.has("admin") || roles.has("super_admin");
+    const isTechnician = roles.has("technician");
 
     let isAssignedTechnician = false;
-    if (!isAdmin) {
-      const { data: constructionRow, error: constructionError } = await supabase
-        .from("constructions")
-        .select("assignment_id")
-        .eq("id", constructionId)
-        .maybeSingle();
+    let assignmentTechnicianId: string | null = null;
+    let constructionSrId: string | null = null;
 
-      if (constructionError || !constructionRow?.assignment_id) {
-        return new Response(JSON.stringify({ error: "Construction not found" }), {
-          status: 404,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
+    // Get construction info
+    const { data: constructionRow } = await supabase
+      .from("constructions")
+      .select("assignment_id, sr_id")
+      .eq("id", constructionId)
+      .maybeSingle();
 
-      const { data: assignmentRow, error: assignmentError } = await supabase
+    if (constructionRow?.assignment_id) {
+      constructionSrId = constructionRow.sr_id || null;
+      const { data: assignmentRow } = await supabase
         .from("assignments")
-        .select("technician_id")
+        .select("technician_id, organization_id")
         .eq("id", constructionRow.assignment_id)
         .maybeSingle();
 
-      if (assignmentError || !assignmentRow) {
-        return new Response(JSON.stringify({ error: "Assignment not found" }), {
-          status: 404,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+      if (assignmentRow) {
+        assignmentTechnicianId = assignmentRow.technician_id;
+        isAssignedTechnician = assignmentRow.technician_id === userId;
       }
-
-      isAssignedTechnician = assignmentRow.technician_id === userId;
     }
 
     if (!isAdmin && !isAssignedTechnician) {
@@ -128,46 +123,128 @@ Deno.serve(async (req) => {
 
     const results: Array<Record<string, unknown>> = [];
 
+    // Determine if we should deduct from technician inventory or central warehouse
+    // If admin does it → deduct from central warehouse (existing behavior)
+    // If technician does it → deduct from technician's personal inventory
+    const deductFromTechInventory = isTechnician && isAssignedTechnician && assignmentTechnicianId;
+
     for (const item of materialDeltas) {
-      const { data: material, error: fetchErr } = await supabase
-        .from("materials")
-        .select("id, stock, name")
-        .eq("id", item.material_id)
-        .maybeSingle();
+      if (deductFromTechInventory) {
+        // TECHNICIAN PATH: deduct from technician_inventory
+        const { data: invRow, error: invErr } = await supabase
+          .from("technician_inventory")
+          .select("id, quantity")
+          .eq("technician_id", assignmentTechnicianId)
+          .eq("material_id", item.material_id)
+          .maybeSingle();
 
-      if (fetchErr || !material) {
-        results.push({ material_id: item.material_id, error: "not found" });
-        continue;
-      }
+        const currentQty = Number(invRow?.quantity || 0);
 
-      const currentStock = Number(material.stock) || 0;
-      let newStock = currentStock;
+        if (item.quantity > 0) {
+          // Consume from technician inventory
+          const newQty = Math.max(0, currentQty - item.quantity);
+          if (invRow) {
+            await supabase
+              .from("technician_inventory")
+              .update({ quantity: newQty, updated_at: new Date().toISOString() })
+              .eq("id", invRow.id);
+          }
 
-      if (item.quantity > 0) {
-        // Positive delta = consume stock
-        newStock = Math.max(0, currentStock - item.quantity);
-      } else if (item.quantity < 0) {
-        // Negative delta = return stock
-        newStock = currentStock + Math.abs(item.quantity);
-      }
+          // Log history
+          await supabase.from("technician_inventory_history").insert({
+            technician_id: assignmentTechnicianId,
+            material_id: item.material_id,
+            organization_id: (await supabase.from("profiles").select("organization_id").eq("user_id", assignmentTechnicianId).maybeSingle()).data?.organization_id,
+            change_amount: -item.quantity,
+            reason: `Κατασκευή SR ${constructionSrId || ""}`.trim(),
+            construction_sr_id: constructionSrId,
+            changed_by: userId,
+          });
 
-      const { error: updateErr } = await supabase
-        .from("materials")
-        .update({ stock: newStock })
-        .eq("id", item.material_id);
+          results.push({
+            material_id: item.material_id,
+            source: "technician_inventory",
+            previous_qty: currentQty,
+            requested_delta: item.quantity,
+            new_qty: newQty,
+          });
+        } else if (item.quantity < 0) {
+          // Return to technician inventory
+          const returnQty = Math.abs(item.quantity);
+          const newQty = currentQty + returnQty;
+          if (invRow) {
+            await supabase
+              .from("technician_inventory")
+              .update({ quantity: newQty, updated_at: new Date().toISOString() })
+              .eq("id", invRow.id);
+          } else {
+            const orgData = await supabase.from("profiles").select("organization_id").eq("user_id", assignmentTechnicianId).maybeSingle();
+            await supabase.from("technician_inventory").insert({
+              technician_id: assignmentTechnicianId,
+              material_id: item.material_id,
+              organization_id: orgData.data?.organization_id,
+              quantity: returnQty,
+            });
+          }
 
-      if (updateErr) {
-        results.push({ material_id: item.material_id, error: updateErr.message });
+          await supabase.from("technician_inventory_history").insert({
+            technician_id: assignmentTechnicianId,
+            material_id: item.material_id,
+            organization_id: (await supabase.from("profiles").select("organization_id").eq("user_id", assignmentTechnicianId).maybeSingle()).data?.organization_id,
+            change_amount: returnQty,
+            reason: `Επιστροφή από SR ${constructionSrId || ""}`.trim(),
+            construction_sr_id: constructionSrId,
+            changed_by: userId,
+          });
+
+          results.push({
+            material_id: item.material_id,
+            source: "technician_inventory",
+            previous_qty: currentQty,
+            requested_delta: item.quantity,
+            new_qty: newQty,
+          });
+        }
       } else {
-        results.push({
-          material_id: item.material_id,
-          name: material.name,
-          previous_stock: currentStock,
-          requested_delta: item.quantity,
-          applied_delta: currentStock - newStock,
-          new_stock: newStock,
-          source: item.source || null,
-        });
+        // ADMIN PATH: deduct from central warehouse (original behavior)
+        const { data: material, error: fetchErr } = await supabase
+          .from("materials")
+          .select("id, stock, name")
+          .eq("id", item.material_id)
+          .maybeSingle();
+
+        if (fetchErr || !material) {
+          results.push({ material_id: item.material_id, error: "not found" });
+          continue;
+        }
+
+        const currentStock = Number(material.stock) || 0;
+        let newStock = currentStock;
+
+        if (item.quantity > 0) {
+          newStock = Math.max(0, currentStock - item.quantity);
+        } else if (item.quantity < 0) {
+          newStock = currentStock + Math.abs(item.quantity);
+        }
+
+        const { error: updateErr } = await supabase
+          .from("materials")
+          .update({ stock: newStock })
+          .eq("id", item.material_id);
+
+        if (updateErr) {
+          results.push({ material_id: item.material_id, error: updateErr.message });
+        } else {
+          results.push({
+            material_id: item.material_id,
+            name: material.name,
+            source: "central_warehouse",
+            previous_stock: currentStock,
+            requested_delta: item.quantity,
+            applied_delta: currentStock - newStock,
+            new_stock: newStock,
+          });
+        }
       }
     }
 
@@ -180,6 +257,7 @@ Deno.serve(async (req) => {
         success: !hasErrors,
         construction_id: constructionId,
         processed: results.length,
+        deducted_from: deductFromTechInventory ? "technician_inventory" : "central_warehouse",
         results,
       }),
       {

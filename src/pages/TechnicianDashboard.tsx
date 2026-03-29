@@ -6,12 +6,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { LogOut, ClipboardList, MapPin, Search, X } from "lucide-react";
+import { LogOut, ClipboardList, MapPin, Search, X, Package } from "lucide-react";
 import NotificationBell from "@/components/NotificationBell";
 import NotificationPermissionCard from "@/components/NotificationPermissionCard";
 import TechnicianAssignments from "@/components/TechnicianAssignments";
 import TechnicianMap from "@/components/TechnicianMap";
 import GpsOnlineToggle from "@/components/GpsOnlineToggle";
+import TechnicianInventoryView from "@/components/TechnicianInventoryView";
 
 const statusFilters = [
   { value: "all", label: "Όλα" },
@@ -118,10 +119,14 @@ const TechnicianDashboard = () => {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="px-4 pt-4 pb-20">
-        <TabsList className="grid w-full grid-cols-2 mb-4">
+        <TabsList className="grid w-full grid-cols-3 mb-4">
           <TabsTrigger value="assignments" className="gap-1.5 text-xs">
             <ClipboardList className="h-3.5 w-3.5" />
             Αναθέσεις
+          </TabsTrigger>
+          <TabsTrigger value="inventory" className="gap-1.5 text-xs">
+            <Package className="h-3.5 w-3.5" />
+            Αποθήκη
           </TabsTrigger>
           <TabsTrigger value="map" className="gap-1.5 text-xs">
             <MapPin className="h-3.5 w-3.5" />
@@ -203,6 +208,10 @@ const TechnicianDashboard = () => {
               loading={isLoading}
             />
           )}
+        </TabsContent>
+
+        <TabsContent value="inventory">
+          <TechnicianInventoryView />
         </TabsContent>
 
         <TabsContent value="map">
