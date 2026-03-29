@@ -292,6 +292,40 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
     }
   };
 
+  const handleLookupBuildingId = async () => {
+    if (!selected) return;
+    const lat = (selected as any)?.latitude;
+    const lng = (selected as any)?.longitude;
+    if (!lat || !lng) {
+      toast.error("Δεν υπάρχουν συντεταγμένες για αυτή την ανάθεση");
+      return;
+    }
+    setLookingUpBuilding(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("lookup-building-id", {
+        body: { latitude: lat, longitude: lng, assignment_id: selected.id },
+      });
+      if (error) throw error;
+      if (data?.results?.length > 0) {
+        const best = data.results[0];
+        setEditData(d => ({ ...d, building_id_hemd: best.coverid }));
+        setSelected({ ...selected, buildingId: best.coverid } as any);
+        queryClient.invalidateQueries({ queryKey: ["assignments"] });
+        const addr = best.address ? ` — ${best.address}` : "";
+        toast.success(`Building ID: ${best.coverid}${addr} (${best.distance}m)`);
+        if (data.results.length > 1) {
+          console.log("Άλλα κοντινά κτίρια:", data.results.slice(1));
+        }
+      } else {
+        toast.error(data?.error || "Δεν βρέθηκε κτίριο κοντά στις συντεταγμένες");
+      }
+    } catch (err: any) {
+      toast.error("Σφάλμα αναζήτησης: " + (err.message || "Unknown"));
+    } finally {
+      setLookingUpBuilding(false);
+    }
+  };
+
   // Ordered columns for rendering
   const orderedColumns = columnOrder
     .map(key => ALL_COLUMNS.find(c => c.key === key))
