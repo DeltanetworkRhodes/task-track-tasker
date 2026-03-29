@@ -78,15 +78,13 @@ const Assignments = () => {
   const sources = [...new Set(assignments.map((a: any) => a.sourceTab).filter(Boolean))].sort();
 
   // Tab counts
+  // Only count pending-phase statuses (pending, inspection, pre_committed) + cancelled
+  const pendingPhase = assignments.filter(a => ["pending", "inspection", "pre_committed"].includes(a.status));
   const tabCounts = useMemo(() => ({
-    active: assignments.filter(a => !["cancelled", "completed", "submitted", "paid", "rejected"].includes(a.status)).length,
-    unassigned: assignments.filter(a => !(a as any).technicianId).length,
-    completed: assignments.filter(a => a.status === "completed").length,
-    submitted: assignments.filter(a => a.status === "submitted").length,
-    paid: assignments.filter(a => a.status === "paid").length,
-    rejected: assignments.filter(a => a.status === "rejected").length,
+    active: pendingPhase.length,
+    unassigned: pendingPhase.filter(a => !(a as any).technicianId).length,
     cancelled: assignments.filter(a => a.status === "cancelled").length,
-    all: assignments.length,
+    all: pendingPhase.length + assignments.filter(a => a.status === "cancelled").length,
   }), [assignments]);
 
   const filtered = assignments.filter((a) => {
