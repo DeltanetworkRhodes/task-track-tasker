@@ -199,6 +199,7 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
   const [editing, setEditing] = useState(false);
   const [editData, setEditData] = useState<Record<string, string | undefined>>({});
   const [saving, setSaving] = useState(false);
+  const [lookingUpBuilding, setLookingUpBuilding] = useState(false);
   const [savingCustomer, setSavingCustomer] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState(false);
   const [customerForm, setCustomerForm] = useState({ customerName: "", address: "", phone: "", cab: "", area: "" });
@@ -288,6 +289,40 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
       toast.error("Σφάλμα: " + err.message);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleLookupBuildingId = async () => {
+    if (!selected) return;
+    const lat = (selected as any)?.latitude;
+    const lng = (selected as any)?.longitude;
+    if (!lat || !lng) {
+      toast.error("Δεν υπάρχουν συντεταγμένες για αυτή την ανάθεση");
+      return;
+    }
+    setLookingUpBuilding(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("lookup-building-id", {
+        body: { latitude: lat, longitude: lng, assignment_id: selected.id },
+      });
+      if (error) throw error;
+      if (data?.results?.length > 0) {
+        const best = data.results[0];
+        setEditData(d => ({ ...d, building_id_hemd: best.coverid }));
+        setSelected({ ...selected, buildingId: best.coverid } as any);
+        queryClient.invalidateQueries({ queryKey: ["assignments"] });
+        const addr = best.address ? ` — ${best.address}` : "";
+        toast.success(`Building ID: ${best.coverid}${addr} (${best.distance}m)`);
+        if (data.results.length > 1) {
+          console.log("Άλλα κοντινά κτίρια:", data.results.slice(1));
+        }
+      } else {
+        toast.error(data?.error || "Δεν βρέθηκε κτίριο κοντά στις συντεταγμένες");
+      }
+    } catch (err: any) {
+      toast.error("Σφάλμα αναζήτησης: " + (err.message || "Unknown"));
+    } finally {
+      setLookingUpBuilding(false);
     }
   };
 
@@ -1119,7 +1154,23 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
                 <EditableField editing={editing} icon={MapPin} label="Περιοχή" value={editData.area} fallback={selected?.area} onChange={(v) => setEditData(d => ({ ...d, area: v }))} />
                 <EditableField editing={editing} icon={Building} label="Δήμος" value={editData.municipality} fallback={(selected as any)?.municipality} onChange={(v) => setEditData(d => ({ ...d, municipality: v }))} />
                 <EditableField editing={editing} icon={Hash} label="CAB" value={editData.cab} fallback={selected?.cab} onChange={(v) => setEditData(d => ({ ...d, cab: v }))} />
-                <EditableField editing={editing} icon={Hash} label="Building ID" value={editData.building_id_hemd} fallback={(selected as any)?.buildingId} onChange={(v) => setEditData(d => ({ ...d, building_id_hemd: v }))} />
+                <div className="flex items-center gap-1">
+                  <div className="flex-1">
+                    <EditableField editing={editing} icon={Hash} label="Building ID" value={editData.building_id_hemd} fallback={(selected as any)?.buildingId} onChange={(v) => setEditData(d => ({ ...d, building_id_hemd: v }))} />
+                  </div>
+                  {isAdmin && (selected as any)?.latitude && (selected as any)?.longitude && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 px-2 text-[10px] gap-1 mt-4 shrink-0"
+                      onClick={handleLookupBuildingId}
+                      disabled={lookingUpBuilding}
+                    >
+                      {lookingUpBuilding ? <Loader2 className="h-3 w-3 animate-spin" /> : <Building className="h-3 w-3" />}
+                      ΧΕΜΔ
+                    </Button>
+                  )}
+                </div>
                 <EditableField editing={editing} icon={MapPin} label="Διεύθυνση" value={editData.address} fallback={selected?.address} onChange={(v) => setEditData(d => ({ ...d, address: v }))} />
                 <EditableField editing={editing} icon={Hash} label="Όροφος" value={editData.floor} fallback={(selected as any)?.floor} onChange={(v) => setEditData(d => ({ ...d, floor: v }))} />
               </div>
