@@ -164,8 +164,6 @@ const TechnicianInventoryView = () => {
       )}
     </div>
   );
-    </div>
-  );
 };
 
 export default TechnicianInventoryView;
