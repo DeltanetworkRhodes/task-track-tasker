@@ -500,6 +500,11 @@ const OrgSettings = () => {
               {saving ? "Αποθήκευση..." : "Αποθήκευση Ρυθμίσεων"}
             </Button>
 
+            {/* Daily Backup Section */}
+            <div className="mt-8">
+              <DailyBackupViewer />
+            </div>
+
             {/* Audit Log Section */}
             <div className="mt-8">
               <AuditLogViewer />
