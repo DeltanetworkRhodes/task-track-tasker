@@ -89,13 +89,13 @@ const Assignments = () => {
 
   const filtered = assignments.filter((a) => {
     const q = search.toLowerCase();
-    if (activeTab === "active" && ["cancelled", "completed", "submitted", "paid", "rejected"].includes(a.status)) return false;
+    // Only show pending-phase + cancelled in this page
+    const allowedStatuses = ["pending", "inspection", "pre_committed", "cancelled"];
+    if (!allowedStatuses.includes(a.status)) return false;
+    if (activeTab === "active" && a.status === "cancelled") return false;
+    if (activeTab === "active" && !["pending", "inspection", "pre_committed"].includes(a.status)) return false;
     if (activeTab === "cancelled" && a.status !== "cancelled") return false;
-    if (activeTab === "completed" && a.status !== "completed") return false;
-    if (activeTab === "submitted" && a.status !== "submitted") return false;
-    if (activeTab === "paid" && a.status !== "paid") return false;
-    if (activeTab === "rejected" && a.status !== "rejected") return false;
-    if (activeTab === "unassigned" && (a as any).technicianId) return false;
+    if (activeTab === "unassigned" && ((a as any).technicianId || a.status === "cancelled")) return false;
     if (areaFilter !== "all" && a.area !== areaFilter) return false;
     if (sourceFilter !== "all" && (a as any).sourceTab !== sourceFilter) return false;
     if (callFilter !== "all") {
