@@ -71,7 +71,7 @@ const TechnicianMap = ({ assignments }: Props) => {
   const openHemd = async (assignment: any) => {
     // If we already have coordinates, deep link directly
     if (assignment.latitude && assignment.longitude) {
-      openHemdDeepLink(assignment.latitude, assignment.longitude);
+      openHemdDeepLink(assignment.latitude, assignment.longitude, assignment.building_id_hemd, assignment.address);
       return;
     }
 
