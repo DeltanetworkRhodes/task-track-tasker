@@ -569,6 +569,12 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
         }).catch(console.error);
       }
 
+      if (newStatus === "pending" && assignment) {
+        supabase.functions.invoke("move-sr-folder", {
+          body: { sr_id: assignment.sr_id || assignment.srId, target_folder: "ΑΝΑΜΟΝΗ", organization_id: assignment.organization_id },
+        }).catch(console.error);
+      }
+
       if (newStatus === "cancelled" && assignment) {
         try {
           await supabase.functions.invoke("move-cancelled-folder", {

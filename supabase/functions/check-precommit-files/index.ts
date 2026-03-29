@@ -33,7 +33,6 @@ Deno.serve(async (req) => {
     }
 
     // Get all surveys for these assignments
-    const assignmentIds = assignments.map((a) => a.id);
     const srIds = assignments.map((a) => a.sr_id);
 
     const { data: surveys } = await supabase
@@ -81,12 +80,32 @@ Deno.serve(async (req) => {
           .eq("id", a.id);
         movedToInspection.push(a.sr_id);
       } else {
-        // Move back to pending
+        // Move back to pending & move Drive folder to ΑΝΑΜΟΝΗ
         await supabase
           .from("assignments")
           .update({ status: "pending" })
           .eq("id", a.id);
         movedToPending.push(a.sr_id);
+
+        // Move folder to ΑΝΑΜΟΝΗ in Drive
+        if (a.organization_id) {
+          try {
+            await fetch(`${supabaseUrl}/functions/v1/move-sr-folder`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${serviceKey}`,
+              },
+              body: JSON.stringify({
+                sr_id: a.sr_id,
+                target_folder: "ΑΝΑΜΟΝΗ",
+                organization_id: a.organization_id,
+              }),
+            });
+          } catch (e) {
+            console.error(`Failed to move ${a.sr_id} to ΑΝΑΜΟΝΗ:`, e);
+          }
+        }
       }
     }
 
