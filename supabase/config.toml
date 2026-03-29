@@ -50,3 +50,6 @@ verify_jwt = false
 
 [functions.lookup-building-id]
 verify_jwt = false
+
+[functions.daily-backup]
+verify_jwt = false

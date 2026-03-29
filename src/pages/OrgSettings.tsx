@@ -5,6 +5,7 @@ import { useOrganization } from "@/contexts/OrganizationContext";
 import { toast } from "sonner";
 import AppLayout from "@/components/AppLayout";
 import AuditLogViewer from "@/components/AuditLogViewer";
+import DailyBackupViewer from "@/components/DailyBackupViewer";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -498,6 +499,11 @@ const OrgSettings = () => {
               <Save className="h-4 w-4" />
               {saving ? "Αποθήκευση..." : "Αποθήκευση Ρυθμίσεων"}
             </Button>
+
+            {/* Daily Backup Section */}
+            <div className="mt-8">
+              <DailyBackupViewer />
+            </div>
 
             {/* Audit Log Section */}
             <div className="mt-8">
