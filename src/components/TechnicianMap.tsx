@@ -23,7 +23,9 @@ const TechnicianMap = ({ assignments }: Props) => {
     if (a.latitude && a.longitude) {
       return `${a.latitude},${a.longitude}`;
     }
-    return a.address || "";
+    // Append area/municipality to address for accurate geocoding
+    const parts = [a.address, a.municipality, a.area].filter(Boolean);
+    return parts.join(", ");
   };
 
   const openInMaps = (a: any) => {
