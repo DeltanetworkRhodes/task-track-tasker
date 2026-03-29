@@ -1154,7 +1154,23 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
                 <EditableField editing={editing} icon={MapPin} label="Περιοχή" value={editData.area} fallback={selected?.area} onChange={(v) => setEditData(d => ({ ...d, area: v }))} />
                 <EditableField editing={editing} icon={Building} label="Δήμος" value={editData.municipality} fallback={(selected as any)?.municipality} onChange={(v) => setEditData(d => ({ ...d, municipality: v }))} />
                 <EditableField editing={editing} icon={Hash} label="CAB" value={editData.cab} fallback={selected?.cab} onChange={(v) => setEditData(d => ({ ...d, cab: v }))} />
-                <EditableField editing={editing} icon={Hash} label="Building ID" value={editData.building_id_hemd} fallback={(selected as any)?.buildingId} onChange={(v) => setEditData(d => ({ ...d, building_id_hemd: v }))} />
+                <div className="flex items-center gap-1">
+                  <div className="flex-1">
+                    <EditableField editing={editing} icon={Hash} label="Building ID" value={editData.building_id_hemd} fallback={(selected as any)?.buildingId} onChange={(v) => setEditData(d => ({ ...d, building_id_hemd: v }))} />
+                  </div>
+                  {isAdmin && (selected as any)?.latitude && (selected as any)?.longitude && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 px-2 text-[10px] gap-1 mt-4 shrink-0"
+                      onClick={handleLookupBuildingId}
+                      disabled={lookingUpBuilding}
+                    >
+                      {lookingUpBuilding ? <Loader2 className="h-3 w-3 animate-spin" /> : <Building className="h-3 w-3" />}
+                      ΧΕΜΔ
+                    </Button>
+                  )}
+                </div>
                 <EditableField editing={editing} icon={MapPin} label="Διεύθυνση" value={editData.address} fallback={selected?.address} onChange={(v) => setEditData(d => ({ ...d, address: v }))} />
                 <EditableField editing={editing} icon={Hash} label="Όροφος" value={editData.floor} fallback={(selected as any)?.floor} onChange={(v) => setEditData(d => ({ ...d, floor: v }))} />
               </div>
