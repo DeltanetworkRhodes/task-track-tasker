@@ -1,10 +1,11 @@
-import { useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Package, ArrowDown, ArrowUp, History } from "lucide-react";
+import { Package, ArrowDown, ArrowUp, History, Undo2 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { el } from "date-fns/locale";
+import ReturnToWarehouseDialog from "@/components/ReturnToWarehouseDialog";
 
 const TechnicianInventoryView = () => {
   const { user } = useAuth();
