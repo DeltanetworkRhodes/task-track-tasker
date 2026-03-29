@@ -119,10 +119,14 @@ const TechnicianDashboard = () => {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="px-4 pt-4 pb-20">
-        <TabsList className="grid w-full grid-cols-2 mb-4">
+        <TabsList className="grid w-full grid-cols-3 mb-4">
           <TabsTrigger value="assignments" className="gap-1.5 text-xs">
             <ClipboardList className="h-3.5 w-3.5" />
             Αναθέσεις
+          </TabsTrigger>
+          <TabsTrigger value="inventory" className="gap-1.5 text-xs">
+            <Package className="h-3.5 w-3.5" />
+            Αποθήκη
           </TabsTrigger>
           <TabsTrigger value="map" className="gap-1.5 text-xs">
             <MapPin className="h-3.5 w-3.5" />
