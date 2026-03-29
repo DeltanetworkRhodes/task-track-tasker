@@ -312,28 +312,38 @@ function fillErgasiesSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
    Also write computed label strings directly into visible cells.
    ──────────────────────────────────────────── */
 
-function generateBepLabelString(path: string, bmoFbMap: Map<string, string>): string {
-  // Extract SB part: e.g. "SB01(1:8).01_05a" -> "SB01.01_"
-  const sbMatch = path.match(/SB\d+\([\d:]+\)\.(\d+)_(\d+a)/);
-  if (!sbMatch) return path;
-  const sbPort = sbMatch[1]; // e.g. "01"
-  
-  // Extract BMO part: e.g. "BMO01_01a"
-  const bmoMatch = path.match(/(BMO\d+_\d+a)/);
+/** Compute a BEP label string from a BEP-BMO optical path.
+ *  E.g. "BEP01(b04)_SB01(1:8).01_05a_BMO01_01a" -> "SB01.01_FB(+00).1_01_BMO01_01a"
+ */
+function computeBepLabel(path: string, bmoFbMap: Map<string, string>): string {
+  // Extract SB port: SB01(1:8).XX -> XX
+  const sbMatch = path.match(/SB\d+\([\d:]+\)\.(\d+)/);
+  const sbPort = sbMatch ? sbMatch[1] : "";
+
+  // Extract BMO part: BMO01_XXa or BMO01_XX
+  const bmoMatch = path.match(/(BMO\d+[_]\d+a?)/);
   const bmoId = bmoMatch ? bmoMatch[1] : "";
-  
-  // Find the FB that this BMO connects to
+
+  // Find FB path via BMO→FB map
   const fbPath = bmoId ? (bmoFbMap.get(bmoId) || "") : "";
-  
-  if (fbPath && bmoId) {
+
+  if (sbPort && fbPath && bmoId) {
     return `SB01.${sbPort}_${fbPath}_${bmoId}`;
   }
-  return `SB01.${sbPort}_${bmoId || ""}`;
+  if (sbPort && bmoId) {
+    return `SB01.${sbPort}_${bmoId}`;
+  }
+  if (sbPort) {
+    return `SB01.${sbPort}_`;
+  }
+  return path;
+}
+
+function generateBepLabelString(path: string, bmoFbMap: Map<string, string>): string {
+  return computeBepLabel(path, bmoFbMap);
 }
 
 function generateBmoLabelString(path: string): string {
-  // BMO path format: "BMO01_01a_FB(+00).1_01"
-  // Extract FB part: "FB(+00).1_01"
   const fbMatch = path.match(/(FB\([^)]+\)\.\d+_\d+)/);
   return fbMatch ? fbMatch[1] : path;
 }
