@@ -3,7 +3,7 @@ import AppLayout from "@/components/AppLayout";
 import StatCard from "@/components/StatCard";
 import { useConstructions, useAssignments } from "@/hooks/useData";
 import { constructionStatusLabels } from "@/data/mockData";
-import { Wrench, TrendingUp, Receipt, DollarSign, Search, Filter, ExternalLink, ChevronDown, ChevronUp, Calendar, MapPin, Layers, Route, Trash2 } from "lucide-react";
+import { Wrench, TrendingUp, Receipt, DollarSign, Search, Filter, ExternalLink, ChevronDown, ChevronUp, Calendar, MapPin, Layers, Route, Trash2, Radio, CheckCircle2, AlertCircle } from "lucide-react";
 import AsBuiltExporter from "@/components/AsBuiltExporter";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -29,6 +29,25 @@ const statusChartColors: Record<string, string> = {
   invoiced: "hsl(220 70% 55%)",
 };
 
+const assignmentStatusColors: Record<string, string> = {
+  submitted: "bg-blue-500/10 text-blue-600 border-blue-500/20",
+  paid: "bg-green-500/10 text-green-600 border-green-500/20",
+  rejected: "bg-red-500/10 text-red-600 border-red-500/20",
+};
+
+const assignmentStatusLabels: Record<string, string> = {
+  submitted: "Παραδόθηκε",
+  paid: "Πληρωμένη",
+  rejected: "Απορρίφθηκε",
+};
+
+const topTabs = [
+  { key: "constructions", label: "Κατασκευές", icon: Wrench },
+  { key: "submitted", label: "Παραδόθηκαν", icon: Radio },
+  { key: "paid", label: "Πληρωμένες", icon: CheckCircle2 },
+  { key: "rejected", label: "Απορρίφθηκαν", icon: AlertCircle },
+] as const;
+
 const ConstructionPage = () => {
   const { data: dbConstructions, isLoading } = useConstructions();
   const { data: dbAssignments } = useAssignments();
@@ -40,6 +59,7 @@ const ConstructionPage = () => {
   const [sortAsc, setSortAsc] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<any>(null);
   const [deleting, setDeleting] = useState(false);
+  const [topTab, setTopTab] = useState<string>("constructions");
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
@@ -108,7 +128,45 @@ const ConstructionPage = () => {
     return map;
   }, [dbAssignments]);
 
-  // Stats
+  // Post-construction assignments (submitted, paid, rejected)
+  const postConstructionAssignments = useMemo(() => {
+    return (dbAssignments || [])
+      .filter(a => ["submitted", "paid", "rejected"].includes(a.status))
+      .map(a => ({
+        id: a.id,
+        srId: a.sr_id,
+        status: a.status,
+        customerName: (a as any).customer_name || "",
+        address: (a as any).address || "",
+        area: a.area,
+        date: a.updated_at?.split("T")[0] || a.created_at.split("T")[0],
+        paymentAmount: (a as any).payment_amount || 0,
+        paymentDate: (a as any).payment_date || "",
+        paymentNotes: (a as any).payment_notes || "",
+        driveUrl: a.drive_folder_url || "",
+        submittedAt: (a as any).submitted_at || "",
+        paidAt: (a as any).paid_at || "",
+      }));
+  }, [dbAssignments]);
+
+  const postConstructionCounts = useMemo(() => ({
+    submitted: postConstructionAssignments.filter(a => a.status === "submitted").length,
+    paid: postConstructionAssignments.filter(a => a.status === "paid").length,
+    rejected: postConstructionAssignments.filter(a => a.status === "rejected").length,
+  }), [postConstructionAssignments]);
+
+  const filteredPostConstruction = useMemo(() => {
+    return postConstructionAssignments.filter(a => {
+      if (topTab !== "submitted" && topTab !== "paid" && topTab !== "rejected") return false;
+      if (a.status !== topTab) return false;
+      if (search) {
+        const q = search.toLowerCase();
+        return a.srId.toLowerCase().includes(q) || a.customerName.toLowerCase().includes(q);
+      }
+      return true;
+    });
+  }, [postConstructionAssignments, topTab, search]);
+
   const totalRevenue = constructions.reduce((s, c) => s + c.revenue, 0);
   const totalCost = constructions.reduce((s, c) => s + c.materialCost, 0);
   const totalProfit = constructions.reduce((s, c) => s + c.profit, 0);
@@ -212,6 +270,36 @@ const ConstructionPage = () => {
             Διαχείριση κατασκευών, υλικών και φύλλων απολογισμού
           </p>
         </div>
+
+        {/* Top-level tabs */}
+        <div className="flex gap-1 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-none">
+          {topTabs.map(tab => {
+            const isActive = topTab === tab.key;
+            const count = tab.key === "constructions" ? constructions.length : postConstructionCounts[tab.key as keyof typeof postConstructionCounts] || 0;
+            return (
+              <button
+                key={tab.key}
+                onClick={() => setTopTab(tab.key)}
+                className={`flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium whitespace-nowrap transition-all shrink-0 ${
+                  isActive
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground"
+                }`}
+              >
+                <tab.icon className="h-3.5 w-3.5 shrink-0" />
+                {tab.label}
+                <span className={`ml-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+                  isActive ? "bg-primary-foreground/20 text-primary-foreground" : "bg-background text-muted-foreground"
+                }`}>
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {topTab === "constructions" ? (
+        <>
 
         {/* Stat Cards */}
         <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-5">
@@ -479,6 +567,94 @@ const ConstructionPage = () => {
             </>
           )}
         </div>
+        </>) : (
+          /* Post-construction assignments (submitted/paid/rejected) */
+          <div className="space-y-4">
+            {/* Search */}
+            <div className="relative max-w-xs">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Αναζήτηση SR ID ή πελάτη..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+
+            {/* Table */}
+            <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
+              {filteredPostConstruction.length === 0 ? (
+                <div className="py-12 text-center text-muted-foreground">
+                  <AlertCircle className="h-8 w-8 mx-auto mb-2 opacity-30" />
+                  <p className="text-sm">Δεν βρέθηκαν αναθέσεις σε αυτή τη κατηγορία</p>
+                </div>
+              ) : (
+                <>
+                  {/* Mobile */}
+                  <div className="md:hidden divide-y divide-border">
+                    {filteredPostConstruction.map((a) => (
+                      <div key={a.id} className="p-3.5">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="font-bold text-primary text-sm">{a.srId}</span>
+                          <Badge variant="outline" className={`text-[10px] ${assignmentStatusColors[a.status] || ""}`}>
+                            {assignmentStatusLabels[a.status] || a.status}
+                          </Badge>
+                        </div>
+                        <div className="text-xs text-muted-foreground space-y-0.5">
+                          {a.customerName && <p>{a.customerName}</p>}
+                          {a.address && <p>{a.address}</p>}
+                          {a.paymentAmount > 0 && <p className="font-bold text-foreground">{a.paymentAmount.toLocaleString('el-GR')}€</p>}
+                        </div>
+                        <div className="flex items-center justify-between mt-2 text-[10px] text-muted-foreground">
+                          <span>{a.area}</span>
+                          <span>{a.date}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  {/* Desktop */}
+                  <div className="hidden md:block">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-border bg-muted/50">
+                          <th className="py-2.5 px-3 text-left font-medium text-muted-foreground text-[11px] uppercase tracking-wider">SR ID</th>
+                          <th className="py-2.5 px-3 text-left font-medium text-muted-foreground text-[11px] uppercase tracking-wider">Πελάτης</th>
+                          <th className="py-2.5 px-3 text-left font-medium text-muted-foreground text-[11px] uppercase tracking-wider">Διεύθυνση</th>
+                          <th className="py-2.5 px-3 text-left font-medium text-muted-foreground text-[11px] uppercase tracking-wider">Περιοχή</th>
+                          <th className="py-2.5 px-3 text-left font-medium text-muted-foreground text-[11px] uppercase tracking-wider">Κατάσταση</th>
+                          <th className="py-2.5 px-3 text-right font-medium text-muted-foreground text-[11px] uppercase tracking-wider">Ποσό</th>
+                          <th className="py-2.5 px-3 text-right font-medium text-muted-foreground text-[11px] uppercase tracking-wider">Ημ/νία</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredPostConstruction.map((a) => (
+                          <tr key={a.id} className="border-b border-border/30 hover:bg-muted/50 transition-colors">
+                            <td className="py-2.5 px-3 font-bold text-primary text-xs">{a.srId}</td>
+                            <td className="py-2.5 px-3 text-xs truncate max-w-[150px]">{a.customerName || '—'}</td>
+                            <td className="py-2.5 px-3 text-xs truncate max-w-[200px]">{a.address || '—'}</td>
+                            <td className="py-2.5 px-3 text-xs">{a.area}</td>
+                            <td className="py-2.5 px-3">
+                              <Badge variant="outline" className={`text-[10px] ${assignmentStatusColors[a.status] || ""}`}>
+                                {assignmentStatusLabels[a.status] || a.status}
+                              </Badge>
+                            </td>
+                            <td className="py-2.5 px-3 text-right text-xs font-bold">
+                              {a.paymentAmount > 0 ? `${a.paymentAmount.toLocaleString('el-GR')}€` : '—'}
+                            </td>
+                            <td className="py-2.5 px-3 text-right text-xs text-muted-foreground">{a.date}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              )}
+            </div>
+            <span className="text-xs text-muted-foreground font-bold bg-muted px-2.5 py-1.5 rounded-full">
+              {filteredPostConstruction.length} εγγραφές
+            </span>
+          </div>
+        )}
 
         {/* Detail Dialog */}
         <Dialog open={!!selectedConstruction} onOpenChange={(open) => { if (!open) setSelectedConstruction(null); }}>
