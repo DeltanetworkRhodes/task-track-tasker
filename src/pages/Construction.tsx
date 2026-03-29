@@ -59,6 +59,7 @@ const ConstructionPage = () => {
   const [sortAsc, setSortAsc] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<any>(null);
   const [deleting, setDeleting] = useState(false);
+  const [topTab, setTopTab] = useState<string>("constructions");
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
