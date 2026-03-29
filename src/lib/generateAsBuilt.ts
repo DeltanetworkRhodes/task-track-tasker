@@ -125,18 +125,29 @@ async function fetchAsBuiltData(srId: string): Promise<AsBuiltData> {
     gis_id: p.gis_id || p["GIS ID"] || "",
   }));
 
-  const floorBoxes: FloorBox[] = floorDetails.map((fd: any) => ({
-    floor: fd.floor ?? fd["ΟΡΟΦΟΣ"] ?? fd.ΟΡΟΦΟΣ ?? "",
-    fb_id: fd.fb_id ?? fd.FB_ID ?? fd["GIS ID"] ?? "",
-    apartments: Number(fd.apartments ?? fd["ΔΙΑΜΕΡΙΣΜΑΤΑ"] ?? fd.ΔΙΑΜΕΡΙΣΜΑΤΑ ?? 0),
-    shops: Number(fd.shops ?? fd["ΚΑΤΑΣΤΗΜΑΤΑ"] ?? fd.ΚΑΤΑΣΤΗΜΑΤΑ ?? 0),
-    fb_count: Number(fd.fb_count ?? fd.FB01 ?? fd["FB01"] ?? 0),
-    fb_type: fd.fb_type ?? fd.FB01_TYPE ?? fd["FB01 TYPE"] ?? "",
-    fb_customer: fd.fb_customer ?? fd["FB ΠΕΛΑΤΗ"] ?? fd.FB_ΠΕΛΑΤΗ ?? "",
-    customer_space: fd.customer_space ?? fd["ΑΡΙΘΜΗΣΗ ΧΩΡΟΥ ΠΕΛΑΤΗ"] ?? fd.ΑΡΙΘΜΗΣΗ_ΧΩΡΟΥ_ΠΕΛΑΤΗ ?? "",
-    meters: Number(fd.meters ?? fd["ΜΕΤΡΑ"] ?? fd.ΜΕΤΡΑ ?? 0),
-    pipe_type: fd.pipe_type ?? fd["ΕΙΔΟΣ"] ?? fd.ΕΙΔΟΣ ?? "",
-  }));
+  const floorBoxes: FloorBox[] = floorDetails.map((fd: any) => {
+    // Sum FB counts from all FB columns (FB01, FB02, FB03, FB04)
+    const fb01 = Number(fd.fb_count ?? fd.FB01 ?? fd["FB01"] ?? 0);
+    const fb02 = Number(fd.FB02 ?? fd["FB02"] ?? 0);
+    const fb03 = Number(fd.FB03 ?? fd["FB03"] ?? 0);
+    const fb04 = Number(fd.FB04 ?? fd["FB04"] ?? 0);
+    const totalFb = fb01 + fb02 + fb03 + fb04;
+    // Use FB01 TYPE as primary, fall back to FB02-04 TYPE
+    const fbType = fd.fb_type ?? fd.FB01_TYPE ?? fd["FB01 TYPE"]
+      ?? fd["FB02 TYPE"] ?? fd["FB03 TYPE"] ?? fd["FB04 TYPE"] ?? "";
+    return {
+      floor: fd.floor ?? fd["ΟΡΟΦΟΣ"] ?? fd.ΟΡΟΦΟΣ ?? "",
+      fb_id: fd.fb_id ?? fd.FB_ID ?? fd["GIS ID"] ?? "",
+      apartments: Number(fd.apartments ?? fd["ΔΙΑΜΕΡΙΣΜΑΤΑ"] ?? fd.ΔΙΑΜΕΡΙΣΜΑΤΑ ?? 0),
+      shops: Number(fd.shops ?? fd["ΚΑΤΑΣΤΗΜΑΤΑ"] ?? fd.ΚΑΤΑΣΤΗΜΑΤΑ ?? 0),
+      fb_count: totalFb || fb01,
+      fb_type: fbType,
+      fb_customer: fd.fb_customer ?? fd["FB ΠΕΛΑΤΗ"] ?? fd.FB_ΠΕΛΑΤΗ ?? "",
+      customer_space: fd.customer_space ?? fd["ΑΡΙΘΜΗΣΗ ΧΩΡΟΥ ΠΕΛΑΤΗ"] ?? fd.ΑΡΙΘΜΗΣΗ_ΧΩΡΟΥ_ΠΕΛΑΤΗ ?? "",
+      meters: Number(fd.meters ?? fd["ΜΕΤΡΑ"] ?? fd.ΜΕΤΡΑ ?? 0),
+      pipe_type: fd.pipe_type ?? fd["ΕΙΔΟΣ"] ?? fd.ΕΙΔΟΣ ?? "",
+    };
+  });
 
   const areaType = gisData?.area_type || "";
   const isNewInfrastructure =
@@ -278,13 +289,11 @@ function fillOrofoiSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
    ──────────────────────────────────────────── */
 
 function extractSizeFromType(typeStr: string): string {
-  // GIS stores e.g. "LARGE/28/RAYCAP", "MEDIUM/48/RAYCAP", "SMALL/4/ZTT"
   const upper = (typeStr || "").toUpperCase().trim();
   if (upper.startsWith("XLARGE") || upper.includes("/XLARGE")) return "XLARGE";
   if (upper.startsWith("LARGE") || upper.includes("/LARGE")) return "LARGE";
   if (upper.startsWith("MEDIUM") || upper.includes("/MEDIUM")) return "MEDIUM";
   if (upper.startsWith("SMALL") || upper.includes("/SMALL")) return "SMALL";
-  // Fallback: try to find keyword anywhere
   if (upper.includes("XLARGE")) return "XLARGE";
   if (upper.includes("LARGE")) return "LARGE";
   if (upper.includes("MEDIUM")) return "MEDIUM";
@@ -292,33 +301,30 @@ function extractSizeFromType(typeStr: string): string {
   return "";
 }
 
+function extractBrandFromType(typeStr: string): string {
+  // "LARGE/28/RAYCAP" → "RAYCAP", "SMALL/4/ZTT" → "ZTT"
+  const parts = (typeStr || "").split("/");
+  if (parts.length >= 3) return parts[parts.length - 1].trim().split(" ")[0];
+  if (parts.length === 2) return parts[1].trim().split(" ")[0];
+  return "";
+}
+
 function getBepHeader(bepType: string): string {
   const size = extractSizeFromType(bepType);
-  const headers: Record<string, string> = {
-    "XLARGE": "XLARGE BEP with 1 splitter ",
-    "LARGE": "LARGE BEP with 1 splitter ",
-    "MEDIUM": "Medium BEP with 1 splitter ",
-    "SMALL": "SMALL BEP with 1 splitter ",
-  };
-  return headers[size] || `${size || "?"} BEP with 1 splitter `;
+  const brand = extractBrandFromType(bepType);
+  return `${size || "?"} BEP with 1 splitter  ${brand}`.trim();
 }
 
 function getBmoHeader(bmoType: string): string {
   const size = extractSizeFromType(bmoType);
-  const headers: Record<string, string> = {
-    "XLARGE": "ΒΜΟ XLARGE BEP with 1 splitter ",
-    "LARGE": "ΒΜΟ LARGE BEP with 1 splitter ",
-    "MEDIUM": "ΒΜΟ MEDIUM BEP with 1 splitter ",
-    "SMALL": "ΒΜΟ SMALL BEP with 1 splitter ",
-  };
-  return headers[size] || `ΒΜΟ ${size || "?"} BEP with 1 splitter `;
+  const brand = extractBrandFromType(bmoType);
+  return `ΒΜΟ ${size || "?"} with 1 splitter  ${brand}`.trim();
 }
 
 function getBcpHeader(newBcp: string): string {
   if (!newBcp || !newBcp.trim()) return "";
-  // e.g. "SMALL/4/ZTT"
   const size = extractSizeFromType(newBcp);
-  const brand = newBcp.split("/").pop() || "";
+  const brand = extractBrandFromType(newBcp);
   return `${size || "?"} BCP with 1 splitter  ${brand}`.trim();
 }
 
@@ -363,27 +369,29 @@ function fillErgasiesSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
 
 /** Compute a BEP label string from a BEP-BMO optical path.
  *  E.g. "BEP01(b04)_SB01(1:8).01_05a_BMO01_01a" -> "SB01.01_FB(+00).1_01_BMO01_01a"
+ *  Also handles paths without trailing 'a': "BEP01_SB01(1:8).01_03a_BMO01_1" -> "SB01.01_FB(+01).1_01_BMO01_1"
  */
 function computeBepLabel(path: string, bmoFbMap: Map<string, string>): string {
-  // Extract SB port: SB01(1:8).XX -> XX
-  const sbMatch = path.match(/SB\d+\([\d:]+\)\.(\d+)/);
-  const sbPort = sbMatch ? sbMatch[1] : "";
+  // Extract SB ID and port: SB01(1:8).XX or SB02(1:8).XX
+  const sbMatch = path.match(/(SB\d+)\([\d:]+\)\.(\d+)/);
+  const sbId = sbMatch ? sbMatch[1] : "SB01";
+  const sbPort = sbMatch ? sbMatch[2] : "";
 
-  // Extract BMO part: BMO01_XXa or BMO01_XX
-  const bmoMatch = path.match(/(BMO\d+[_]\d+a?)/);
+  // Extract BMO part: BMO01_XXa or BMO01_XX (with or without trailing 'a')
+  const bmoMatch = path.match(/(BMO\d+_\d+a?)/);
   const bmoId = bmoMatch ? bmoMatch[1] : "";
 
   // Find FB path via BMO→FB map
   const fbPath = bmoId ? (bmoFbMap.get(bmoId) || "") : "";
 
   if (sbPort && fbPath && bmoId) {
-    return `SB01.${sbPort}_${fbPath}_${bmoId}`;
+    return `${sbId}.${sbPort}_${fbPath}_${bmoId}`;
   }
   if (sbPort && bmoId) {
-    return `SB01.${sbPort}_${bmoId}`;
+    return `${sbId}.${sbPort}_${bmoId}`;
   }
   if (sbPort) {
-    return `SB01.${sbPort}_`;
+    return `${sbId}.${sbPort}__`;
   }
   return path;
 }
@@ -650,20 +658,25 @@ function fillEpimetrisiSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
 
   // ══════════════════════════════════════════════════════════════
   // 5. CAB-BEP OPTICAL PATHS (rows 44-47, F=type, G=path)
+  // Reference: Only primary CAB-BEP path (with SGA/SGB) at row 44,
+  // remaining rows show "CAB-BEP" as filler text
   // ══════════════════════════════════════════════════════════════
-  const cabBepPaths = d.opticalPaths.filter(op => op.type === "CAB-BEP" || op.type === "CAB-BCP");
+  const allCabPaths = d.opticalPaths.filter(op => op.type === "CAB-BEP" || op.type === "CAB-BCP");
+  // Primary path = the one containing SGA/SGB + SB (full routing), if any
+  const primaryCab = allCabPaths.find(op => /SG[AB]\d+/i.test(op.path) && /SB\d+/i.test(op.path));
 
-  // Clear old CAB-BEP data (rows 44-47)
   for (let r = 44; r <= 47; r++) {
-    ws.getCell(r, 6).value = null; // F
-    ws.getCell(r, 7).value = null; // G
+    ws.getCell(r, 6).value = "CAB-BEP"; // F = type label
+    ws.getCell(r, 7).value = "CAB-BEP"; // G = filler
   }
-  for (let i = 0; i < cabBepPaths.length && i < 4; i++) {
-    const r = 44 + i;
-    ws.getCell(r, 6).value = cabBepPaths[i].type;  // F = OPTICAL PATH TYPE
-    ws.getCell(r, 7).value = cabBepPaths[i].path;  // G = OPTICAL PATH
+  if (primaryCab) {
+    ws.getCell(44, 6).value = primaryCab.type;
+    ws.getCell(44, 7).value = primaryCab.path;
+  } else if (allCabPaths.length > 0) {
+    ws.getCell(44, 6).value = allCabPaths[0].type;
+    ws.getCell(44, 7).value = allCabPaths[0].path;
   }
-  console.log(`✅ CAB-BEP: wrote ${Math.min(cabBepPaths.length, 4)} paths to F44:G47`);
+  console.log(`✅ CAB-BEP: wrote primary path to F44:G44, ${allCabPaths.length} total`);
 
   // ══════════════════════════════════════════════════════════════
   // 5a2. Write BMO type header at I46 and BEP type header at B61
@@ -672,32 +685,38 @@ function fillEpimetrisiSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
   ws.getCell("B61").value = getBepHeader(d.bepType);
 
   // ══════════════════════════════════════════════════════════════
-  // 5b. BCP CABLE INDICES (rows 53-58, F=index, G=cable_number, H=address)
-  // Fill ONLY when BCP πραγματικά υπάρχει στα δεδομένα
+  // 5b. CABLE INDICES (rows 53-58, F=index, G=cable_number, H=address)
+  // Extract cable numbers from ALL CAB-BEP/CAB-BCP paths
   // ══════════════════════════════════════════════════════════════
   for (let r = 53; r <= 58; r++) {
-    ws.getCell(r, 6).value = 0;  // F = index
-    ws.getCell(r, 7).value = 0;  // G = cable number
-    ws.getCell(r, 8).value = null; // H = address
+    ws.getCell(r, 6).value = 0;
+    ws.getCell(r, 7).value = 0;
+    ws.getCell(r, 8).value = null;
   }
-  const hasBcpMetadata = [d.associatedBcp, d.nearbyBcp, d.newBcp].some(v => (v || "").trim().length > 0);
-  const hasBcpPaths = d.opticalPaths.some(op => (op.type || "").toUpperCase().includes("BCP") || /\bBCP\b/i.test(op.path || ""));
-  const hasBcp = hasBcpMetadata || hasBcpPaths;
-  const bcpCablePaths = d.opticalPaths.filter(
-    op => (op.type || "").toUpperCase() === "CAB-BCP" || /\bBCP\b/i.test(op.path || "")
-  );
 
-  // Write BCP header at F51
-  if (hasBcp) {
-    ws.getCell("F51").value = getBcpHeader(d.newBcp);
-    for (let i = 0; i < bcpCablePaths.length && i < 6; i++) {
-      const r = 53 + i;
-      const cableNum = extractCableIndex(bcpCablePaths[i].path);
-      ws.getCell(r, 6).value = i + 1;                                           // F = index
-      ws.getCell(r, 7).value = /^\d+$/.test(cableNum) ? Number(cableNum) : cableNum; // G = cable number
-      ws.getCell(r, 8).value = d.address;                                        // H = address
-    }
+  // Extract cable numbers from all CAB paths
+  const cableNumbers: string[] = [];
+  for (const cp of allCabPaths) {
+    const cableNum = extractCableIndex(cp.path);
+    if (cableNum) cableNumbers.push(cableNum);
   }
+
+  // Write BCP header if BCP data exists
+  const hasBcp = (d.newBcp || "").trim().length > 0 ||
+    d.opticalPaths.some(op => (op.type || "").toUpperCase().includes("BCP"));
+  if (hasBcp && d.newBcp) {
+    ws.getCell("F51").value = getBcpHeader(d.newBcp);
+  }
+
+  // Write cable numbers (from all CAB paths)
+  for (let i = 0; i < cableNumbers.length && i < 6; i++) {
+    const r = 53 + i;
+    const cn = cableNumbers[i];
+    ws.getCell(r, 6).value = i + 1;
+    ws.getCell(r, 7).value = /^\d+$/.test(cn) ? Number(cn) : cn;
+    ws.getCell(r, 8).value = d.address;
+  }
+  console.log(`✅ Cable indices: wrote ${Math.min(cableNumbers.length, 6)} cables to F53:H58`);
 
   // ══════════════════════════════════════════════════════════════
   // 5c. BEP LABELS section (rows 61-70)
@@ -816,21 +835,22 @@ function fillEpimetrisiSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
   ws.getCell("V91").value = d.trenchLengthM || "";
 }
 
-/** Extract cable index from CAB-BEP path string.
+/** Extract cable index from CAB-BEP/CAB-BCP path string.
  *  Handles both numeric (G526_249_BEP...) and alphanumeric (G137_B1.5_BEP...) formats.
  *  Also handles SGA paths: G137_SGA01(1:8).02_B1.5_BEP01(b24)_01_SB01(1:8) -> "B1.5"
+ *  Also handles BCP paths: G151_SGA01(1:8).07_C1.1_BCP01(c19)_01 -> "C1.1"
  */
 function extractCableIndex(path: string): string {
-  // Find the segment(s) between CAB ID and "BEP" keyword
-  const bepIdx = path.indexOf("BEP");
+  // Find the segment(s) before "BEP" or "BCP" keyword
+  const bepIdx = path.search(/B[CE]P/);
   if (bepIdx < 0) return "";
   const beforeBep = path.substring(0, bepIdx);
   const parts = beforeBep.split("_").filter(Boolean);
-  // Skip the first part (CAB ID like G526) and SGA parts
+  // Skip the first part (CAB ID like G526) and SGA/SGB parts
   for (let i = parts.length - 1; i >= 1; i--) {
     const part = parts[i];
     if (part.startsWith("SGA") || part.startsWith("SGB")) continue;
-    // Return the cable identifier (numeric or alphanumeric like B1.5)
+    // Return the cable identifier (numeric or alphanumeric like B1.5, C1.1)
     return part;
   }
   return "";
@@ -860,7 +880,7 @@ function logPreview(d: AsBuiltData) {
   // LABELS preview
   const bmoFbMap = new Map<string, string>();
   d.opticalPaths.filter(op => op.type === "BMO-FB" || op.type === "BMO").forEach(op => {
-    const bmoMatch = op.path.match(/(BMO\d+_\d+a)/);
+    const bmoMatch = op.path.match(/(BMO\d+_\d+a?)/);
     const fbMatch = op.path.match(/(FB\([^)]+\)\.\d+_\d+)/);
     if (bmoMatch && fbMatch) bmoFbMap.set(bmoMatch[1], fbMatch[1]);
   });
