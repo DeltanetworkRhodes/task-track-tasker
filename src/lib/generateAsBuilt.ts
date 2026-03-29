@@ -524,19 +524,28 @@ function fillEpimetrisiSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
 
   // ══════════════════════════════════════════════════════════════
   // 5b. BCP CABLE INDICES (rows 53-58, F=index, G=cable_number, H=address)
-  // Extract cable numbers from CAB-BEP paths
+  // Fill ONLY when BCP πραγματικά υπάρχει στα δεδομένα
   // ══════════════════════════════════════════════════════════════
   for (let r = 53; r <= 58; r++) {
     ws.getCell(r, 6).value = 0;  // F = index
     ws.getCell(r, 7).value = 0;  // G = cable number
     ws.getCell(r, 8).value = null; // H = address
   }
-  for (let i = 0; i < cabBepPaths.length && i < 6; i++) {
-    const r = 53 + i;
-    const cableNum = extractCableIndex(cabBepPaths[i].path);
-    ws.getCell(r, 6).value = i + 1;                                           // F = index
-    ws.getCell(r, 7).value = /^\d+$/.test(cableNum) ? Number(cableNum) : cableNum; // G = cable number
-    ws.getCell(r, 8).value = d.address;                                        // H = address
+  const hasBcpMetadata = [d.associatedBcp, d.nearbyBcp, d.newBcp].some(v => (v || "").trim().length > 0);
+  const hasBcpPaths = d.opticalPaths.some(op => (op.type || "").toUpperCase().includes("BCP") || /\bBCP\b/i.test(op.path || ""));
+  const hasBcp = hasBcpMetadata || hasBcpPaths;
+  const bcpCablePaths = d.opticalPaths.filter(
+    op => (op.type || "").toUpperCase() === "CAB-BCP" || /\bBCP\b/i.test(op.path || "")
+  );
+
+  if (hasBcp) {
+    for (let i = 0; i < bcpCablePaths.length && i < 6; i++) {
+      const r = 53 + i;
+      const cableNum = extractCableIndex(bcpCablePaths[i].path);
+      ws.getCell(r, 6).value = i + 1;                                           // F = index
+      ws.getCell(r, 7).value = /^\d+$/.test(cableNum) ? Number(cableNum) : cableNum; // G = cable number
+      ws.getCell(r, 8).value = d.address;                                        // H = address
+    }
   }
 
   // ══════════════════════════════════════════════════════════════
