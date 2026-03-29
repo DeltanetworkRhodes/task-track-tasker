@@ -540,8 +540,9 @@ function fillEpimetrisiSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
   }
 
   // ══════════════════════════════════════════════════════════════
-  // 5c. BEP LABELS section (rows 65-70, G=label_A, I=label_B)
-  // Computed from BEP-BMO optical paths
+  // 5c. BEP LABELS section (rows 61-70)
+  // Reference: F61=header, F62=ΘΕΣΗ headers, F63-F64=cable positions,
+  //            F65-F70=computed BEP labels (G=A side, I=B side)
   // ══════════════════════════════════════════════════════════════
   const bepBmoPaths = d.opticalPaths.filter(op => op.type === "BEP-BMO" || op.type === "BEP" || op.type === "BCP-BEP");
 
@@ -553,37 +554,59 @@ function fillEpimetrisiSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
     if (bmoMatch && fbMatch) bmoFbMap.set(bmoMatch[1], fbMatch[1]);
   });
 
-  // Clear old BEP labels (rows 65-70, cols G-J)
+  // Cable positions at rows 63-64 (from reference: F63=1,G63=1,H63=1,I63=2,J63="από καμπίνα")
+  ws.getCell("F63").value = 1;
+  ws.getCell("G63").value = 1;
+  ws.getCell("H63").value = 1;
+  ws.getCell("I63").value = 2;
+  ws.getCell("J63").value = "από καμπίνα";
+  ws.getCell("F64").value = 2;
+  ws.getCell("G64").value = 3;
+  ws.getCell("H64").value = 2;
+  ws.getCell("I64").value = 4;
+
+  // Clear old BEP labels (rows 65-70, cols F-J)
   for (let r = 65; r <= 70; r++) {
-    ws.getCell(r, 7).value = null;  // G
-    ws.getCell(r, 8).value = null;  // H (unused but clean)
-    ws.getCell(r, 9).value = null;  // I
-    ws.getCell(r, 10).value = null; // J
+    ws.getCell(r, 6).value = null;  // F = position index
+    ws.getCell(r, 7).value = null;  // G = label A
+    ws.getCell(r, 8).value = null;  // H = position index
+    ws.getCell(r, 9).value = null;  // I = label B
+    ws.getCell(r, 10).value = null; // J = notes
   }
 
   // Write computed BEP labels paired: G=A side, I=B side
+  // Also write position indices in F and H columns
   for (let i = 0; i < bepBmoPaths.length && i < 12; i++) {
     const rowIdx = Math.floor(i / 2);
     const r = 65 + rowIdx;
     const isB = i % 2 === 1;
     const label = computeBepLabel(bepBmoPaths[i].path, bmoFbMap);
+
     if (!isB) {
-      ws.getCell(r, 7).value = label;  // G = A side
+      ws.getCell(r, 6).value = rowIdx + 3;    // F = position (3,4,5,6,7,8)
+      ws.getCell(r, 7).value = label;          // G = label A
+      ws.getCell(r, 8).value = rowIdx + 3;     // H = same position
     } else {
-      ws.getCell(r, 9).value = label;  // I = B side
+      ws.getCell(r, 9).value = label;          // I = label B
     }
   }
 
-  // Fill empty label slots
+  // Fill empty label slots with "-" and "χωρίς ports" notes
   const bepLabelCount = Math.min(bepBmoPaths.length, 12);
   for (let i = bepLabelCount; i < 12; i++) {
     const rowIdx = Math.floor(i / 2);
     const r = 65 + rowIdx;
     const isB = i % 2 === 1;
     if (!isB) {
+      ws.getCell(r, 6).value = rowIdx + 3;
       ws.getCell(r, 7).value = "-";
+      ws.getCell(r, 8).value = rowIdx + 3;
     } else {
       ws.getCell(r, 9).value = "-";
+      // Add "χωρίς ports" note for empty B side slots
+      if (i >= bepLabelCount) {
+        ws.getCell(r, 10).value = "χωρίς ports";
+      }
     }
   }
   console.log(`✅ BEP labels: wrote ${bepLabelCount} labels to G65:I70`);
