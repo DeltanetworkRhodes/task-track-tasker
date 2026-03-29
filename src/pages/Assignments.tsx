@@ -90,7 +90,7 @@ const Assignments = () => {
   const filtered = assignments.filter((a) => {
     const q = search.toLowerCase();
     // Only show pending-phase + cancelled in this page
-    const allowedStatuses = ["pending", "inspection", "pre_committed", "cancelled"];
+    const allowedStatuses = ["pending", "cancelled"];
     if (!allowedStatuses.includes(a.status)) return false;
     if (activeTab === "active" && a.status === "cancelled") return false;
     if (activeTab === "active" && !["pending", "inspection", "pre_committed"].includes(a.status)) return false;
