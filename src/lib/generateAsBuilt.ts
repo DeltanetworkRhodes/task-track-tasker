@@ -534,9 +534,9 @@ function fillEpimetrisiSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
   for (let i = 0; i < cabBepPaths.length && i < 6; i++) {
     const r = 53 + i;
     const cableNum = extractCableIndex(cabBepPaths[i].path);
-    ws.getCell(r, 6).value = i + 1;                           // F = index
-    ws.getCell(r, 7).value = cableNum ? Number(cableNum) : 0; // G = cable number
-    ws.getCell(r, 8).value = d.address;                        // H = address
+    ws.getCell(r, 6).value = i + 1;                                           // F = index
+    ws.getCell(r, 7).value = /^\d+$/.test(cableNum) ? Number(cableNum) : cableNum; // G = cable number
+    ws.getCell(r, 8).value = d.address;                                        // H = address
   }
 
   // ══════════════════════════════════════════════════════════════
