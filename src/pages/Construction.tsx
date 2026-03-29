@@ -29,6 +29,25 @@ const statusChartColors: Record<string, string> = {
   invoiced: "hsl(220 70% 55%)",
 };
 
+const assignmentStatusColors: Record<string, string> = {
+  submitted: "bg-blue-500/10 text-blue-600 border-blue-500/20",
+  paid: "bg-green-500/10 text-green-600 border-green-500/20",
+  rejected: "bg-red-500/10 text-red-600 border-red-500/20",
+};
+
+const assignmentStatusLabels: Record<string, string> = {
+  submitted: "Παραδόθηκε",
+  paid: "Πληρωμένη",
+  rejected: "Απορρίφθηκε",
+};
+
+const topTabs = [
+  { key: "constructions", label: "Κατασκευές", icon: Wrench },
+  { key: "submitted", label: "Παραδόθηκαν", icon: Radio },
+  { key: "paid", label: "Πληρωμένες", icon: CheckCircle2 },
+  { key: "rejected", label: "Απορρίφθηκαν", icon: AlertCircle },
+] as const;
+
 const ConstructionPage = () => {
   const { data: dbConstructions, isLoading } = useConstructions();
   const { data: dbAssignments } = useAssignments();
