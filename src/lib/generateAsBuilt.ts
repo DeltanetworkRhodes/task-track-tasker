@@ -125,18 +125,29 @@ async function fetchAsBuiltData(srId: string): Promise<AsBuiltData> {
     gis_id: p.gis_id || p["GIS ID"] || "",
   }));
 
-  const floorBoxes: FloorBox[] = floorDetails.map((fd: any) => ({
-    floor: fd.floor ?? fd["ΟΡΟΦΟΣ"] ?? fd.ΟΡΟΦΟΣ ?? "",
-    fb_id: fd.fb_id ?? fd.FB_ID ?? fd["GIS ID"] ?? "",
-    apartments: Number(fd.apartments ?? fd["ΔΙΑΜΕΡΙΣΜΑΤΑ"] ?? fd.ΔΙΑΜΕΡΙΣΜΑΤΑ ?? 0),
-    shops: Number(fd.shops ?? fd["ΚΑΤΑΣΤΗΜΑΤΑ"] ?? fd.ΚΑΤΑΣΤΗΜΑΤΑ ?? 0),
-    fb_count: Number(fd.fb_count ?? fd.FB01 ?? fd["FB01"] ?? 0),
-    fb_type: fd.fb_type ?? fd.FB01_TYPE ?? fd["FB01 TYPE"] ?? "",
-    fb_customer: fd.fb_customer ?? fd["FB ΠΕΛΑΤΗ"] ?? fd.FB_ΠΕΛΑΤΗ ?? "",
-    customer_space: fd.customer_space ?? fd["ΑΡΙΘΜΗΣΗ ΧΩΡΟΥ ΠΕΛΑΤΗ"] ?? fd.ΑΡΙΘΜΗΣΗ_ΧΩΡΟΥ_ΠΕΛΑΤΗ ?? "",
-    meters: Number(fd.meters ?? fd["ΜΕΤΡΑ"] ?? fd.ΜΕΤΡΑ ?? 0),
-    pipe_type: fd.pipe_type ?? fd["ΕΙΔΟΣ"] ?? fd.ΕΙΔΟΣ ?? "",
-  }));
+  const floorBoxes: FloorBox[] = floorDetails.map((fd: any) => {
+    // Sum FB counts from all FB columns (FB01, FB02, FB03, FB04)
+    const fb01 = Number(fd.fb_count ?? fd.FB01 ?? fd["FB01"] ?? 0);
+    const fb02 = Number(fd.FB02 ?? fd["FB02"] ?? 0);
+    const fb03 = Number(fd.FB03 ?? fd["FB03"] ?? 0);
+    const fb04 = Number(fd.FB04 ?? fd["FB04"] ?? 0);
+    const totalFb = fb01 + fb02 + fb03 + fb04;
+    // Use FB01 TYPE as primary, fall back to FB02-04 TYPE
+    const fbType = fd.fb_type ?? fd.FB01_TYPE ?? fd["FB01 TYPE"]
+      ?? fd["FB02 TYPE"] ?? fd["FB03 TYPE"] ?? fd["FB04 TYPE"] ?? "";
+    return {
+      floor: fd.floor ?? fd["ΟΡΟΦΟΣ"] ?? fd.ΟΡΟΦΟΣ ?? "",
+      fb_id: fd.fb_id ?? fd.FB_ID ?? fd["GIS ID"] ?? "",
+      apartments: Number(fd.apartments ?? fd["ΔΙΑΜΕΡΙΣΜΑΤΑ"] ?? fd.ΔΙΑΜΕΡΙΣΜΑΤΑ ?? 0),
+      shops: Number(fd.shops ?? fd["ΚΑΤΑΣΤΗΜΑΤΑ"] ?? fd.ΚΑΤΑΣΤΗΜΑΤΑ ?? 0),
+      fb_count: totalFb || fb01,
+      fb_type: fbType,
+      fb_customer: fd.fb_customer ?? fd["FB ΠΕΛΑΤΗ"] ?? fd.FB_ΠΕΛΑΤΗ ?? "",
+      customer_space: fd.customer_space ?? fd["ΑΡΙΘΜΗΣΗ ΧΩΡΟΥ ΠΕΛΑΤΗ"] ?? fd.ΑΡΙΘΜΗΣΗ_ΧΩΡΟΥ_ΠΕΛΑΤΗ ?? "",
+      meters: Number(fd.meters ?? fd["ΜΕΤΡΑ"] ?? fd.ΜΕΤΡΑ ?? 0),
+      pipe_type: fd.pipe_type ?? fd["ΕΙΔΟΣ"] ?? fd.ΕΙΔΟΣ ?? "",
+    };
+  });
 
   const areaType = gisData?.area_type || "";
   const isNewInfrastructure =
