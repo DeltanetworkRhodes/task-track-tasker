@@ -1,13 +1,16 @@
-import { ExternalLink, MapPin, Navigation } from "lucide-react";
+import { ExternalLink, Loader2, MapPin, Navigation } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useState } from "react";
 
 interface Props {
   assignments: any[];
 }
 
 const TechnicianMap = ({ assignments }: Props) => {
+  const [loadingHemd, setLoadingHemd] = useState<string | null>(null);
   const withAddress = assignments.filter((a) => a.address || (a.latitude && a.longitude));
 
   if (withAddress.length === 0) {
@@ -23,7 +26,6 @@ const TechnicianMap = ({ assignments }: Props) => {
     if (a.latitude && a.longitude) {
       return `${a.latitude},${a.longitude}`;
     }
-    // Append area/municipality + country for accurate geocoding
     const parts = [a.address, a.municipality, a.area, "Ελλάδα"].filter(Boolean);
     return parts.join(", ");
   };
@@ -40,36 +42,66 @@ const TechnicianMap = ({ assignments }: Props) => {
     window.open(`https://www.google.com/maps/dir/?api=1&destination=${encoded}`, "_blank");
   };
 
-  const openHemd = (assignment: any) => {
+  const openHemdDeepLink = (lat: number, lng: number) => {
+    const hashData = {
+      "FTTH/B": 1,
+      "a3b_coverpointftthcoax_normal_dist_10th": 1,
+      "Κάλυψη χαλκού": 0,
+      "grid_square1000sql": 0,
+      "Κινητή": 0,
+      "zoom": 18,
+      "center": { "lng": lng, "lat": lat }
+    };
+    const hash = encodeURIComponent(JSON.stringify(hashData));
+    window.open(
+      `https://www.broadband-assist.gov.gr/public/index_here.html#${hash}`,
+      "_blank"
+    );
+  };
+
+  const openHemd = async (assignment: any) => {
+    // If we already have coordinates, deep link directly
     if (assignment.latitude && assignment.longitude) {
-      const hashData = {
-        "FTTH/B": 1,
-        "a3b_coverpointftthcoax_normal_dist_10th": 1,
-        "Κάλυψη χαλκού": 0,
-        "grid_square1000sql": 0,
-        "Κινητή": 0,
-        "zoom": 18,
-        "center": {
-          "lng": assignment.longitude,
-          "lat": assignment.latitude
-        }
-      };
-      const hash = encodeURIComponent(JSON.stringify(hashData));
-      window.open(
-        `https://www.broadband-assist.gov.gr/public/index_here.html#${hash}`,
-        "_blank"
-      );
+      openHemdDeepLink(assignment.latitude, assignment.longitude);
       return;
     }
 
-    if (assignment.building_id_hemd) {
-      navigator.clipboard.writeText(assignment.building_id_hemd)
-        .then(() => toast.info(
-          `Building ID "${assignment.building_id_hemd}" αντιγράφηκε — κάντε paste στο broadband-assist`
-        ))
-        .catch(() => {});
+    // Otherwise, do a lookup to find coordinates
+    setLoadingHemd(assignment.id);
+    try {
+      const { data, error } = await supabase.functions.invoke("lookup-building-id", {
+        body: {
+          address: assignment.address,
+          area: assignment.area,
+          assignment_id: assignment.id,
+          auto_save: false,
+        },
+      });
+
+      if (error) throw error;
+
+      if (data?.results?.length > 0) {
+        const best = data.results[0];
+        if (best.latitude && best.longitude) {
+          openHemdDeepLink(best.latitude, best.longitude);
+          return;
+        }
+      }
+
+      // Fallback: just open the site
+      toast.info("Δεν βρέθηκαν συντεταγμένες — ανοίγει το ΧΕΜΔ");
+      if (assignment.building_id_hemd) {
+        navigator.clipboard.writeText(assignment.building_id_hemd).catch(() => {});
+        toast.info(`Building ID "${assignment.building_id_hemd}" αντιγράφηκε`);
+      }
+      window.open("https://www.broadband-assist.gov.gr/public/", "_blank");
+    } catch (err: any) {
+      console.error("HEMD lookup failed:", err);
+      toast.error("Αποτυχία αναζήτησης ΧΕΜΔ");
+      window.open("https://www.broadband-assist.gov.gr/public/", "_blank");
+    } finally {
+      setLoadingHemd(null);
     }
-    window.open("https://www.broadband-assist.gov.gr/public/", "_blank");
   };
 
   return (
@@ -105,17 +137,22 @@ const TechnicianMap = ({ assignments }: Props) => {
               Πλοήγηση
             </Button>
           </div>
-          {(a.building_id_hemd || (a.latitude && a.longitude)) && (
+          {(a.building_id_hemd || a.address) && (
             <Button
               variant="outline"
               size="sm"
               className="w-full gap-1.5 text-xs"
               onClick={() => openHemd(a)}
+              disabled={loadingHemd === a.id}
             >
-              <ExternalLink className="h-3.5 w-3.5" />
+              {loadingHemd === a.id ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <ExternalLink className="h-3.5 w-3.5" />
+              )}
               {a.latitude && a.longitude
                 ? "🔗 ΧΕΜΔ — Άνοιγμα στο σημείο"
-                : "🔗 ΧΕΜΔ — Αντιγραφή ID"}
+                : "🔗 ΧΕΜΔ — Εύρεση κτιρίου"}
             </Button>
           )}
         </Card>
