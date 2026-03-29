@@ -3,8 +3,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import AppLayout from "@/components/AppLayout";
 import { useMaterials, useProfiles } from "@/hooks/useData";
 import { useOrganization } from "@/contexts/OrganizationContext";
-import { Package, AlertTriangle, Search, Plus, Box, ArrowUpDown, Check, X, Pencil, Upload, FileText, Trash2, Download, History, Truck } from "lucide-react";
+import { Package, AlertTriangle, Search, Plus, Box, ArrowUpDown, Check, X, Pencil, Upload, FileText, Trash2, Download, History, Truck, Undo2 } from "lucide-react";
 import ChargeToTechnicianDialog from "@/components/ChargeToTechnicianDialog";
+import ReturnToWarehouseDialog from "@/components/ReturnToWarehouseDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -262,6 +263,7 @@ const Materials = () => {
   const [previewData, setPreviewData] = useState<{ source: string; materials: { code: string; name: string; quantity: number; unit: string }[] } | null>(null);
   const [confirmingUpload, setConfirmingUpload] = useState(false);
   const [chargeOpen, setChargeOpen] = useState(false);
+  const [returnOpen, setReturnOpen] = useState(false);
   const queryClient = useQueryClient();
 
   const [form, setForm] = useState({ code: '', name: '', source: 'OTE' as string, stock: '', unit: 'τεμ.', price: '' });
@@ -544,6 +546,13 @@ const Materials = () => {
             >
               <Truck className="h-3.5 w-3.5" />
               Χρέωση σε Τεχνικό
+            </button>
+            <button
+              onClick={() => setReturnOpen(true)}
+              className="flex items-center gap-1.5 rounded-xl border-2 border-orange-500/30 bg-card px-3 py-2 text-xs sm:text-sm font-bold text-orange-600 hover:bg-orange-500/10 transition-all"
+            >
+              <Undo2 className="h-3.5 w-3.5" />
+              Επιστροφή από Τεχνικό
             </button>
             <DialogContent className="sm:max-w-md">
               <DialogHeader>
@@ -907,6 +916,7 @@ const Materials = () => {
         </Dialog>
 
         <ChargeToTechnicianDialog open={chargeOpen} onOpenChange={setChargeOpen} />
+        <ReturnToWarehouseDialog open={returnOpen} onOpenChange={setReturnOpen} />
       </div>
     </AppLayout>
   );
