@@ -42,17 +42,26 @@ const TechnicianMap = ({ assignments }: Props) => {
     window.open(`https://www.google.com/maps/dir/?api=1&destination=${encoded}`, "_blank");
   };
 
-  const openHemdDeepLink = (lat: number, lng: number) => {
+  const openHemdDeepLink = (lat: number, lng: number, coverId?: string, address?: string) => {
     const hashData = {
       "FTTH/B": 1,
       "a3b_coverpointftthcoax_normal_dist_10th": 1,
       "Κάλυψη χαλκού": 0,
       "grid_square1000sql": 0,
       "Κινητή": 0,
-      "zoom": 18,
+      "zoom": 21,
       "center": { "lng": lng, "lat": lat }
     };
     const hash = encodeURIComponent(JSON.stringify(hashData));
+
+    if (coverId) {
+      navigator.clipboard.writeText(coverId).catch(() => {});
+      toast.success(`Building ID: ${coverId} αντιγράφηκε`, {
+        description: address || undefined,
+        duration: 6000,
+      });
+    }
+
     window.open(
       `https://www.broadband-assist.gov.gr/public/index_here.html#${hash}`,
       "_blank"
