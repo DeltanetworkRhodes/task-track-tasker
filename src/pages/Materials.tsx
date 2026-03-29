@@ -905,6 +905,8 @@ const Materials = () => {
             </div>
           </DialogContent>
         </Dialog>
+
+        <ChargeToTechnicianDialog open={chargeOpen} onOpenChange={setChargeOpen} />
       </div>
     </AppLayout>
   );
