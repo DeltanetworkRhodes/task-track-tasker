@@ -623,15 +623,22 @@ function fillEpimetrisiSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
   ws.getCell("V91").value = d.trenchLengthM || "";
 }
 
-/** Extract cable index number from CAB-BEP path string */
+/** Extract cable index from CAB-BEP path string.
+ *  Handles both numeric (G526_249_BEP...) and alphanumeric (G137_B1.5_BEP...) formats.
+ *  Also handles SGA paths: G137_SGA01(1:8).02_B1.5_BEP01(b24)_01_SB01(1:8) -> "B1.5"
+ */
 function extractCableIndex(path: string): string {
-  // e.g. "G526_250_BEP01(b04)_02" -> "250"
-  const parts = path.split("_");
-  if (parts.length >= 2) {
-    // Find the numeric part (cable index)
-    for (let i = 1; i < parts.length; i++) {
-      if (/^\d+$/.test(parts[i])) return parts[i];
-    }
+  // Find the segment(s) between CAB ID and "BEP" keyword
+  const bepIdx = path.indexOf("BEP");
+  if (bepIdx < 0) return "";
+  const beforeBep = path.substring(0, bepIdx);
+  const parts = beforeBep.split("_").filter(Boolean);
+  // Skip the first part (CAB ID like G526) and SGA parts
+  for (let i = parts.length - 1; i >= 1; i--) {
+    const part = parts[i];
+    if (part.startsWith("SGA") || part.startsWith("SGB")) continue;
+    // Return the cable identifier (numeric or alphanumeric like B1.5)
+    return part;
   }
   return "";
 }
