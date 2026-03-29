@@ -9,6 +9,7 @@ import ReturnToWarehouseDialog from "@/components/ReturnToWarehouseDialog";
 
 const TechnicianInventoryView = () => {
   const { user } = useAuth();
+  const [returnOpen, setReturnOpen] = useState(false);
 
   const { data: inventory, isLoading } = useQuery({
     queryKey: ["technician-inventory", user?.id],
