@@ -547,6 +547,13 @@ const Materials = () => {
               <Truck className="h-3.5 w-3.5" />
               Χρέωση σε Τεχνικό
             </button>
+            <button
+              onClick={() => setReturnOpen(true)}
+              className="flex items-center gap-1.5 rounded-xl border-2 border-orange-500/30 bg-card px-3 py-2 text-xs sm:text-sm font-bold text-orange-600 hover:bg-orange-500/10 transition-all"
+            >
+              <Undo2 className="h-3.5 w-3.5" />
+              Επιστροφή από Τεχνικό
+            </button>
             <DialogContent className="sm:max-w-md">
               <DialogHeader>
                 <DialogTitle>Προσθήκη Υλικού</DialogTitle>
