@@ -271,6 +271,36 @@ const ConstructionPage = () => {
           </p>
         </div>
 
+        {/* Top-level tabs */}
+        <div className="flex gap-1 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-none">
+          {topTabs.map(tab => {
+            const isActive = topTab === tab.key;
+            const count = tab.key === "constructions" ? constructions.length : postConstructionCounts[tab.key as keyof typeof postConstructionCounts] || 0;
+            return (
+              <button
+                key={tab.key}
+                onClick={() => setTopTab(tab.key)}
+                className={`flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium whitespace-nowrap transition-all shrink-0 ${
+                  isActive
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground"
+                }`}
+              >
+                <tab.icon className="h-3.5 w-3.5 shrink-0" />
+                {tab.label}
+                <span className={`ml-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+                  isActive ? "bg-primary-foreground/20 text-primary-foreground" : "bg-background text-muted-foreground"
+                }`}>
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {topTab === "constructions" ? (
+        <>
+
         {/* Stat Cards */}
         <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-5">
           <StatCard title="Σύνολο Κατασκευών" value={constructions.length} subtitle={`${inProgressCount} σε εξέλιξη`} icon={Wrench} />
