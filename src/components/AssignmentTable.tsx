@@ -199,6 +199,7 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
   const [editing, setEditing] = useState(false);
   const [editData, setEditData] = useState<Record<string, string | undefined>>({});
   const [saving, setSaving] = useState(false);
+  const [lookingUpBuilding, setLookingUpBuilding] = useState(false);
   const [savingCustomer, setSavingCustomer] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState(false);
   const [customerForm, setCustomerForm] = useState({ customerName: "", address: "", phone: "", cab: "", area: "" });
