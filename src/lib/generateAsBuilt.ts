@@ -656,20 +656,25 @@ function fillEpimetrisiSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
 
   // ══════════════════════════════════════════════════════════════
   // 5. CAB-BEP OPTICAL PATHS (rows 44-47, F=type, G=path)
+  // Reference: Only primary CAB-BEP path (with SGA/SGB) at row 44,
+  // remaining rows show "CAB-BEP" as filler text
   // ══════════════════════════════════════════════════════════════
-  const cabBepPaths = d.opticalPaths.filter(op => op.type === "CAB-BEP" || op.type === "CAB-BCP");
+  const allCabPaths = d.opticalPaths.filter(op => op.type === "CAB-BEP" || op.type === "CAB-BCP");
+  // Primary path = the one containing SGA/SGB + SB (full routing), if any
+  const primaryCab = allCabPaths.find(op => /SG[AB]\d+/i.test(op.path) && /SB\d+/i.test(op.path));
 
-  // Clear old CAB-BEP data (rows 44-47)
   for (let r = 44; r <= 47; r++) {
-    ws.getCell(r, 6).value = null; // F
-    ws.getCell(r, 7).value = null; // G
+    ws.getCell(r, 6).value = "CAB-BEP"; // F = type label
+    ws.getCell(r, 7).value = "CAB-BEP"; // G = filler
   }
-  for (let i = 0; i < cabBepPaths.length && i < 4; i++) {
-    const r = 44 + i;
-    ws.getCell(r, 6).value = cabBepPaths[i].type;  // F = OPTICAL PATH TYPE
-    ws.getCell(r, 7).value = cabBepPaths[i].path;  // G = OPTICAL PATH
+  if (primaryCab) {
+    ws.getCell(44, 6).value = primaryCab.type;
+    ws.getCell(44, 7).value = primaryCab.path;
+  } else if (allCabPaths.length > 0) {
+    ws.getCell(44, 6).value = allCabPaths[0].type;
+    ws.getCell(44, 7).value = allCabPaths[0].path;
   }
-  console.log(`✅ CAB-BEP: wrote ${Math.min(cabBepPaths.length, 4)} paths to F44:G47`);
+  console.log(`✅ CAB-BEP: wrote primary path to F44:G44, ${allCabPaths.length} total`);
 
   // ══════════════════════════════════════════════════════════════
   // 5a2. Write BMO type header at I46 and BEP type header at B61
@@ -678,32 +683,38 @@ function fillEpimetrisiSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
   ws.getCell("B61").value = getBepHeader(d.bepType);
 
   // ══════════════════════════════════════════════════════════════
-  // 5b. BCP CABLE INDICES (rows 53-58, F=index, G=cable_number, H=address)
-  // Fill ONLY when BCP πραγματικά υπάρχει στα δεδομένα
+  // 5b. CABLE INDICES (rows 53-58, F=index, G=cable_number, H=address)
+  // Extract cable numbers from ALL CAB-BEP/CAB-BCP paths
   // ══════════════════════════════════════════════════════════════
   for (let r = 53; r <= 58; r++) {
-    ws.getCell(r, 6).value = 0;  // F = index
-    ws.getCell(r, 7).value = 0;  // G = cable number
-    ws.getCell(r, 8).value = null; // H = address
+    ws.getCell(r, 6).value = 0;
+    ws.getCell(r, 7).value = 0;
+    ws.getCell(r, 8).value = null;
   }
-  const hasBcpMetadata = [d.associatedBcp, d.nearbyBcp, d.newBcp].some(v => (v || "").trim().length > 0);
-  const hasBcpPaths = d.opticalPaths.some(op => (op.type || "").toUpperCase().includes("BCP") || /\bBCP\b/i.test(op.path || ""));
-  const hasBcp = hasBcpMetadata || hasBcpPaths;
-  const bcpCablePaths = d.opticalPaths.filter(
-    op => (op.type || "").toUpperCase() === "CAB-BCP" || /\bBCP\b/i.test(op.path || "")
-  );
 
-  // Write BCP header at F51
-  if (hasBcp) {
-    ws.getCell("F51").value = getBcpHeader(d.newBcp);
-    for (let i = 0; i < bcpCablePaths.length && i < 6; i++) {
-      const r = 53 + i;
-      const cableNum = extractCableIndex(bcpCablePaths[i].path);
-      ws.getCell(r, 6).value = i + 1;                                           // F = index
-      ws.getCell(r, 7).value = /^\d+$/.test(cableNum) ? Number(cableNum) : cableNum; // G = cable number
-      ws.getCell(r, 8).value = d.address;                                        // H = address
-    }
+  // Extract cable numbers from all CAB paths
+  const cableNumbers: string[] = [];
+  for (const cp of allCabPaths) {
+    const cableNum = extractCableIndex(cp.path);
+    if (cableNum) cableNumbers.push(cableNum);
   }
+
+  // Write BCP header if BCP data exists
+  const hasBcp = (d.newBcp || "").trim().length > 0 ||
+    d.opticalPaths.some(op => (op.type || "").toUpperCase().includes("BCP"));
+  if (hasBcp && d.newBcp) {
+    ws.getCell("F51").value = getBcpHeader(d.newBcp);
+  }
+
+  // Write cable numbers (from all CAB paths)
+  for (let i = 0; i < cableNumbers.length && i < 6; i++) {
+    const r = 53 + i;
+    const cn = cableNumbers[i];
+    ws.getCell(r, 6).value = i + 1;
+    ws.getCell(r, 7).value = /^\d+$/.test(cn) ? Number(cn) : cn;
+    ws.getCell(r, 8).value = d.address;
+  }
+  console.log(`✅ Cable indices: wrote ${Math.min(cableNumbers.length, 6)} cables to F53:H58`);
 
   // ══════════════════════════════════════════════════════════════
   // 5c. BEP LABELS section (rows 61-70)
