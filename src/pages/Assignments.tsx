@@ -77,23 +77,21 @@ const Assignments = () => {
   const areas = [...new Set(assignments.map((a) => a.area))].sort();
   const sources = [...new Set(assignments.map((a: any) => a.sourceTab).filter(Boolean))].sort();
 
-  // Tab counts
-  // Only count pending-phase statuses (pending, inspection, pre_committed) + cancelled
-  const pendingPhase = assignments.filter(a => ["pending", "inspection", "pre_committed"].includes(a.status));
+  // Tab counts — only pending + cancelled in this page
+  const pendingOnly = assignments.filter(a => a.status === "pending");
   const tabCounts = useMemo(() => ({
-    active: pendingPhase.length,
-    unassigned: pendingPhase.filter(a => !(a as any).technicianId).length,
+    active: pendingOnly.length,
+    unassigned: pendingOnly.filter(a => !(a as any).technicianId).length,
     cancelled: assignments.filter(a => a.status === "cancelled").length,
-    all: pendingPhase.length + assignments.filter(a => a.status === "cancelled").length,
+    all: pendingOnly.length + assignments.filter(a => a.status === "cancelled").length,
   }), [assignments]);
 
   const filtered = assignments.filter((a) => {
     const q = search.toLowerCase();
-    // Only show pending-phase + cancelled in this page
+    // Only show pending + cancelled in this page
     const allowedStatuses = ["pending", "cancelled"];
     if (!allowedStatuses.includes(a.status)) return false;
-    if (activeTab === "active" && a.status === "cancelled") return false;
-    if (activeTab === "active" && !["pending", "inspection", "pre_committed"].includes(a.status)) return false;
+    if (activeTab === "active" && a.status !== "pending") return false;
     if (activeTab === "cancelled" && a.status !== "cancelled") return false;
     if (activeTab === "unassigned" && ((a as any).technicianId || a.status === "cancelled")) return false;
     if (areaFilter !== "all" && a.area !== areaFilter) return false;
