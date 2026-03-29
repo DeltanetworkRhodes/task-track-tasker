@@ -1795,6 +1795,99 @@ export type Database = {
           },
         ]
       }
+      technician_inventory: {
+        Row: {
+          id: string
+          material_id: string
+          organization_id: string
+          quantity: number
+          technician_id: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          material_id: string
+          organization_id: string
+          quantity?: number
+          technician_id: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          material_id?: string
+          organization_id?: string
+          quantity?: number
+          technician_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "technician_inventory_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "technician_inventory_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      technician_inventory_history: {
+        Row: {
+          change_amount: number
+          changed_by: string | null
+          construction_sr_id: string | null
+          created_at: string
+          id: string
+          material_id: string
+          organization_id: string
+          reason: string
+          technician_id: string
+        }
+        Insert: {
+          change_amount: number
+          changed_by?: string | null
+          construction_sr_id?: string | null
+          created_at?: string
+          id?: string
+          material_id: string
+          organization_id: string
+          reason?: string
+          technician_id: string
+        }
+        Update: {
+          change_amount?: number
+          changed_by?: string | null
+          construction_sr_id?: string | null
+          created_at?: string
+          id?: string
+          material_id?: string
+          organization_id?: string
+          reason?: string
+          technician_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "technician_inventory_history_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "technician_inventory_history_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       technician_locations: {
         Row: {
           accuracy: number | null
