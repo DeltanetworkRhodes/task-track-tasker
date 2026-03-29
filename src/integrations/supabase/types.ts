@@ -583,6 +583,53 @@ export type Database = {
           },
         ]
       }
+      daily_backups: {
+        Row: {
+          assignments_count: number
+          assignments_snapshot: Json
+          backup_date: string
+          backup_type: string
+          changes_summary: Json
+          created_at: string
+          id: string
+          materials_count: number
+          materials_snapshot: Json
+          organization_id: string
+        }
+        Insert: {
+          assignments_count?: number
+          assignments_snapshot?: Json
+          backup_date?: string
+          backup_type?: string
+          changes_summary?: Json
+          created_at?: string
+          id?: string
+          materials_count?: number
+          materials_snapshot?: Json
+          organization_id: string
+        }
+        Update: {
+          assignments_count?: number
+          assignments_snapshot?: Json
+          backup_date?: string
+          backup_type?: string
+          changes_summary?: Json
+          created_at?: string
+          id?: string
+          materials_count?: number
+          materials_snapshot?: Json
+          organization_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_backups_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_settings: {
         Row: {
           id: string
