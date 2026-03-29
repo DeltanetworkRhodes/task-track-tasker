@@ -916,6 +916,7 @@ const Materials = () => {
         </Dialog>
 
         <ChargeToTechnicianDialog open={chargeOpen} onOpenChange={setChargeOpen} />
+        <ReturnToWarehouseDialog open={returnOpen} onOpenChange={setReturnOpen} />
       </div>
     </AppLayout>
   );
