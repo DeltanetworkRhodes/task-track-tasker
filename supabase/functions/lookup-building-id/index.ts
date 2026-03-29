@@ -20,7 +20,6 @@ function haversine(lat1: number, lon1: number, lat2: number, lon2: number): numb
 
 // Lookup by coordinates using spatial bounding box
 async function lookupByCoords(lat: number, lng: number, radius: number) {
-  // ~0.001 degrees ≈ 111m at equator, adjust for latitude
   const degPerMeter = 1 / 111320;
   const latDelta = radius * degPerMeter;
   const lngDelta = radius * degPerMeter / Math.cos((lat * Math.PI) / 180);
@@ -31,18 +30,26 @@ async function lookupByCoords(lat: number, lng: number, radius: number) {
 
   const url = `${HEMD_API}/a3b_coverpointftthcoax?select=coverid,address,point&limit=10&point=ov.${encodeURIComponent(polygon)}`;
 
+  console.log("Coords lookup URL:", url);
+
   const res = await fetch(url, {
     headers: { Accept: "application/json" },
     signal: AbortSignal.timeout(15000),
   });
 
-  if (!res.ok) throw new Error(`ΧΕΜΔ API error: ${res.status}`);
+  if (!res.ok) {
+    const body = await res.text();
+    console.error("ΧΕΜΔ coords API error:", res.status, body);
+    throw new Error(`ΧΕΜΔ API error: ${res.status}`);
+  }
 
   const points: Array<{
     coverid: string;
     address: string;
     point: { coordinates: [number, number] };
   }> = await res.json();
+
+  console.log(`Coords lookup found ${points.length} results`);
 
   return points.map((p) => {
     const [pLng, pLat] = p.point.coordinates;
@@ -57,53 +64,138 @@ async function lookupByCoords(lat: number, lng: number, radius: number) {
   }).sort((a, b) => a.distance - b.distance);
 }
 
-// Lookup by address text search
-async function lookupByAddress(address: string, area?: string) {
-  // Normalize Greek address for search
-  const parts = address
+// Clean and normalize Greek address for search
+function normalizeGreekAddress(address: string): string {
+  return address
     .toUpperCase()
+    .replace(/Ά/g, "Α").replace(/Έ/g, "Ε").replace(/Ή/g, "Η")
+    .replace(/Ί/g, "Ι").replace(/Ό/g, "Ο").replace(/Ύ/g, "Υ").replace(/Ώ/g, "Ω")
+    .replace(/Ϊ/g, "Ι").replace(/Ϋ/g, "Υ");
+}
+
+// Extract street name and number from a full address like "ΕΥΣΤΑΘΙΟΥ ΓΕΩΡΓΙΟΥ 11" or "ΒΕΝΕΤΟΚΛΕΩΝ 71-73"
+function parseAddress(address: string): { street: string; number: string } {
+  const normalized = normalizeGreekAddress(address.trim());
+  // Remove common prefixes
+  const cleaned = normalized
+    .replace(/^(ΟΔΟΣ|ΟΔ\.|ΛΕΩΦ\.|ΛΕΩΦΟΡΟΣ)\s+/i, "")
     .replace(/[,.\-\/\\]/g, " ")
-    .split(/\s+/)
-    .filter((p) => p.length > 1);
+    .trim();
 
-  if (parts.length === 0) return [];
+  // Try to split street name from number - number is usually at the end
+  const match = cleaned.match(/^(.+?)\s+(\d+[\-\d]*)$/);
+  if (match) {
+    return { street: match[1].trim(), number: match[2].trim() };
+  }
+  return { street: cleaned, number: "" };
+}
 
-  // Build ilike pattern - search for key words
-  // Format in DB: "postal_code,street,number,city" e.g. "82132,ΒΕΝΕΤΟΚΛΕΩΝ,71-73,Δ. ΡΟΔΟΥ"
-  let pattern = "*" + parts.join("*") + "*";
-  
-  // If area is provided, add it to narrow results
-  let areaFilter = "";
-  if (area) {
-    const areaUpper = area.toUpperCase();
-    if (areaUpper.includes("ΡΟΔΟ") || areaUpper === "ΡΟΔΟΣ") {
-      areaFilter = "&address=ilike.*ΡΟΔΟΥ*";
-    } else if (areaUpper.includes("ΚΩΣ")) {
-      areaFilter = "&address=ilike.*ΚΩ*";
+// Lookup by address text search - ΧΕΜΔ format: "postal_code,street,number,municipality"
+async function lookupByAddress(address: string, area?: string) {
+  const { street, number } = parseAddress(address);
+  console.log(`Parsed address: street="${street}", number="${number}", area="${area}"`);
+
+  if (!street || street.length < 2) return [];
+
+  const results: Array<{
+    coverid: string;
+    address: string;
+    latitude: number;
+    longitude: number;
+  }> = [];
+
+  // Strategy 1: Search by street name + number (most specific)
+  if (number) {
+    const pattern1 = `*${street}*${number}*`;
+    const url1 = `${HEMD_API}/a3b_coverpointftthcoax?select=coverid,address,point&limit=10&address=ilike.${encodeURIComponent(pattern1)}`;
+    console.log("Address search (street+number):", url1);
+    try {
+      const res = await fetch(url1, {
+        headers: { Accept: "application/json" },
+        signal: AbortSignal.timeout(10000),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        console.log(`Street+number search found ${data.length} results`);
+        if (data.length > 0) {
+          for (const p of data) {
+            results.push({
+              coverid: p.coverid,
+              address: p.address,
+              latitude: p.point.coordinates[1],
+              longitude: p.point.coordinates[0],
+            });
+          }
+        }
+      } else {
+        await res.text();
+      }
+    } catch (e) {
+      console.error("Street+number search failed:", e);
     }
   }
 
-  const url = `${HEMD_API}/a3b_coverpointftthcoax?select=coverid,address,point&limit=10&address=ilike.${encodeURIComponent(pattern)}${areaFilter}`;
+  // Strategy 2: Search by street name only (broader)
+  if (results.length === 0) {
+    // Use only the main street name words (skip very short words)
+    const streetWords = street.split(/\s+/).filter(w => w.length > 2);
+    const pattern2 = `*${streetWords.join("*")}*`;
+    
+    // Add area filter if available
+    let areaFilter = "";
+    if (area) {
+      const areaUpper = normalizeGreekAddress(area);
+      if (areaUpper.includes("ΡΟΔΟ") || areaUpper === "ΡΟΔΟΣ") {
+        areaFilter = "&address=ilike.*ΡΟΔΟΥ*";
+      } else if (areaUpper.includes("ΚΩΣ") || areaUpper === "ΚΩΣ") {
+        areaFilter = "&address=ilike.*ΚΩ*";
+      } else if (areaUpper.includes("ΚΑΛΥΜΝ")) {
+        areaFilter = "&address=ilike.*ΚΑΛΥΜΝ*";
+      } else if (areaUpper.includes("ΛΕΡ")) {
+        areaFilter = "&address=ilike.*ΛΕΡ*";
+      } else if (areaUpper.includes("ΠΑΤΜ")) {
+        areaFilter = "&address=ilike.*ΠΑΤΜ*";
+      }
+    }
 
-  const res = await fetch(url, {
-    headers: { Accept: "application/json" },
-    signal: AbortSignal.timeout(15000),
-  });
+    const url2 = `${HEMD_API}/a3b_coverpointftthcoax?select=coverid,address,point&limit=10&address=ilike.${encodeURIComponent(pattern2)}${areaFilter}`;
+    console.log("Address search (street only):", url2);
+    try {
+      const res = await fetch(url2, {
+        headers: { Accept: "application/json" },
+        signal: AbortSignal.timeout(10000),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        console.log(`Street-only search found ${data.length} results`);
+        for (const p of data) {
+          results.push({
+            coverid: p.coverid,
+            address: p.address,
+            latitude: p.point.coordinates[1],
+            longitude: p.point.coordinates[0],
+          });
+        }
+      } else {
+        await res.text();
+      }
+    } catch (e) {
+      console.error("Street-only search failed:", e);
+    }
+  }
 
-  if (!res.ok) throw new Error(`ΧΕΜΔ API error: ${res.status}`);
+  // If we have a number, sort results to prioritize exact number matches
+  if (number && results.length > 1) {
+    results.sort((a, b) => {
+      const aHasNumber = a.address.includes(`,${number},`) || a.address.includes(`,${number}-`) || a.address.includes(`-${number},`);
+      const bHasNumber = b.address.includes(`,${number},`) || b.address.includes(`,${number}-`) || b.address.includes(`-${number},`);
+      if (aHasNumber && !bHasNumber) return -1;
+      if (!aHasNumber && bHasNumber) return 1;
+      return 0;
+    });
+  }
 
-  const points: Array<{
-    coverid: string;
-    address: string;
-    point: { coordinates: [number, number] };
-  }> = await res.json();
-
-  return points.map((p) => ({
-    coverid: p.coverid,
-    address: p.address,
-    latitude: p.point.coordinates[1],
-    longitude: p.point.coordinates[0],
-  }));
+  return results;
 }
 
 // Enrich results with provider details from coverage_ftth_data
@@ -128,6 +220,8 @@ async function enrichResults(results: Array<{ coverid: string; [key: string]: an
           });
           continue;
         }
+      } else {
+        await res.text();
       }
     } catch { /* skip */ }
     enriched.push(item);
@@ -143,6 +237,8 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json();
     const { latitude, longitude, address, area, assignment_id, radius = 200, auto_save = true } = body;
+
+    console.log("Lookup request:", { latitude, longitude, address, area, assignment_id, radius });
 
     let results: any[] = [];
 
@@ -165,6 +261,8 @@ Deno.serve(async (req) => {
 
     // Enrich with provider details
     results = await enrichResults(results);
+
+    console.log(`Returning ${results.length} enriched results, best: ${results[0].coverid} - ${results[0].address}`);
 
     // Auto-save to assignment if requested
     if (auto_save && assignment_id && results.length > 0) {
