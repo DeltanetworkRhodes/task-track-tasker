@@ -349,22 +349,37 @@ function generateBmoLabelString(path: string): string {
 }
 
 function fillLabelsBepSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
-  // Reference structure (from correct AS-BUILD):
+  // Structure from reference AS-BUILD:
   // Column A: ALL BEP paths (BEP-BMO first, then BEP-only, then "χωρίς ports", then CAB-BEP)
-  // Column Y: BEP-BMO paths (formula input for AA=MID(Y,12,4), AB=MID(Y,21,4), AC=MID(Y,29,13))
-  // Formulas: AD=VLOOKUP(AC,'LABELS BMO'!Z:AE,6,FALSE), AG=CONCATENATE(AA,AB,AD,"_",AC)
-  // Visible sections (B/D cols 7+, H-M section, P-T section) use formulas referencing AG column
-  // DO NOT clear formula columns (AA, AB, AC, AD, AE, AF, AG)
+  // Column Y: BEP-BMO paths (raw data)
+  // Columns AA-AG: Pre-computed values (overriding MID formulas which break on variable-length paths)
+  //   AA = SB ID (e.g., "SB01"), AB = port (e.g., ".01_"), AC = BMO ID (e.g., "BMO01_01a")
+  //   AD = FB path from BMO lookup, AF = sequential index, AG = final label
+  // Visible B/D cols reference AG; I/J reference AG too
 
   const bepBmoPaths = d.opticalPaths.filter(op => op.type === "BEP-BMO");
   const bepOnlyPaths = d.opticalPaths.filter(op => op.type === "BEP" || op.type === "BCP-BEP");
   const cabBepPaths = d.opticalPaths.filter(op => op.type === "CAB-BEP" || op.type === "CAB-BCP");
   const allBepPaths = [...bepBmoPaths, ...bepOnlyPaths];
 
-  // Clear only data columns A and Y (not formula columns)
+  // Build BMO→FB map for label generation
+  const bmoFbMap = new Map<string, string>();
+  d.opticalPaths.filter(op => op.type === "BMO-FB" || op.type === "BMO").forEach(op => {
+    const bmoMatch = op.path.match(/(BMO\d+[_]\d+a?)/);
+    const fbMatch = op.path.match(/(FB\([^)]+\)\.\d+_\d+)/);
+    if (bmoMatch && fbMatch) bmoFbMap.set(bmoMatch[1], fbMatch[1]);
+  });
+
+  // Clear data columns A, Y, and computed columns AA-AG
   for (let r = 2; r <= 20; r++) {
     ws.getCell(r, 1).value = null;   // A
     ws.getCell(r, 25).value = null;  // Y
+    ws.getCell(r, 27).value = null;  // AA
+    ws.getCell(r, 28).value = null;  // AB
+    ws.getCell(r, 29).value = null;  // AC
+    ws.getCell(r, 30).value = null;  // AD
+    ws.getCell(r, 32).value = null;  // AF
+    ws.getCell(r, 33).value = null;  // AG
   }
 
   // Column A: Write all BEP paths, then "χωρίς ports" padding, then CAB-BEP paths
@@ -391,16 +406,64 @@ function fillLabelsBepSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
     ws.getCell(r, 25).value = i < allBepPaths.length ? allBepPaths[i].path : "";
   }
 
-  console.log(`✅ LABELS BEP: wrote ${allBepPaths.length} BEP paths to Y, ${aRow - 2} total to A`);
+  // Columns AA-AG: Pre-compute values (replaces MID formulas that break on variable-length paths)
+  for (let i = 0; i < allBepPaths.length && i < 18; i++) {
+    const r = 2 + i;
+    const p = allBepPaths[i].path;
+
+    // AA = SB ID (e.g., "SB01")
+    const sbIdMatch = p.match(/(SB\d+)/);
+    const sbId = sbIdMatch ? sbIdMatch[1] : "";
+    ws.getCell(r, 27).value = sbId;
+
+    // AB = port number (e.g., ".01_")
+    const portMatch = p.match(/SB\d+\([\d:]+\)\.(\d+)/);
+    const port = portMatch ? `.${portMatch[1]}_` : "";
+    ws.getCell(r, 28).value = port;
+
+    // AC = BMO ID (e.g., "BMO01_01a")
+    const bmoMatch = p.match(/(BMO\d+[_]\d+a?)/);
+    const bmoId = bmoMatch ? bmoMatch[1] : "";
+    ws.getCell(r, 29).value = bmoId;
+
+    // AD = FB path from BMO→FB map lookup
+    const fbPath = bmoId ? (bmoFbMap.get(bmoId) || "") : "";
+    ws.getCell(r, 30).value = fbPath;
+
+    // AF = sequential index
+    ws.getCell(r, 32).value = i + 1;
+
+    // AG = final label: "SB01.01_FB(+00).1_01_BMO01_01a"
+    let label = "";
+    if (sbId && port && fbPath && bmoId) {
+      label = `${sbId}${port}${fbPath}_${bmoId}`;
+    } else if (sbId && port && bmoId) {
+      label = `${sbId}${port}${bmoId}`;
+    } else if (sbId && port) {
+      label = `${sbId}${port}`;
+    } else {
+      label = p;
+    }
+    ws.getCell(r, 33).value = label;
+  }
+
+  // Fill empty AG slots with placeholders
+  for (let i = allBepPaths.length; i < 18; i++) {
+    const r = 2 + i;
+    ws.getCell(r, 32).value = i + 1;
+    ws.getCell(r, 33).value = "_";
+  }
+
+  console.log(`✅ LABELS BEP: wrote ${allBepPaths.length} BEP paths to Y + pre-computed AA-AG, ${aRow - 2} total to A`);
 }
 
 function fillLabelsBmoSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
-  // Reference structure (from correct AS-BUILD):
+  // Structure from reference AS-BUILD:
   // Column A: ALL BEP paths (same as LABELS BEP column A)
-  // Column Y: BMO-FB paths (formula input for Z=MID(Y,1,9), AA=MID(Y,11,12), AE=CONCATENATE)
-  // Formulas: Z, AA, AE compute from Y data
-  // Visible sections (B-E, H-M, P-T) use formulas referencing AE column
-  // DO NOT clear formula columns (Z, AA, AB, AC, AD, AE)
+  // Column Y: BMO-FB paths (raw data)
+  // Columns Z-AE: Pre-computed values (overriding MID formulas)
+  //   Z = BMO ID (e.g., "BMO01_01a"), AA = FB path (e.g., "FB(+00).1_01")
+  //   AD = sequential index, AE = final FB label (=AA basically)
 
   const bepBmoPaths = d.opticalPaths.filter(op => op.type === "BEP-BMO");
   const bepOnlyPaths = d.opticalPaths.filter(op => op.type === "BEP" || op.type === "BCP-BEP");
@@ -408,10 +471,14 @@ function fillLabelsBmoSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
   const bmoFbPaths = d.opticalPaths.filter(op => op.type === "BMO-FB" || op.type === "BMO");
   const allBepPaths = [...bepBmoPaths, ...bepOnlyPaths];
 
-  // Clear only data columns A and Y (not formula columns)
+  // Clear data columns A, Y, and computed columns Z-AE
   for (let r = 2; r <= 40; r++) {
     ws.getCell(r, 1).value = null;   // A
     ws.getCell(r, 25).value = null;  // Y
+    ws.getCell(r, 26).value = null;  // Z
+    ws.getCell(r, 27).value = null;  // AA
+    ws.getCell(r, 30).value = null;  // AD
+    ws.getCell(r, 31).value = null;  // AE
   }
 
   // Column A: Write all BEP paths, then "χωρίς ports" padding, then CAB-BEP paths
@@ -436,7 +503,30 @@ function fillLabelsBmoSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
     ws.getCell(r, 25).value = i < bmoFbPaths.length ? bmoFbPaths[i].path : "";
   }
 
-  console.log(`✅ LABELS BMO: wrote ${bmoFbPaths.length} BMO-FB paths to Y, ${aRow - 2} total to A`);
+  // Columns Z, AA, AD, AE: Pre-compute values (replaces MID formulas)
+  for (let i = 0; i < 36; i++) {
+    const r = 2 + i;
+    if (i < bmoFbPaths.length) {
+      const p = bmoFbPaths[i].path;
+      // Z = BMO ID (e.g., "BMO01_1" or "BMO01_01a")
+      const bmoMatch = p.match(/(BMO\d+[_]\d+a?)/);
+      ws.getCell(r, 26).value = bmoMatch ? bmoMatch[1] : "";
+      // AA = FB path (e.g., "FB(+00).1_01")
+      const fbMatch = p.match(/(FB\([^)]+\)\.\d+_\d+)/);
+      ws.getCell(r, 27).value = fbMatch ? fbMatch[1] : "";
+      // AD = sequential index
+      ws.getCell(r, 30).value = i + 1;
+      // AE = final label = FB path (same as AA)
+      ws.getCell(r, 31).value = fbMatch ? fbMatch[1] : "";
+    } else {
+      ws.getCell(r, 26).value = "";
+      ws.getCell(r, 27).value = "";
+      ws.getCell(r, 30).value = i + 1;
+      ws.getCell(r, 31).value = "";
+    }
+  }
+
+  console.log(`✅ LABELS BMO: wrote ${bmoFbPaths.length} BMO-FB paths to Y + pre-computed Z-AE, ${aRow - 2} total to A`);
 }
 
 /* ────────────────────────────────────────────
