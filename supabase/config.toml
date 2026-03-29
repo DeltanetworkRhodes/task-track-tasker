@@ -47,3 +47,6 @@ verify_jwt = false
 
 [functions.upload-photo-to-drive]
 verify_jwt = false
+
+[functions.lookup-building-id]
+verify_jwt = false
