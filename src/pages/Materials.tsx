@@ -261,6 +261,7 @@ const Materials = () => {
   const [uploadResult, setUploadResult] = useState<any>(null);
   const [previewData, setPreviewData] = useState<{ source: string; materials: { code: string; name: string; quantity: number; unit: string }[] } | null>(null);
   const [confirmingUpload, setConfirmingUpload] = useState(false);
+  const [chargeOpen, setChargeOpen] = useState(false);
   const queryClient = useQueryClient();
 
   const [form, setForm] = useState({ code: '', name: '', source: 'OTE' as string, stock: '', unit: 'τεμ.', price: '' });
