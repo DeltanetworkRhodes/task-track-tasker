@@ -538,6 +538,13 @@ const Materials = () => {
                   Νέο Υλικό
                 </button>
               </DialogTrigger>
+            <button
+              onClick={() => setChargeOpen(true)}
+              className="flex items-center gap-1.5 rounded-xl border-2 border-primary/30 bg-card px-3 py-2 text-xs sm:text-sm font-bold text-primary hover:bg-primary/10 transition-all"
+            >
+              <Truck className="h-3.5 w-3.5" />
+              Χρέωση σε Τεχνικό
+            </button>
             <DialogContent className="sm:max-w-md">
               <DialogHeader>
                 <DialogTitle>Προσθήκη Υλικού</DialogTitle>
