@@ -398,6 +398,9 @@ function generateBmoLabelString(path: string): string {
 }
 
 function fillLabelsBepSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
+  // Write BEP type header to H2
+  ws.getCell("H2").value = getBepHeader(d.bepType);
+
   // Structure from reference AS-BUILD:
   // Column A: ALL BEP paths (BEP-BMO first, then BEP-only, then "χωρίς ports", then CAB-BEP)
   // Column Y: BEP-BMO paths (raw data)
