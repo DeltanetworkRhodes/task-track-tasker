@@ -1799,9 +1799,18 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                     {f["ΔΙΑΜΕΡΙΣΜΑΤΑ"] || "0"} διαμ. / {f["ΚΑΤΑΣΤΗΜΑΤΑ"] || "0"} κατ.
                   </span>
                 </div>
-                <div className="flex items-center gap-2 text-xs">
-                  <Badge variant="secondary" className="text-[10px]">{f["FB01 TYPE"] || "-"}</Badge>
-                  <span className="text-muted-foreground">×{f["FB01"] || "0"}</span>
+                <div className="flex items-center gap-2 text-xs flex-wrap">
+                  {["FB01", "FB02", "FB03", "FB04"].map((fbKey) => {
+                    const count = parseInt(f[fbKey]) || 0;
+                    const type = f[`${fbKey} TYPE`] || "";
+                    if (count <= 0 && !type) return null;
+                    return (
+                      <div key={fbKey} className="flex items-center gap-1">
+                        <Badge variant="secondary" className="text-[10px]">{type || fbKey}</Badge>
+                        <span className="text-muted-foreground">×{count}</span>
+                      </div>
+                    );
+                  })}
                   {f["FB ΠΕΛΑΤΗ"] && <span className="text-primary font-medium">👤 {f["FB ΠΕΛΑΤΗ"]}</span>}
                 </div>
               </div>
