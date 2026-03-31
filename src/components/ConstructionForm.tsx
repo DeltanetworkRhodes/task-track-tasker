@@ -2072,53 +2072,17 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                   </div>
                 )}
 
-                {/* ──── LABELLING SECTION (COSMOTE specs pp.34,37) ──── */}
+                {/* ──── LABELLING SECTION (COSMOTE specs) ──── */}
                 {(() => {
                    const address = assignment?.address || "";
+                   const bepOnly = gisData?.bep_only === true;
+                   const buildingId = gisData?.building_id || assignment?.building_id_hemd || "";
                    
-                   // --- BEP LABEL (COSMOTE page 37) ---
-                   // Top: Cabinet(Tube) + fiber limits e.g. "G123(A01) 101-104"
-                   // Grid: "Termination Box Wiring Diagram" / "Fiber Number"
-                   // Row A: 1,2,3,4,5,6,7,8 → fiber nums + floor labels
-                   // Row B: 1,2,3,4,5,6,7,8 → fiber nums + floor labels
-                   
-                   // Extract cabinet tube (sub-rack letter + tube number) from path
-                   // E.g. G345_C1.13_BEP01... → tube "C1.13" → simplified to "(C13)" or "(A01)"
-                   let cabTube = "";
-                   const cabFiberNums: number[] = [];
-                   
-                   for (const p of cabBepPaths) {
-                     const path = p["OPTICAL PATH"] || "";
-                     // Extract tube: G345_A1.5_ or G137_C1.13_
-                     const tubeMatch = path.match(/^[A-Z]\d+_([A-Z])(\d+)\.(\d+)/i);
-                     if (tubeMatch && !cabTube) {
-                       cabTube = `${tubeMatch[1]}${tubeMatch[2].padStart(2, "0")}`;
-                     }
-                     // Extract fiber number from path: typically the number after the cabinet identifier
-                     // G345_313_ → 313, or G137_C1.13_ → extract cab limit num
-                     const numMatch = path.match(/^[A-Z]\d+_(?:[A-Z]\d+\.)?(\d+)/i);
-                     if (numMatch) {
-                       cabFiberNums.push(parseInt(numMatch[1], 10));
-                     }
-                   }
-                   
-                   const fiberMin = cabFiberNums.length > 0 ? Math.min(...cabFiberNums) : 0;
-                   const fiberMax = cabFiberNums.length > 0 ? Math.max(...cabFiberNums) : 0;
-                   const fiberRange = fiberMin > 0 ? (fiberMin === fiberMax ? `${fiberMin}` : `${fiberMin}-${fiberMax}`) : "";
-                   
-                   // Build BEP wiring diagram grid (Row A / Row B mapping)
-                   // From COSMOTE spec: ports numbered 1-8 per row
-                   // Row A: odd splitter outputs → fiber numbers + floor labels
-                   // Row B: even splitter outputs → fiber numbers + floor labels
-                   
-                   // Parse BEP-BMO paths to get port→floor mapping
-                   // BEP01_1_BMO01_1 → BEP port 1 → BMO port 1
-                   const bepPortToFloor: Record<number, string> = {};
-                   
-                   // Map BMO ports to floors from BMO-FB paths
-                   const bmoPortToFloor: Record<number, string> = {};
+                   // --- Parse BMO-FB paths for floor/FB data ---
                    const bmoFbPaths = paths.filter(p => (p["OPTICAL PATH TYPE"] || "").toUpperCase() === "BMO-FB");
                    
+                   // Map BMO ports to floors
+                   const bmoPortToFloor: Record<number, string> = {};
                    for (const p of bmoFbPaths) {
                      const pathStr = p["OPTICAL PATH"] || "";
                      const m = pathStr.match(/BMO\d+_(\d+)_FB\(([^)]+)\)/i);
@@ -2129,94 +2093,44 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                      }
                    }
                    
-                   // Map BEP ports to BMO ports (from BEP-BMO paths)
-                   const bepToBmo: Record<number, number> = {};
-                   for (const p of bepBmoPaths) {
-                     const pathStr = p["OPTICAL PATH"] || "";
-                     const m = pathStr.match(/BEP\d+(?:\([^)]+\))?_(\d+)(?:[a-z]?)_BMO\d+_(\d+)/i);
-                     if (m) {
-                       bepToBmo[parseInt(m[1], 10)] = parseInt(m[2], 10);
-                     }
-                   }
-                   
-                   // Floor label helper for BEP grid
+                   // Floor label helper
                    const floorShort = (floorId: string) => {
                      if (floorId === "-ΗΥ" || floorId === "-HY") return "ΥΡΟ";
                      if (floorId === "+00" || floorId === "00") return "ΙΣΟ";
                      if (floorId === "ΗΜ" || floorId === "HM" || floorId === "+ΗΜ") return "ΗΜΙ";
                      const numMatch = floorId.match(/\+?(\d+)/);
-                     if (numMatch) return `${parseInt(numMatch[1])}ΟΣ`;
+                     if (numMatch) return `${parseInt(numMatch[1])}ος`;
                      return floorId;
                    };
                    
-                   // Build BEP wiring diagram: determine max ports
-                   // From splitter entries, get the fiber numbers assigned to each BEP port
-                   const bepPortData: { port: number; fiberNum: string; floorLabel: string }[] = [];
-                   
-                   // From CAB-BEP splitter entries (active fibers with SGA)
-                   for (const s of splitterEntries) {
-                     const portNum = parseInt(s.bepPort, 10);
-                     if (!isNaN(portNum)) {
-                       // Get fiber number from the fiber field (e.g. "A1.1" → extract the last part)
-                       const fiberNum = s.fiber ? s.fiber.replace(/^[A-Z]\d+\./, "") : "";
-                       // Try to get floor through BEP→BMO→Floor chain
-                       const bmoPort = bepToBmo[portNum];
-                       const floor = bmoPort ? bmoPortToFloor[bmoPort] : undefined;
-                       bepPortData.push({
-                         port: portNum,
-                         fiberNum: fiberNum || `${cabFiberNums.find((_, i) => i === portNum - 1) || ""}`,
-                         floorLabel: floor ? floorShort(floor) : "",
-                       });
-                     }
-                   }
-                   
-                   // Also add backbone (spare) fibers to BEP
+                   // --- Fiber range from CAB-BEP ---
+                   let cabTube = "";
+                   const cabFiberNums: number[] = [];
                    for (const p of cabBepPaths) {
                      const path = p["OPTICAL PATH"] || "";
-                     if (/SG[AB]/i.test(path)) continue; // already handled above
-                     const bepPortMatch = path.match(/BEP\d+(?:\([^)]+\))?_(\d+)/i);
-                     if (bepPortMatch) {
-                       const portNum = parseInt(bepPortMatch[1], 10);
-                       if (!bepPortData.find(d => d.port === portNum)) {
-                         const numMatch = path.match(/^[A-Z]\d+_(?:[A-Z]\d+\.)?(\d+)/i);
-                         const fiberNum = numMatch ? numMatch[1] : "";
-                         const bmoPort = bepToBmo[portNum];
-                         const floor = bmoPort ? bmoPortToFloor[bmoPort] : undefined;
-                         bepPortData.push({
-                           port: portNum,
-                           fiberNum,
-                           floorLabel: floor ? floorShort(floor) : "",
-                         });
-                       }
+                     const tubeMatch = path.match(/^[A-Z]\d+_([A-Z])(\d+)\.(\d+)/i);
+                     if (tubeMatch && !cabTube) {
+                       cabTube = `${tubeMatch[1]}${tubeMatch[2].padStart(2, "0")}`;
                      }
+                     // Extract fiber nums from various patterns
+                     const numMatch = path.match(/^[A-Z]\d+_(?:[A-Z]\d+\.)?(\d+)/i);
+                     if (numMatch) cabFiberNums.push(parseInt(numMatch[1], 10));
+                   }
+                   const fiberMin = cabFiberNums.length > 0 ? Math.min(...cabFiberNums) : 0;
+                   const fiberMax = cabFiberNums.length > 0 ? Math.max(...cabFiberNums) : 0;
+                   const fiberRange = fiberMin > 0 ? `${fiberMin}-${fiberMax}` : "";
+                   const fiberCount = cabFiberNums.length > 0 ? `${cabFiberNums.length}FO` : "";
+                   
+                   // --- BEP port → floor mapping via BEP→BMO→Floor chain ---
+                   const bepToBmo: Record<number, number> = {};
+                   for (const p of bepBmoPaths) {
+                     const pathStr = p["OPTICAL PATH"] || "";
+                     const m = pathStr.match(/BEP\d+(?:\([^)]+\))?_(\d+)(?:[a-z]?)_BMO\d+_(\d+)/i);
+                     if (m) bepToBmo[parseInt(m[1], 10)] = parseInt(m[2], 10);
                    }
                    
-                   bepPortData.sort((a, b) => a.port - b.port);
-                   
-                   // Split into Row A (odd ports: 1,3,5,7...) and Row B (even ports: 2,4,6,8...)
-                   const maxPort = bepPortData.length > 0 ? Math.max(...bepPortData.map(d => d.port)) : 0;
-                   const colCount = Math.ceil(maxPort / 2);
-                   
-                   const rowA: (typeof bepPortData[0] | null)[] = [];
-                   const rowB: (typeof bepPortData[0] | null)[] = [];
-                   for (let i = 1; i <= colCount * 2; i += 2) {
-                     rowA.push(bepPortData.find(d => d.port === i) || null);
-                     rowB.push(bepPortData.find(d => d.port === i + 1) || null);
-                   }
-                   
-                   // --- MOB LABEL (COSMOTE - same as ΔΕΗ p.21 format) ---
-                   let mobName = "";
-                   for (const p of [...bepBmoPaths, ...bmoFbPaths]) {
-                     const path = p["OPTICAL PATH"] || "";
-                     const mobMatch = path.match(/((?:MOB|BMO)\d+(?:\([^)]+\))?)/i);
-                     if (mobMatch && !mobName) { mobName = mobMatch[1]; break; }
-                   }
-                   
-                   interface MobPortEntry {
-                     mobPort: number; fbName: string; fbFloor: string; fbPortNum: number; isActive: boolean;
-                   }
+                   // --- FB groups from BMO-FB paths ---
                    const fbGroups: Record<string, { floor: string; ports: { mobPort: number; fbPortNum: number }[] }> = {};
-                   
                    for (const p of bmoFbPaths) {
                      const pathStr = p["OPTICAL PATH"] || "";
                      const m = pathStr.match(/BMO\d+_(\d+)_FB\(([^)]+)\)\.(\d+)(?:_(\d+))?/i);
@@ -2232,47 +2146,53 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                      }
                    }
                    
-                   const mobPortEntries: MobPortEntry[] = [];
-                   for (const [fbName, group] of Object.entries(fbGroups)) {
-                     group.ports.sort((a, b) => a.fbPortNum - b.fbPortNum);
-                     const activeCount = Math.ceil(group.ports.length / 2);
-                     group.ports.forEach((port, idx) => {
-                       mobPortEntries.push({
-                         mobPort: port.mobPort, fbName, fbFloor: group.floor,
-                         fbPortNum: idx + 1, isActive: idx < activeCount,
-                       });
-                     });
+                   // --- BMO name ---
+                   let mobName = "";
+                   for (const p of [...bepBmoPaths, ...bmoFbPaths]) {
+                     const path = p["OPTICAL PATH"] || "";
+                     const mobMatch = path.match(/((?:MOB|BMO)\d+(?:\([^)]+\))?)/i);
+                     if (mobMatch && !mobName) { mobName = mobMatch[1]; break; }
                    }
-                   mobPortEntries.sort((a, b) => a.mobPort - b.mobPort);
                    
-                   // --- FB LABEL (COSMOTE p.22) ---
-                   // Each FB: ports listed as Active first then Spare e.g. "FB00.1A 2S"
-                   const fbLabels: Record<string, { ports: { num: number; type: string }[]; floor: string }> = {};
-                   for (const entry of mobPortEntries) {
-                     if (!fbLabels[entry.fbName]) fbLabels[entry.fbName] = { ports: [], floor: entry.fbFloor };
-                     fbLabels[entry.fbName].ports.push({ num: entry.fbPortNum, type: entry.isActive ? "A" : "S" });
-                   }
-
-                   // --- ΚΑΜΠΙΝΑ LABEL (COSMOTE specs pp.26-30) ---
-                   // A. Inside cassette: [STREET] [NUMBER]
-                   // B. On splitter outputs: [SPLITTER] - [STREET] [NUMBER]
-                   // C. On tube: [STREET] [NUMBER]
-                   const hasCabLabel = cabName && address;
-                   
-                   // Extract splitter names for cabinet label (from splitterEntries already parsed above)
-                   const splitterLabels = splitterEntries
+                   // --- Splitter labels for cabinet ---
+                   const splitterLabelsList = splitterEntries
                      .filter(s => s.sga)
                      .map(s => {
                        const sgaPort = s.sgaPort ? `.${s.sgaPort.padStart(2, "0")}` : "";
                        return `${s.sga}${sgaPort}`;
                      })
-                     .filter((v, i, arr) => arr.indexOf(v) === i); // unique
+                     .filter((v, i, arr) => arr.indexOf(v) === i);
+                   
+                   // --- Conditions ---
+                   const hasCabLabel = !!(cabName && address);
+                   const hasBcpLabel = !!(cabName && fiberRange);
+                   const hasBepLabel = !!(bepName && (cabFiberNums.length > 0 || bepBmoPorts.length > 0));
+                   const hasMobLabel = !bepOnly && Object.keys(fbGroups).length > 0;
+                   const hasFbLabel = !bepOnly && Object.keys(fbGroups).length > 0;
 
-                   const hasBepLabel = bepName && bepPortData.length > 0;
-                   const hasMobLabel = mobPortEntries.length > 0;
-                   const hasFbLabel = Object.keys(fbLabels).length > 0;
+                   if (!hasCabLabel && !hasBcpLabel && !hasBepLabel && !hasMobLabel && !hasFbLabel) return null;
 
-                   if (!hasBepLabel && !hasMobLabel && !hasFbLabel && !hasCabLabel) return null;
+                   // Label card helper
+                   const LabelCard = ({ color, icon, title, children }: { color: string; icon: string; title: string; children: React.ReactNode }) => (
+                     <div className={`p-2.5 rounded-lg border-2 border-dashed border-${color}/30 bg-card space-y-1.5`}>
+                       <div className={`text-[10px] font-bold uppercase tracking-wider text-${color}`}>{icon} {title}</div>
+                       {children}
+                     </div>
+                   );
+
+                   // Monospace label box
+                   const LabelBox = ({ label, children }: { label?: string; children: React.ReactNode }) => (
+                     <div className="bg-background border border-border rounded-md p-2.5 font-mono text-[11px] space-y-1">
+                       {label && <div className="text-[9px] font-bold text-muted-foreground uppercase">{label}</div>}
+                       {children}
+                     </div>
+                   );
+
+                   const LabelLine = ({ text, bold }: { text: string; bold?: boolean }) => (
+                     <div className={`text-center text-xs ${bold ? "font-bold" : ""} text-foreground bg-muted/50 rounded px-2 py-1.5 border border-border`}>
+                       {text}
+                     </div>
+                   );
 
                    return (
                      <div className="space-y-2 mt-3 pt-3 border-t border-border">
@@ -2281,220 +2201,152 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                          <span className="text-[10px] text-muted-foreground">Αυτοκόλλητα — COSMOTE specs</span>
                        </div>
 
-                       {/* ΚΑΜΠΙΝΑ Labels - COSMOTE pages 26-30 */}
+                       {/* ═══ 2. ΚΑΜΠΙΝΑ ΠΑΛΑΙΟΥ ΤΥΠΟΥ ═══ */}
                        {hasCabLabel && (
-                         <div className="p-2.5 rounded-lg border-2 border-dashed border-orange-500/30 bg-card space-y-1.5">
-                           <div className="text-[10px] font-bold uppercase tracking-wider text-orange-600">🏗️ Labels Καμπίνα</div>
-                           <div className="space-y-2">
-                             {/* A. Μέσα στην κασέτα */}
-                             <div className="bg-background border border-border rounded-md p-2.5 font-mono text-[11px] space-y-1">
-                               <div className="text-[9px] font-bold text-muted-foreground uppercase">A. Μέσα στην κασέτα</div>
-                               <div className="text-center font-bold text-foreground text-xs bg-muted/50 rounded px-2 py-1.5 border border-border">
-                                 {address}
-                               </div>
-                             </div>
-                             
-                             {/* B. Πάνω στις εξόδους splitter */}
-                             {splitterLabels.length > 0 && (
-                               <div className="bg-background border border-border rounded-md p-2.5 font-mono text-[11px] space-y-1.5">
-                                 <div className="text-[9px] font-bold text-muted-foreground uppercase">B. Πάνω στις εξόδους Splitter</div>
-                                 {splitterLabels.map((spl, i) => (
-                                   <div key={i} className="text-center font-bold text-foreground text-xs bg-muted/50 rounded px-2 py-1.5 border border-border">
-                                     {spl} - {address}
-                                   </div>
+                         <LabelCard color="orange-600" icon="🏗️" title="Labels Καμπίνα">
+                           <LabelBox label="A. Μέσα στην κασέτα">
+                             <LabelLine text={address} bold />
+                           </LabelBox>
+                           {splitterLabelsList.length > 0 && (
+                             <LabelBox label="B. Πάνω στις εξόδους Splitter">
+                               <div className="space-y-1">
+                                 {splitterLabelsList.map((spl, i) => (
+                                   <LabelLine key={i} text={`${spl} - ${address}`} bold />
                                  ))}
                                </div>
-                             )}
-                             
-                             {/* C. Πάνω στον σωληνίσκο */}
-                             <div className="bg-background border border-border rounded-md p-2.5 font-mono text-[11px] space-y-1">
-                               <div className="text-[9px] font-bold text-muted-foreground uppercase">C. Πάνω στον σωληνίσκο</div>
-                               <div className="text-center font-bold text-foreground text-xs bg-muted/50 rounded px-2 py-1.5 border border-border">
-                                 {address}
-                               </div>
-                             </div>
-                           </div>
-                         </div>
+                             </LabelBox>
+                           )}
+                           <LabelBox label="C. Πάνω στον σωληνίσκο">
+                             <LabelLine text={address} bold />
+                           </LabelBox>
+                         </LabelCard>
                        )}
 
-                       {/* BEP Label - COSMOTE page 37 */}
+                       {/* ═══ 3. BCP ═══ */}
+                       {hasBcpLabel && (
+                         <LabelCard color="amber-600" icon="📦" title="Labels BCP">
+                           {/* A. Μαύρη ίνα */}
+                           <LabelBox label="A. Στη μαύρη ίνα">
+                             <LabelLine text={`ΚΑΜΠΙΝΑ: ${cabName} | ${fiberCount} | ΟΡΙΑ: ${fiberRange}`} bold />
+                           </LabelBox>
+                           {/* B. Άσπρη ίνα */}
+                           <LabelBox label="B. Στην άσπρη ίνα">
+                             <LabelLine text={`${bepName || "BEP01"} | ${fiberCount}`} bold />
+                           </LabelBox>
+                           {/* C. Πόρτα BCP */}
+                           <LabelBox label="C. Στην πόρτα του BCP">
+                             <div className="space-y-0.5 text-center text-xs font-bold text-foreground bg-muted/50 rounded px-2 py-2 border border-border">
+                               <div>ΚΑΜΠΙΝΑ: {cabName}</div>
+                               <div>ΣΩΛΗΝΙΣΚΟΣ: {cabTube || cabName}</div>
+                               <div>ΟΡΙΑ: {fiberRange}</div>
+                               {address && <div className="border-t border-border pt-1 mt-1">A1-B1: {address}</div>}
+                             </div>
+                           </LabelBox>
+                         </LabelCard>
+                       )}
+
+                       {/* ═══ 4. BEP ═══ */}
                        {hasBepLabel && (
-                         <div className="p-2.5 rounded-lg border-2 border-dashed border-primary/30 bg-card space-y-1.5">
-                           <div className="text-[10px] font-bold uppercase tracking-wider text-primary">📦 Label BEP (πόρτα)</div>
-                           <div className="bg-background border border-border rounded-md p-3 font-mono text-[11px] space-y-2">
-                             {/* Header: Cabinet(Tube) + fiber range */}
-                             <div className="text-center font-bold text-foreground text-xs border-b border-foreground pb-1">
-                               {cabName}{cabTube ? `(${cabTube})` : ""}
-                               {fiberRange && <span className="block text-[11px]">{fiberRange}</span>}
+                         <LabelCard color="primary" icon="🔌" title="Labels BEP">
+                           {/* A. Στα καλώδια */}
+                           <LabelBox label="A. Στα καλώδια του BEP">
+                             <div className="space-y-1">
+                               {/* Προς BMO ή FB */}
+                               {bepBmoPorts.length > 0 && !bepOnly && (
+                                 <LabelLine text={`ΠΡΟΣ: BMO | ${bepBmoPorts.length}FO`} bold />
+                               )}
+                               {/* FB cables from BMO-FB */}
+                               {Object.entries(fbGroups).sort(([a], [b]) => a.localeCompare(b)).map(([fbName, fb]) => (
+                                 <LabelLine key={fbName} text={`ΠΡΟΣ: FB ${floorShort(fb.floor)} | ${fb.ports.length}FO`} bold />
+                               ))}
+                               {bepOnly && (
+                                 <LabelLine text={`ΠΡΟΣ: ΠΕΛΑΤΗ | 2FO`} bold />
+                               )}
                              </div>
-                             
-                             {/* Wiring Diagram Title */}
-                             <div className="text-center text-[9px] text-muted-foreground italic">
-                               Termination Box Wiring Diagram
+                           </LabelBox>
+                           {/* B. Πόρτα BEP */}
+                           <LabelBox label="B. Στην πόρτα του BEP">
+                             <div className="space-y-0.5 text-center text-xs font-bold text-foreground bg-muted/50 rounded px-2 py-2 border border-border">
+                               <div>ΚΑΜΠΙΝΑ: {cabName}</div>
+                               <div>ΣΩΛΗΝΙΣΚΟΣ: {cabTube || cabName}</div>
+                               <div>ΟΡΙΑ: {fiberRange}</div>
+                               <div className="border-t border-border pt-1 mt-1">ΠΟΡΤΑ 1: ΕΙΣΟΔΟΣ ΠΑΡΟΧΙΚΗΣ</div>
+                               <div>ΠΟΡΤΑ 2: SPLITTER</div>
+                               {!bepOnly && <div>ΠΟΡΤΑ 3: PATCH TO BMO</div>}
+                               {bepOnly && <div>ΠΟΡΤΑ 3: PATCH TO ΠΕΛΑΤΗ</div>}
                              </div>
-                             <div className="text-center text-[9px] font-semibold text-foreground">
-                               Fiber Number
-                             </div>
-                             
-                             {/* Grid: Row A and Row B */}
-                             <div className="overflow-x-auto">
-                               <table className="w-full text-[10px] border-collapse">
-                                 <thead>
-                                   <tr>
-                                     <th className="border border-foreground/30 px-1 py-0.5 bg-foreground text-background w-6"></th>
-                                     {Array.from({ length: colCount }, (_, i) => (
-                                       <th key={i} className="border border-foreground/30 px-1 py-0.5 bg-foreground text-background font-bold min-w-[32px]">
-                                         {i * 2 + 1}
-                                       </th>
-                                     ))}
-                                   </tr>
-                                 </thead>
-                                 <tbody>
-                                   {/* Row A */}
-                                   <tr>
-                                     <td className="border border-foreground/30 px-1 py-0.5 bg-foreground text-background font-bold text-center">A</td>
-                                     {rowA.map((d, i) => (
-                                       <td key={i} className="border border-foreground/30 px-1 py-0.5 text-center font-semibold text-foreground">
-                                         {d ? (d.fiberNum || "—") : ""}
-                                       </td>
-                                     ))}
-                                   </tr>
-                                   {/* Row A floor labels */}
-                                   <tr>
-                                     <td className="border border-foreground/30 px-1 py-0.5"></td>
-                                     {rowA.map((d, i) => (
-                                       <td key={i} className="border border-foreground/30 px-1 py-0.5 text-center text-[9px] text-primary font-semibold">
-                                         {d?.floorLabel || ""}
-                                       </td>
-                                     ))}
-                                   </tr>
-                                   {/* Separator with port numbers for B row */}
-                                   <tr>
-                                     <td className="border border-foreground/30 px-1 py-0.5 bg-foreground text-background font-bold text-center">B</td>
-                                     {rowB.map((_, i) => (
-                                       <td key={i} className="border border-foreground/30 px-1 py-0.5 bg-foreground text-background font-bold text-center">
-                                         {i * 2 + 2}
-                                       </td>
-                                     ))}
-                                   </tr>
-                                   {/* Row B fiber numbers */}
-                                   <tr>
-                                     <td className="border border-foreground/30 px-1 py-0.5"></td>
-                                     {rowB.map((d, i) => (
-                                       <td key={i} className="border border-foreground/30 px-1 py-0.5 text-center font-semibold text-foreground">
-                                         {d ? (d.fiberNum || "—") : ""}
-                                       </td>
-                                     ))}
-                                   </tr>
-                                   {/* Row B floor labels */}
-                                   <tr>
-                                     <td className="border border-foreground/30 px-1 py-0.5"></td>
-                                     {rowB.map((d, i) => (
-                                       <td key={i} className="border border-foreground/30 px-1 py-0.5 text-center text-[9px] text-primary font-semibold">
-                                         {d?.floorLabel || ""}
-                                       </td>
-                                     ))}
-                                   </tr>
-                                 </tbody>
-                               </table>
-                             </div>
-                           </div>
-                           
-                           {/* Cable labels */}
-                           <div className="bg-background border border-border rounded-md p-2 font-mono text-[10px] space-y-1">
-                             <div className="text-[9px] font-bold text-muted-foreground uppercase">Ετικέτες καλωδίων:</div>
-                             <div className="flex items-center gap-1">
-                               <span className="text-foreground">⬛ Παροχική:</span>
-                               <span className="font-bold text-foreground">{cabName} {cabFiberNums.length > 0 ? `${cabFiberNums.length}FO` : ""} {fiberRange}</span>
-                             </div>
-                             <div className="flex items-center gap-1">
-                               <span className="text-foreground">⬜ Προς BMO:</span>
-                               <span className="font-bold text-foreground">{bepName} {bepBmoPorts.length > 0 ? `${bepBmoPorts.length}FO` : ""}</span>
-                             </div>
-                           </div>
-                         </div>
+                           </LabelBox>
+                         </LabelCard>
                        )}
 
-                       {/* MOB Label - COSMOTE (same format as ΔΕΗ p.21) */}
+                       {/* ═══ 5. BMO ═══ */}
                        {hasMobLabel && (
-                         <div className="p-2.5 rounded-lg border-2 border-dashed border-accent/30 bg-card space-y-1.5">
-                           <div className="text-[10px] font-bold uppercase tracking-wider text-accent">📦 Label MOB (πόρτα)</div>
-                           <div className="bg-background border border-border rounded-md p-3 font-mono text-[11px] space-y-2">
-                             {mobName && (
-                               <div className="text-center font-bold text-foreground text-xs border-b border-border pb-1">
-                                 {mobName}
-                               </div>
-                             )}
-                             <div className="text-center text-[10px] font-semibold text-muted-foreground">
-                               A = ACTIVE &nbsp;&nbsp; S = SPARE
+                         <LabelCard color="accent-foreground" icon="📡" title="Labels BMO">
+                           {/* A. Πόρτα BMO */}
+                           <LabelBox label="A. Στην πόρτα του BMO">
+                             <div className="space-y-0.5 text-center text-xs font-bold text-foreground bg-muted/50 rounded px-2 py-2 border border-border">
+                               <div>BMO</div>
+                               <div>ΚΤΗΡΙΟ: {address}</div>
+                               {buildingId && <div>BID: {buildingId}</div>}
+                               <div>ΑΠΟ: {bepName || "BEP01"}</div>
                              </div>
-                             {/* Table format matching COSMOTE spec */}
-                             <table className="w-full text-[10px] border-collapse">
-                               <thead>
-                                 <tr>
-                                   <th className="border border-foreground/30 px-1 py-0.5 bg-foreground text-background">Port</th>
-                                   <th className="border border-foreground/30 px-1 py-0.5 bg-foreground text-background">FB</th>
-                                   <th className="border border-foreground/30 px-1 py-0.5 bg-foreground text-background">Type</th>
-                                 </tr>
-                               </thead>
-                               <tbody>
-                                 {mobPortEntries.map((p, i) => (
-                                   <tr key={i}>
-                                     <td className="border border-foreground/30 px-1 py-0.5 text-center font-bold">{p.mobPort}</td>
-                                     <td className="border border-foreground/30 px-1 py-0.5 text-center">{p.fbName}</td>
-                                     <td className={`border border-foreground/30 px-1 py-0.5 text-center font-bold ${p.isActive ? 'text-primary' : 'text-destructive'}`}>
-                                       {p.fbPortNum.toString().padStart(2, "0")}{p.isActive ? "A" : "S"}
-                                     </td>
-                                   </tr>
-                                 ))}
-                               </tbody>
-                             </table>
-                           </div>
-                         </div>
+                           </LabelBox>
+                           {/* B. Εξερχόμενα προς FB */}
+                           <LabelBox label="B. Στα εξερχόμενα προς FB">
+                             <div className="space-y-1">
+                               {Object.entries(fbGroups).sort(([a], [b]) => a.localeCompare(b)).map(([fbName, fb]) => (
+                                 <LabelLine key={fbName} text={`ΠΡΟΣ: FB ${floorShort(fb.floor)} | ΙΝΕΣ: ${fb.ports.length}FO`} bold />
+                               ))}
+                             </div>
+                           </LabelBox>
+                         </LabelCard>
                        )}
 
-                       {/* FB Labels - COSMOTE page 22 */}
+                       {/* ═══ 5. BMO (BEP ONLY) ═══ */}
+                       {bepOnly && bepName && (
+                         <LabelCard color="accent-foreground" icon="📡" title="Labels BMO (BEP ONLY)">
+                           <LabelBox>
+                             <div className="space-y-0.5 text-center text-xs font-bold text-foreground bg-muted/50 rounded px-2 py-2 border border-border">
+                               <div>BMO</div>
+                               <div>ΚΤΗΡΙΟ: {address}</div>
+                               <div>BEP ONLY</div>
+                             </div>
+                           </LabelBox>
+                         </LabelCard>
+                       )}
+
+                       {/* ═══ 6. FB ═══ */}
                        {hasFbLabel && (
-                         <div className="p-2.5 rounded-lg border-2 border-dashed border-muted-foreground/30 bg-card space-y-1.5">
-                           <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">📦 Labels FB</div>
-                           <div className="grid grid-cols-2 gap-2">
-                             {Object.entries(fbLabels).sort(([a], [b]) => a.localeCompare(b)).map(([fbName, fb], i) => {
-                               const activeList = fb.ports.filter(p => p.type === "A");
-                               const spareList = fb.ports.filter(p => p.type === "S");
-                               return (
-                                 <div key={i} className="bg-background border border-border rounded-md p-2 font-mono text-center space-y-1">
-                                   <div className="text-[9px] text-muted-foreground font-semibold">{floorShort(fb.floor)}</div>
-                                   <div className="space-y-0.5">
-                                     {activeList.map((p, j) => (
-                                       <div key={`a${j}`} className="text-[11px] font-bold text-primary">
-                                         {fbName}.{p.num}A
-                                       </div>
-                                     ))}
-                                     {spareList.map((p, j) => (
-                                       <div key={`s${j}`} className="text-[11px] font-bold text-destructive">
-                                         {fbName}.{p.num}S
-                                       </div>
+                         <LabelCard color="muted-foreground" icon="🏠" title="Labels FB">
+                           <div className="space-y-1.5">
+                             {Object.entries(fbGroups).sort(([a], [b]) => a.localeCompare(b)).map(([fbName, fb]) => (
+                               <LabelBox key={fbName} label={`A. Στην πόρτα: ${fbName}`}>
+                                 <div className="space-y-0.5 text-center text-xs font-bold text-foreground bg-muted/50 rounded px-2 py-2 border border-border">
+                                   <div>FB {floorShort(fb.floor)}</div>
+                                   <div>ΚΤΗΡΙΟ: {address}</div>
+                                   <div>ΑΠΟ: BMO</div>
+                                 </div>
+                               </LabelBox>
+                             ))}
+                             {/* B. Εξόδοι / αναμονές */}
+                             <LabelBox label="B. Στις εξόδους / αναμονές">
+                               <div className="space-y-1">
+                                 {Object.entries(fbGroups).sort(([a], [b]) => a.localeCompare(b)).map(([fbName, fb]) => (
+                                   <div key={fbName} className="space-y-0.5">
+                                     <div className="text-[9px] text-muted-foreground font-semibold">{fbName} ({floorShort(fb.floor)})</div>
+                                     {fb.ports.map((port, j) => (
+                                       <LabelLine key={j} text={`ΔΙΑΜΕΡΙΣΜΑ: ${port.fbPortNum}`} bold />
                                      ))}
                                    </div>
-                                 </div>
-                               );
-                             })}
+                                 ))}
+                               </div>
+                             </LabelBox>
                            </div>
-                         </div>
+                         </LabelCard>
                        )}
                      </div>
                    );
                  })()}
-                {/* Summary */}
-                <div className="text-[10px] text-muted-foreground mt-1 px-1">
-                  📌 Σύνολο: {paths.length} διαδρομές
-                </div>
-              </div>
-            );
-          })()}
-        </Card>
-      )}
-
       {/* ΔΙΑΔΡΟΜΕΣ */}
       <Card className="p-4 space-y-3">
         <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
