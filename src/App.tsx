@@ -30,6 +30,7 @@ import DemoDashboard from "./pages/DemoDashboard";
 import WatermarkTest from "./pages/WatermarkTest";
 import Landing from "./pages/Landing";
 import Terms from "./pages/Terms";
+import FtthLabelGenerator from "./pages/FtthLabelGenerator";
 
 import NotFound from "./pages/NotFound";
 import HelpChatBot from "./components/HelpChatBot";
