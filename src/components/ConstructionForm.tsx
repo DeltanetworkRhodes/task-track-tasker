@@ -2288,7 +2288,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                              <div className="space-y-1">
                                {/* Προς BMO ή FB */}
                                  {bepBmoPorts.length > 0 && !bepOnly && (
-                                   <LabelLine text={`ΠΡΟΣ: BMO | ${fiberCount}`} bold />
+                                   <LabelLine text={`BMO | ${fiberCount}`} bold />
                                  )}
                                  {/* FB cables from BMO-FB */}
                                   {Object.entries(fbGroups).sort(([a], [b]) => a.localeCompare(b)).map(([floorKey, fb]) => {
