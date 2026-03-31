@@ -2122,6 +2122,8 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                    // Fiber count: standardize to 4FO or 12FO
                    const rawFiberCount = cabFiberNums.length;
                    const fiberCount = rawFiberCount <= 4 ? "4FO" : "12FO";
+                   // Standard FO helper: normalize any count to standard cable sizes
+                   const standardFO = (count: number) => count <= 2 ? "2FO" : count <= 4 ? "4FO" : "12FO";
                    
                    // BCP exists only if GIS has nearby_bcp or new_bcp
                    const hasBcp = !!(gisData?.nearby_bcp || gisData?.new_bcp);
