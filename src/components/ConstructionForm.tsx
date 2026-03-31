@@ -2487,15 +2487,36 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                                )}
                              </LabelBox>
 
-                            {/* B. Ίνες από BMO σε FB (cable labels) */}
-                            <LabelBox label="B. Ίνες από BMO σε FB">
-                              <div className="space-y-1">
-                                  {Object.entries(fbGroups).sort(([a], [b]) => a.localeCompare(b)).map(([floorKey, fb]) => {
-                                    const fl = fb.floor.startsWith("+") || fb.floor.startsWith("-") ? fb.floor : `+${fb.floor}`;
-                                    return <LabelLine key={floorKey} text={`FB(${fl}) | ${floorFO(fb.floor)}`} bold />;
-                                  })}
-                              </div>
-                            </LabelBox>
+                            {/* B. Εσωτερικά BMO — feed + range + departures */}
+                             <LabelBox label="B. Εσωτερικά BMO">
+                               <div className="space-y-1">
+                                 {/* Feed source + range */}
+                                 {(() => {
+                                   const feedLine = `${cabName} - ${fiberCount}`;
+                                   const rangeLine = fiberRange ? fiberRange.replace("-", " - ") : "";
+                                   const fbLines = Object.entries(fbGroups).sort(([a], [b]) => a.localeCompare(b)).map(([, fb]) => {
+                                     const fl = fb.floor.startsWith("+") || fb.floor.startsWith("-") ? fb.floor : `+${fb.floor}`;
+                                     return `FB(${fl}) ${floorFO(fb.floor)}`;
+                                   });
+                                   const allLines = [feedLine, ...(rangeLine ? [rangeLine] : []), "", ...fbLines];
+                                   return (
+                                     <div className="relative group font-mono text-[11px] font-semibold bg-muted/50 rounded-md px-3 py-1.5 border border-border text-center space-y-0.5">
+                                       <div>{feedLine}</div>
+                                       {rangeLine && <div>{rangeLine}</div>}
+                                       <div className="border-t border-border my-1" />
+                                       {fbLines.map((line, i) => <div key={i}>{line}</div>)}
+                                       <button
+                                         type="button"
+                                         onClick={() => { navigator.clipboard.writeText(allLines.filter(l => l !== "").join("\n")); toast.success("Copied!"); }}
+                                         className="absolute right-1 top-1 opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded hover:bg-muted"
+                                       >
+                                         <Copy className="h-3 w-3 text-muted-foreground" />
+                                       </button>
+                                     </div>
+                                   );
+                                 })()}
+                               </div>
+                             </LabelBox>
                           </LabelCard>
                           );
                         })()}
