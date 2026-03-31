@@ -1920,6 +1920,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
             // Extract CAB-BEP summary
             let cabName = "";
             let splitterInfo = "";
+            let splitterFiber = "";
             let bepName = "";
             const backboneFibers: string[] = [];
             for (const p of cabBepPaths) {
@@ -1930,11 +1931,14 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
               // Extract BEP: BEP01(b08)
               const bepMatch = path.match(/(BEP\d+\([^)]+\))/i);
               if (bepMatch && !bepName) bepName = bepMatch[1];
-              // Check if splitter path
+              // Check if splitter path - extract fiber ID from it too
               if (/SGA/i.test(path)) {
                 const sgaMatch = path.match(/(SGA\d+\([^)]+\))/i);
                 const sbMatch = path.match(/(SB\d+\([^)]+\))/i);
                 if (sgaMatch && sbMatch) splitterInfo = `${sgaMatch[1]} → ${sbMatch[1]}`;
+                // Extract fiber from SGA path e.g. G137_SGA01(1:8).B1.B1.1_BEP01... → B1.1
+                const fiberMatch = path.match(/\.B\d+\.(B\d+\.\d+)/i);
+                if (fiberMatch) splitterFiber = fiberMatch[1];
               } else {
                 const underscoreIdx = path.indexOf("_");
                 backboneFibers.push(underscoreIdx >= 0 ? path.slice(underscoreIdx + 1) : path);
