@@ -2152,10 +2152,10 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                      return floorId;
                    };
                    
-                   // --- Fiber range from CAB-BEP ---
+                   // --- Fiber range from CAB-BEP or CAB-BCP ---
                    let cabTube = "";
                    const cabFiberNums: number[] = [];
-                   for (const p of cabBepPaths) {
+                   for (const p of (cabBepPaths.length > 0 ? cabBepPaths : cabBcpPaths)) {
                      const path = p["OPTICAL PATH"] || "";
                      const tubeMatch = path.match(/^[A-Z]\d+_([A-Z])(\d+)\.(\d+)/i);
                      if (tubeMatch && !cabTube) {
@@ -2183,8 +2183,8 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                     // Standard FO helper: uses floor apartments when available, fallback to count-based
                     const standardFO = (count: number) => count <= 2 ? "2FO" : count <= 4 ? "4FO" : "12FO";
                    
-                   // BCP exists only if GIS has nearby_bcp or new_bcp
-                   const hasBcp = !!(gisData?.nearby_bcp || gisData?.new_bcp);
+                   // BCP exists if GIS has nearby_bcp/new_bcp OR optical paths have CAB-BCP/BCP-BEP
+                   const hasBcpInLabels = !!(gisData?.nearby_bcp || gisData?.new_bcp) || hasBcp;
                    
                    // --- BEP port → floor mapping via BEP→BMO→Floor chain ---
                    const bepToBmo: Record<number, number> = {};
@@ -2228,7 +2228,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                    
                    // --- Conditions ---
                    const hasCabLabel = !!(cabName && address);
-                   const hasBcpLabel = hasBcp && !!(cabName && fiberRange);
+                   const hasBcpLabel = hasBcpInLabels && !!(cabName || bcpName);
                    const hasBepLabel = !!(bepName && (cabFiberNums.length > 0 || bepBmoPorts.length > 0));
                    const hasMobLabel = !bepOnly && Object.keys(fbGroups).length > 0;
                     const hasFbLabel = !bepOnly && Object.keys(fbGroups).length > 0;
