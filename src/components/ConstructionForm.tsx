@@ -2338,15 +2338,15 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                                  ))}
                                </div>
                              </LabelBox>
-                             {/* C. Πόρτα BCP (εξωτερικά) */}
+                             {/* C. Πόρτα BCP (εξωτερικά) — info only */}
                              <LabelBox label="C. Στην πόρτα του BCP">
-                               <LabelBlock lines={[
-                                 `ΚΑΜΠΙΝΑ: ${cabName}`,
-                                 `ΣΩΛΗΝΙΣΚΟΣ: ${cabTube || cabName}`,
-                                 ...(fiberRange ? [`ΟΡΙΑ: ${fiberRange}`] : []),
-                                 ...(address ? [`A1-B1: ${address}`] : []),
-                                 `C1-D1: —`,
-                               ]} />
+                               <div className="text-xs space-y-0.5 text-muted-foreground">
+                                 <div>ΚΑΜΠΙΝΑ: <strong className="text-foreground">{cabName}</strong></div>
+                                 <div>ΣΩΛΗΝΙΣΚΟΣ: <strong className="text-foreground">{cabTube || cabName}</strong></div>
+                                 {fiberRange && <div>ΟΡΙΑ: <strong className="text-foreground">{fiberRange}</strong></div>}
+                                 {address && <div>A1-B1: <strong className="text-foreground">{address}</strong></div>}
+                                 <div>C1-D1: <strong className="text-foreground">—</strong></div>
+                               </div>
                              </LabelBox>
                            </LabelCard>
                          );
