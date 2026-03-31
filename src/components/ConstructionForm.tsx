@@ -1920,6 +1920,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
             // Extract CAB-BEP summary
             let cabName = "";
             let splitterInfo = "";
+            let splitterFiber = "";
             let bepName = "";
             const backboneFibers: string[] = [];
             for (const p of cabBepPaths) {
@@ -1930,11 +1931,14 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
               // Extract BEP: BEP01(b08)
               const bepMatch = path.match(/(BEP\d+\([^)]+\))/i);
               if (bepMatch && !bepName) bepName = bepMatch[1];
-              // Check if splitter path
+              // Check if splitter path - extract fiber ID from it too
               if (/SGA/i.test(path)) {
                 const sgaMatch = path.match(/(SGA\d+\([^)]+\))/i);
                 const sbMatch = path.match(/(SB\d+\([^)]+\))/i);
                 if (sgaMatch && sbMatch) splitterInfo = `${sgaMatch[1]} → ${sbMatch[1]}`;
+                // Extract fiber from SGA path e.g. G137_SGA01(1:8).B1.B1.1_BEP01... → B1.1
+                const fiberMatch = path.match(/\.B\d+\.(B\d+\.\d+)/i);
+                if (fiberMatch) splitterFiber = fiberMatch[1];
               } else {
                 const underscoreIdx = path.indexOf("_");
                 backboneFibers.push(underscoreIdx >= 0 ? path.slice(underscoreIdx + 1) : path);
@@ -1964,9 +1968,15 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                     <div className="text-xs space-y-0.5">
                       <div>🏗️ Καμπίνα: <strong className="text-foreground">{cabName || "—"}</strong></div>
                       <div>📦 BEP: <strong className="text-foreground">{bepName || "—"}</strong></div>
-                      <div>🔗 Όρια σε καμπίνα: <strong className="text-foreground">{backboneFibers.length}</strong>{splitterInfo && <span className="ml-2 text-muted-foreground">({splitterInfo})</span>}</div>
-                      {backboneFibers.length > 0 && (
+                      <div>🔗 Όρια σε καμπίνα: <strong className="text-foreground">{backboneFibers.length + (splitterFiber ? 1 : 0)}</strong></div>
+                      {(backboneFibers.length > 0 || splitterFiber) && (
                         <div className="mt-1 pl-2 border-l-2 border-muted space-y-0.5">
+                          {splitterFiber && (
+                            <div className="text-[10px] font-mono">
+                              <span className="text-muted-foreground">{splitterFiber}</span>
+                              <span className="ml-1.5 text-primary">→ {splitterInfo}</span>
+                            </div>
+                          )}
                           {backboneFibers.map((f, i) => (
                             <div key={i} className="text-[10px] text-muted-foreground font-mono">{f}</div>
                           ))}
