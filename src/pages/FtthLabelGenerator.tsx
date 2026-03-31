@@ -182,8 +182,8 @@ export default function FtthLabelGenerator() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="4FO">4FO</SelectItem>
-                  <SelectItem value="12FO">12FO</SelectItem>
+              <SelectItem value="4FO">4FO (≤2 διαμ/όροφο)</SelectItem>
+                  <SelectItem value="12FO">12FO (&gt;2 διαμ/όροφο)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
