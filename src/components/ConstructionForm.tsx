@@ -2421,14 +2421,14 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                                {/* Fiber inputs per SB */}
                                {(aFibers.length > 0 || bFibers.length > 0) && (
                                  <div className="relative group font-mono text-[11px] font-semibold bg-muted/50 rounded-md px-3 py-1.5 border border-border mt-1">
-                                   <div className="grid grid-cols-2 gap-x-4">
-                                     <div className="space-y-0.5">
-                                       {aFibers.map((f, i) => <div key={i}>A{i + 1} - {f}</div>)}
-                                     </div>
-                                     <div className="space-y-0.5">
-                                       {bFibers.map((f, i) => <div key={i}>B{i + 1} - {f}</div>)}
-                                     </div>
-                                   </div>
+                                    <div className="grid grid-cols-2 gap-x-4">
+                                      <div className="space-y-0.5 text-center">
+                                        {aFibers.map((f, i) => <div key={i}>A{i + 1} - {f}</div>)}
+                                      </div>
+                                      <div className="space-y-0.5 text-center">
+                                        {bFibers.map((f, i) => <div key={i}>B{i + 1} - {f}</div>)}
+                                      </div>
+                                    </div>
                                    <button
                                      type="button"
                                      onClick={() => {
