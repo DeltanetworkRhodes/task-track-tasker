@@ -1912,51 +1912,78 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
               ));
             }
 
-            // Group non-BMO-FB paths by type for display
-            const otherPaths: Record<string, any[]> = {};
-            const typeOrder = ["CAB-BEP", "BEP", "BEP-BMO"];
-            for (const p of paths) {
-              const type = (p["OPTICAL PATH TYPE"] || "").toUpperCase();
-              if (type !== "BMO-FB") {
-                if (!otherPaths[type]) otherPaths[type] = [];
-                otherPaths[type].push(p);
+            // Parse CAB-BEP paths
+            const cabBepPaths = paths.filter(p => (p["OPTICAL PATH TYPE"] || "").toUpperCase() === "CAB-BEP");
+            const bepPaths = paths.filter(p => (p["OPTICAL PATH TYPE"] || "").toUpperCase() === "BEP");
+            const bepBmoPaths = paths.filter(p => (p["OPTICAL PATH TYPE"] || "").toUpperCase() === "BEP-BMO");
+
+            // Extract CAB-BEP summary
+            let cabName = "";
+            let splitterInfo = "";
+            let bepName = "";
+            let backboneCount = 0;
+            for (const p of cabBepPaths) {
+              const path = p["OPTICAL PATH"] || "";
+              // Extract cab: G137_...
+              const cabMatch = path.match(/^([A-Z]\d+)/i);
+              if (cabMatch && !cabName) cabName = cabMatch[1];
+              // Extract BEP: BEP01(b08)
+              const bepMatch = path.match(/(BEP\d+\([^)]+\))/i);
+              if (bepMatch && !bepName) bepName = bepMatch[1];
+              // Check if splitter path
+              if (/SGA/i.test(path)) {
+                const sgaMatch = path.match(/(SGA\d+\([^)]+\))/i);
+                const sbMatch = path.match(/(SB\d+\([^)]+\))/i);
+                if (sgaMatch && sbMatch) splitterInfo = `${sgaMatch[1]} → ${sbMatch[1]}`;
+              } else {
+                backboneCount++;
               }
             }
-            // Sort CAB-BEP: SGA first
-            if (otherPaths["CAB-BEP"]) {
-              otherPaths["CAB-BEP"].sort((a, b) => {
-                const aS = /SGA/i.test(a["OPTICAL PATH"] || "") ? 0 : 1;
-                const bS = /SGA/i.test(b["OPTICAL PATH"] || "") ? 0 : 1;
-                return aS - bS;
-              });
-            }
 
-            const orderedOther = typeOrder
-              .filter(t => otherPaths[t])
-              .map(t => [t, otherPaths[t]] as [string, any[]]);
-            Object.keys(otherPaths).forEach(t => {
-              if (!typeOrder.includes(t)) orderedOther.push([t, otherPaths[t]]);
-            });
+            // Extract BEP-BMO summary: count connected BMO ports
+            const bepBmoPortSet = new Set<number>();
+            for (const p of bepBmoPaths) {
+              const path = p["OPTICAL PATH"] || "";
+              const bmoMatch = path.match(/BMO\d+_(\d+)$/i);
+              if (bmoMatch) bepBmoPortSet.add(parseInt(bmoMatch[1], 10));
+            }
+            const bepBmoPorts = Array.from(bepBmoPortSet).sort((a, b) => a - b);
+
+            // BEP spare fibers
+            const bepSpareCount = bepPaths.length;
 
             return (
               <div className="space-y-3">
-                {/* CAB-BEP, BEP, BEP-BMO sections */}
-                {orderedOther.map(([type, items]) => (
-                  <div key={type} className="space-y-1">
+                {/* CAB-BEP simplified */}
+                {cabBepPaths.length > 0 && (
+                  <div className="p-2.5 rounded-lg border border-border bg-background space-y-1.5">
                     <div className="flex items-center gap-2">
-                      <Badge variant="secondary" className="text-[10px]">{type}</Badge>
-                      <span className="text-[10px] text-muted-foreground">({items.length})</span>
+                      <Badge variant="secondary" className="text-[10px]">CAB → BEP</Badge>
                     </div>
-                    <div className="space-y-0.5">
-                      {items.map((p: any, i: number) => (
-                        <div key={i} className="font-mono text-[11px] text-foreground px-2 py-1 bg-background border border-border rounded break-all">
-                          {p["OPTICAL PATH"] || "-"}
-                        </div>
-                      ))}
+                    <div className="text-xs space-y-0.5">
+                      <div>🏗️ Καμπίνα: <strong className="text-foreground">{cabName || "—"}</strong></div>
+                      <div>📦 BEP: <strong className="text-foreground">{bepName || "—"}</strong></div>
+                      {splitterInfo && <div>🔀 Splitter: <strong className="text-foreground">{splitterInfo}</strong></div>}
+                      <div>🔗 Backbone ίνες: <strong className="text-foreground">{backboneCount}</strong></div>
                     </div>
                   </div>
-                ))}
+                )}
 
+                {/* BEP-BMO simplified */}
+                {bepBmoPaths.length > 0 && (
+                  <div className="p-2.5 rounded-lg border border-border bg-background space-y-1.5">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="secondary" className="text-[10px]">BEP → BMO</Badge>
+                    </div>
+                    <div className="text-xs space-y-0.5">
+                      <div>🔗 Ίνες: <strong className="text-foreground">{bepBmoPaths.length}</strong></div>
+                      <div>📡 BMO ports: <strong className="text-foreground">{bepBmoPorts.join(", ")}</strong></div>
+                      {bepSpareCount > 0 && (
+                        <div>⚡ Εφεδρικές (BEP): <strong className="text-foreground">{bepSpareCount}</strong></div>
+                      )}
+                    </div>
+                  </div>
+                )}
                 {/* BMO-FB: Per-floor view */}
                 {sortedFloors.length > 0 && (
                   <div className="space-y-1.5">
