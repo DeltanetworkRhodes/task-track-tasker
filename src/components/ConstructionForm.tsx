@@ -2122,6 +2122,8 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                    // Fiber count: standardize to 4FO or 12FO
                    const rawFiberCount = cabFiberNums.length;
                    const fiberCount = rawFiberCount <= 4 ? "4FO" : "12FO";
+                   // Standard FO helper: normalize any count to standard cable sizes
+                   const standardFO = (count: number) => count <= 2 ? "2FO" : count <= 4 ? "4FO" : "12FO";
                    
                    // BCP exists only if GIS has nearby_bcp or new_bcp
                    const hasBcp = !!(gisData?.nearby_bcp || gisData?.new_bcp);
@@ -2278,16 +2280,16 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                            <LabelBox label="A. Στα καλώδια του BEP">
                              <div className="space-y-1">
                                {/* Προς BMO ή FB */}
-                               {bepBmoPorts.length > 0 && !bepOnly && (
-                                 <LabelLine text={`ΠΡΟΣ: BMO | ${bepBmoPorts.length}FO`} bold />
-                               )}
-                               {/* FB cables from BMO-FB */}
-                               {Object.entries(fbGroups).sort(([a], [b]) => a.localeCompare(b)).map(([fbName, fb]) => (
-                                 <LabelLine key={fbName} text={`ΠΡΟΣ: FB ${floorShort(fb.floor)} | ${fb.ports.length}FO`} bold />
-                               ))}
-                               {bepOnly && (
-                                 <LabelLine text={`ΠΡΟΣ: ΠΕΛΑΤΗ | 2FO`} bold />
-                               )}
+                                {bepBmoPorts.length > 0 && !bepOnly && (
+                                  <LabelLine text={`ΠΡΟΣ: BMO | ${standardFO(bepBmoPorts.length)}`} bold />
+                                )}
+                                {/* FB cables from BMO-FB */}
+                                {Object.entries(fbGroups).sort(([a], [b]) => a.localeCompare(b)).map(([fbName, fb]) => (
+                                  <LabelLine key={fbName} text={`ΠΡΟΣ: FB ${floorShort(fb.floor)} | ${standardFO(fb.ports.length)}`} bold />
+                                ))}
+                                {bepOnly && (
+                                  <LabelLine text={`ΠΡΟΣ: ΠΕΛΑΤΗ | 2FO`} bold />
+                                )}
                              </div>
                            </LabelBox>
                            {/* B. Πόρτα BEP */}
@@ -2320,7 +2322,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                            <LabelBox label="B. Στα εξερχόμενα προς FB">
                              <div className="space-y-1">
                                {Object.entries(fbGroups).sort(([a], [b]) => a.localeCompare(b)).map(([fbName, fb]) => (
-                                 <LabelLine key={fbName} text={`ΠΡΟΣ: FB ${floorShort(fb.floor)} | ΙΝΕΣ: ${fb.ports.length}FO`} bold />
+                                 <LabelLine key={fbName} text={`ΠΡΟΣ: FB ${floorShort(fb.floor)} | ΙΝΕΣ: ${standardFO(fb.ports.length)}`} bold />
                                ))}
                              </div>
                            </LabelBox>
