@@ -2121,9 +2121,18 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                    const fiberRange = fiberMin > 0 ? `${fiberMin}-${fiberMax}` : "";
                    // Fiber count: standardize to 4FO or 12FO
                    const rawFiberCount = cabFiberNums.length;
-                   const fiberCount = rawFiberCount <= 4 ? "4FO" : "12FO";
-                   // Standard FO helper: normalize any count to standard cable sizes
-                   const standardFO = (count: number) => count <= 2 ? "2FO" : count <= 4 ? "4FO" : "12FO";
+                    // Floor details for apartment-based FO calculation
+                    const floorDetailsArr = (gisData?.floor_details as any[]) || [];
+                    // Rule: if ANY floor has > 2 apartments → 12FO (3 splices + 3 spare), else 4FO
+                    const maxApartmentsAnyFloor = floorDetailsArr.reduce((max: number, fd: any) => Math.max(max, fd?.apartments || 0), 0);
+                    const fiberCount = maxApartmentsAnyFloor > 2 ? "12FO" : "4FO";
+                    // Per-floor FO: check apartments on that specific floor
+                    const floorFO = (floorId: string) => {
+                      const fd = floorDetailsArr.find((d: any) => String(d?.floor) === String(floorId));
+                      return (fd?.apartments || 0) > 2 ? "12FO" : "4FO";
+                    };
+                    // Standard FO helper: uses floor apartments when available, fallback to count-based
+                    const standardFO = (count: number) => count <= 2 ? "2FO" : count <= 4 ? "4FO" : "12FO";
                    
                    // BCP exists only if GIS has nearby_bcp or new_bcp
                    const hasBcp = !!(gisData?.nearby_bcp || gisData?.new_bcp);
