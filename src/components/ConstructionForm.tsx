@@ -2354,13 +2354,13 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                                {Object.entries(fbGroups).sort(([a], [b]) => a.localeCompare(b)).map(([fbName, fb]) => {
                                  const bmoPorts = fb.ports.map(p => p.mobPort).sort((a, b) => a - b);
                                  const uniqueBmoPorts = [...new Set(bmoPorts)];
+                                 const floorLabel = fb.floor.startsWith("+") || fb.floor.startsWith("-") ? fb.floor : `+${fb.floor}`;
+                                 const portRange = uniqueBmoPorts.length > 1
+                                   ? `${uniqueBmoPorts[0]}-${uniqueBmoPorts[uniqueBmoPorts.length - 1]}`
+                                   : `${uniqueBmoPorts[0]}`;
                                  return (
                                  <LabelBox key={fbName} label={`A. Στην πόρτα: ${fbName}`}>
-                                   <LabelBlock lines={[
-                                      `FB ${fb.floor.startsWith("+") || fb.floor.startsWith("-") ? fb.floor : `+${fb.floor}`}`,
-                                      `ΚΤΗΡΙΟ: ${address}`,
-                                      `ΑΠΟ: BMO πόρτες ${uniqueBmoPorts.join(",")}`,
-                                   ]} />
+                                   <LabelLine text={`FB(${floorLabel}) ${portRange}`} bold />
                                 </LabelBox>
                                  );
                               })}
