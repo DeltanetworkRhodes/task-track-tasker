@@ -2152,20 +2152,27 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                      return floorId;
                    };
                    
-                    // --- Fiber range from CAB-BEP or CAB-BCP ---
-                    let cabTube = "";
-                    const cabFiberNums: number[] = [];
-                    const fiberSourcePaths = cabBepPaths.length > 0 ? cabBepPaths : cabBcpPaths;
-                    for (const p of fiberSourcePaths) {
-                      const path = p["OPTICAL PATH"] || "";
-                      const tubeMatch = path.match(/^[A-Z]\d+_([A-Z])(\d+)\.(\d+)/i);
-                      if (tubeMatch && !cabTube) {
-                        cabTube = `${tubeMatch[1]}${tubeMatch[2].padStart(2, "0")}`;
-                      }
-                      // Extract fiber nums from various patterns
-                      const numMatch = path.match(/^[A-Z]\d+_(?:[A-Z]\d+\.)?(\d+)/i);
-                      if (numMatch) cabFiberNums.push(parseInt(numMatch[1], 10));
-                    }
+                     // --- Fiber range from CAB-BEP or CAB-BCP ---
+                     let cabTube = "";
+                     const cabFiberNums: number[] = [];
+                     const fiberSourcePaths = cabBepPaths.length > 0 ? cabBepPaths : cabBcpPaths;
+                     for (const p of fiberSourcePaths) {
+                       const path = p["OPTICAL PATH"] || "";
+                       // Extract tube from cable ID pattern (e.g. C1 from G151_C1.3 or G151_SGA...C1.1)
+                       const tubeMatch = path.match(/([A-Z])(\d+)\.(\d+).*(?:BEP|BCP)/i);
+                       if (tubeMatch && !cabTube) {
+                         cabTube = `${tubeMatch[1]}${tubeMatch[2].padStart(2, "0")}`;
+                       }
+                       // Extract fiber number from tube.fiber pattern (e.g. C1.3 → 3, handles both active SGA and spare paths)
+                       const allTubeFibers = [...path.matchAll(/[A-Z](\d+)\.(\d+)/gi)];
+                       // Find the cable tube fiber (not SGA port) — look for the one matching tube pattern
+                       for (const tf of allTubeFibers) {
+                         // Skip SGA/SGB patterns (SGA01(1:8).07)
+                         const prefix = path.substring(0, tf.index);
+                         if (/SG[AB]\d+\([^)]+\)$/i.test(prefix)) continue;
+                         cabFiberNums.push(parseInt(tf[2], 10));
+                       }
+                     }
                     const fiberMin = cabFiberNums.length > 0 ? Math.min(...cabFiberNums) : 0;
                     const fiberMax = cabFiberNums.length > 0 ? Math.max(...cabFiberNums) : 0;
                     const fiberRange = fiberMin > 0 ? `${fiberMin}-${fiberMax}` : "";
