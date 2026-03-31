@@ -2183,7 +2183,6 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                    const hasBepLabel = !!(bepName && (cabFiberNums.length > 0 || bepBmoPorts.length > 0));
                    const hasMobLabel = !bepOnly && Object.keys(fbGroups).length > 0;
                     const hasFbLabel = !bepOnly && Object.keys(fbGroups).length > 0;
-                    console.log("[LABELS DEBUG]", { sr: assignment?.sr_id, bepOnly, fbGroupsKeys: Object.keys(fbGroups), hasFbLabel, bmoFbCount: bmoFbPaths.length });
 
                     if (!hasCabLabel && !hasBcpLabel && !hasBepLabel && !hasMobLabel && !hasFbLabel) return null;
 
