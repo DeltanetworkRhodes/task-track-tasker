@@ -2194,8 +2194,29 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                    );
 
                    const LabelLine = ({ text, bold }: { text: string; bold?: boolean }) => (
-                     <div className={`text-center text-xs ${bold ? "font-bold" : ""} text-foreground bg-muted/50 rounded px-2 py-1.5 border border-border`}>
+                     <div className={`relative group text-center text-xs ${bold ? "font-bold" : ""} text-foreground bg-muted/50 rounded px-2 py-1.5 border border-border`}>
                        {text}
+                       <button
+                         type="button"
+                         onClick={() => { navigator.clipboard.writeText(text); toast.success("Copied!"); }}
+                         className="absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded hover:bg-muted"
+                       >
+                         <Copy className="h-3 w-3 text-muted-foreground" />
+                       </button>
+                     </div>
+                   );
+
+                   // Multi-line label with copy
+                   const LabelBlock = ({ lines }: { lines: string[] }) => (
+                     <div className="relative group space-y-0.5 text-center text-xs font-bold text-foreground bg-muted/50 rounded px-2 py-2 border border-border">
+                       {lines.map((line, i) => <div key={i}>{line}</div>)}
+                       <button
+                         type="button"
+                         onClick={() => { navigator.clipboard.writeText(lines.join("\n")); toast.success("Copied!"); }}
+                         className="absolute right-1 top-1 opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded hover:bg-muted"
+                       >
+                         <Copy className="h-3 w-3 text-muted-foreground" />
+                       </button>
                      </div>
                    );
 
