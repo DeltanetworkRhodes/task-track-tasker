@@ -2145,22 +2145,20 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                      if (m) bepToBmo[parseInt(m[1], 10)] = parseInt(m[2], 10);
                    }
                    
-                   // --- FB groups from BMO-FB paths ---
-                   const fbGroups: Record<string, { floor: string; ports: { mobPort: number; fbPortNum: number }[] }> = {};
-                   for (const p of bmoFbPaths) {
-                     const pathStr = p["OPTICAL PATH"] || "";
-                     const m = pathStr.match(/BMO\d+_(\d+)_FB\(([^)]+)\)\.(\d+)(?:_(\d+))?/i);
-                     if (m) {
-                       const mobPort = parseInt(m[1], 10);
-                       const floorId = m[2];
-                       const fbIdx = m[3];
-                       const fbPortNum = m[4] ? parseInt(m[4], 10) : mobPort;
-                       const fbCleanIdx = parseInt(fbIdx, 10);
-                       const fbName = `FB${fbCleanIdx.toString().padStart(2, "0")}`;
-                       if (!fbGroups[fbName]) fbGroups[fbName] = { floor: floorId, ports: [] };
-                       fbGroups[fbName].ports.push({ mobPort, fbPortNum });
-                     }
-                   }
+                    // --- FB groups from BMO-FB paths (grouped by FLOOR, not FB name) ---
+                    const fbGroups: Record<string, { floor: string; ports: { mobPort: number; fbPortNum: number }[] }> = {};
+                    for (const p of bmoFbPaths) {
+                      const pathStr = p["OPTICAL PATH"] || "";
+                      const m = pathStr.match(/BMO\d+_(\d+)_FB\(([^)]+)\)\.(\d+)(?:_(\d+))?/i);
+                      if (m) {
+                        const mobPort = parseInt(m[1], 10);
+                        const floorId = m[2];
+                        const fbPortNum = m[4] ? parseInt(m[4], 10) : mobPort;
+                        // Group by floor ID so each floor gets its own label
+                        if (!fbGroups[floorId]) fbGroups[floorId] = { floor: floorId, ports: [] };
+                        fbGroups[floorId].ports.push({ mobPort, fbPortNum });
+                      }
+                    }
                    
                    // --- BMO name ---
                    let mobName = "";
@@ -2184,9 +2182,9 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                    const hasBcpLabel = hasBcp && !!(cabName && fiberRange);
                    const hasBepLabel = !!(bepName && (cabFiberNums.length > 0 || bepBmoPorts.length > 0));
                    const hasMobLabel = !bepOnly && Object.keys(fbGroups).length > 0;
-                   const hasFbLabel = !bepOnly && Object.keys(fbGroups).length > 0;
+                    const hasFbLabel = !bepOnly && Object.keys(fbGroups).length > 0;
 
-                   if (!hasCabLabel && !hasBcpLabel && !hasBepLabel && !hasMobLabel && !hasFbLabel) return null;
+                    if (!hasCabLabel && !hasBcpLabel && !hasBepLabel && !hasMobLabel && !hasFbLabel) return null;
 
                    // Label card helper
                    const LabelCard = ({ color, icon, title, children }: { color: string; icon: string; title: string; children: React.ReactNode }) => (
