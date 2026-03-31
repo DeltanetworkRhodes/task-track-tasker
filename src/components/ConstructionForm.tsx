@@ -2291,17 +2291,16 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                              </div>
                            </LabelBox>
                            {/* B. Πόρτα BEP */}
-                           <LabelBox label="B. Στην πόρτα του BEP">
-                             <div className="space-y-0.5 text-center text-xs font-bold text-foreground bg-muted/50 rounded px-2 py-2 border border-border">
-                               <div>ΚΑΜΠΙΝΑ: {cabName}</div>
-                               <div>ΣΩΛΗΝΙΣΚΟΣ: {cabTube || cabName}</div>
-                               <div>ΟΡΙΑ: {fiberRange}</div>
-                               <div className="border-t border-border pt-1 mt-1">ΠΟΡΤΑ 1: ΕΙΣΟΔΟΣ ΠΑΡΟΧΙΚΗΣ</div>
-                               <div>ΠΟΡΤΑ 2: SPLITTER</div>
-                               {!bepOnly && <div>ΠΟΡΤΑ 3: PATCH TO BMO</div>}
-                               {bepOnly && <div>ΠΟΡΤΑ 3: PATCH TO ΠΕΛΑΤΗ</div>}
-                             </div>
-                           </LabelBox>
+                            <LabelBox label="B. Στην πόρτα του BEP">
+                              <LabelBlock lines={[
+                                `ΚΑΜΠΙΝΑ: ${cabName}`,
+                                `ΣΩΛΗΝΙΣΚΟΣ: ${cabTube || cabName}`,
+                                `ΟΡΙΑ: ${fiberRange}`,
+                                `ΠΟΡΤΑ 1: ΕΙΣΟΔΟΣ ΠΑΡΟΧΙΚΗΣ`,
+                                `ΠΟΡΤΑ 2: SPLITTER`,
+                                bepOnly ? `ΠΟΡΤΑ 3: PATCH TO ΠΕΛΑΤΗ` : `ΠΟΡΤΑ 3: PATCH TO BMO`,
+                              ]} />
+                            </LabelBox>
                          </LabelCard>
                        )}
 
