@@ -1970,16 +1970,22 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                       <div>📦 BEP: <strong className="text-foreground">{bepName || "—"}</strong></div>
                       <div>🔗 Όρια σε καμπίνα: <strong className="text-foreground">{backboneFibers.length + (splitterFiber ? 1 : 0)}</strong></div>
                       {(backboneFibers.length > 0 || splitterFiber) && (
-                        <div className="mt-1 pl-2 border-l-2 border-muted space-y-0.5">
+                        <div className="mt-1.5 space-y-1">
                           {splitterFiber && (
-                            <div className="text-[10px] font-mono">
-                              <span className="text-muted-foreground">{splitterFiber}</span>
-                              <span className="ml-1.5 text-primary">→ {splitterInfo}</span>
+                            <div className="flex items-center gap-1.5">
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/15 text-primary text-[10px] font-mono font-semibold">
+                                🔵 {splitterFiber} → {splitterInfo}
+                              </span>
                             </div>
                           )}
-                          {backboneFibers.map((f, i) => (
-                            <div key={i} className="text-[10px] text-muted-foreground font-mono">{f}</div>
-                          ))}
+                          {backboneFibers.length > 0 && (
+                            <div className="flex items-center gap-1 flex-wrap">
+                              <span className="text-[10px] text-muted-foreground">⚪</span>
+                              <span className="text-[10px] text-muted-foreground font-mono">
+                                {backboneFibers.join(", ")}
+                              </span>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
