@@ -2364,23 +2364,6 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                                 </LabelBox>
                                  );
                               })}
-                              {/* B. Εξόδοι / αναμονές */}
-                              <LabelBox label="B. Στις εξόδους / αναμονές">
-                                <div className="space-y-1">
-                                  {Object.entries(fbGroups).sort(([a], [b]) => a.localeCompare(b)).map(([fbName, fb]) => {
-                                    // Deduplicate ports and number apartments sequentially
-                                    const uniquePorts = [...new Map(fb.ports.map(p => [`${p.mobPort}-${p.fbPortNum}`, p])).values()];
-                                    return (
-                                    <div key={fbName} className="space-y-0.5">
-                                      <div className="text-[9px] text-muted-foreground font-semibold">{fbName} ({floorShort(fb.floor)})</div>
-                                      {uniquePorts.map((_, j) => (
-                                        <LabelLine key={j} text={`ΔΙΑΜΕΡΙΣΜΑ: ${j + 1}`} bold />
-                                      ))}
-                                    </div>
-                                    );
-                                  })}
-                                </div>
-                              </LabelBox>
                            </div>
                          </LabelCard>
                        )}
