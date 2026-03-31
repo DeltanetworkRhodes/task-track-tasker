@@ -2289,13 +2289,13 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                            <LabelBox label="A. Στα καλώδια του BEP">
                              <div className="space-y-1">
                                {/* Προς BMO ή FB */}
-                                {bepBmoPorts.length > 0 && !bepOnly && (
-                                  <LabelLine text={`ΠΡΟΣ: BMO | ${standardFO(bepBmoPorts.length)}`} bold />
-                                )}
-                                {/* FB cables from BMO-FB */}
-                                {Object.entries(fbGroups).sort(([a], [b]) => a.localeCompare(b)).map(([fbName, fb]) => (
-                                  <LabelLine key={fbName} text={`ΠΡΟΣ: FB ${floorShort(fb.floor)} | ${standardFO(fb.ports.length)}`} bold />
-                                ))}
+                                 {bepBmoPorts.length > 0 && !bepOnly && (
+                                   <LabelLine text={`ΠΡΟΣ: BMO | ${fiberCount}`} bold />
+                                 )}
+                                 {/* FB cables from BMO-FB */}
+                                 {Object.entries(fbGroups).sort(([a], [b]) => a.localeCompare(b)).map(([fbName, fb]) => (
+                                   <LabelLine key={fbName} text={`ΠΡΟΣ: FB ${floorShort(fb.floor)} | ${floorFO(fb.floor)}`} bold />
+                                 ))}
                                 {bepOnly && (
                                   <LabelLine text={`ΠΡΟΣ: ΠΕΛΑΤΗ | 2FO`} bold />
                                 )}
