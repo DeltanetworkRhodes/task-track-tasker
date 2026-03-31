@@ -2183,8 +2183,8 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                     // Standard FO helper: uses floor apartments when available, fallback to count-based
                     const standardFO = (count: number) => count <= 2 ? "2FO" : count <= 4 ? "4FO" : "12FO";
                    
-                   // BCP exists only if GIS has nearby_bcp or new_bcp
-                   const hasBcp = !!(gisData?.nearby_bcp || gisData?.new_bcp);
+                   // BCP exists if GIS has nearby_bcp/new_bcp OR optical paths have CAB-BCP/BCP-BEP
+                   const hasBcpInLabels = !!(gisData?.nearby_bcp || gisData?.new_bcp) || hasBcp;
                    
                    // --- BEP port → floor mapping via BEP→BMO→Floor chain ---
                    const bepToBmo: Record<number, number> = {};
