@@ -2296,7 +2296,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                                     return <LabelLine key={floorKey} text={`FB(${fl}) | ${floorFO(fb.floor)}`} bold />;
                                   })}
                                 {bepOnly && (
-                                  <LabelLine text={`ΠΡΟΣ: ΠΕΛΑΤΗ | 2FO`} bold />
+                                  <LabelLine text={`ΠΕΛΑΤΗ | 2FO`} bold />
                                 )}
                              </div>
                            </LabelBox>
