@@ -1827,8 +1827,27 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
           </Label>
           {(() => {
             const paths = gisData.optical_paths as any[];
+            // Sort by floor extracted from path values
+            const extractFloor = (p: any): number => {
+              const vals = Object.values(p).join(" ");
+              // Match patterns like (+00), (+01), (+ΗΜ), (-01)
+              const match = vals.match(/\(\+?(-?\d+)\)/);
+              if (match) return parseInt(match[1], 10);
+              // Check for ΗΜ (ημιυπόγειο) — should come before ground floor
+              if (/ΗΜ|HM/i.test(vals)) return -1;
+              return 999;
+            };
+            const extractIndex = (p: any): number => {
+              const vals = Object.values(p).join(" ");
+              const match = vals.match(/BMO\d+_(\d+)_/i);
+              return match ? parseInt(match[1], 10) : 999;
+            };
+            const sortedPaths = [...paths].sort((a, b) => {
+              const floorDiff = extractFloor(a) - extractFloor(b);
+              return floorDiff !== 0 ? floorDiff : extractIndex(a) - extractIndex(b);
+            });
             const grouped: Record<string, any[]> = {};
-            paths.forEach((p: any) => {
+            sortedPaths.forEach((p: any) => {
               const type = p["OPTICAL PATH TYPE"] || "Άλλο";
               if (!grouped[type]) grouped[type] = [];
               grouped[type].push(p);
