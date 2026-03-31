@@ -2331,7 +2331,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                              <div className="space-y-1">
                                  {Object.entries(fbGroups).sort(([a], [b]) => a.localeCompare(b)).map(([floorKey, fb]) => {
                                    const fl = fb.floor.startsWith("+") || fb.floor.startsWith("-") ? fb.floor : `+${fb.floor}`;
-                                   return <LabelLine key={floorKey} text={`ΠΡΟΣ: FB(${fl}) | ΙΝΕΣ: ${floorFO(fb.floor)}`} bold />;
+                                   return <LabelLine key={floorKey} text={`FB(${fl}) | ${floorFO(fb.floor)}`} bold />;
                                  })}
                              </div>
                            </LabelBox>
