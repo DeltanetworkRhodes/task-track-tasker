@@ -2184,9 +2184,10 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                    const hasBcpLabel = hasBcp && !!(cabName && fiberRange);
                    const hasBepLabel = !!(bepName && (cabFiberNums.length > 0 || bepBmoPorts.length > 0));
                    const hasMobLabel = !bepOnly && Object.keys(fbGroups).length > 0;
-                   const hasFbLabel = !bepOnly && Object.keys(fbGroups).length > 0;
+                    const hasFbLabel = !bepOnly && Object.keys(fbGroups).length > 0;
+                    console.log("[LABELS DEBUG]", { sr: assignment?.sr_id, bepOnly, fbGroupsKeys: Object.keys(fbGroups), hasFbLabel, bmoFbCount: bmoFbPaths.length });
 
-                   if (!hasCabLabel && !hasBcpLabel && !hasBepLabel && !hasMobLabel && !hasFbLabel) return null;
+                    if (!hasCabLabel && !hasBcpLabel && !hasBepLabel && !hasMobLabel && !hasFbLabel) return null;
 
                    // Label card helper
                    const LabelCard = ({ color, icon, title, children }: { color: string; icon: string; title: string; children: React.ReactNode }) => (
