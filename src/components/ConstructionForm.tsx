@@ -2351,28 +2351,36 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                        {hasFbLabel && (
                          <LabelCard color="muted-foreground" icon="🏠" title="Labels FB">
                            <div className="space-y-1.5">
-                              {Object.entries(fbGroups).sort(([a], [b]) => a.localeCompare(b)).map(([fbName, fb]) => (
-                                <LabelBox key={fbName} label={`A. Στην πόρτα: ${fbName}`}>
-                                  <LabelBlock lines={[
-                                     `FB ${fb.floor.startsWith("+") || fb.floor.startsWith("-") ? fb.floor : `+${fb.floor}`}`,
-                                     `ΚΤΗΡΙΟ: ${address}`,
-                                     `ΑΠΟ: BMO`,
-                                  ]} />
-                               </LabelBox>
-                             ))}
-                             {/* B. Εξόδοι / αναμονές */}
-                             <LabelBox label="B. Στις εξόδους / αναμονές">
-                               <div className="space-y-1">
-                                 {Object.entries(fbGroups).sort(([a], [b]) => a.localeCompare(b)).map(([fbName, fb]) => (
-                                   <div key={fbName} className="space-y-0.5">
-                                     <div className="text-[9px] text-muted-foreground font-semibold">{fbName} ({floorShort(fb.floor)})</div>
-                                     {fb.ports.map((port, j) => (
-                                       <LabelLine key={j} text={`ΔΙΑΜΕΡΙΣΜΑ: ${port.fbPortNum}`} bold />
-                                     ))}
-                                   </div>
-                                 ))}
-                               </div>
-                             </LabelBox>
+                               {Object.entries(fbGroups).sort(([a], [b]) => a.localeCompare(b)).map(([fbName, fb]) => {
+                                 const bmoPorts = fb.ports.map(p => p.mobPort).sort((a, b) => a - b);
+                                 const uniqueBmoPorts = [...new Set(bmoPorts)];
+                                 return (
+                                 <LabelBox key={fbName} label={`A. Στην πόρτα: ${fbName}`}>
+                                   <LabelBlock lines={[
+                                      `FB ${fb.floor.startsWith("+") || fb.floor.startsWith("-") ? fb.floor : `+${fb.floor}`}`,
+                                      `ΚΤΗΡΙΟ: ${address}`,
+                                      `ΑΠΟ: BMO πόρτες ${uniqueBmoPorts.join(",")}`,
+                                   ]} />
+                                </LabelBox>
+                                 );
+                              })}
+                              {/* B. Εξόδοι / αναμονές */}
+                              <LabelBox label="B. Στις εξόδους / αναμονές">
+                                <div className="space-y-1">
+                                  {Object.entries(fbGroups).sort(([a], [b]) => a.localeCompare(b)).map(([fbName, fb]) => {
+                                    // Deduplicate ports and number apartments sequentially
+                                    const uniquePorts = [...new Map(fb.ports.map(p => [`${p.mobPort}-${p.fbPortNum}`, p])).values()];
+                                    return (
+                                    <div key={fbName} className="space-y-0.5">
+                                      <div className="text-[9px] text-muted-foreground font-semibold">{fbName} ({floorShort(fb.floor)})</div>
+                                      {uniquePorts.map((_, j) => (
+                                        <LabelLine key={j} text={`ΔΙΑΜΕΡΙΣΜΑ: ${j + 1}`} bold />
+                                      ))}
+                                    </div>
+                                    );
+                                  })}
+                                </div>
+                              </LabelBox>
                            </div>
                          </LabelCard>
                        )}
