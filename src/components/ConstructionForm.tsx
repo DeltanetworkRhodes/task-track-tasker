@@ -2288,15 +2288,15 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                              <div className="space-y-1">
                                {/* Προς BMO ή FB */}
                                  {bepBmoPorts.length > 0 && !bepOnly && (
-                                   <LabelLine text={`ΠΡΟΣ: BMO | ${fiberCount}`} bold />
+                                   <LabelLine text={`BMO | ${fiberCount}`} bold />
                                  )}
                                  {/* FB cables from BMO-FB */}
                                   {Object.entries(fbGroups).sort(([a], [b]) => a.localeCompare(b)).map(([floorKey, fb]) => {
                                     const fl = fb.floor.startsWith("+") || fb.floor.startsWith("-") ? fb.floor : `+${fb.floor}`;
-                                    return <LabelLine key={floorKey} text={`ΠΡΟΣ: FB(${fl}) | ${floorFO(fb.floor)}`} bold />;
+                                    return <LabelLine key={floorKey} text={`FB(${fl}) | ${floorFO(fb.floor)}`} bold />;
                                   })}
                                 {bepOnly && (
-                                  <LabelLine text={`ΠΡΟΣ: ΠΕΛΑΤΗ | 2FO`} bold />
+                                  <LabelLine text={`ΠΕΛΑΤΗ | 2FO`} bold />
                                 )}
                              </div>
                            </LabelBox>
@@ -2331,7 +2331,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                              <div className="space-y-1">
                                  {Object.entries(fbGroups).sort(([a], [b]) => a.localeCompare(b)).map(([floorKey, fb]) => {
                                    const fl = fb.floor.startsWith("+") || fb.floor.startsWith("-") ? fb.floor : `+${fb.floor}`;
-                                   return <LabelLine key={floorKey} text={`ΠΡΟΣ: FB(${fl}) | ΙΝΕΣ: ${floorFO(fb.floor)}`} bold />;
+                                   return <LabelLine key={floorKey} text={`FB(${fl}) | ${floorFO(fb.floor)}`} bold />;
                                  })}
                              </div>
                            </LabelBox>
