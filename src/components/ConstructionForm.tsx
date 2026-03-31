@@ -1920,7 +1920,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
             // Extract CAB-BEP summary
             let cabName = "";
             let bepName = "";
-            const splitterEntries: { fiber: string; sga: string; bepPort: string; sb: string }[] = [];
+            const splitterEntries: { fiber: string; sga: string; sgaPort: string; bepPort: string; sb: string }[] = [];
             const backboneFibers: string[] = [];
             for (const p of cabBepPaths) {
               const path = p["OPTICAL PATH"] || "";
