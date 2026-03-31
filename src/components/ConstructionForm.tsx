@@ -1936,7 +1936,8 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                 const sbMatch = path.match(/(SB\d+\([^)]+\))/i);
                 if (sgaMatch && sbMatch) splitterInfo = `${sgaMatch[1]} → ${sbMatch[1]}`;
               } else {
-                backboneFibers.push(path);
+                const underscoreIdx = path.indexOf("_");
+                backboneFibers.push(underscoreIdx >= 0 ? path.slice(underscoreIdx + 1) : path);
               }
             }
 
