@@ -1862,13 +1862,16 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
               const floorDiff = extractFloor(a) - extractFloor(b);
               return floorDiff !== 0 ? floorDiff : extractIndex(a) - extractIndex(b);
             });
-            const grouped: Record<string, any[]> = {};
-            sortedPaths.forEach((p: any) => {
-              const type = p["OPTICAL PATH TYPE"] || "Άλλο";
-              if (!grouped[type]) grouped[type] = [];
-              grouped[type].push(p);
+            // Fixed display order for optical path types
+            const typeOrder = ["CAB-BEP", "BMO-FB", "BEP", "BEP-BMO"];
+            const orderedEntries = typeOrder
+              .filter(t => grouped[t])
+              .map(t => [t, grouped[t]] as [string, any[]]);
+            // Add any remaining types not in the predefined order
+            Object.entries(grouped).forEach(([t, items]) => {
+              if (!typeOrder.includes(t)) orderedEntries.push([t, items]);
             });
-            return Object.entries(grouped).map(([type, items]) => (
+            return orderedEntries.map(([type, items]) => (
               <div key={type} className="space-y-1">
                 <div className="flex items-center gap-2">
                   <Badge variant="secondary" className="text-[10px]">{type}</Badge>
