@@ -2307,27 +2307,50 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                        )}
 
                        {/* ═══ 3. BCP ═══ */}
-                       {hasBcpLabel && (
-                         <LabelCard color="amber-600" icon="📦" title="Labels BCP">
-                           {/* A. Μαύρη ίνα */}
-                           <LabelBox label="A. Στη μαύρη ίνα">
-                             <LabelLine text={`ΚΑΜΠΙΝΑ: ${cabName} | ${fiberCount} | ΟΡΙΑ: ${fiberRange}`} bold />
-                           </LabelBox>
-                           {/* B. Άσπρη ίνα */}
-                           <LabelBox label="B. Στην άσπρη ίνα">
-                             <LabelLine text={`${bepName || "BEP01"} | ${fiberCount}`} bold />
-                           </LabelBox>
-                           {/* C. Πόρτα BCP */}
-                            <LabelBox label="C. Στην πόρτα του BCP">
-                              <LabelBlock lines={[
-                                `ΚΑΜΠΙΝΑ: ${cabName}`,
-                                `ΣΩΛΗΝΙΣΚΟΣ: ${cabTube || cabName}`,
-                                `ΟΡΙΑ: ${fiberRange}`,
-                                ...(address ? [`A1-B1: ${address}`] : []),
-                              ]} />
-                            </LabelBox>
-                         </LabelCard>
-                       )}
+                       {hasBcpLabel && (() => {
+                         // Extract BEP names from BCP-BEP paths for white fiber labels
+                         const bcpBepEntries: { bepName: string; fiberCount: string }[] = [];
+                         const seenBep = new Set<string>();
+                         for (const p of bcpBepPaths) {
+                           const path = p["OPTICAL PATH"] || "";
+                           const m = path.match(/(BEP\d+(?:\([^)]+\))?)/i);
+                           if (m && !seenBep.has(m[1])) {
+                             seenBep.add(m[1]);
+                             bcpBepEntries.push({ bepName: m[1], fiberCount });
+                           }
+                         }
+                         // If no BCP-BEP paths, fallback to single BEP
+                         if (bcpBepEntries.length === 0) {
+                           bcpBepEntries.push({ bepName: bepName || "BEP01", fiberCount });
+                         }
+
+                         return (
+                           <LabelCard color="amber-600" icon="📦" title="Labels BCP">
+                             {/* A. Μαύρη ίνα (από καμπίνα) */}
+                             <LabelBox label="A. Στη μαύρη ίνα (από Καμπίνα)">
+                               <LabelLine text={`ΚΑΜΠΙΝΑ: ${cabName} | ${fiberCount}${fiberRange ? ` | ΟΡΙΑ: ${fiberRange}` : ""}`} bold />
+                             </LabelBox>
+                             {/* B. Άσπρη ίνα (προς BEP) */}
+                             <LabelBox label="B. Στην άσπρη ίνα (προς BEP)">
+                               <div className="space-y-1">
+                                 {bcpBepEntries.map((entry, i) => (
+                                   <LabelLine key={i} text={`${entry.bepName} | ${entry.fiberCount}`} bold />
+                                 ))}
+                               </div>
+                             </LabelBox>
+                             {/* C. Πόρτα BCP (εξωτερικά) */}
+                             <LabelBox label="C. Στην πόρτα του BCP">
+                               <LabelBlock lines={[
+                                 `ΚΑΜΠΙΝΑ: ${cabName}`,
+                                 `ΣΩΛΗΝΙΣΚΟΣ: ${cabTube || cabName}`,
+                                 ...(fiberRange ? [`ΟΡΙΑ: ${fiberRange}`] : []),
+                                 ...(address ? [`A1-B1: ${address}`] : []),
+                                 `C1-D1: —`,
+                               ]} />
+                             </LabelBox>
+                           </LabelCard>
+                         );
+                       })()}
 
                        {/* ═══ 4. BEP ═══ */}
                        {hasBepLabel && (
