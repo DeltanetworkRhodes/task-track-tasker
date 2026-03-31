@@ -2072,145 +2072,74 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                   </div>
                 )}
 
-                {/* ──── LABELLING SECTION ──── */}
+                {/* ──── LABELLING SECTION (COSMOTE specs pp.34,37) ──── */}
                 {(() => {
-                   // === DATA for labels based on ΔΕΗ FiberGrid specs (pages 20-22) ===
                    const address = assignment?.address || "";
                    
-                   // --- BEP LABEL (Page 20 specs) ---
-                   // BEP Name + Address + port→PP mapping grid
-                   // Each BEP port maps to a PatchPanel Port in the cabinet
-                   // From real photo: "FAGP1.R01_BEP8430901_01", address, then grid
-                   // From IMG_5526: SGA header + A/B columns with fiber→floor mapping
+                   // --- BEP LABEL (COSMOTE page 37) ---
+                   // Top: Cabinet(Tube) + fiber limits e.g. "G123(A01) 101-104"
+                   // Grid: "Termination Box Wiring Diagram" / "Fiber Number"
+                   // Row A: 1,2,3,4,5,6,7,8 → fiber nums + floor labels
+                   // Row B: 1,2,3,4,5,6,7,8 → fiber nums + floor labels
                    
-                   // Determine total BEP ports from all paths going through BEP
-                   // CAB-BEP paths give us the port→PP mapping
-                   const bepPortToPP: { bepPort: number; ppPort: number | string }[] = [];
+                   // Extract cabinet tube (sub-rack letter + tube number) from path
+                   // E.g. G345_C1.13_BEP01... → tube "C1.13" → simplified to "(C13)" or "(A01)"
+                   let cabTube = "";
+                   const cabFiberNums: number[] = [];
                    
                    for (const p of cabBepPaths) {
                      const path = p["OPTICAL PATH"] || "";
-                     // Extract BEP port number and the cabinet fiber/PP number
-                     // Path: G345_313_BEP01(d14)_01a_SGA01(1:8).01_A1.1_SB01(1:8)
-                     // Or: G137_C1.13_BEP01_01b
-                     const bepPortMatch = path.match(/BEP\d+(?:\([^)]+\))?_(\d+)/i);
-                     const cabFiberMatch = path.match(/^[A-Z]\d+_(?:[A-Z]\d+\.)?(\d+)/i);
-                     if (bepPortMatch) {
-                       const bepPort = parseInt(bepPortMatch[1], 10);
-                       const ppPort = cabFiberMatch ? cabFiberMatch[1] : "";
-                       bepPortToPP.push({ bepPort, ppPort });
+                     // Extract tube: G345_A1.5_ or G137_C1.13_
+                     const tubeMatch = path.match(/^[A-Z]\d+_([A-Z])(\d+)\.(\d+)/i);
+                     if (tubeMatch && !cabTube) {
+                       cabTube = `${tubeMatch[1]}${tubeMatch[2].padStart(2, "0")}`;
+                     }
+                     // Extract fiber number from path: typically the number after the cabinet identifier
+                     // G345_313_ → 313, or G137_C1.13_ → extract cab limit num
+                     const numMatch = path.match(/^[A-Z]\d+_(?:[A-Z]\d+\.)?(\d+)/i);
+                     if (numMatch) {
+                       cabFiberNums.push(parseInt(numMatch[1], 10));
                      }
                    }
-                   bepPortToPP.sort((a, b) => a.bepPort - b.bepPort);
                    
-                   // Also get total ports from BEP-BMO and BMO-FB to know all used ports
-                   const totalBepPorts = Math.max(
-                     ...bepPortToPP.map(p => p.bepPort),
-                     ...Array.from(bepBmoPortSet),
-                     0
-                   );
+                   const fiberMin = cabFiberNums.length > 0 ? Math.min(...cabFiberNums) : 0;
+                   const fiberMax = cabFiberNums.length > 0 ? Math.max(...cabFiberNums) : 0;
+                   const fiberRange = fiberMin > 0 ? (fiberMin === fiberMax ? `${fiberMin}` : `${fiberMin}-${fiberMax}`) : "";
                    
-                   // Build full port grid (for BEP label like in Page 20)
-                   // Each row shows: portNum PP_portNum
-                   const bepGrid: { port: number; pp: string }[] = [];
-                   for (let i = 1; i <= Math.max(totalBepPorts, bepPortToPP.length); i++) {
-                     const entry = bepPortToPP.find(p => p.bepPort === i);
-                     bepGrid.push({ port: i, pp: entry ? `PP${entry.ppPort}` : "" });
-                   }
+                   // Build BEP wiring diagram grid (Row A / Row B mapping)
+                   // From COSMOTE spec: ports numbered 1-8 per row
+                   // Row A: odd splitter outputs → fiber numbers + floor labels
+                   // Row B: even splitter outputs → fiber numbers + floor labels
                    
-                   // --- BMO-FB paths for MOB and FB labels ---
+                   // Parse BEP-BMO paths to get port→floor mapping
+                   // BEP01_1_BMO01_1 → BEP port 1 → BMO port 1
+                   const bepPortToFloor: Record<number, string> = {};
+                   
+                   // Map BMO ports to floors from BMO-FB paths
+                   const bmoPortToFloor: Record<number, string> = {};
                    const bmoFbPaths = paths.filter(p => (p["OPTICAL PATH TYPE"] || "").toUpperCase() === "BMO-FB");
-                   const floorDetailsArr = (gisData.floor_details as any[]) || [];
-                   
-                   // --- MOB LABEL (Page 21 specs) ---
-                   // MOB Name + A=ACTIVE / S=SPARE legend
-                   // Each MOB port maps to an FB + port number + Active/Spare status
-                   // Format: "port_num  FB_name  port_type_A_or_S"
-                   // Active = first ports per FB (01A), Spare = subsequent (02S)
-                   
-                   // Get MOB name from BEP-BMO or BMO-FB paths
-                   let mobName = "";
-                   for (const p of [...bepBmoPaths, ...bmoFbPaths]) {
-                     const path = p["OPTICAL PATH"] || "";
-                     const mobMatch = path.match(/((?:MOB|BMO)\d+(?:\([^)]+\))?)/i);
-                     if (mobMatch && !mobName) {
-                       mobName = mobMatch[1];
-                       break;
-                     }
-                   }
-                   
-                   // Parse MOB port → FB assignments
-                   // Each BMO-FB path: BMO01_1_FB(+00).1_01 means MOB port 1 → FB(+00) port 1, fiber 01
-                   // We need to determine Active vs Spare per FB
-                   // Convention: each FB gets N active ports (for real apartments) and N spare ports
-                   // From specs: first half of ports per FB = Active, second half = Spare
-                   
-                   interface MobPortEntry {
-                     mobPort: number;
-                     fbName: string; // e.g. "FB00", "FB01"
-                     fbFloor: string; // floor ID
-                     fbPortNum: number; // port within FB
-                     isActive: boolean;
-                   }
-                   
-                   // Group by FB to determine active/spare
-                   const fbGroups: Record<string, { floor: string; ports: { mobPort: number; fbPortNum: number }[] }> = {};
                    
                    for (const p of bmoFbPaths) {
                      const pathStr = p["OPTICAL PATH"] || "";
-                     // BMO01_1_FB(+00).1_01 or BMO01_3_FB(-ΗΥ).1_01
-                     const m = pathStr.match(/BMO\d+_(\d+)_FB\(([^)]+)\)\.(\d+)(?:_(\d+))?/i);
+                     const m = pathStr.match(/BMO\d+_(\d+)_FB\(([^)]+)\)/i);
                      if (m) {
-                       const mobPort = parseInt(m[1], 10);
+                       const bmoPort = parseInt(m[1], 10);
                        const floorId = m[2];
-                       const fbIdx = m[3];
-                       const fbPortNum = m[4] ? parseInt(m[4], 10) : mobPort;
-                       
-                       // Convert floor to FB name: FB(+00) → FB00, FB(-ΗΥ) → FB-ΗΥ
-                       const fbCleanIdx = parseInt(fbIdx, 10);
-                       const fbName = `FB${fbCleanIdx.toString().padStart(2, "0")}`;
-                       
-                       if (!fbGroups[fbName]) fbGroups[fbName] = { floor: floorId, ports: [] };
-                       fbGroups[fbName].ports.push({ mobPort, fbPortNum });
+                       if (!bmoPortToFloor[bmoPort]) bmoPortToFloor[bmoPort] = floorId;
                      }
                    }
                    
-                   // Determine Active/Spare: for each FB, sort by port number
-                   // First half = Active (A), second half = Spare (S)
-                   const mobPortEntries: MobPortEntry[] = [];
-                   for (const [fbName, group] of Object.entries(fbGroups)) {
-                     group.ports.sort((a, b) => a.fbPortNum - b.fbPortNum);
-                     const activeCount = Math.ceil(group.ports.length / 2);
-                     group.ports.forEach((port, idx) => {
-                       const portNumWithinFB = idx + 1;
-                       const isActive = idx < activeCount;
-                       mobPortEntries.push({
-                         mobPort: port.mobPort,
-                         fbName,
-                         fbFloor: group.floor,
-                         fbPortNum: portNumWithinFB,
-                         isActive,
-                       });
-                     });
-                   }
-                   mobPortEntries.sort((a, b) => a.mobPort - b.mobPort);
-                   
-                   // Split into Active (left) and Spare (right) columns
-                   const activePorts = mobPortEntries.filter(e => e.isActive);
-                   const sparePorts = mobPortEntries.filter(e => !e.isActive);
-                   
-                   // --- FB LABEL (Page 22 specs) ---
-                   // Each FB: port_label Active/Spare
-                   // e.g. "FB00.1A  2S" 
-                   const fbLabels: Record<string, { ports: { num: number; type: string }[]; floor: string }> = {};
-                   for (const entry of mobPortEntries) {
-                     if (!fbLabels[entry.fbName]) fbLabels[entry.fbName] = { ports: [], floor: entry.fbFloor };
-                     fbLabels[entry.fbName].ports.push({
-                       num: entry.fbPortNum,
-                       type: entry.isActive ? "A" : "S",
-                     });
+                   // Map BEP ports to BMO ports (from BEP-BMO paths)
+                   const bepToBmo: Record<number, number> = {};
+                   for (const p of bepBmoPaths) {
+                     const pathStr = p["OPTICAL PATH"] || "";
+                     const m = pathStr.match(/BEP\d+(?:\([^)]+\))?_(\d+)(?:[a-z]?)_BMO\d+_(\d+)/i);
+                     if (m) {
+                       bepToBmo[parseInt(m[1], 10)] = parseInt(m[2], 10);
+                     }
                    }
                    
-                   // Floor label helper
+                   // Floor label helper for BEP grid
                    const floorShort = (floorId: string) => {
                      if (floorId === "-ΗΥ" || floorId === "-HY") return "ΥΡΟ";
                      if (floorId === "+00" || floorId === "00") return "ΙΣΟ";
@@ -2219,8 +2148,112 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                      if (numMatch) return `${parseInt(numMatch[1])}ΟΣ`;
                      return floorId;
                    };
+                   
+                   // Build BEP wiring diagram: determine max ports
+                   // From splitter entries, get the fiber numbers assigned to each BEP port
+                   const bepPortData: { port: number; fiberNum: string; floorLabel: string }[] = [];
+                   
+                   // From CAB-BEP splitter entries (active fibers with SGA)
+                   for (const s of splitterEntries) {
+                     const portNum = parseInt(s.bepPort, 10);
+                     if (!isNaN(portNum)) {
+                       // Get fiber number from the fiber field (e.g. "A1.1" → extract the last part)
+                       const fiberNum = s.fiber ? s.fiber.replace(/^[A-Z]\d+\./, "") : "";
+                       // Try to get floor through BEP→BMO→Floor chain
+                       const bmoPort = bepToBmo[portNum];
+                       const floor = bmoPort ? bmoPortToFloor[bmoPort] : undefined;
+                       bepPortData.push({
+                         port: portNum,
+                         fiberNum: fiberNum || `${cabFiberNums.find((_, i) => i === portNum - 1) || ""}`,
+                         floorLabel: floor ? floorShort(floor) : "",
+                       });
+                     }
+                   }
+                   
+                   // Also add backbone (spare) fibers to BEP
+                   for (const p of cabBepPaths) {
+                     const path = p["OPTICAL PATH"] || "";
+                     if (/SG[AB]/i.test(path)) continue; // already handled above
+                     const bepPortMatch = path.match(/BEP\d+(?:\([^)]+\))?_(\d+)/i);
+                     if (bepPortMatch) {
+                       const portNum = parseInt(bepPortMatch[1], 10);
+                       if (!bepPortData.find(d => d.port === portNum)) {
+                         const numMatch = path.match(/^[A-Z]\d+_(?:[A-Z]\d+\.)?(\d+)/i);
+                         const fiberNum = numMatch ? numMatch[1] : "";
+                         const bmoPort = bepToBmo[portNum];
+                         const floor = bmoPort ? bmoPortToFloor[bmoPort] : undefined;
+                         bepPortData.push({
+                           port: portNum,
+                           fiberNum,
+                           floorLabel: floor ? floorShort(floor) : "",
+                         });
+                       }
+                     }
+                   }
+                   
+                   bepPortData.sort((a, b) => a.port - b.port);
+                   
+                   // Split into Row A (odd ports: 1,3,5,7...) and Row B (even ports: 2,4,6,8...)
+                   const maxPort = bepPortData.length > 0 ? Math.max(...bepPortData.map(d => d.port)) : 0;
+                   const colCount = Math.ceil(maxPort / 2);
+                   
+                   const rowA: (typeof bepPortData[0] | null)[] = [];
+                   const rowB: (typeof bepPortData[0] | null)[] = [];
+                   for (let i = 1; i <= colCount * 2; i += 2) {
+                     rowA.push(bepPortData.find(d => d.port === i) || null);
+                     rowB.push(bepPortData.find(d => d.port === i + 1) || null);
+                   }
+                   
+                   // --- MOB LABEL (COSMOTE - same as ΔΕΗ p.21 format) ---
+                   let mobName = "";
+                   for (const p of [...bepBmoPaths, ...bmoFbPaths]) {
+                     const path = p["OPTICAL PATH"] || "";
+                     const mobMatch = path.match(/((?:MOB|BMO)\d+(?:\([^)]+\))?)/i);
+                     if (mobMatch && !mobName) { mobName = mobMatch[1]; break; }
+                   }
+                   
+                   interface MobPortEntry {
+                     mobPort: number; fbName: string; fbFloor: string; fbPortNum: number; isActive: boolean;
+                   }
+                   const fbGroups: Record<string, { floor: string; ports: { mobPort: number; fbPortNum: number }[] }> = {};
+                   
+                   for (const p of bmoFbPaths) {
+                     const pathStr = p["OPTICAL PATH"] || "";
+                     const m = pathStr.match(/BMO\d+_(\d+)_FB\(([^)]+)\)\.(\d+)(?:_(\d+))?/i);
+                     if (m) {
+                       const mobPort = parseInt(m[1], 10);
+                       const floorId = m[2];
+                       const fbIdx = m[3];
+                       const fbPortNum = m[4] ? parseInt(m[4], 10) : mobPort;
+                       const fbCleanIdx = parseInt(fbIdx, 10);
+                       const fbName = `FB${fbCleanIdx.toString().padStart(2, "0")}`;
+                       if (!fbGroups[fbName]) fbGroups[fbName] = { floor: floorId, ports: [] };
+                       fbGroups[fbName].ports.push({ mobPort, fbPortNum });
+                     }
+                   }
+                   
+                   const mobPortEntries: MobPortEntry[] = [];
+                   for (const [fbName, group] of Object.entries(fbGroups)) {
+                     group.ports.sort((a, b) => a.fbPortNum - b.fbPortNum);
+                     const activeCount = Math.ceil(group.ports.length / 2);
+                     group.ports.forEach((port, idx) => {
+                       mobPortEntries.push({
+                         mobPort: port.mobPort, fbName, fbFloor: group.floor,
+                         fbPortNum: idx + 1, isActive: idx < activeCount,
+                       });
+                     });
+                   }
+                   mobPortEntries.sort((a, b) => a.mobPort - b.mobPort);
+                   
+                   // --- FB LABEL (COSMOTE p.22) ---
+                   // Each FB: ports listed as Active first then Spare e.g. "FB00.1A 2S"
+                   const fbLabels: Record<string, { ports: { num: number; type: string }[]; floor: string }> = {};
+                   for (const entry of mobPortEntries) {
+                     if (!fbLabels[entry.fbName]) fbLabels[entry.fbName] = { ports: [], floor: entry.fbFloor };
+                     fbLabels[entry.fbName].ports.push({ num: entry.fbPortNum, type: entry.isActive ? "A" : "S" });
+                   }
 
-                   const hasBepLabel = bepName && bepGrid.length > 0;
+                   const hasBepLabel = bepName && bepPortData.length > 0;
                    const hasMobLabel = mobPortEntries.length > 0;
                    const hasFbLabel = Object.keys(fbLabels).length > 0;
 
@@ -2230,101 +2263,168 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                      <div className="space-y-2 mt-3 pt-3 border-t border-border">
                        <div className="flex items-center gap-2">
                          <Badge variant="default" className="text-[10px]">🏷️ Labels</Badge>
-                         <span className="text-[10px] text-muted-foreground">Αυτοκόλλητα ταμπελάκια κουτιών</span>
+                         <span className="text-[10px] text-muted-foreground">Αυτοκόλλητα — COSMOTE specs</span>
                        </div>
 
-                       {/* BEP Label - Per specs page 20 */}
+                       {/* BEP Label - COSMOTE page 37 */}
                        {hasBepLabel && (
                          <div className="p-2.5 rounded-lg border-2 border-dashed border-primary/30 bg-card space-y-1.5">
-                           <div className="text-[10px] font-bold uppercase tracking-wider text-primary">📦 Label BEP</div>
+                           <div className="text-[10px] font-bold uppercase tracking-wider text-primary">📦 Label BEP (πόρτα)</div>
                            <div className="bg-background border border-border rounded-md p-3 font-mono text-[11px] space-y-2">
-                             {/* BEP Name */}
-                             <div className="text-center font-bold text-foreground text-xs">
-                               {bepName}
+                             {/* Header: Cabinet(Tube) + fiber range */}
+                             <div className="text-center font-bold text-foreground text-xs border-b border-foreground pb-1">
+                               {cabName}{cabTube ? `(${cabTube})` : ""}
+                               {fiberRange && <span className="block text-[11px]">{fiberRange}</span>}
                              </div>
-                             {/* Address */}
-                             {address && (
-                               <div className="text-center text-[10px] text-muted-foreground border-b border-border pb-1.5">
-                                 {address}
-                               </div>
-                             )}
-                             {/* Port → PP Grid (6 per row like real label) */}
-                             {bepGrid.length > 0 && (
-                               <div className="space-y-0.5">
-                                 {Array.from({ length: Math.ceil(bepGrid.length / 6) }, (_, rowIdx) => {
-                                   const rowPorts = bepGrid.slice(rowIdx * 6, (rowIdx + 1) * 6);
-                                   return (
-                                     <div key={rowIdx} className="flex gap-2 justify-center flex-wrap">
-                                       {rowPorts.map((p, i) => (
-                                         <div key={i} className="text-[9px] text-center min-w-[38px]">
-                                           <span className="font-bold">{p.port}</span>
-                                           {p.pp && <span className="text-muted-foreground ml-0.5">{p.pp}</span>}
-                                         </div>
-                                       ))}
-                                     </div>
-                                   );
-                                 })}
-                               </div>
-                             )}
+                             
+                             {/* Wiring Diagram Title */}
+                             <div className="text-center text-[9px] text-muted-foreground italic">
+                               Termination Box Wiring Diagram
+                             </div>
+                             <div className="text-center text-[9px] font-semibold text-foreground">
+                               Fiber Number
+                             </div>
+                             
+                             {/* Grid: Row A and Row B */}
+                             <div className="overflow-x-auto">
+                               <table className="w-full text-[10px] border-collapse">
+                                 <thead>
+                                   <tr>
+                                     <th className="border border-foreground/30 px-1 py-0.5 bg-foreground text-background w-6"></th>
+                                     {Array.from({ length: colCount }, (_, i) => (
+                                       <th key={i} className="border border-foreground/30 px-1 py-0.5 bg-foreground text-background font-bold min-w-[32px]">
+                                         {i * 2 + 1}
+                                       </th>
+                                     ))}
+                                   </tr>
+                                 </thead>
+                                 <tbody>
+                                   {/* Row A */}
+                                   <tr>
+                                     <td className="border border-foreground/30 px-1 py-0.5 bg-foreground text-background font-bold text-center">A</td>
+                                     {rowA.map((d, i) => (
+                                       <td key={i} className="border border-foreground/30 px-1 py-0.5 text-center font-semibold text-foreground">
+                                         {d ? (d.fiberNum || "—") : ""}
+                                       </td>
+                                     ))}
+                                   </tr>
+                                   {/* Row A floor labels */}
+                                   <tr>
+                                     <td className="border border-foreground/30 px-1 py-0.5"></td>
+                                     {rowA.map((d, i) => (
+                                       <td key={i} className="border border-foreground/30 px-1 py-0.5 text-center text-[9px] text-primary font-semibold">
+                                         {d?.floorLabel || ""}
+                                       </td>
+                                     ))}
+                                   </tr>
+                                   {/* Separator with port numbers for B row */}
+                                   <tr>
+                                     <td className="border border-foreground/30 px-1 py-0.5 bg-foreground text-background font-bold text-center">B</td>
+                                     {rowB.map((_, i) => (
+                                       <td key={i} className="border border-foreground/30 px-1 py-0.5 bg-foreground text-background font-bold text-center">
+                                         {i * 2 + 2}
+                                       </td>
+                                     ))}
+                                   </tr>
+                                   {/* Row B fiber numbers */}
+                                   <tr>
+                                     <td className="border border-foreground/30 px-1 py-0.5"></td>
+                                     {rowB.map((d, i) => (
+                                       <td key={i} className="border border-foreground/30 px-1 py-0.5 text-center font-semibold text-foreground">
+                                         {d ? (d.fiberNum || "—") : ""}
+                                       </td>
+                                     ))}
+                                   </tr>
+                                   {/* Row B floor labels */}
+                                   <tr>
+                                     <td className="border border-foreground/30 px-1 py-0.5"></td>
+                                     {rowB.map((d, i) => (
+                                       <td key={i} className="border border-foreground/30 px-1 py-0.5 text-center text-[9px] text-primary font-semibold">
+                                         {d?.floorLabel || ""}
+                                       </td>
+                                     ))}
+                                   </tr>
+                                 </tbody>
+                               </table>
+                             </div>
+                           </div>
+                           
+                           {/* Cable labels */}
+                           <div className="bg-background border border-border rounded-md p-2 font-mono text-[10px] space-y-1">
+                             <div className="text-[9px] font-bold text-muted-foreground uppercase">Ετικέτες καλωδίων:</div>
+                             <div className="flex items-center gap-1">
+                               <span className="text-foreground">⬛ Παροχική:</span>
+                               <span className="font-bold text-foreground">{cabName} {cabFiberNums.length > 0 ? `${cabFiberNums.length}FO` : ""} {fiberRange}</span>
+                             </div>
+                             <div className="flex items-center gap-1">
+                               <span className="text-foreground">⬜ Προς BMO:</span>
+                               <span className="font-bold text-foreground">{bepName} {bepBmoPorts.length > 0 ? `${bepBmoPorts.length}FO` : ""}</span>
+                             </div>
                            </div>
                          </div>
                        )}
 
-                       {/* MOB Label - Per specs page 21 */}
+                       {/* MOB Label - COSMOTE (same format as ΔΕΗ p.21) */}
                        {hasMobLabel && (
                          <div className="p-2.5 rounded-lg border-2 border-dashed border-accent/30 bg-card space-y-1.5">
-                           <div className="text-[10px] font-bold uppercase tracking-wider text-accent">📦 Label MOB</div>
+                           <div className="text-[10px] font-bold uppercase tracking-wider text-accent">📦 Label MOB (πόρτα)</div>
                            <div className="bg-background border border-border rounded-md p-3 font-mono text-[11px] space-y-2">
-                             {/* MOB Name */}
                              {mobName && (
                                <div className="text-center font-bold text-foreground text-xs border-b border-border pb-1">
                                  {mobName}
                                </div>
                              )}
-                             {/* A=ACTIVE / S=SPARE legend */}
-                             <div className="text-center text-[10px] text-muted-foreground">
-                               A=ACTIVE &nbsp; S=SPARE
+                             <div className="text-center text-[10px] font-semibold text-muted-foreground">
+                               A = ACTIVE &nbsp;&nbsp; S = SPARE
                              </div>
-                             {/* Two columns: Active (left) / Spare (right) */}
-                             <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 text-[10px]">
-                               <div className="space-y-0.5">
-                                 {activePorts.map((p, i) => (
-                                   <div key={i} className="flex gap-1.5">
-                                     <span className="font-bold w-4 text-right">{p.mobPort}</span>
-                                     <span className="text-muted-foreground">{p.fbName}</span>
-                                     <span className="font-semibold text-primary">{p.fbPortNum.toString().padStart(2, "0")}A</span>
-                                   </div>
+                             {/* Table format matching COSMOTE spec */}
+                             <table className="w-full text-[10px] border-collapse">
+                               <thead>
+                                 <tr>
+                                   <th className="border border-foreground/30 px-1 py-0.5 bg-foreground text-background">Port</th>
+                                   <th className="border border-foreground/30 px-1 py-0.5 bg-foreground text-background">FB</th>
+                                   <th className="border border-foreground/30 px-1 py-0.5 bg-foreground text-background">Type</th>
+                                 </tr>
+                               </thead>
+                               <tbody>
+                                 {mobPortEntries.map((p, i) => (
+                                   <tr key={i}>
+                                     <td className="border border-foreground/30 px-1 py-0.5 text-center font-bold">{p.mobPort}</td>
+                                     <td className="border border-foreground/30 px-1 py-0.5 text-center">{p.fbName}</td>
+                                     <td className={`border border-foreground/30 px-1 py-0.5 text-center font-bold ${p.isActive ? 'text-primary' : 'text-destructive'}`}>
+                                       {p.fbPortNum.toString().padStart(2, "0")}{p.isActive ? "A" : "S"}
+                                     </td>
+                                   </tr>
                                  ))}
-                               </div>
-                               <div className="space-y-0.5">
-                                 {sparePorts.map((p, i) => (
-                                   <div key={i} className="flex gap-1.5">
-                                     <span className="font-bold w-4 text-right">{p.mobPort}</span>
-                                     <span className="text-muted-foreground">{p.fbName}</span>
-                                     <span className="font-semibold text-destructive">{p.fbPortNum.toString().padStart(2, "0")}S</span>
-                                   </div>
-                                 ))}
-                               </div>
-                             </div>
+                               </tbody>
+                             </table>
                            </div>
                          </div>
                        )}
 
-                       {/* FB Labels - Per specs page 22 */}
+                       {/* FB Labels - COSMOTE page 22 */}
                        {hasFbLabel && (
                          <div className="p-2.5 rounded-lg border-2 border-dashed border-muted-foreground/30 bg-card space-y-1.5">
                            <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">📦 Labels FB</div>
                            <div className="grid grid-cols-2 gap-2">
                              {Object.entries(fbLabels).sort(([a], [b]) => a.localeCompare(b)).map(([fbName, fb], i) => {
-                               const activeList = fb.ports.filter(p => p.type === "A").map(p => `${p.num}A`);
-                               const spareList = fb.ports.filter(p => p.type === "S").map(p => `${p.num}S`);
-                               const label = [...activeList, ...spareList].join(" ");
+                               const activeList = fb.ports.filter(p => p.type === "A");
+                               const spareList = fb.ports.filter(p => p.type === "S");
                                return (
-                                 <div key={i} className="bg-background border border-border rounded-md p-2 font-mono text-center space-y-0.5">
-                                   <div className="text-[11px] font-bold text-foreground">
-                                     {fbName}.{label}
+                                 <div key={i} className="bg-background border border-border rounded-md p-2 font-mono text-center space-y-1">
+                                   <div className="text-[9px] text-muted-foreground font-semibold">{floorShort(fb.floor)}</div>
+                                   <div className="space-y-0.5">
+                                     {activeList.map((p, j) => (
+                                       <div key={`a${j}`} className="text-[11px] font-bold text-primary">
+                                         {fbName}.{p.num}A
+                                       </div>
+                                     ))}
+                                     {spareList.map((p, j) => (
+                                       <div key={`s${j}`} className="text-[11px] font-bold text-destructive">
+                                         {fbName}.{p.num}S
+                                       </div>
+                                     ))}
                                    </div>
-                                   <div className="text-[9px] font-semibold text-primary">{floorShort(fb.floor)}</div>
                                  </div>
                                );
                              })}
