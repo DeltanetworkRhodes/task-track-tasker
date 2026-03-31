@@ -1982,15 +1982,15 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
 
             return (
               <div className="space-y-3">
-                {/* CAB-BEP simplified */}
-                {cabBepPaths.length > 0 && (
+                {/* CAB-BEP or CAB-BCP */}
+                {firstSectionPaths.length > 0 && (
                   <div className="p-2.5 rounded-lg border border-border bg-background space-y-2">
                     <div className="flex items-center gap-2">
-                      <Badge variant="secondary" className="text-[10px]">CAB → BEP</Badge>
+                      <Badge variant="secondary" className="text-[10px]">CAB → {firstSectionTarget}</Badge>
                     </div>
                     <div className="text-xs space-y-0.5">
                       <div>🏗️ Καμπίνα: <strong className="text-foreground">{cabName || "—"}</strong></div>
-                      <div>📦 BEP: <strong className="text-foreground">{bepName || "—"}</strong></div>
+                      <div>📦 {firstSectionTarget}: <strong className="text-foreground">{(firstSectionTarget === "BCP" ? bcpName : bepName) || "—"}</strong></div>
                     </div>
 
                     {/* Ενεργά όρια (splitter fibers) */}
@@ -2006,7 +2006,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                             </div>
                             {(s.bepPort || s.sb) && (
                               <div className="text-[10px] text-muted-foreground font-mono pl-2">
-                                ↳ {bepName} port {s.bepPort} → {s.sb}
+                                ↳ {firstSectionTarget === "BCP" ? bcpName : bepName} port {s.bepPort} → {s.sb}
                               </div>
                             )}
                           </div>
@@ -2030,6 +2030,37 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                     <div className="text-[10px] text-muted-foreground border-t border-border pt-1">
                       Σύνολο ινών: <strong className="text-foreground">{splitterEntries.length + backboneFibers.length}</strong>
                     </div>
+                  </div>
+                )}
+
+                {/* BCP-BEP section (when BCP exists) */}
+                {bcpBepPaths.length > 0 && (
+                  <div className="p-2.5 rounded-lg border border-border bg-background space-y-1.5">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="secondary" className="text-[10px]">BCP → BEP</Badge>
+                    </div>
+                    <div className="text-xs space-y-0.5">
+                      <div>📦 BCP: <strong className="text-foreground">{bcpName || "—"}</strong></div>
+                      <div>📦 BEP: <strong className="text-foreground">{(() => {
+                        // Extract BEP name from BCP-BEP paths
+                        for (const p of bcpBepPaths) {
+                          const m = (p["OPTICAL PATH"] || "").match(/(BEP\d+(?:\([^)]+\))?)/i);
+                          if (m) return m[1];
+                        }
+                        return bepName || "—";
+                      })()}</strong></div>
+                      <div>🔗 Ίνες: <strong className="text-foreground">{bcpBepPaths.length}</strong></div>
+                    </div>
+                    {bcpBepPaths.map((p, i) => {
+                      const path = p["OPTICAL PATH"] || "";
+                      const sbMatch = path.match(/(SB\d+\([^)]+\))/i);
+                      const bepPortMatch = path.match(/BEP\d+(?:\([^)]+\))?_(\d+[a-z]?)/i);
+                      return (
+                        <div key={i} className="ml-1 text-[11px] font-mono text-muted-foreground">
+                          {bepPortMatch ? `port ${bepPortMatch[1]}` : ""}{sbMatch ? ` → ${sbMatch[1]}` : ""}
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
 
