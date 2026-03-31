@@ -2452,20 +2452,20 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                                {/* Port-to-floor mapping in A/B columns */}
                                {maxPortRows > 0 && (
                                  <div className="relative group font-mono text-[11px] font-semibold bg-muted/50 rounded-md px-3 py-1.5 border border-border mt-1">
-                                   <div className="grid grid-cols-2 gap-x-4">
-                                     <div className="space-y-0.5">
-                                       {colA.map((entry, i) => {
-                                         const fl = floorShort(entry.floor);
-                                         return <div key={i}>A{aFibers.length + i + 1} - {fl}</div>;
-                                       })}
-                                     </div>
-                                     <div className="space-y-0.5">
-                                       {colB.map((entry, i) => {
-                                         const fl = floorShort(entry.floor);
-                                         return <div key={i}>B{bFibers.length + i + 1} - {fl}</div>;
-                                       })}
-                                     </div>
-                                   </div>
+                                    <div className="grid grid-cols-2 gap-x-4">
+                                      <div className="space-y-0.5 text-center">
+                                        {colA.map((entry, i) => {
+                                          const fl = floorShort(entry.floor);
+                                          return <div key={i}>A{aFibers.length + i + 1} - {fl}</div>;
+                                        })}
+                                      </div>
+                                      <div className="space-y-0.5 text-center">
+                                        {colB.map((entry, i) => {
+                                          const fl = floorShort(entry.floor);
+                                          return <div key={i}>B{bFibers.length + i + 1} - {fl}</div>;
+                                        })}
+                                      </div>
+                                    </div>
                                    <button
                                      type="button"
                                      onClick={() => {
