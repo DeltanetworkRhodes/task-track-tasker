@@ -2327,7 +2327,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                               ]} />
                             </LabelBox>
                            {/* B. Εξερχόμενα προς FB */}
-                           <LabelBox label="B. Στα εξερχόμενα προς FB">
+                           <LabelBox label="B. Ίνες από BMO σε FB">
                              <div className="space-y-1">
                                  {Object.entries(fbGroups).sort(([a], [b]) => a.localeCompare(b)).map(([floorKey, fb]) => {
                                    const fl = fb.floor.startsWith("+") || fb.floor.startsWith("-") ? fb.floor : `+${fb.floor}`;
