@@ -2347,6 +2347,16 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                      </div>
                    );
                  })()}
+                {/* Summary */}
+                <div className="text-[10px] text-muted-foreground mt-1 px-1">
+                  📌 Σύνολο: {paths.length} διαδρομές
+                </div>
+              </div>
+            );
+          })()}
+        </Card>
+      )}
+
       {/* ΔΙΑΔΡΟΜΕΣ */}
       <Card className="p-4 space-y-3">
         <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
