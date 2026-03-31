@@ -1992,7 +1992,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                         {splitterEntries.map((s, i) => (
                           <div key={i} className="ml-1 p-1.5 rounded border border-primary/20 bg-primary/5 space-y-0.5">
                             <div className="text-[11px] font-mono font-semibold text-primary">
-                              {splitterEntries.length > 1 ? `${i + 1}ο: ` : ""}{s.fiber} → {s.sga}{s.sgaPort ? ` (port ${s.sgaPort})` : ""}
+                              {splitterEntries.length > 1 ? `${i + 1}ο: ` : ""}{s.sga}{s.sgaPort ? ` (port ${s.sgaPort})` : ""} → {s.fiber}
                             </div>
                             {(s.bepPort || s.sb) && (
                               <div className="text-[10px] text-muted-foreground font-mono pl-2">
