@@ -2253,11 +2253,26 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                      fbLabels[entry.fbName].ports.push({ num: entry.fbPortNum, type: entry.isActive ? "A" : "S" });
                    }
 
+                   // --- ΚΑΜΠΙΝΑ LABEL (COSMOTE specs pp.26-30) ---
+                   // A. Inside cassette: [STREET] [NUMBER]
+                   // B. On splitter outputs: [SPLITTER] - [STREET] [NUMBER]
+                   // C. On tube: [STREET] [NUMBER]
+                   const hasCabLabel = cabName && address;
+                   
+                   // Extract splitter names for cabinet label (from splitterEntries already parsed above)
+                   const splitterLabels = splitterEntries
+                     .filter(s => s.sga)
+                     .map(s => {
+                       const sgaPort = s.sgaPort ? `.${s.sgaPort.padStart(2, "0")}` : "";
+                       return `${s.sga}${sgaPort}`;
+                     })
+                     .filter((v, i, arr) => arr.indexOf(v) === i); // unique
+
                    const hasBepLabel = bepName && bepPortData.length > 0;
                    const hasMobLabel = mobPortEntries.length > 0;
                    const hasFbLabel = Object.keys(fbLabels).length > 0;
 
-                   if (!hasBepLabel && !hasMobLabel && !hasFbLabel) return null;
+                   if (!hasBepLabel && !hasMobLabel && !hasFbLabel && !hasCabLabel) return null;
 
                    return (
                      <div className="space-y-2 mt-3 pt-3 border-t border-border">
@@ -2265,6 +2280,42 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                          <Badge variant="default" className="text-[10px]">🏷️ Labels</Badge>
                          <span className="text-[10px] text-muted-foreground">Αυτοκόλλητα — COSMOTE specs</span>
                        </div>
+
+                       {/* ΚΑΜΠΙΝΑ Labels - COSMOTE pages 26-30 */}
+                       {hasCabLabel && (
+                         <div className="p-2.5 rounded-lg border-2 border-dashed border-orange-500/30 bg-card space-y-1.5">
+                           <div className="text-[10px] font-bold uppercase tracking-wider text-orange-600">🏗️ Labels Καμπίνα</div>
+                           <div className="space-y-2">
+                             {/* A. Μέσα στην κασέτα */}
+                             <div className="bg-background border border-border rounded-md p-2.5 font-mono text-[11px] space-y-1">
+                               <div className="text-[9px] font-bold text-muted-foreground uppercase">A. Μέσα στην κασέτα</div>
+                               <div className="text-center font-bold text-foreground text-xs bg-muted/50 rounded px-2 py-1.5 border border-border">
+                                 {address}
+                               </div>
+                             </div>
+                             
+                             {/* B. Πάνω στις εξόδους splitter */}
+                             {splitterLabels.length > 0 && (
+                               <div className="bg-background border border-border rounded-md p-2.5 font-mono text-[11px] space-y-1.5">
+                                 <div className="text-[9px] font-bold text-muted-foreground uppercase">B. Πάνω στις εξόδους Splitter</div>
+                                 {splitterLabels.map((spl, i) => (
+                                   <div key={i} className="text-center font-bold text-foreground text-xs bg-muted/50 rounded px-2 py-1.5 border border-border">
+                                     {spl} - {address}
+                                   </div>
+                                 ))}
+                               </div>
+                             )}
+                             
+                             {/* C. Πάνω στον σωληνίσκο */}
+                             <div className="bg-background border border-border rounded-md p-2.5 font-mono text-[11px] space-y-1">
+                               <div className="text-[9px] font-bold text-muted-foreground uppercase">C. Πάνω στον σωληνίσκο</div>
+                               <div className="text-center font-bold text-foreground text-xs bg-muted/50 rounded px-2 py-1.5 border border-border">
+                                 {address}
+                               </div>
+                             </div>
+                           </div>
+                         </div>
+                       )}
 
                        {/* BEP Label - COSMOTE page 37 */}
                        {hasBepLabel && (
