@@ -2329,9 +2329,10 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                            {/* B. Εξερχόμενα προς FB */}
                            <LabelBox label="B. Στα εξερχόμενα προς FB">
                              <div className="space-y-1">
-                                {Object.entries(fbGroups).sort(([a], [b]) => a.localeCompare(b)).map(([fbName, fb]) => (
-                                  <LabelLine key={fbName} text={`ΠΡΟΣ: FB ${floorShort(fb.floor)} | ΙΝΕΣ: ${floorFO(fb.floor)}`} bold />
-                                ))}
+                                 {Object.entries(fbGroups).sort(([a], [b]) => a.localeCompare(b)).map(([floorKey, fb]) => {
+                                   const fl = fb.floor.startsWith("+") || fb.floor.startsWith("-") ? fb.floor : `+${fb.floor}`;
+                                   return <LabelLine key={floorKey} text={`ΠΡΟΣ: FB(${fl}) | ΙΝΕΣ: ${floorFO(fb.floor)}`} bold />;
+                                 })}
                              </div>
                            </LabelBox>
                          </LabelCard>
