@@ -2308,14 +2308,14 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                        {hasMobLabel && (
                          <LabelCard color="accent-foreground" icon="📡" title="Labels BMO">
                            {/* A. Πόρτα BMO */}
-                           <LabelBox label="A. Στην πόρτα του BMO">
-                             <div className="space-y-0.5 text-center text-xs font-bold text-foreground bg-muted/50 rounded px-2 py-2 border border-border">
-                               <div>BMO</div>
-                               <div>ΚΤΗΡΙΟ: {address}</div>
-                               {buildingId && <div>BID: {buildingId}</div>}
-                               <div>ΑΠΟ: {bepName || "BEP01"}</div>
-                             </div>
-                           </LabelBox>
+                            <LabelBox label="A. Στην πόρτα του BMO">
+                              <LabelBlock lines={[
+                                `BMO`,
+                                `ΚΤΗΡΙΟ: ${address}`,
+                                ...(buildingId ? [`BID: ${buildingId}`] : []),
+                                `ΑΠΟ: ${bepName || "BEP01"}`,
+                              ]} />
+                            </LabelBox>
                            {/* B. Εξερχόμενα προς FB */}
                            <LabelBox label="B. Στα εξερχόμενα προς FB">
                              <div className="space-y-1">
