@@ -2293,7 +2293,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                                  {/* FB cables from BMO-FB */}
                                   {Object.entries(fbGroups).sort(([a], [b]) => a.localeCompare(b)).map(([floorKey, fb]) => {
                                     const fl = fb.floor.startsWith("+") || fb.floor.startsWith("-") ? fb.floor : `+${fb.floor}`;
-                                    return <LabelLine key={floorKey} text={`ΠΡΟΣ: FB(${fl}) | ${floorFO(fb.floor)}`} bold />;
+                                    return <LabelLine key={floorKey} text={`FB(${fl}) | ${floorFO(fb.floor)}`} bold />;
                                   })}
                                 {bepOnly && (
                                   <LabelLine text={`ΠΡΟΣ: ΠΕΛΑΤΗ | 2FO`} bold />
