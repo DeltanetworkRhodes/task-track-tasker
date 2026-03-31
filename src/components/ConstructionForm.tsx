@@ -2565,12 +2565,14 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                                  `${bepName} → ${mobName || "BMO"}`,
                                ]} />
                              </LabelBox>
-                             <LabelBox label="B. Αναγνώριση">
-                               <LabelBlock lines={[
-                                 `${mobName || "BMO"}`,
-                                 ...(address ? [`ΚΤΗΡΙΟ: ${address}`] : []),
-                                 "BEP ONLY",
-                               ]} />
+                              <LabelBox label="B. Εξωτερικό Label BMO">
+                                <LabelBlock lines={[
+                                  `${mobName || "BMO"}`,
+                                  ...(cabName ? [`CAB: ${cabName}`] : []),
+                                  ...(bcpName ? [`BCP: ${bcpName}`] : []),
+                                  ...(address ? [`${address}`] : []),
+                                  "BEP ONLY",
+                                ]} />
                             </LabelBox>
                          </LabelCard>
                        )}
