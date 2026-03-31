@@ -2218,8 +2218,6 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                                   {splitterLabelsList.map((spl, i) => (
                                     <LabelLine key={i} text={spl} bold />
                                   ))}
-                                   <LabelLine key={i} text={`${spl} - ${address}`} bold />
-                                 ))}
                                </div>
                              </LabelBox>
                            )}
