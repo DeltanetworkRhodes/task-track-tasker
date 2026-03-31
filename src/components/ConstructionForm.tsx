@@ -1868,7 +1868,16 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
               if (!grouped[type]) grouped[type] = [];
               grouped[type].push(p);
             });
-            return Object.entries(grouped).map(([type, items]) => (
+            // Fixed display order for optical path types
+            const typeOrder = ["CAB-BEP", "BMO-FB", "BEP", "BEP-BMO"];
+            const orderedEntries = typeOrder
+              .filter(t => grouped[t])
+              .map(t => [t, grouped[t]] as [string, any[]]);
+            // Add any remaining types not in the predefined order
+            Object.entries(grouped).forEach(([t, items]) => {
+              if (!typeOrder.includes(t)) orderedEntries.push([t, items]);
+            });
+            return orderedEntries.map(([type, items]) => (
               <div key={type} className="space-y-1">
                 <div className="flex items-center gap-2">
                   <Badge variant="secondary" className="text-[10px]">{type}</Badge>
