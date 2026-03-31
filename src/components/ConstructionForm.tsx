@@ -2354,9 +2354,9 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                               {Object.entries(fbGroups).sort(([a], [b]) => a.localeCompare(b)).map(([fbName, fb]) => (
                                 <LabelBox key={fbName} label={`A. Στην πόρτα: ${fbName}`}>
                                   <LabelBlock lines={[
-                                    `FB ${floorShort(fb.floor)}`,
-                                    `ΚΤΗΡΙΟ: ${address}`,
-                                    `ΑΠΟ: BMO`,
+                                     `FB ${fb.floor.startsWith("+") || fb.floor.startsWith("-") ? fb.floor : `+${fb.floor}`}`,
+                                     `ΚΤΗΡΙΟ: ${address}`,
+                                     `ΑΠΟ: BMO`,
                                   ]} />
                                </LabelBox>
                              ))}
