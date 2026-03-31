@@ -2119,7 +2119,12 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                    const fiberMin = cabFiberNums.length > 0 ? Math.min(...cabFiberNums) : 0;
                    const fiberMax = cabFiberNums.length > 0 ? Math.max(...cabFiberNums) : 0;
                    const fiberRange = fiberMin > 0 ? `${fiberMin}-${fiberMax}` : "";
-                   const fiberCount = cabFiberNums.length > 0 ? `${cabFiberNums.length}FO` : "";
+                   // Fiber count: standardize to 4FO or 12FO
+                   const rawFiberCount = cabFiberNums.length;
+                   const fiberCount = rawFiberCount <= 4 ? "4FO" : "12FO";
+                   
+                   // BCP exists only if GIS has nearby_bcp or new_bcp
+                   const hasBcp = !!(gisData?.nearby_bcp || gisData?.new_bcp);
                    
                    // --- BEP port → floor mapping via BEP→BMO→Floor chain ---
                    const bepToBmo: Record<number, number> = {};
@@ -2165,7 +2170,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                    
                    // --- Conditions ---
                    const hasCabLabel = !!(cabName && address);
-                   const hasBcpLabel = !!(cabName && fiberRange);
+                   const hasBcpLabel = hasBcp && !!(cabName && fiberRange);
                    const hasBepLabel = !!(bepName && (cabFiberNums.length > 0 || bepBmoPorts.length > 0));
                    const hasMobLabel = !bepOnly && Object.keys(fbGroups).length > 0;
                    const hasFbLabel = !bepOnly && Object.keys(fbGroups).length > 0;
