@@ -1968,6 +1968,14 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
               }
             }
 
+            // If bepName not set from first section, try BCP-BEP or BEP-BMO paths
+            if (!bepName) {
+              for (const p of [...bcpBepPaths, ...bepBmoPaths]) {
+                const m = (p["OPTICAL PATH"] || "").match(/(BEP\d+(?:\([^)]+\))?)/i);
+                if (m) { bepName = m[1]; break; }
+              }
+            }
+
             // Extract BEP-BMO summary: count connected BMO ports
             const bepBmoPortSet = new Set<number>();
             for (const p of bepBmoPaths) {
