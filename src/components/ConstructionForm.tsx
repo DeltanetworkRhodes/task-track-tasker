@@ -2228,7 +2228,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                    
                    // --- Conditions ---
                    const hasCabLabel = !!(cabName && address);
-                   const hasBcpLabel = hasBcp && !!(cabName && fiberRange);
+                   const hasBcpLabel = hasBcpInLabels && !!(cabName || bcpName);
                    const hasBepLabel = !!(bepName && (cabFiberNums.length > 0 || bepBmoPorts.length > 0));
                    const hasMobLabel = !bepOnly && Object.keys(fbGroups).length > 0;
                     const hasFbLabel = !bepOnly && Object.keys(fbGroups).length > 0;
