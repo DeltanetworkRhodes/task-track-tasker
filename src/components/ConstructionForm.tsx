@@ -2330,13 +2330,9 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                        {/* ═══ 5. BMO (BEP ONLY) ═══ */}
                        {bepOnly && bepName && (
                          <LabelCard color="accent-foreground" icon="📡" title="Labels BMO (BEP ONLY)">
-                           <LabelBox>
-                             <div className="space-y-0.5 text-center text-xs font-bold text-foreground bg-muted/50 rounded px-2 py-2 border border-border">
-                               <div>BMO</div>
-                               <div>ΚΤΗΡΙΟ: {address}</div>
-                               <div>BEP ONLY</div>
-                             </div>
-                           </LabelBox>
+                            <LabelBox>
+                              <LabelBlock lines={[`BMO`, `ΚΤΗΡΙΟ: ${address}`, `BEP ONLY`]} />
+                            </LabelBox>
                          </LabelCard>
                        )}
 
