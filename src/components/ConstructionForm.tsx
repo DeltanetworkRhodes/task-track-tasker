@@ -2152,10 +2152,10 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                      return floorId;
                    };
                    
-                   // --- Fiber range from CAB-BEP or CAB-BCP ---
+                   // --- Fiber range from CAB-BEP ---
                    let cabTube = "";
                    const cabFiberNums: number[] = [];
-                   for (const p of (cabBepPaths.length > 0 ? cabBepPaths : cabBcpPaths)) {
+                   for (const p of cabBepPaths) {
                      const path = p["OPTICAL PATH"] || "";
                      const tubeMatch = path.match(/^[A-Z]\d+_([A-Z])(\d+)\.(\d+)/i);
                      if (tubeMatch && !cabTube) {
@@ -2183,8 +2183,8 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                     // Standard FO helper: uses floor apartments when available, fallback to count-based
                     const standardFO = (count: number) => count <= 2 ? "2FO" : count <= 4 ? "4FO" : "12FO";
                    
-                   // BCP exists if GIS has nearby_bcp/new_bcp OR optical paths have CAB-BCP/BCP-BEP
-                   const hasBcpInLabels = !!(gisData?.nearby_bcp || gisData?.new_bcp) || hasBcp;
+                   // BCP exists only if GIS has nearby_bcp or new_bcp
+                   const hasBcp = !!(gisData?.nearby_bcp || gisData?.new_bcp);
                    
                    // --- BEP port → floor mapping via BEP→BMO→Floor chain ---
                    const bepToBmo: Record<number, number> = {};
@@ -2228,7 +2228,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                    
                    // --- Conditions ---
                    const hasCabLabel = !!(cabName && address);
-                   const hasBcpLabel = hasBcpInLabels && !!(cabName || bcpName);
+                   const hasBcpLabel = hasBcp && !!(cabName && fiberRange);
                    const hasBepLabel = !!(bepName && (cabFiberNums.length > 0 || bepBmoPorts.length > 0));
                    const hasMobLabel = !bepOnly && Object.keys(fbGroups).length > 0;
                     const hasFbLabel = !bepOnly && Object.keys(fbGroups).length > 0;
@@ -2307,50 +2307,27 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                        )}
 
                        {/* ═══ 3. BCP ═══ */}
-                       {hasBcpLabel && (() => {
-                         // Extract BEP names from BCP-BEP paths for white fiber labels
-                         const bcpBepEntries: { bepName: string; fiberCount: string }[] = [];
-                         const seenBep = new Set<string>();
-                         for (const p of bcpBepPaths) {
-                           const path = p["OPTICAL PATH"] || "";
-                           const m = path.match(/(BEP\d+(?:\([^)]+\))?)/i);
-                           if (m && !seenBep.has(m[1])) {
-                             seenBep.add(m[1]);
-                             bcpBepEntries.push({ bepName: m[1], fiberCount });
-                           }
-                         }
-                         // If no BCP-BEP paths, fallback to single BEP
-                         if (bcpBepEntries.length === 0) {
-                           bcpBepEntries.push({ bepName: bepName || "BEP01", fiberCount });
-                         }
-
-                         return (
-                           <LabelCard color="amber-600" icon="📦" title="Labels BCP">
-                             {/* A. Μαύρη ίνα (από καμπίνα) */}
-                             <LabelBox label="A. Στη μαύρη ίνα (από Καμπίνα)">
-                               <LabelLine text={`ΚΑΜΠΙΝΑ: ${cabName} | ${fiberCount}${fiberRange ? ` | ΟΡΙΑ: ${fiberRange}` : ""}`} bold />
-                             </LabelBox>
-                             {/* B. Άσπρη ίνα (προς BEP) */}
-                             <LabelBox label="B. Στην άσπρη ίνα (προς BEP)">
-                               <div className="space-y-1">
-                                 {bcpBepEntries.map((entry, i) => (
-                                   <LabelLine key={i} text={`${entry.bepName} | ${entry.fiberCount}`} bold />
-                                 ))}
-                               </div>
-                             </LabelBox>
-                             {/* C. Πόρτα BCP (εξωτερικά) — info only */}
-                             <LabelBox label="C. Στην πόρτα του BCP">
-                               <div className="text-xs space-y-0.5 text-muted-foreground">
-                                 <div>ΚΑΜΠΙΝΑ: <strong className="text-foreground">{cabName}</strong></div>
-                                 <div>ΣΩΛΗΝΙΣΚΟΣ: <strong className="text-foreground">{cabTube || cabName}</strong></div>
-                                 {fiberRange && <div>ΟΡΙΑ: <strong className="text-foreground">{fiberRange}</strong></div>}
-                                 {address && <div>A1-B1: <strong className="text-foreground">{address}</strong></div>}
-                                 <div>C1-D1: <strong className="text-foreground">—</strong></div>
-                               </div>
-                             </LabelBox>
-                           </LabelCard>
-                         );
-                       })()}
+                       {hasBcpLabel && (
+                         <LabelCard color="amber-600" icon="📦" title="Labels BCP">
+                           {/* A. Μαύρη ίνα */}
+                           <LabelBox label="A. Στη μαύρη ίνα">
+                             <LabelLine text={`ΚΑΜΠΙΝΑ: ${cabName} | ${fiberCount} | ΟΡΙΑ: ${fiberRange}`} bold />
+                           </LabelBox>
+                           {/* B. Άσπρη ίνα */}
+                           <LabelBox label="B. Στην άσπρη ίνα">
+                             <LabelLine text={`${bepName || "BEP01"} | ${fiberCount}`} bold />
+                           </LabelBox>
+                           {/* C. Πόρτα BCP */}
+                            <LabelBox label="C. Στην πόρτα του BCP">
+                              <LabelBlock lines={[
+                                `ΚΑΜΠΙΝΑ: ${cabName}`,
+                                `ΣΩΛΗΝΙΣΚΟΣ: ${cabTube || cabName}`,
+                                `ΟΡΙΑ: ${fiberRange}`,
+                                ...(address ? [`A1-B1: ${address}`] : []),
+                              ]} />
+                            </LabelBox>
+                         </LabelCard>
+                       )}
 
                        {/* ═══ 4. BEP ═══ */}
                        {hasBepLabel && (
