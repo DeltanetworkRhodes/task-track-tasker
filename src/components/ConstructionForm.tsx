@@ -2347,26 +2347,40 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                          </LabelCard>
                        )}
 
-                       {/* ═══ 6. FB ═══ */}
-                       {hasFbLabel && (
-                         <LabelCard color="muted-foreground" icon="🏠" title="Labels FB">
-                           <div className="space-y-1.5">
-                               {Object.entries(fbGroups).sort(([a], [b]) => a.localeCompare(b)).map(([fbName, fb]) => {
-                                 const bmoPorts = fb.ports.map(p => p.mobPort).sort((a, b) => a - b);
-                                 const uniqueBmoPorts = [...new Set(bmoPorts)];
-                                 const floorLabel = fb.floor.startsWith("+") || fb.floor.startsWith("-") ? fb.floor : `+${fb.floor}`;
-                                 const portRange = uniqueBmoPorts.length > 1
-                                   ? `${uniqueBmoPorts[0]}-${uniqueBmoPorts[uniqueBmoPorts.length - 1]}`
-                                   : `${uniqueBmoPorts[0]}`;
-                                 return (
-                                 <LabelBox key={fbName} label={`A. Στην πόρτα: ${fbName}`}>
-                                   <LabelLine text={`FB(${floorLabel}) ${portRange}`} bold />
-                                </LabelBox>
-                                 );
+                        {/* ═══ 6. FB ═══ */}
+                        {hasFbLabel && (() => {
+                          // Group all BMO-FB ports by floor
+                          const floorPortMap: Record<string, number[]> = {};
+                          for (const [, fb] of Object.entries(fbGroups)) {
+                            const floorId = fb.floor;
+                            if (!floorPortMap[floorId]) floorPortMap[floorId] = [];
+                            for (const p of fb.ports) {
+                              if (!floorPortMap[floorId].includes(p.mobPort)) {
+                                floorPortMap[floorId].push(p.mobPort);
+                              }
+                            }
+                          }
+                          // Sort floors
+                          const sortedFloors = Object.entries(floorPortMap).sort(([a], [b]) => a.localeCompare(b));
+                          return (
+                          <LabelCard color="muted-foreground" icon="🏠" title="Labels FB">
+                            <div className="space-y-1.5">
+                              {sortedFloors.map(([floorId, ports]) => {
+                                const sorted = ports.sort((a, b) => a - b);
+                                const floorLabel = floorId.startsWith("+") || floorId.startsWith("-") ? floorId : `+${floorId}`;
+                                const portRange = sorted.length > 1
+                                  ? `${sorted[0]}-${sorted[sorted.length - 1]}`
+                                  : `${sorted[0]}`;
+                                return (
+                                  <LabelBox key={floorId} label={`Στην πόρτα: FB ${floorLabel}`}>
+                                    <LabelLine text={`FB(${floorLabel}) ${portRange}`} bold />
+                                  </LabelBox>
+                                );
                               })}
-                           </div>
-                         </LabelCard>
-                       )}
+                            </div>
+                          </LabelCard>
+                          );
+                        })()}
                      </div>
                    );
                  })()}
