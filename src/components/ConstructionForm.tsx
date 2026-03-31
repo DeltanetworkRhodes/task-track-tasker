@@ -1912,40 +1912,89 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
               ));
             }
 
+            // Group non-BMO-FB paths by type for display
+            const otherPaths: Record<string, any[]> = {};
+            const typeOrder = ["CAB-BEP", "BEP", "BEP-BMO"];
+            for (const p of paths) {
+              const type = (p["OPTICAL PATH TYPE"] || "").toUpperCase();
+              if (type !== "BMO-FB") {
+                if (!otherPaths[type]) otherPaths[type] = [];
+                otherPaths[type].push(p);
+              }
+            }
+            // Sort CAB-BEP: SGA first
+            if (otherPaths["CAB-BEP"]) {
+              otherPaths["CAB-BEP"].sort((a, b) => {
+                const aS = /SGA/i.test(a["OPTICAL PATH"] || "") ? 0 : 1;
+                const bS = /SGA/i.test(b["OPTICAL PATH"] || "") ? 0 : 1;
+                return aS - bS;
+              });
+            }
+
+            const orderedOther = typeOrder
+              .filter(t => otherPaths[t])
+              .map(t => [t, otherPaths[t]] as [string, any[]]);
+            Object.keys(otherPaths).forEach(t => {
+              if (!typeOrder.includes(t)) orderedOther.push([t, otherPaths[t]]);
+            });
+
             return (
-              <div className="space-y-2">
-                {sortedFloors.map(([key, floor]) => {
-                  floor.bmoPorts.sort((a, b) => a - b);
-                  const isCustomerFloor = customerFloor && (
-                    (key === "00" && /ισόγ|00|ground/i.test(customerFloor)) ||
-                    (key === "ΗΜ" && /ΗΜ|HM/i.test(customerFloor)) ||
-                    key === customerFloor
-                  );
-                  return (
-                    <div key={key} className={`p-2.5 rounded-lg border ${isCustomerFloor ? 'border-primary/50 bg-primary/5' : 'border-border bg-background'}`}>
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-semibold">{floor.floorLabel}</span>
-                      </div>
-                      <div className="mt-1 flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-muted-foreground">
-                        <span>FB: <strong className="text-foreground">{floor.fbCount}</strong> ports</span>
-                        <span>BMO ports: <strong className="text-foreground">{floor.bmoPorts.join(", ")}</strong></span>
-                      </div>
-                      {isCustomerFloor && (
-                        <div className="mt-1 text-xs text-primary font-medium">
-                          👤 Πελάτης — Όροφος {customerFloor}
-                        </div>
-                      )}
+              <div className="space-y-3">
+                {/* CAB-BEP, BEP, BEP-BMO sections */}
+                {orderedOther.map(([type, items]) => (
+                  <div key={type} className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="secondary" className="text-[10px]">{type}</Badge>
+                      <span className="text-[10px] text-muted-foreground">({items.length})</span>
                     </div>
-                  );
-                })}
-                {/* Summary: BEP & CAB-BEP info */}
-                {paths.some(p => (p["OPTICAL PATH TYPE"] || "").toUpperCase() === "CAB-BEP") && (
-                  <div className="text-[10px] text-muted-foreground mt-1 px-1">
-                    📌 CAB-BEP: {paths.filter(p => (p["OPTICAL PATH TYPE"] || "").toUpperCase() === "CAB-BEP").length} ίνες | 
-                    BEP-BMO: {paths.filter(p => (p["OPTICAL PATH TYPE"] || "").toUpperCase() === "BEP-BMO").length} ίνες |
-                    Σύνολο: {paths.length} διαδρομές
+                    <div className="space-y-0.5">
+                      {items.map((p: any, i: number) => (
+                        <div key={i} className="font-mono text-[11px] text-foreground px-2 py-1 bg-background border border-border rounded break-all">
+                          {p["OPTICAL PATH"] || "-"}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+
+                {/* BMO-FB: Per-floor view */}
+                {sortedFloors.length > 0 && (
+                  <div className="space-y-1.5">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="secondary" className="text-[10px]">BMO-FB</Badge>
+                      <span className="text-[10px] text-muted-foreground">ανά όροφο</span>
+                    </div>
+                    {sortedFloors.map(([key, floor]) => {
+                      floor.bmoPorts.sort((a, b) => a - b);
+                      const isCustomerFloor = customerFloor && (
+                        (key === "00" && /ισόγ|00|ground/i.test(customerFloor)) ||
+                        (key === "ΗΜ" && /ΗΜ|HM/i.test(customerFloor)) ||
+                        key === customerFloor
+                      );
+                      return (
+                        <div key={key} className={`p-2.5 rounded-lg border ${isCustomerFloor ? 'border-primary/50 bg-primary/5' : 'border-border bg-background'}`}>
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-semibold">{floor.floorLabel}</span>
+                          </div>
+                          <div className="mt-1 flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-muted-foreground">
+                            <span>FB: <strong className="text-foreground">{floor.fbCount}</strong> ports</span>
+                            <span>BMO ports: <strong className="text-foreground">{floor.bmoPorts.join(", ")}</strong></span>
+                          </div>
+                          {isCustomerFloor && (
+                            <div className="mt-1 text-xs text-primary font-medium">
+                              👤 Πελάτης — Όροφος {customerFloor}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
+
+                {/* Summary */}
+                <div className="text-[10px] text-muted-foreground mt-1 px-1">
+                  📌 Σύνολο: {paths.length} διαδρομές
+                </div>
               </div>
             );
           })()}
