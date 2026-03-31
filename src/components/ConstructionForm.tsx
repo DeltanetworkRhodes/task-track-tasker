@@ -8,7 +8,7 @@ import { useOrganization } from "@/contexts/OrganizationContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Trash2, Loader2, CheckCircle, HardHat, Package, Wrench, Camera, X, ChevronDown, ChevronRight, Plus, Minus, MapPin, Route, BrainCircuit, ShieldCheck, ShieldAlert, AlertTriangle, Save, GitMerge, Building2 } from "lucide-react";
+import { Trash2, Loader2, CheckCircle, HardHat, Package, Wrench, Camera, X, ChevronDown, ChevronRight, Plus, Minus, MapPin, Route, BrainCircuit, ShieldCheck, ShieldAlert, AlertTriangle, Save, GitMerge, Building2, Copy } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -2194,8 +2194,29 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                    );
 
                    const LabelLine = ({ text, bold }: { text: string; bold?: boolean }) => (
-                     <div className={`text-center text-xs ${bold ? "font-bold" : ""} text-foreground bg-muted/50 rounded px-2 py-1.5 border border-border`}>
+                     <div className={`relative group text-center text-xs ${bold ? "font-bold" : ""} text-foreground bg-muted/50 rounded px-2 py-1.5 border border-border`}>
                        {text}
+                       <button
+                         type="button"
+                         onClick={() => { navigator.clipboard.writeText(text); toast.success("Copied!"); }}
+                         className="absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded hover:bg-muted"
+                       >
+                         <Copy className="h-3 w-3 text-muted-foreground" />
+                       </button>
+                     </div>
+                   );
+
+                   // Multi-line label with copy
+                   const LabelBlock = ({ lines }: { lines: string[] }) => (
+                     <div className="relative group space-y-0.5 text-center text-xs font-bold text-foreground bg-muted/50 rounded px-2 py-2 border border-border">
+                       {lines.map((line, i) => <div key={i}>{line}</div>)}
+                       <button
+                         type="button"
+                         onClick={() => { navigator.clipboard.writeText(lines.join("\n")); toast.success("Copied!"); }}
+                         className="absolute right-1 top-1 opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded hover:bg-muted"
+                       >
+                         <Copy className="h-3 w-3 text-muted-foreground" />
+                       </button>
                      </div>
                    );
 
@@ -2239,14 +2260,14 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                              <LabelLine text={`${bepName || "BEP01"} | ${fiberCount}`} bold />
                            </LabelBox>
                            {/* C. Πόρτα BCP */}
-                           <LabelBox label="C. Στην πόρτα του BCP">
-                             <div className="space-y-0.5 text-center text-xs font-bold text-foreground bg-muted/50 rounded px-2 py-2 border border-border">
-                               <div>ΚΑΜΠΙΝΑ: {cabName}</div>
-                               <div>ΣΩΛΗΝΙΣΚΟΣ: {cabTube || cabName}</div>
-                               <div>ΟΡΙΑ: {fiberRange}</div>
-                               {address && <div className="border-t border-border pt-1 mt-1">A1-B1: {address}</div>}
-                             </div>
-                           </LabelBox>
+                            <LabelBox label="C. Στην πόρτα του BCP">
+                              <LabelBlock lines={[
+                                `ΚΑΜΠΙΝΑ: ${cabName}`,
+                                `ΣΩΛΗΝΙΣΚΟΣ: ${cabTube || cabName}`,
+                                `ΟΡΙΑ: ${fiberRange}`,
+                                ...(address ? [`A1-B1: ${address}`] : []),
+                              ]} />
+                            </LabelBox>
                          </LabelCard>
                        )}
 
@@ -2270,17 +2291,16 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                              </div>
                            </LabelBox>
                            {/* B. Πόρτα BEP */}
-                           <LabelBox label="B. Στην πόρτα του BEP">
-                             <div className="space-y-0.5 text-center text-xs font-bold text-foreground bg-muted/50 rounded px-2 py-2 border border-border">
-                               <div>ΚΑΜΠΙΝΑ: {cabName}</div>
-                               <div>ΣΩΛΗΝΙΣΚΟΣ: {cabTube || cabName}</div>
-                               <div>ΟΡΙΑ: {fiberRange}</div>
-                               <div className="border-t border-border pt-1 mt-1">ΠΟΡΤΑ 1: ΕΙΣΟΔΟΣ ΠΑΡΟΧΙΚΗΣ</div>
-                               <div>ΠΟΡΤΑ 2: SPLITTER</div>
-                               {!bepOnly && <div>ΠΟΡΤΑ 3: PATCH TO BMO</div>}
-                               {bepOnly && <div>ΠΟΡΤΑ 3: PATCH TO ΠΕΛΑΤΗ</div>}
-                             </div>
-                           </LabelBox>
+                            <LabelBox label="B. Στην πόρτα του BEP">
+                              <LabelBlock lines={[
+                                `ΚΑΜΠΙΝΑ: ${cabName}`,
+                                `ΣΩΛΗΝΙΣΚΟΣ: ${cabTube || cabName}`,
+                                `ΟΡΙΑ: ${fiberRange}`,
+                                `ΠΟΡΤΑ 1: ΕΙΣΟΔΟΣ ΠΑΡΟΧΙΚΗΣ`,
+                                `ΠΟΡΤΑ 2: SPLITTER`,
+                                bepOnly ? `ΠΟΡΤΑ 3: PATCH TO ΠΕΛΑΤΗ` : `ΠΟΡΤΑ 3: PATCH TO BMO`,
+                              ]} />
+                            </LabelBox>
                          </LabelCard>
                        )}
 
@@ -2288,14 +2308,14 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                        {hasMobLabel && (
                          <LabelCard color="accent-foreground" icon="📡" title="Labels BMO">
                            {/* A. Πόρτα BMO */}
-                           <LabelBox label="A. Στην πόρτα του BMO">
-                             <div className="space-y-0.5 text-center text-xs font-bold text-foreground bg-muted/50 rounded px-2 py-2 border border-border">
-                               <div>BMO</div>
-                               <div>ΚΤΗΡΙΟ: {address}</div>
-                               {buildingId && <div>BID: {buildingId}</div>}
-                               <div>ΑΠΟ: {bepName || "BEP01"}</div>
-                             </div>
-                           </LabelBox>
+                            <LabelBox label="A. Στην πόρτα του BMO">
+                              <LabelBlock lines={[
+                                `BMO`,
+                                `ΚΤΗΡΙΟ: ${address}`,
+                                ...(buildingId ? [`BID: ${buildingId}`] : []),
+                                `ΑΠΟ: ${bepName || "BEP01"}`,
+                              ]} />
+                            </LabelBox>
                            {/* B. Εξερχόμενα προς FB */}
                            <LabelBox label="B. Στα εξερχόμενα προς FB">
                              <div className="space-y-1">
@@ -2310,13 +2330,9 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                        {/* ═══ 5. BMO (BEP ONLY) ═══ */}
                        {bepOnly && bepName && (
                          <LabelCard color="accent-foreground" icon="📡" title="Labels BMO (BEP ONLY)">
-                           <LabelBox>
-                             <div className="space-y-0.5 text-center text-xs font-bold text-foreground bg-muted/50 rounded px-2 py-2 border border-border">
-                               <div>BMO</div>
-                               <div>ΚΤΗΡΙΟ: {address}</div>
-                               <div>BEP ONLY</div>
-                             </div>
-                           </LabelBox>
+                            <LabelBox>
+                              <LabelBlock lines={[`BMO`, `ΚΤΗΡΙΟ: ${address}`, `BEP ONLY`]} />
+                            </LabelBox>
                          </LabelCard>
                        )}
 
@@ -2324,13 +2340,13 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                        {hasFbLabel && (
                          <LabelCard color="muted-foreground" icon="🏠" title="Labels FB">
                            <div className="space-y-1.5">
-                             {Object.entries(fbGroups).sort(([a], [b]) => a.localeCompare(b)).map(([fbName, fb]) => (
-                               <LabelBox key={fbName} label={`A. Στην πόρτα: ${fbName}`}>
-                                 <div className="space-y-0.5 text-center text-xs font-bold text-foreground bg-muted/50 rounded px-2 py-2 border border-border">
-                                   <div>FB {floorShort(fb.floor)}</div>
-                                   <div>ΚΤΗΡΙΟ: {address}</div>
-                                   <div>ΑΠΟ: BMO</div>
-                                 </div>
+                              {Object.entries(fbGroups).sort(([a], [b]) => a.localeCompare(b)).map(([fbName, fb]) => (
+                                <LabelBox key={fbName} label={`A. Στην πόρτα: ${fbName}`}>
+                                  <LabelBlock lines={[
+                                    `FB ${floorShort(fb.floor)}`,
+                                    `ΚΤΗΡΙΟ: ${address}`,
+                                    `ΑΠΟ: BMO`,
+                                  ]} />
                                </LabelBox>
                              ))}
                              {/* B. Εξόδοι / αναμονές */}
