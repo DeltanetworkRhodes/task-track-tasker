@@ -2152,10 +2152,10 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                      return floorId;
                    };
                    
-                   // --- Fiber range from CAB-BEP ---
+                   // --- Fiber range from CAB-BEP or CAB-BCP ---
                    let cabTube = "";
                    const cabFiberNums: number[] = [];
-                   for (const p of cabBepPaths) {
+                   for (const p of (cabBepPaths.length > 0 ? cabBepPaths : cabBcpPaths)) {
                      const path = p["OPTICAL PATH"] || "";
                      const tubeMatch = path.match(/^[A-Z]\d+_([A-Z])(\d+)\.(\d+)/i);
                      if (tubeMatch && !cabTube) {
