@@ -2291,9 +2291,10 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                                    <LabelLine text={`ΠΡΟΣ: BMO | ${fiberCount}`} bold />
                                  )}
                                  {/* FB cables from BMO-FB */}
-                                 {Object.entries(fbGroups).sort(([a], [b]) => a.localeCompare(b)).map(([fbName, fb]) => (
-                                   <LabelLine key={fbName} text={`ΠΡΟΣ: FB ${floorShort(fb.floor)} | ${floorFO(fb.floor)}`} bold />
-                                 ))}
+                                  {Object.entries(fbGroups).sort(([a], [b]) => a.localeCompare(b)).map(([floorKey, fb]) => {
+                                    const fl = fb.floor.startsWith("+") || fb.floor.startsWith("-") ? fb.floor : `+${fb.floor}`;
+                                    return <LabelLine key={floorKey} text={`ΠΡΟΣ: FB(${fl}) | ${floorFO(fb.floor)}`} bold />;
+                                  })}
                                 {bepOnly && (
                                   <LabelLine text={`ΠΡΟΣ: ΠΕΛΑΤΗ | 2FO`} bold />
                                 )}
