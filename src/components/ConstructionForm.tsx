@@ -1921,7 +1921,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
             let cabName = "";
             let splitterInfo = "";
             let bepName = "";
-            let backboneCount = 0;
+            const backboneFibers: string[] = [];
             for (const p of cabBepPaths) {
               const path = p["OPTICAL PATH"] || "";
               // Extract cab: G137_...
@@ -1936,7 +1936,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                 const sbMatch = path.match(/(SB\d+\([^)]+\))/i);
                 if (sgaMatch && sbMatch) splitterInfo = `${sgaMatch[1]} → ${sbMatch[1]}`;
               } else {
-                backboneCount++;
+                backboneFibers.push(path);
               }
             }
 
@@ -1964,7 +1964,14 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                       <div>🏗️ Καμπίνα: <strong className="text-foreground">{cabName || "—"}</strong></div>
                       <div>📦 BEP: <strong className="text-foreground">{bepName || "—"}</strong></div>
                       {splitterInfo && <div>🔀 Splitter: <strong className="text-foreground">{splitterInfo}</strong></div>}
-                      <div>🔗 Backbone ίνες: <strong className="text-foreground">{backboneCount}</strong></div>
+                      <div>🔗 Backbone ίνες: <strong className="text-foreground">{backboneFibers.length}</strong></div>
+                      {backboneFibers.length > 0 && (
+                        <div className="mt-1 pl-2 border-l-2 border-muted space-y-0.5">
+                          {backboneFibers.map((f, i) => (
+                            <div key={i} className="text-[10px] text-muted-foreground font-mono">{f}</div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
