@@ -1964,7 +1964,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                       <div>🏗️ Καμπίνα: <strong className="text-foreground">{cabName || "—"}</strong></div>
                       <div>📦 BEP: <strong className="text-foreground">{bepName || "—"}</strong></div>
                       {splitterInfo && <div>🔀 Splitter: <strong className="text-foreground">{splitterInfo}</strong></div>}
-                      <div>🔗 Backbone ίνες: <strong className="text-foreground">{backboneFibers.length}</strong></div>
+                      <div>🔗 Όρια σε καμπίνα: <strong className="text-foreground">{backboneFibers.length}</strong></div>
                       {backboneFibers.length > 0 && (
                         <div className="mt-1 pl-2 border-l-2 border-muted space-y-0.5">
                           {backboneFibers.map((f, i) => (
