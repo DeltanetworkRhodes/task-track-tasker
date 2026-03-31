@@ -2260,14 +2260,14 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                              <LabelLine text={`${bepName || "BEP01"} | ${fiberCount}`} bold />
                            </LabelBox>
                            {/* C. Πόρτα BCP */}
-                           <LabelBox label="C. Στην πόρτα του BCP">
-                             <div className="space-y-0.5 text-center text-xs font-bold text-foreground bg-muted/50 rounded px-2 py-2 border border-border">
-                               <div>ΚΑΜΠΙΝΑ: {cabName}</div>
-                               <div>ΣΩΛΗΝΙΣΚΟΣ: {cabTube || cabName}</div>
-                               <div>ΟΡΙΑ: {fiberRange}</div>
-                               {address && <div className="border-t border-border pt-1 mt-1">A1-B1: {address}</div>}
-                             </div>
-                           </LabelBox>
+                            <LabelBox label="C. Στην πόρτα του BCP">
+                              <LabelBlock lines={[
+                                `ΚΑΜΠΙΝΑ: ${cabName}`,
+                                `ΣΩΛΗΝΙΣΚΟΣ: ${cabTube || cabName}`,
+                                `ΟΡΙΑ: ${fiberRange}`,
+                                ...(address ? [`A1-B1: ${address}`] : []),
+                              ]} />
+                            </LabelBox>
                          </LabelCard>
                        )}
 
