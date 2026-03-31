@@ -1912,33 +1912,43 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
               ));
             }
 
-            // Parse CAB-BEP paths
+            // Parse CAB-BEP and CAB-BCP paths
             const cabBepPaths = paths.filter(p => (p["OPTICAL PATH TYPE"] || "").toUpperCase() === "CAB-BEP");
+            const cabBcpPaths = paths.filter(p => (p["OPTICAL PATH TYPE"] || "").toUpperCase() === "CAB-BCP");
+            const bcpBepPaths = paths.filter(p => (p["OPTICAL PATH TYPE"] || "").toUpperCase() === "BCP-BEP");
             const bepPaths = paths.filter(p => (p["OPTICAL PATH TYPE"] || "").toUpperCase() === "BEP");
             const bepBmoPaths = paths.filter(p => (p["OPTICAL PATH TYPE"] || "").toUpperCase() === "BEP-BMO");
+            const hasBcp = cabBcpPaths.length > 0 || bcpBepPaths.length > 0;
 
-            // Extract CAB-BEP summary
+            // Use CAB-BEP or CAB-BCP paths for the first section
+            const firstSectionPaths = cabBepPaths.length > 0 ? cabBepPaths : cabBcpPaths;
+            const firstSectionTarget = cabBepPaths.length > 0 ? "BEP" : "BCP";
+
+            // Extract CAB section summary
             let cabName = "";
             let bepName = "";
+            let bcpName = "";
             const splitterEntries: { fiber: string; sga: string; sgaPort: string; bepPort: string; sb: string }[] = [];
             const backboneFibers: string[] = [];
-            for (const p of cabBepPaths) {
+            for (const p of firstSectionPaths) {
               const path = p["OPTICAL PATH"] || "";
               // Extract cab: G137_...
               const cabMatch = path.match(/^([A-Z]\d+)/i);
               if (cabMatch && !cabName) cabName = cabMatch[1];
-              // Extract BEP name (with or without conduit)
-              const bepMatch = path.match(/(BEP\d+(?:\([^)]+\))?)/i);
-              if (bepMatch && !bepName) bepName = bepMatch[1];
-              // Check if splitter path
-              if (/SG[AB]/i.test(path)) {
-                const sgaMatch = path.match(/(SG[AB]\d+\([^)]+\))/i);
-                const sbMatch = path.match(/(SB\d+\([^)]+\))/i);
-                const fiberMatch = path.match(/SG[AB]\d+\([^)]+\)\.\d+_([A-Z]\d+\.\d+)/i);
-                // Extract SGA port number: SGA01(1:8).03 → 03
-                const sgaPortMatch = path.match(/SG[AB]\d+\([^)]+\)\.(\d+)/i);
-                // Extract BEP port: ...BEP01_01a_SB... or ...BEP01(b08)_01_SB...
-                const bepPortMatch = path.match(/BEP\d+(?:\([^)]+\))?_(\d+[a-z]?)/i);
+               // Extract BEP or BCP name (with or without conduit)
+               const bepMatch = path.match(/(BEP\d+(?:\([^)]+\))?)/i);
+               if (bepMatch && !bepName) bepName = bepMatch[1];
+               const bcpMatch = path.match(/(BCP\d+(?:\([^)]+\))?)/i);
+               if (bcpMatch && !bcpName) bcpName = bcpMatch[1];
+               // Check if splitter path
+               if (/SG[AB]/i.test(path)) {
+                 const sgaMatch = path.match(/(SG[AB]\d+\([^)]+\))/i);
+                 const sbMatch = path.match(/(SB\d+\([^)]+\))/i);
+                 const fiberMatch = path.match(/SG[AB]\d+\([^)]+\)\.\d+_([A-Z]\d+\.\d+)/i);
+                 // Extract SGA port number: SGA01(1:8).03 → 03
+                 const sgaPortMatch = path.match(/SG[AB]\d+\([^)]+\)\.(\d+)/i);
+                 // Extract BEP/BCP port
+                 const bepPortMatch = path.match(/(?:BEP|BCP)\d+(?:\([^)]+\))?_(\d+[a-z]?)/i);
                 splitterEntries.push({
                   fiber: fiberMatch ? fiberMatch[1] : "",
                   sga: sgaMatch ? sgaMatch[1] : "",
@@ -1958,6 +1968,14 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
               }
             }
 
+            // If bepName not set from first section, try BCP-BEP or BEP-BMO paths
+            if (!bepName) {
+              for (const p of [...bcpBepPaths, ...bepBmoPaths]) {
+                const m = (p["OPTICAL PATH"] || "").match(/(BEP\d+(?:\([^)]+\))?)/i);
+                if (m) { bepName = m[1]; break; }
+              }
+            }
+
             // Extract BEP-BMO summary: count connected BMO ports
             const bepBmoPortSet = new Set<number>();
             for (const p of bepBmoPaths) {
@@ -1972,15 +1990,15 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
 
             return (
               <div className="space-y-3">
-                {/* CAB-BEP simplified */}
-                {cabBepPaths.length > 0 && (
+                {/* CAB-BEP or CAB-BCP */}
+                {firstSectionPaths.length > 0 && (
                   <div className="p-2.5 rounded-lg border border-border bg-background space-y-2">
                     <div className="flex items-center gap-2">
-                      <Badge variant="secondary" className="text-[10px]">CAB → BEP</Badge>
+                      <Badge variant="secondary" className="text-[10px]">CAB → {firstSectionTarget}</Badge>
                     </div>
                     <div className="text-xs space-y-0.5">
                       <div>🏗️ Καμπίνα: <strong className="text-foreground">{cabName || "—"}</strong></div>
-                      <div>📦 BEP: <strong className="text-foreground">{bepName || "—"}</strong></div>
+                      <div>📦 {firstSectionTarget}: <strong className="text-foreground">{(firstSectionTarget === "BCP" ? bcpName : bepName) || "—"}</strong></div>
                     </div>
 
                     {/* Ενεργά όρια (splitter fibers) */}
@@ -1996,7 +2014,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                             </div>
                             {(s.bepPort || s.sb) && (
                               <div className="text-[10px] text-muted-foreground font-mono pl-2">
-                                ↳ {bepName} port {s.bepPort} → {s.sb}
+                                ↳ {firstSectionTarget === "BCP" ? bcpName : bepName} port {s.bepPort} → {s.sb}
                               </div>
                             )}
                           </div>
@@ -2020,6 +2038,37 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                     <div className="text-[10px] text-muted-foreground border-t border-border pt-1">
                       Σύνολο ινών: <strong className="text-foreground">{splitterEntries.length + backboneFibers.length}</strong>
                     </div>
+                  </div>
+                )}
+
+                {/* BCP-BEP section (when BCP exists) */}
+                {bcpBepPaths.length > 0 && (
+                  <div className="p-2.5 rounded-lg border border-border bg-background space-y-1.5">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="secondary" className="text-[10px]">BCP → BEP</Badge>
+                    </div>
+                    <div className="text-xs space-y-0.5">
+                      <div>📦 BCP: <strong className="text-foreground">{bcpName || "—"}</strong></div>
+                      <div>📦 BEP: <strong className="text-foreground">{(() => {
+                        // Extract BEP name from BCP-BEP paths
+                        for (const p of bcpBepPaths) {
+                          const m = (p["OPTICAL PATH"] || "").match(/(BEP\d+(?:\([^)]+\))?)/i);
+                          if (m) return m[1];
+                        }
+                        return bepName || "—";
+                      })()}</strong></div>
+                      <div>🔗 Ίνες: <strong className="text-foreground">{bcpBepPaths.length}</strong></div>
+                    </div>
+                    {bcpBepPaths.map((p, i) => {
+                      const path = p["OPTICAL PATH"] || "";
+                      const sbMatch = path.match(/(SB\d+\([^)]+\))/i);
+                      const bepPortMatch = path.match(/BEP\d+(?:\([^)]+\))?_(\d+[a-z]?)/i);
+                      return (
+                        <div key={i} className="ml-1 text-[11px] font-mono text-muted-foreground">
+                          {bepPortMatch ? `port ${bepPortMatch[1]}` : ""}{sbMatch ? ` → ${sbMatch[1]}` : ""}
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
 
