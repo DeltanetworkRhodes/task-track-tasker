@@ -1921,7 +1921,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
             let cabName = "";
             let splitterInfo = "";
             let bepName = "";
-            let backboneCount = 0;
+            const backboneFibers: string[] = [];
             for (const p of cabBepPaths) {
               const path = p["OPTICAL PATH"] || "";
               // Extract cab: G137_...
@@ -1936,7 +1936,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                 const sbMatch = path.match(/(SB\d+\([^)]+\))/i);
                 if (sgaMatch && sbMatch) splitterInfo = `${sgaMatch[1]} → ${sbMatch[1]}`;
               } else {
-                backboneCount++;
+                backboneFibers.push(path);
               }
             }
 
