@@ -2215,7 +2215,9 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                            {splitterLabelsList.length > 0 && (
                              <LabelBox label="B. Πάνω στις εξόδους Splitter">
                                <div className="space-y-1">
-                                 {splitterLabelsList.map((spl, i) => (
+                                  {splitterLabelsList.map((spl, i) => (
+                                    <LabelLine key={i} text={spl} bold />
+                                  ))}
                                    <LabelLine key={i} text={`${spl} - ${address}`} bold />
                                  ))}
                                </div>
