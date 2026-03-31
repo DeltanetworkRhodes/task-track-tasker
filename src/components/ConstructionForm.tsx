@@ -1843,6 +1843,22 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
               return match ? parseInt(match[1], 10) : 999;
             };
             const sortedPaths = [...paths].sort((a, b) => {
+              const typeA = a["OPTICAL PATH TYPE"] || "";
+              const typeB = b["OPTICAL PATH TYPE"] || "";
+              // Sort by type group first (keep same types together)
+              if (typeA !== typeB) return 0;
+              
+              const pathA = a["OPTICAL PATH"] || "";
+              const pathB = b["OPTICAL PATH"] || "";
+              
+              // For CAB-BEP: SGA paths (splitter) come first
+              if (typeA === "CAB-BEP") {
+                const aIsSGA = /SGA/i.test(pathA);
+                const bIsSGA = /SGA/i.test(pathB);
+                if (aIsSGA && !bIsSGA) return -1;
+                if (!aIsSGA && bIsSGA) return 1;
+              }
+              
               const floorDiff = extractFloor(a) - extractFloor(b);
               return floorDiff !== 0 ? floorDiff : extractIndex(a) - extractIndex(b);
             });
