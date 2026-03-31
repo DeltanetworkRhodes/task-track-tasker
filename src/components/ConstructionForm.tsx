@@ -2216,7 +2216,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                       {hasBepLabel && (
                         <div className="p-2.5 rounded-lg border-2 border-dashed border-primary/30 bg-card space-y-1.5">
                           <div className="text-[10px] font-bold uppercase tracking-wider text-primary">📦 Label BEP</div>
-                          <div className="bg-white border border-border rounded-md p-3 font-mono text-[11px] space-y-2">
+                          <div className="bg-background border border-border rounded-md p-3 font-mono text-[11px] space-y-2">
                             {/* Header: SGA (SB) + fiber range */}
                             <div className="text-center border-b border-border pb-1.5">
                               <div className="font-bold text-foreground text-xs">
@@ -2262,7 +2262,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                       {hasBmoLabel && (
                         <div className="p-2.5 rounded-lg border-2 border-dashed border-accent/30 bg-card space-y-1.5">
                           <div className="text-[10px] font-bold uppercase tracking-wider text-accent">📦 Label BMO</div>
-                          <div className="bg-white border border-border rounded-md p-3 font-mono text-[11px] space-y-1.5">
+                          <div className="bg-background border border-border rounded-md p-3 font-mono text-[11px] space-y-1.5">
                             {/* Main cable */}
                             {mainCableLabel && (
                               <div className="text-center font-bold text-foreground text-xs border-b border-border pb-1.5">
@@ -2292,7 +2292,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                                 ? `${Math.min(...fb.fiberNums)} - ${Math.max(...fb.fiberNums)}`
                                 : "";
                               return (
-                                <div key={i} className="bg-white border border-border rounded-md p-2 font-mono text-center space-y-0.5">
+                                <div key={i} className="bg-background border border-border rounded-md p-2 font-mono text-center space-y-0.5">
                                   <div className="text-[11px] font-bold text-foreground">{fbClean}</div>
                                   <div className="text-[10px] text-muted-foreground">{fb.ports}FO</div>
                                   {portRange && <div className="text-[9px] text-muted-foreground">{portRange}</div>}
