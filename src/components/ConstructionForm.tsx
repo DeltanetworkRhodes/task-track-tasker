@@ -1935,11 +1935,14 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                 const sgaMatch = path.match(/(SG[AB]\d+\([^)]+\))/i);
                 const sbMatch = path.match(/(SB\d+\([^)]+\))/i);
                 const fiberMatch = path.match(/SG[AB]\d+\([^)]+\)\.\d+_([A-Z]\d+\.\d+)/i);
+                // Extract SGA port number: SGA01(1:8).03 → 03
+                const sgaPortMatch = path.match(/SG[AB]\d+\([^)]+\)\.(\d+)/i);
                 // Extract BEP port: ...BEP01_01a_SB... or ...BEP01(b08)_01_SB...
                 const bepPortMatch = path.match(/BEP\d+(?:\([^)]+\))?_(\d+[a-z]?)/i);
                 splitterEntries.push({
                   fiber: fiberMatch ? fiberMatch[1] : "",
                   sga: sgaMatch ? sgaMatch[1] : "",
+                  sgaPort: sgaPortMatch ? sgaPortMatch[1] : "",
                   bepPort: bepPortMatch ? bepPortMatch[1] : "",
                   sb: sbMatch ? sbMatch[1] : "",
                 });
@@ -1971,40 +1974,51 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
               <div className="space-y-3">
                 {/* CAB-BEP simplified */}
                 {cabBepPaths.length > 0 && (
-                  <div className="p-2.5 rounded-lg border border-border bg-background space-y-1.5">
+                  <div className="p-2.5 rounded-lg border border-border bg-background space-y-2">
                     <div className="flex items-center gap-2">
                       <Badge variant="secondary" className="text-[10px]">CAB → BEP</Badge>
                     </div>
                     <div className="text-xs space-y-0.5">
                       <div>🏗️ Καμπίνα: <strong className="text-foreground">{cabName || "—"}</strong></div>
                       <div>📦 BEP: <strong className="text-foreground">{bepName || "—"}</strong></div>
-                      <div>🔗 Όρια σε καμπίνα: <strong className="text-foreground">{backboneFibers.length + splitterEntries.length}</strong></div>
-                      {(splitterEntries.length > 0 || backboneFibers.length > 0) && (
-                        <div className="mt-1.5 space-y-1.5">
-                          {splitterEntries.map((s, i) => (
-                            <div key={i} className="space-y-0.5">
-                              <div className="flex items-center gap-1.5">
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/15 text-primary text-[10px] font-mono font-semibold">
-                                  🔵 {s.fiber} → {s.sga}
-                                </span>
-                              </div>
-                              {(s.bepPort || s.sb) && (
-                                <div className="pl-5 text-[10px] text-muted-foreground font-mono">
-                                  ↳ {bepName} port {s.bepPort} → {s.sb}
-                                </div>
-                              )}
-                            </div>
-                          ))}
-                          {backboneFibers.length > 0 && (
-                            <div className="flex items-center gap-1 flex-wrap">
-                              <span className="text-[10px] text-muted-foreground">⚪</span>
-                              <span className="text-[10px] text-muted-foreground font-mono">
-                                {backboneFibers.join(", ")}
-                              </span>
-                            </div>
-                          )}
+                    </div>
+
+                    {/* Ενεργά όρια (splitter fibers) */}
+                    {splitterEntries.length > 0 && (
+                      <div className="space-y-1.5">
+                        <div className="text-[10px] font-bold uppercase tracking-wider text-primary">
+                          🔵 {splitterEntries.length === 1 ? "Ενεργό Όριο" : `Ενεργά Όρια (${splitterEntries.length})`}
                         </div>
-                      )}
+                        {splitterEntries.map((s, i) => (
+                          <div key={i} className="ml-1 p-1.5 rounded border border-primary/20 bg-primary/5 space-y-0.5">
+                            <div className="text-[11px] font-mono font-semibold text-primary">
+                              {splitterEntries.length > 1 ? `${i + 1}ο: ` : ""}{s.fiber} → {s.sga}{s.sgaPort ? ` (port ${s.sgaPort})` : ""}
+                            </div>
+                            {(s.bepPort || s.sb) && (
+                              <div className="text-[10px] text-muted-foreground font-mono pl-2">
+                                ↳ {bepName} port {s.bepPort} → {s.sb}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Εφεδρικά όρια */}
+                    {backboneFibers.length > 0 && (
+                      <div className="space-y-1">
+                        <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                          ⚪ Εφεδρικά Όρια ({backboneFibers.length})
+                        </div>
+                        <div className="ml-1 text-[11px] text-muted-foreground font-mono">
+                          {backboneFibers.join(" · ")}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Σύνολο */}
+                    <div className="text-[10px] text-muted-foreground border-t border-border pt-1">
+                      Σύνολο ινών: <strong className="text-foreground">{splitterEntries.length + backboneFibers.length}</strong>
                     </div>
                   </div>
                 )}
