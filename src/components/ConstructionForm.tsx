@@ -2340,13 +2340,13 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                        {hasFbLabel && (
                          <LabelCard color="muted-foreground" icon="🏠" title="Labels FB">
                            <div className="space-y-1.5">
-                             {Object.entries(fbGroups).sort(([a], [b]) => a.localeCompare(b)).map(([fbName, fb]) => (
-                               <LabelBox key={fbName} label={`A. Στην πόρτα: ${fbName}`}>
-                                 <div className="space-y-0.5 text-center text-xs font-bold text-foreground bg-muted/50 rounded px-2 py-2 border border-border">
-                                   <div>FB {floorShort(fb.floor)}</div>
-                                   <div>ΚΤΗΡΙΟ: {address}</div>
-                                   <div>ΑΠΟ: BMO</div>
-                                 </div>
+                              {Object.entries(fbGroups).sort(([a], [b]) => a.localeCompare(b)).map(([fbName, fb]) => (
+                                <LabelBox key={fbName} label={`A. Στην πόρτα: ${fbName}`}>
+                                  <LabelBlock lines={[
+                                    `FB ${floorShort(fb.floor)}`,
+                                    `ΚΤΗΡΙΟ: ${address}`,
+                                    `ΑΠΟ: BMO`,
+                                  ]} />
                                </LabelBox>
                              ))}
                              {/* B. Εξόδοι / αναμονές */}
