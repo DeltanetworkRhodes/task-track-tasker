@@ -1930,7 +1930,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
             let bcpName = "";
             const splitterEntries: { fiber: string; sga: string; sgaPort: string; bepPort: string; sb: string }[] = [];
             const backboneFibers: string[] = [];
-            for (const p of cabBepPaths) {
+            for (const p of firstSectionPaths) {
               const path = p["OPTICAL PATH"] || "";
               // Extract cab: G137_...
               const cabMatch = path.match(/^([A-Z]\d+)/i);
