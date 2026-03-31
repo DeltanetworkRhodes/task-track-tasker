@@ -1819,79 +1819,135 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
         </Card>
       )}
 
-      {/* GIS: Οπτικές Διαδρομές */}
+      {/* GIS: Οδηγίες Κόλλησης ανά Όροφο */}
       {gisData && Array.isArray(gisData.optical_paths) && (gisData.optical_paths as any[]).length > 0 && (
         <Card className="p-4 space-y-3 border-accent/30 bg-accent/5">
           <Label className="text-xs font-bold uppercase tracking-wider text-accent-foreground flex items-center gap-1.5">
-            🔗 Οπτικές Διαδρομές (GIS) — {(gisData.optical_paths as any[]).length} συνολικά
+            <Building2 className="h-3.5 w-3.5" /> Οδηγίες Κόλλησης — Ανά Όροφο
           </Label>
           {(() => {
             const paths = gisData.optical_paths as any[];
-            // Sort by floor extracted from path values
-            const extractFloor = (p: any): number => {
-              const vals = Object.values(p).join(" ");
-              // Match patterns like (+00), (+01), (+ΗΜ), (-01)
-              const match = vals.match(/\(\+?(-?\d+)\)/);
-              if (match) return parseInt(match[1], 10);
-              // Check for ΗΜ (ημιυπόγειο) — should come before ground floor
-              if (/ΗΜ|HM/i.test(vals)) return -1;
-              return 999;
-            };
-            const extractIndex = (p: any): number => {
-              const vals = Object.values(p).join(" ");
-              const match = vals.match(/BMO\d+_(\d+)_/i);
-              return match ? parseInt(match[1], 10) : 999;
-            };
-            const sortedPaths = [...paths].sort((a, b) => {
-              const typeA = a["OPTICAL PATH TYPE"] || "";
-              const typeB = b["OPTICAL PATH TYPE"] || "";
-              // Sort by type group first (keep same types together)
-              if (typeA !== typeB) return 0;
-              
-              const pathA = a["OPTICAL PATH"] || "";
-              const pathB = b["OPTICAL PATH"] || "";
-              
-              // For CAB-BEP: SGA paths (splitter) come first
-              if (typeA === "CAB-BEP") {
-                const aIsSGA = /SGA/i.test(pathA);
-                const bIsSGA = /SGA/i.test(pathB);
-                if (aIsSGA && !bIsSGA) return -1;
-                if (!aIsSGA && bIsSGA) return 1;
+
+            // Parse BMO-FB paths to extract floor info
+            const floorMap: Record<string, { floorLabel: string; floorSort: number; bmoPorts: number[]; fbCount: number; customerPath?: string }> = {};
+
+            for (const p of paths) {
+              const pathType = (p["OPTICAL PATH TYPE"] || "").toUpperCase();
+              const pathStr = p["OPTICAL PATH"] || "";
+
+              if (pathType === "BMO-FB") {
+                // Extract BMO port: BMO01_5_ → port 5
+                const bmoMatch = pathStr.match(/BMO\d+_(\d+)_/i);
+                const bmoPort = bmoMatch ? parseInt(bmoMatch[1], 10) : 0;
+
+                // Extract floor: FB(+ΗΜ), FB(+00), FB(+01), FB(-01)
+                const floorMatch = pathStr.match(/FB\(\+?([^)]+)\)/i);
+                let floorKey = "unknown";
+                let floorLabel = "Άγνωστο";
+                let floorSort = 999;
+
+                if (floorMatch) {
+                  const raw = floorMatch[1];
+                  floorKey = raw;
+                  if (/ΗΜ|HM/i.test(raw)) {
+                    floorLabel = "🏢 Ημιυπόγειο (+ΗΜ)";
+                    floorSort = -1;
+                  } else if (/ΥΠ|YP/i.test(raw)) {
+                    floorLabel = "🏢 Υπόγειο";
+                    floorSort = -2;
+                  } else {
+                    const num = parseInt(raw, 10);
+                    if (!isNaN(num)) {
+                      if (num === 0) {
+                        floorLabel = "🏢 Ισόγειο (+00)";
+                        floorSort = 0;
+                      } else if (num > 0) {
+                        floorLabel = `🏢 ${num}ος Όροφος (+${raw})`;
+                        floorSort = num;
+                      } else {
+                        floorLabel = `🏢 Υπόγειο (${raw})`;
+                        floorSort = num;
+                      }
+                    }
+                  }
+                }
+
+                if (!floorMap[floorKey]) {
+                  floorMap[floorKey] = { floorLabel, floorSort, bmoPorts: [], fbCount: 0 };
+                }
+                if (bmoPort > 0) floorMap[floorKey].bmoPorts.push(bmoPort);
+                floorMap[floorKey].fbCount++;
               }
-              
-              const floorDiff = extractFloor(a) - extractFloor(b);
-              return floorDiff !== 0 ? floorDiff : extractIndex(a) - extractIndex(b);
-            });
-            const grouped: Record<string, any[]> = {};
-            sortedPaths.forEach((p: any) => {
-              const type = p["OPTICAL PATH TYPE"] || "Άλλο";
-              if (!grouped[type]) grouped[type] = [];
-              grouped[type].push(p);
-            });
-            // Fixed display order for optical path types
-            const typeOrder = ["CAB-BEP", "BMO-FB", "BEP", "BEP-BMO"];
-            const orderedEntries = typeOrder
-              .filter(t => grouped[t])
-              .map(t => [t, grouped[t]] as [string, any[]]);
-            // Add any remaining types not in the predefined order
-            Object.entries(grouped).forEach(([t, items]) => {
-              if (!typeOrder.includes(t)) orderedEntries.push([t, items]);
-            });
-            return orderedEntries.map(([type, items]) => (
-              <div key={type} className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <Badge variant="secondary" className="text-[10px]">{type}</Badge>
-                  <span className="text-[10px] text-muted-foreground">({items.length})</span>
+            }
+
+            // Check BEP-BMO for customer assignment info
+            const customerFloor = gisData.customer_floor;
+
+            // Sort floors
+            const sortedFloors = Object.entries(floorMap)
+              .sort(([, a], [, b]) => a.floorSort - b.floorSort);
+
+            if (sortedFloors.length === 0) {
+              // Fallback: show raw paths grouped by type
+              const grouped: Record<string, any[]> = {};
+              paths.forEach((p: any) => {
+                const type = p["OPTICAL PATH TYPE"] || "Άλλο";
+                if (!grouped[type]) grouped[type] = [];
+                grouped[type].push(p);
+              });
+              return Object.entries(grouped).map(([type, items]) => (
+                <div key={type} className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="secondary" className="text-[10px]">{type}</Badge>
+                    <span className="text-[10px] text-muted-foreground">({items.length})</span>
+                  </div>
+                  <div className="space-y-0.5">
+                    {items.map((p: any, i: number) => (
+                      <div key={i} className="font-mono text-[11px] text-foreground px-2 py-1 bg-background border border-border rounded break-all">
+                        {p["OPTICAL PATH"] || "-"}
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                <div className="space-y-0.5">
-                  {items.map((p: any, i: number) => (
-                    <div key={i} className="font-mono text-[11px] text-foreground px-2 py-1 bg-background border border-border rounded break-all">
-                      {p["OPTICAL PATH"] || "-"}
+              ));
+            }
+
+            return (
+              <div className="space-y-2">
+                {sortedFloors.map(([key, floor]) => {
+                  floor.bmoPorts.sort((a, b) => a - b);
+                  const isCustomerFloor = customerFloor && (
+                    (key === "00" && /ισόγ|00|ground/i.test(customerFloor)) ||
+                    (key === "ΗΜ" && /ΗΜ|HM/i.test(customerFloor)) ||
+                    key === customerFloor
+                  );
+                  return (
+                    <div key={key} className={`p-2.5 rounded-lg border ${isCustomerFloor ? 'border-primary/50 bg-primary/5' : 'border-border bg-background'}`}>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-semibold">{floor.floorLabel}</span>
+                      </div>
+                      <div className="mt-1 flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-muted-foreground">
+                        <span>FB: <strong className="text-foreground">{floor.fbCount}</strong> ports</span>
+                        <span>BMO ports: <strong className="text-foreground">{floor.bmoPorts.join(", ")}</strong></span>
+                      </div>
+                      {isCustomerFloor && (
+                        <div className="mt-1 text-xs text-primary font-medium">
+                          👤 Πελάτης — Όροφος {customerFloor}
+                        </div>
+                      )}
                     </div>
-                  ))}
-                </div>
+                  );
+                })}
+                {/* Summary: BEP & CAB-BEP info */}
+                {paths.some(p => (p["OPTICAL PATH TYPE"] || "").toUpperCase() === "CAB-BEP") && (
+                  <div className="text-[10px] text-muted-foreground mt-1 px-1">
+                    📌 CAB-BEP: {paths.filter(p => (p["OPTICAL PATH TYPE"] || "").toUpperCase() === "CAB-BEP").length} ίνες | 
+                    BEP-BMO: {paths.filter(p => (p["OPTICAL PATH TYPE"] || "").toUpperCase() === "BEP-BMO").length} ίνες |
+                    Σύνολο: {paths.length} διαδρομές
+                  </div>
+                )}
               </div>
-            ));
+            );
           })()}
         </Card>
       )}
