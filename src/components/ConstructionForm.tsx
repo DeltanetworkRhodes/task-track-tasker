@@ -2152,22 +2152,23 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                      return floorId;
                    };
                    
-                   // --- Fiber range from CAB-BEP ---
-                   let cabTube = "";
-                   const cabFiberNums: number[] = [];
-                   for (const p of cabBepPaths) {
-                     const path = p["OPTICAL PATH"] || "";
-                     const tubeMatch = path.match(/^[A-Z]\d+_([A-Z])(\d+)\.(\d+)/i);
-                     if (tubeMatch && !cabTube) {
-                       cabTube = `${tubeMatch[1]}${tubeMatch[2].padStart(2, "0")}`;
-                     }
-                     // Extract fiber nums from various patterns
-                     const numMatch = path.match(/^[A-Z]\d+_(?:[A-Z]\d+\.)?(\d+)/i);
-                     if (numMatch) cabFiberNums.push(parseInt(numMatch[1], 10));
-                   }
-                   const fiberMin = cabFiberNums.length > 0 ? Math.min(...cabFiberNums) : 0;
-                   const fiberMax = cabFiberNums.length > 0 ? Math.max(...cabFiberNums) : 0;
-                   const fiberRange = fiberMin > 0 ? `${fiberMin}-${fiberMax}` : "";
+                    // --- Fiber range from CAB-BEP or CAB-BCP ---
+                    let cabTube = "";
+                    const cabFiberNums: number[] = [];
+                    const fiberSourcePaths = cabBepPaths.length > 0 ? cabBepPaths : cabBcpPaths;
+                    for (const p of fiberSourcePaths) {
+                      const path = p["OPTICAL PATH"] || "";
+                      const tubeMatch = path.match(/^[A-Z]\d+_([A-Z])(\d+)\.(\d+)/i);
+                      if (tubeMatch && !cabTube) {
+                        cabTube = `${tubeMatch[1]}${tubeMatch[2].padStart(2, "0")}`;
+                      }
+                      // Extract fiber nums from various patterns
+                      const numMatch = path.match(/^[A-Z]\d+_(?:[A-Z]\d+\.)?(\d+)/i);
+                      if (numMatch) cabFiberNums.push(parseInt(numMatch[1], 10));
+                    }
+                    const fiberMin = cabFiberNums.length > 0 ? Math.min(...cabFiberNums) : 0;
+                    const fiberMax = cabFiberNums.length > 0 ? Math.max(...cabFiberNums) : 0;
+                    const fiberRange = fiberMin > 0 ? `${fiberMin}-${fiberMax}` : "";
                    // Fiber count: standardize to 4FO or 12FO
                    const rawFiberCount = cabFiberNums.length;
                     // Floor details for apartment-based FO calculation
@@ -2349,17 +2350,18 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                                 )}
                              </div>
                            </LabelBox>
-                           {/* B. Πόρτα BEP */}
-                            <LabelBox label="B. Στην πόρτα του BEP">
-                              <LabelBlock lines={[
-                                `ΚΑΜΠΙΝΑ: ${cabName}`,
-                                `ΣΩΛΗΝΙΣΚΟΣ: ${cabTube || cabName}`,
-                                `ΟΡΙΑ: ${fiberRange}`,
-                                `ΠΟΡΤΑ 1: ΕΙΣΟΔΟΣ ΠΑΡΟΧΙΚΗΣ`,
-                                `ΠΟΡΤΑ 2: SPLITTER`,
-                                bepOnly ? `ΠΟΡΤΑ 3: PATCH TO ΠΕΛΑΤΗ` : `ΠΟΡΤΑ 3: PATCH TO BMO`,
-                              ]} />
-                            </LabelBox>
+                            {/* B. Πόρτα BEP */}
+                             <LabelBox label="B. Στην πόρτα του BEP">
+                               <LabelBlock lines={[
+                                 `ΚΑΜΠΙΝΑ: ${cabName}`,
+                                 ...(hasBcp && bcpName ? [`BCP: ${bcpName}`] : []),
+                                 `ΣΩΛΗΝΙΣΚΟΣ: ${cabTube || cabName}`,
+                                 `ΟΡΙΑ: ${fiberRange}`,
+                                 `ΠΟΡΤΑ 1: ΕΙΣΟΔΟΣ ΠΑΡΟΧΙΚΗΣ`,
+                                 `ΠΟΡΤΑ 2: SPLITTER`,
+                                 bepOnly ? `ΠΟΡΤΑ 3: PATCH TO ΠΕΛΑΤΗ` : `ΠΟΡΤΑ 3: PATCH TO BMO`,
+                               ]} />
+                             </LabelBox>
                          </LabelCard>
                        )}
 
