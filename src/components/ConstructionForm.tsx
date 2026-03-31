@@ -1912,14 +1912,22 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
               ));
             }
 
-            // Parse CAB-BEP paths
+            // Parse CAB-BEP and CAB-BCP paths
             const cabBepPaths = paths.filter(p => (p["OPTICAL PATH TYPE"] || "").toUpperCase() === "CAB-BEP");
+            const cabBcpPaths = paths.filter(p => (p["OPTICAL PATH TYPE"] || "").toUpperCase() === "CAB-BCP");
+            const bcpBepPaths = paths.filter(p => (p["OPTICAL PATH TYPE"] || "").toUpperCase() === "BCP-BEP");
             const bepPaths = paths.filter(p => (p["OPTICAL PATH TYPE"] || "").toUpperCase() === "BEP");
             const bepBmoPaths = paths.filter(p => (p["OPTICAL PATH TYPE"] || "").toUpperCase() === "BEP-BMO");
+            const hasBcp = cabBcpPaths.length > 0 || bcpBepPaths.length > 0;
 
-            // Extract CAB-BEP summary
+            // Use CAB-BEP or CAB-BCP paths for the first section
+            const firstSectionPaths = cabBepPaths.length > 0 ? cabBepPaths : cabBcpPaths;
+            const firstSectionTarget = cabBepPaths.length > 0 ? "BEP" : "BCP";
+
+            // Extract CAB section summary
             let cabName = "";
             let bepName = "";
+            let bcpName = "";
             const splitterEntries: { fiber: string; sga: string; sgaPort: string; bepPort: string; sb: string }[] = [];
             const backboneFibers: string[] = [];
             for (const p of cabBepPaths) {
