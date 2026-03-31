@@ -1919,27 +1919,30 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
 
             // Extract CAB-BEP summary
             let cabName = "";
-            let splitterInfo = "";
-            let splitterFiber = "";
             let bepName = "";
+            const splitterEntries: { fiber: string; sga: string; bepPort: string; sb: string }[] = [];
             const backboneFibers: string[] = [];
             for (const p of cabBepPaths) {
               const path = p["OPTICAL PATH"] || "";
               // Extract cab: G137_...
               const cabMatch = path.match(/^([A-Z]\d+)/i);
               if (cabMatch && !cabName) cabName = cabMatch[1];
-              // Extract BEP: BEP01(b08)
-              const bepMatch = path.match(/(BEP\d+\([^)]+\))/i);
+              // Extract BEP name (with or without conduit)
+              const bepMatch = path.match(/(BEP\d+(?:\([^)]+\))?)/i);
               if (bepMatch && !bepName) bepName = bepMatch[1];
-              // Check if splitter path - extract fiber ID from it too
-              if (/SGA|SGB/i.test(path)) {
+              // Check if splitter path
+              if (/SG[AB]/i.test(path)) {
                 const sgaMatch = path.match(/(SG[AB]\d+\([^)]+\))/i);
                 const sbMatch = path.match(/(SB\d+\([^)]+\))/i);
-                if (sgaMatch && sbMatch) splitterInfo = `${sgaMatch[1]} → ${sbMatch[1]}`;
-                // Extract fiber from SGA path e.g. G137_SGA02(1:8).03_C1.13_BEP01... → C1.13
-                // Pattern: after SGA..._  find cable ID like A1.5, B1.1, C1.13
                 const fiberMatch = path.match(/SG[AB]\d+\([^)]+\)\.\d+_([A-Z]\d+\.\d+)/i);
-                if (fiberMatch) splitterFiber = fiberMatch[1];
+                // Extract BEP port: ...BEP01_01a_SB... or ...BEP01(b08)_01_SB...
+                const bepPortMatch = path.match(/BEP\d+(?:\([^)]+\))?_(\d+[a-z]?)/i);
+                splitterEntries.push({
+                  fiber: fiberMatch ? fiberMatch[1] : "",
+                  sga: sgaMatch ? sgaMatch[1] : "",
+                  bepPort: bepPortMatch ? bepPortMatch[1] : "",
+                  sb: sbMatch ? sbMatch[1] : "",
+                });
               } else {
                 // Extract simplified fiber ID: G137_C1.14_BEP01_01b → C1.14
                 const fiberIdMatch = path.match(/^[A-Z]\d+_([A-Z]\d+\.\d+)/i);
@@ -1975,16 +1978,23 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                     <div className="text-xs space-y-0.5">
                       <div>🏗️ Καμπίνα: <strong className="text-foreground">{cabName || "—"}</strong></div>
                       <div>📦 BEP: <strong className="text-foreground">{bepName || "—"}</strong></div>
-                      <div>🔗 Όρια σε καμπίνα: <strong className="text-foreground">{backboneFibers.length + (splitterFiber ? 1 : 0)}</strong></div>
-                      {(backboneFibers.length > 0 || splitterFiber) && (
-                        <div className="mt-1.5 space-y-1">
-                          {splitterFiber && (
-                            <div className="flex items-center gap-1.5">
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/15 text-primary text-[10px] font-mono font-semibold">
-                                🔵 {splitterFiber} → {splitterInfo}
-                              </span>
+                      <div>🔗 Όρια σε καμπίνα: <strong className="text-foreground">{backboneFibers.length + splitterEntries.length}</strong></div>
+                      {(splitterEntries.length > 0 || backboneFibers.length > 0) && (
+                        <div className="mt-1.5 space-y-1.5">
+                          {splitterEntries.map((s, i) => (
+                            <div key={i} className="space-y-0.5">
+                              <div className="flex items-center gap-1.5">
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/15 text-primary text-[10px] font-mono font-semibold">
+                                  🔵 {s.fiber} → {s.sga}
+                                </span>
+                              </div>
+                              {(s.bepPort || s.sb) && (
+                                <div className="pl-5 text-[10px] text-muted-foreground font-mono">
+                                  ↳ {bepName} port {s.bepPort} → {s.sb}
+                                </div>
+                              )}
                             </div>
-                          )}
+                          ))}
                           {backboneFibers.length > 0 && (
                             <div className="flex items-center gap-1 flex-wrap">
                               <span className="text-[10px] text-muted-foreground">⚪</span>
