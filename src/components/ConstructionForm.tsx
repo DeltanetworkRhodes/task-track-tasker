@@ -1862,6 +1862,12 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
               const floorDiff = extractFloor(a) - extractFloor(b);
               return floorDiff !== 0 ? floorDiff : extractIndex(a) - extractIndex(b);
             });
+            const grouped: Record<string, any[]> = {};
+            sortedPaths.forEach((p: any) => {
+              const type = p["OPTICAL PATH TYPE"] || "Άλλο";
+              if (!grouped[type]) grouped[type] = [];
+              grouped[type].push(p);
+            });
             // Fixed display order for optical path types
             const typeOrder = ["CAB-BEP", "BMO-FB", "BEP", "BEP-BMO"];
             const orderedEntries = typeOrder
