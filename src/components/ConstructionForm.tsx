@@ -1932,16 +1932,23 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
               const bepMatch = path.match(/(BEP\d+\([^)]+\))/i);
               if (bepMatch && !bepName) bepName = bepMatch[1];
               // Check if splitter path - extract fiber ID from it too
-              if (/SGA/i.test(path)) {
-                const sgaMatch = path.match(/(SGA\d+\([^)]+\))/i);
+              if (/SGA|SGB/i.test(path)) {
+                const sgaMatch = path.match(/(SG[AB]\d+\([^)]+\))/i);
                 const sbMatch = path.match(/(SB\d+\([^)]+\))/i);
                 if (sgaMatch && sbMatch) splitterInfo = `${sgaMatch[1]} → ${sbMatch[1]}`;
-                // Extract fiber from SGA path e.g. G137_SGA01(1:8).B1.B1.1_BEP01... → B1.1
-                const fiberMatch = path.match(/\.B\d+\.(B\d+\.\d+)/i);
+                // Extract fiber from SGA path e.g. G137_SGA02(1:8).03_C1.13_BEP01... → C1.13
+                // Pattern: after SGA..._  find cable ID like A1.5, B1.1, C1.13
+                const fiberMatch = path.match(/SG[AB]\d+\([^)]+\)\.\d+_([A-Z]\d+\.\d+)/i);
                 if (fiberMatch) splitterFiber = fiberMatch[1];
               } else {
-                const underscoreIdx = path.indexOf("_");
-                backboneFibers.push(underscoreIdx >= 0 ? path.slice(underscoreIdx + 1) : path);
+                // Extract simplified fiber ID: G137_C1.14_BEP01_01b → C1.14
+                const fiberIdMatch = path.match(/^[A-Z]\d+_([A-Z]\d+\.\d+)/i);
+                if (fiberIdMatch) {
+                  backboneFibers.push(fiberIdMatch[1]);
+                } else {
+                  const underscoreIdx = path.indexOf("_");
+                  backboneFibers.push(underscoreIdx >= 0 ? path.slice(underscoreIdx + 1) : path);
+                }
               }
             }
 
