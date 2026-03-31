@@ -1828,6 +1828,29 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
           {(() => {
             const paths = gisData.optical_paths as any[];
 
+            const normalizeFloorId = (floorId: string | null | undefined) => {
+              const raw = String(floorId ?? "").trim().toUpperCase();
+              if (!raw) return "";
+              if (raw === "0" || raw === "00" || raw === "+0" || raw === "+00") return "+00";
+              if (raw === "ΗΜ" || raw === "+ΗΜ" || raw === "HM" || raw === "+HM") return "+ΗΜ";
+              if (raw === "-ΗΥ" || raw === "-HY") return "-ΗΥ";
+              if (/^[+-]?\d+$/.test(raw)) {
+                const value = parseInt(raw, 10);
+                return `${value >= 0 ? "+" : "-"}${Math.abs(value).toString().padStart(2, "0")}`;
+              }
+              return raw;
+            };
+
+            const normalizedFloorDetails = ((gisData.floor_details as any[]) || [])
+              .map((entry: any) => {
+                const row = entry?.raw && typeof entry.raw === "object" ? entry.raw : entry;
+                return {
+                  floor: normalizeFloorId(row?.floor ?? row?.["floor"] ?? row?.["ΟΡΟΦΟΣ"]),
+                  apartments: parseInt(String(row?.apartments ?? row?.["apartments"] ?? row?.["ΔΙΑΜΕΡΙΣΜΑΤΑ"] ?? 0), 10) || 0,
+                };
+              })
+              .filter((row) => row.floor);
+
             // Parse BMO-FB paths to extract floor info
             const floorMap: Record<string, { floorLabel: string; floorSort: number; bmoPorts: number[]; fbCount: number; customerPath?: string }> = {};
 
@@ -1848,24 +1871,25 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
 
                 if (floorMatch) {
                   const raw = floorMatch[1];
-                  floorKey = raw;
-                  if (/ΗΜ|HM/i.test(raw)) {
+                  const normalizedFloor = normalizeFloorId(raw);
+                  floorKey = normalizedFloor || raw;
+                  if (/ΗΜ|HM/i.test(normalizedFloor)) {
                     floorLabel = "🏢 Ημιυπόγειο (+ΗΜ)";
                     floorSort = -1;
-                  } else if (/ΥΠ|YP/i.test(raw)) {
+                  } else if (/ΥΠ|YP/i.test(raw) || normalizedFloor === "-ΗΥ") {
                     floorLabel = "🏢 Υπόγειο";
                     floorSort = -2;
                   } else {
-                    const num = parseInt(raw, 10);
+                    const num = parseInt(normalizedFloor, 10);
                     if (!isNaN(num)) {
                       if (num === 0) {
                         floorLabel = "🏢 Ισόγειο (+00)";
                         floorSort = 0;
                       } else if (num > 0) {
-                        floorLabel = `🏢 ${num}ος Όροφος (+${raw})`;
+                        floorLabel = `🏢 ${num}ος Όροφος (${normalizedFloor})`;
                         floorSort = num;
                       } else {
-                        floorLabel = `🏢 Υπόγειο (${raw})`;
+                        floorLabel = `🏢 Υπόγειο (${normalizedFloor})`;
                         floorSort = num;
                       }
                     }
@@ -1883,11 +1907,19 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
             // Check BEP-BMO for customer assignment info
             const customerFloor = gisData.customer_floor;
 
+            // Parse CAB-BEP and CAB-BCP paths
+            const cabBepPaths = paths.filter(p => (p["OPTICAL PATH TYPE"] || "").toUpperCase() === "CAB-BEP");
+            const cabBcpPaths = paths.filter(p => (p["OPTICAL PATH TYPE"] || "").toUpperCase() === "CAB-BCP");
+            const bcpBepPaths = paths.filter(p => (p["OPTICAL PATH TYPE"] || "").toUpperCase() === "BCP-BEP");
+            const bepPaths = paths.filter(p => (p["OPTICAL PATH TYPE"] || "").toUpperCase() === "BEP");
+            const bepBmoPaths = paths.filter(p => (p["OPTICAL PATH TYPE"] || "").toUpperCase() === "BEP-BMO");
+            const hasBcp = cabBcpPaths.length > 0 || bcpBepPaths.length > 0;
+
             // Sort floors
             const sortedFloors = Object.entries(floorMap)
               .sort(([, a], [, b]) => a.floorSort - b.floorSort);
 
-            if (sortedFloors.length === 0) {
+            if (sortedFloors.length === 0 && !cabBepPaths.length && !cabBcpPaths.length && !bcpBepPaths.length && !bepBmoPaths.length) {
               // Fallback: show raw paths grouped by type
               const grouped: Record<string, any[]> = {};
               paths.forEach((p: any) => {
@@ -1911,14 +1943,6 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                 </div>
               ));
             }
-
-            // Parse CAB-BEP and CAB-BCP paths
-            const cabBepPaths = paths.filter(p => (p["OPTICAL PATH TYPE"] || "").toUpperCase() === "CAB-BEP");
-            const cabBcpPaths = paths.filter(p => (p["OPTICAL PATH TYPE"] || "").toUpperCase() === "CAB-BCP");
-            const bcpBepPaths = paths.filter(p => (p["OPTICAL PATH TYPE"] || "").toUpperCase() === "BCP-BEP");
-            const bepPaths = paths.filter(p => (p["OPTICAL PATH TYPE"] || "").toUpperCase() === "BEP");
-            const bepBmoPaths = paths.filter(p => (p["OPTICAL PATH TYPE"] || "").toUpperCase() === "BEP-BMO");
-            const hasBcp = cabBcpPaths.length > 0 || bcpBepPaths.length > 0;
 
             // Use CAB-BEP or CAB-BCP paths for the first section
             const firstSectionPaths = cabBepPaths.length > 0 ? cabBepPaths : cabBcpPaths;
@@ -2096,10 +2120,11 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                     </div>
                     {sortedFloors.map(([key, floor]) => {
                       floor.bmoPorts.sort((a, b) => a - b);
-                      const isCustomerFloor = customerFloor && (
-                        (key === "00" && /ισόγ|00|ground/i.test(customerFloor)) ||
-                        (key === "ΗΜ" && /ΗΜ|HM/i.test(customerFloor)) ||
-                        key === customerFloor
+                      const normalizedCustomerFloor = normalizeFloorId(customerFloor);
+                      const isCustomerFloor = !!customerFloor && (
+                        key === normalizedCustomerFloor ||
+                        (key === "+00" && /ισόγ|00|ground/i.test(customerFloor)) ||
+                        (key === "+ΗΜ" && /ΗΜ|HM/i.test(customerFloor))
                       );
                       return (
                         <div key={key} className={`p-2.5 rounded-lg border ${isCustomerFloor ? 'border-primary/50 bg-primary/5' : 'border-border bg-background'}`}>
@@ -2137,19 +2162,21 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                      const m = pathStr.match(/BMO\d+_(\d+)_FB\(([^)]+)\)/i);
                      if (m) {
                        const bmoPort = parseInt(m[1], 10);
-                       const floorId = m[2];
+                        const floorId = normalizeFloorId(m[2]);
                        if (!bmoPortToFloor[bmoPort]) bmoPortToFloor[bmoPort] = floorId;
                      }
                    }
                    
                    // Floor label helper
                    const floorShort = (floorId: string) => {
-                     if (floorId === "-ΗΥ" || floorId === "-HY") return "ΥΡΟ";
-                     if (floorId === "+00" || floorId === "00") return "ΙΣΟ";
-                     if (floorId === "ΗΜ" || floorId === "HM" || floorId === "+ΗΜ") return "ΗΜΙ";
-                     const numMatch = floorId.match(/\+?(\d+)/);
-                     if (numMatch) return `${parseInt(numMatch[1])}ος`;
-                     return floorId;
+                      const normalizedFloor = normalizeFloorId(floorId);
+                      if (normalizedFloor === "-ΗΥ") return "ΥΡΟ";
+                      if (normalizedFloor === "+00") return "ΙΣΟ";
+                      if (normalizedFloor === "+ΗΜ") return "ΗΜΙ";
+                      if (normalizedFloor.startsWith("-")) return "ΥΠΟ";
+                      const numMatch = normalizedFloor.match(/^\+?(\d+)$/);
+                      if (numMatch) return `${parseInt(numMatch[1], 10)}ος`;
+                      return normalizedFloor || floorId;
                    };
                    
                      // --- Fiber range from CAB-BEP or CAB-BCP ---
@@ -2179,20 +2206,20 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                    // Fiber count: standardize to 4FO or 12FO
                    const rawFiberCount = cabFiberNums.length;
                     // Floor details for apartment-based FO calculation
-                    const floorDetailsArr = (gisData?.floor_details as any[]) || [];
+                     const floorDetailsArr = normalizedFloorDetails;
                     // Rule: if ANY floor has > 2 apartments → 12FO (3 splices + 3 spare), else 4FO
-                    const maxApartmentsAnyFloor = floorDetailsArr.reduce((max: number, fd: any) => Math.max(max, fd?.apartments || 0), 0);
+                     const maxApartmentsAnyFloor = floorDetailsArr.reduce((max: number, fd) => Math.max(max, fd.apartments || 0), 0);
                     const fiberCount = maxApartmentsAnyFloor > 2 ? "12FO" : "4FO";
                     // Per-floor FO: check apartments on that specific floor
                     const floorFO = (floorId: string) => {
-                      const fd = floorDetailsArr.find((d: any) => String(d?.floor) === String(floorId));
+                      const fd = floorDetailsArr.find((d) => d.floor === normalizeFloorId(floorId));
                       return (fd?.apartments || 0) > 2 ? "12FO" : "4FO";
                     };
                     // Standard FO helper: uses floor apartments when available, fallback to count-based
                     const standardFO = (count: number) => count <= 2 ? "2FO" : count <= 4 ? "4FO" : "12FO";
                    
-                   // BCP exists only if GIS has nearby_bcp or new_bcp
-                   const hasBcp = !!(gisData?.nearby_bcp || gisData?.new_bcp);
+                    // BCP exists if found in paths or GIS metadata
+                    const hasBcpConnection = hasBcp || !!(gisData?.nearby_bcp || gisData?.new_bcp || gisData?.associated_bcp);
                    
                    // --- BEP port → floor mapping via BEP→BMO→Floor chain ---
                    const bepToBmo: Record<number, number> = {};
@@ -2209,7 +2236,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                       const m = pathStr.match(/BMO\d+_(\d+)_FB\(([^)]+)\)\.(\d+)(?:_(\d+))?/i);
                       if (m) {
                         const mobPort = parseInt(m[1], 10);
-                        const floorId = m[2];
+                        const floorId = normalizeFloorId(m[2]);
                         const fbPortNum = m[4] ? parseInt(m[4], 10) : mobPort;
                         // Group by floor ID so each floor gets its own label
                         if (!fbGroups[floorId]) fbGroups[floorId] = { floor: floorId, ports: [] };
@@ -2236,7 +2263,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                    
                    // --- Conditions ---
                    const hasCabLabel = !!(cabName && address);
-                   const hasBcpLabel = hasBcp && !!(cabName && fiberRange);
+                    const hasBcpLabel = hasBcpConnection && !!(cabName && fiberRange);
                    const hasBepLabel = !!(bepName && (cabFiberNums.length > 0 || bepBmoPorts.length > 0));
                    const hasMobLabel = !bepOnly && Object.keys(fbGroups).length > 0;
                     const hasFbLabel = !bepOnly && Object.keys(fbGroups).length > 0;
@@ -2361,7 +2388,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                              <LabelBox label="B. Στην πόρτα του BEP">
                                <LabelBlock lines={[
                                  `ΚΑΜΠΙΝΑ: ${cabName}`,
-                                 ...(hasBcp && bcpName ? [`BCP: ${bcpName}`] : []),
+                                  ...(hasBcpConnection && bcpName ? [`BCP: ${bcpName}`] : []),
                                  `ΣΩΛΗΝΙΣΚΟΣ: ${cabTube || cabName}`,
                                  `ΟΡΙΑ: ${fiberRange}`,
                                  `ΠΟΡΤΑ 1: ΕΙΣΟΔΟΣ ΠΑΡΟΧΙΚΗΣ`,
@@ -2529,10 +2556,21 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                         })()}
 
                        {/* ═══ 5. BMO (BEP ONLY) ═══ */}
-                       {bepOnly && bepName && (
+                        {bepOnly && bepName && (
                          <LabelCard color="accent-foreground" icon="📡" title="Labels BMO (BEP ONLY)">
-                            <LabelBox>
-                              <LabelBlock lines={[`BMO`, `ΚΤΗΡΙΟ: ${address}`, `BEP ONLY`]} />
+                             <LabelBox label="A. Εσωτερικά BMO">
+                               <LabelBlock lines={[
+                                 `${cabName || bcpName || "ΚΑΜΠΙΝΑ"} - ${fiberCount}`,
+                                 ...(fiberRange ? [fiberRange.replace("-", " - ")] : []),
+                                 `${bepName} → ${mobName || "BMO"}`,
+                               ]} />
+                             </LabelBox>
+                             <LabelBox label="B. Αναγνώριση">
+                               <LabelBlock lines={[
+                                 `${mobName || "BMO"}`,
+                                 ...(address ? [`ΚΤΗΡΙΟ: ${address}`] : []),
+                                 "BEP ONLY",
+                               ]} />
                             </LabelBox>
                          </LabelCard>
                        )}
