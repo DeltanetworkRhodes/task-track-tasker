@@ -1935,18 +1935,20 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
               // Extract cab: G137_...
               const cabMatch = path.match(/^([A-Z]\d+)/i);
               if (cabMatch && !cabName) cabName = cabMatch[1];
-              // Extract BEP name (with or without conduit)
-              const bepMatch = path.match(/(BEP\d+(?:\([^)]+\))?)/i);
-              if (bepMatch && !bepName) bepName = bepMatch[1];
-              // Check if splitter path
-              if (/SG[AB]/i.test(path)) {
-                const sgaMatch = path.match(/(SG[AB]\d+\([^)]+\))/i);
-                const sbMatch = path.match(/(SB\d+\([^)]+\))/i);
-                const fiberMatch = path.match(/SG[AB]\d+\([^)]+\)\.\d+_([A-Z]\d+\.\d+)/i);
-                // Extract SGA port number: SGA01(1:8).03 → 03
-                const sgaPortMatch = path.match(/SG[AB]\d+\([^)]+\)\.(\d+)/i);
-                // Extract BEP port: ...BEP01_01a_SB... or ...BEP01(b08)_01_SB...
-                const bepPortMatch = path.match(/BEP\d+(?:\([^)]+\))?_(\d+[a-z]?)/i);
+               // Extract BEP or BCP name (with or without conduit)
+               const bepMatch = path.match(/(BEP\d+(?:\([^)]+\))?)/i);
+               if (bepMatch && !bepName) bepName = bepMatch[1];
+               const bcpMatch = path.match(/(BCP\d+(?:\([^)]+\))?)/i);
+               if (bcpMatch && !bcpName) bcpName = bcpMatch[1];
+               // Check if splitter path
+               if (/SG[AB]/i.test(path)) {
+                 const sgaMatch = path.match(/(SG[AB]\d+\([^)]+\))/i);
+                 const sbMatch = path.match(/(SB\d+\([^)]+\))/i);
+                 const fiberMatch = path.match(/SG[AB]\d+\([^)]+\)\.\d+_([A-Z]\d+\.\d+)/i);
+                 // Extract SGA port number: SGA01(1:8).03 → 03
+                 const sgaPortMatch = path.match(/SG[AB]\d+\([^)]+\)\.(\d+)/i);
+                 // Extract BEP/BCP port
+                 const bepPortMatch = path.match(/(?:BEP|BCP)\d+(?:\([^)]+\))?_(\d+[a-z]?)/i);
                 splitterEntries.push({
                   fiber: fiberMatch ? fiberMatch[1] : "",
                   sga: sgaMatch ? sgaMatch[1] : "",
