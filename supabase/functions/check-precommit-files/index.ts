@@ -69,10 +69,11 @@ Deno.serve(async (req) => {
       const fileTypes = surveyId ? filesBySurvey[surveyId] || new Set() : new Set();
 
       // Check all requirements
-      const hasAllFiles = REQUIRED_FILE_TYPES.every((t) => fileTypes.has(t));
       const hasDriveFolder = !!a.drive_folder_url;
+      // If files are archived to Drive, consider them complete
+      const hasAllFiles = hasDriveFolder || REQUIRED_FILE_TYPES.every((t) => fileTypes.has(t));
 
-      if (hasAllFiles && hasDriveFolder) {
+      if (hasAllFiles) {
         // Move to inspection
         await supabase
           .from("assignments")
