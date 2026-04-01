@@ -35,6 +35,28 @@ const IncompleteSurveys = ({ filterSrId }: { filterSrId?: string }) => {
   const [compressionStats, setCompressionStats] = useState<Record<string, { original: number; compressed: number }>>({});
   const inputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
+  // Fetch assignments to check drive_folder_url (files archived to Drive)
+  const { data: assignmentsForDrive } = useQuery({
+    queryKey: ["assignments-drive-check", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("assignments")
+        .select("sr_id, drive_folder_url")
+        .eq("technician_id", user!.id);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!user,
+  });
+
+  const driveUrlBySrId = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const a of assignmentsForDrive || []) {
+      if (a.drive_folder_url) map[a.sr_id] = a.drive_folder_url;
+    }
+    return map;
+  }, [assignmentsForDrive]);
+
   // Fetch surveys for this technician (incomplete OR completed for editing)
   const { data: surveys, isLoading } = useQuery({
     queryKey: ["incomplete-surveys", user?.id, filterSrId],
@@ -70,6 +92,9 @@ const IncompleteSurveys = ({ filterSrId }: { filterSrId?: string }) => {
   }
 
   const getMissingTypes = (survey: any) => {
+    // If files are already archived to Google Drive, nothing is missing
+    if (driveUrlBySrId[survey.sr_id]) return [];
+
     const existingTypes = new Set(
       (survey.survey_files || []).map((f: any) => f.file_type)
     );

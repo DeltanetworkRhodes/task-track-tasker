@@ -225,6 +225,10 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
     if (newStatus === "pre_committed") {
       const assignment = assignments.find((a) => a.id === assignmentId);
       if (assignment) {
+        // If files are already in Google Drive, skip local file validation
+        if (assignment.drive_folder_url) {
+          // Files archived to Drive — allow transition
+        } else {
         try {
           // Find survey for this SR
           const { data: surveys } = await supabase
@@ -261,6 +265,7 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
           console.error("Survey file validation error:", validationErr);
           toast.error("Σφάλμα κατά τον έλεγχο αρχείων αυτοψίας.");
           return;
+        }
         }
       }
     }
