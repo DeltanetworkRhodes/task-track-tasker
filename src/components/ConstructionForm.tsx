@@ -202,7 +202,9 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
   const visiblePhotoCategories = filterPhotoCatKeys
     ? (crewFilteredPhotoCategories.length > 0 ? crewFilteredPhotoCategories : ALL_PHOTO_CATEGORIES)
     : ALL_PHOTO_CATEGORIES.filter((cat) =>
-        cat.workPrefixes.length === 0 || cat.workPrefixes.some((p) => selectedWorkPrefixes.has(p))
+        cat.workPrefixes.length === 0 ||
+        cat.workPrefixes.some((p) => selectedWorkPrefixes.has(p)) ||
+        (existingPhotoCounts[cat.key] || 0) > 0
       );
 
   // OTDR PDF measurement categories (FB is dynamic based on floors)
