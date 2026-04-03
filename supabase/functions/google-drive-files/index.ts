@@ -122,7 +122,7 @@ Deno.serve(async (req) => {
     const userId = claimsData.claims.sub;
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
     const { data: roleData } = await adminClient.from("user_roles").select("role").eq("user_id", userId).single();
-    if (!roleData || (roleData.role !== "admin" && roleData.role !== "super_admin")) {
+    if (!roleData || !["admin", "super_admin", "technician"].includes(roleData.role)) {
       return new Response(JSON.stringify({ error: "Forbidden" }), {
         status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
