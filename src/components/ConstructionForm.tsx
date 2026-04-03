@@ -461,6 +461,53 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
         }
       }
 
+      // Fallback 2: If still no photo counts and assignment has drive_folder_url, fetch from Google Drive
+      const hasAnyPhotoCounts = Object.values(photoCounts).some(c => c > 0);
+      if (!hasAnyPhotoCounts && assignment.drive_folder_url && !cancelled) {
+        try {
+          const { data: sessionData } = await supabase.auth.getSession();
+          const token = sessionData?.session?.access_token;
+          if (token) {
+            const driveRes = await supabase.functions.invoke("google-drive-files", {
+              body: { action: "sr_folder", sr_id: assignment.sr_id },
+            });
+            
+            if (driveRes.data?.found && driveRes.data?.subfolders) {
+              const driveFolderToCategory: Record<string, string> = {
+                "ΣΚΑΜΑ": "ΣΚΑΜΑ", "SKAMA": "ΣΚΑΜΑ",
+                "ΟΔΕΥΣΗ": "ΟΔΕΥΣΗ", "ODEFSI": "ΟΔΕΥΣΗ",
+                "BCP": "BCP", "BEP": "BEP", "BMO": "BMO", "FB": "FB",
+                "ΚΑΜΠΙΝΑ": "ΚΑΜΠΙΝΑ", "KAMPINA": "ΚΑΜΠΙΝΑ",
+                "Γ_ΦΑΣΗ": "Γ_ΦΑΣΗ", "G_FASI": "Γ_ΦΑΣΗ",
+              };
+
+              for (const [folderName, folderData] of Object.entries(driveRes.data.subfolders as Record<string, any>)) {
+                const categoryKey = driveFolderToCategory[folderName];
+                if (categoryKey && folderData.files?.length > 0) {
+                  const imageCount = folderData.files.filter((f: any) =>
+                    f.mimeType?.startsWith("image/")
+                  ).length;
+                  if (imageCount > 0) {
+                    photoCounts[categoryKey] = imageCount;
+                  }
+                }
+              }
+
+              // Save the discovered counts back to the construction record for future use
+              const drivePhotoCounts = { ...photoCounts };
+              if (Object.keys(drivePhotoCounts).length > 0) {
+                await supabase
+                  .from("constructions")
+                  .update({ photo_counts: drivePhotoCounts } as any)
+                  .eq("id", existingConstruction.id);
+              }
+            }
+          }
+        } catch (driveErr) {
+          console.warn("Drive fallback for photo counts failed:", driveErr);
+        }
+      }
+
       if (!cancelled) {
         setExistingPhotoCounts(photoCounts);
         setExistingOtdrCounts(otdrCounts);
