@@ -1,0 +1,1 @@
+ALTER TABLE public.constructions ADD COLUMN IF NOT EXISTS photo_counts jsonb DEFAULT '{}'::jsonb;

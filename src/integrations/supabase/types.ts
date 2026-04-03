@@ -517,6 +517,7 @@ export type Database = {
           material_cost: number
           organization_id: string | null
           pending_note: string | null
+          photo_counts: Json | null
           profit: number | null
           revenue: number
           routes: Json | null
@@ -537,6 +538,7 @@ export type Database = {
           material_cost?: number
           organization_id?: string | null
           pending_note?: string | null
+          photo_counts?: Json | null
           profit?: number | null
           revenue?: number
           routes?: Json | null
@@ -557,6 +559,7 @@ export type Database = {
           material_cost?: number
           organization_id?: string | null
           pending_note?: string | null
+          photo_counts?: Json | null
           profit?: number | null
           revenue?: number
           routes?: Json | null
