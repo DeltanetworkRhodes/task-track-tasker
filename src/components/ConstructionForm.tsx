@@ -1062,6 +1062,16 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
           .filter((r) => r.koi || r.fyraKoi)
           .map((r) => ({ label: r.label, koi: parseFloat(r.koi) || 0, fyra_koi: parseFloat(r.fyraKoi) || 0 }));
 
+        // Merge existing photo_counts with new uploads
+        const newPhotoCounts: Record<string, number> = {};
+        for (const [category, files] of Object.entries(categorizedPhotos)) {
+          if (files.length > 0) newPhotoCounts[category] = files.length;
+        }
+        const mergedPhotoCounts = { ...(existingConstruction?.photo_counts as Record<string, number> || {}), ...existingPhotoCounts };
+        for (const [key, count] of Object.entries(newPhotoCounts)) {
+          mergedPhotoCounts[key] = (mergedPhotoCounts[key] || 0) + count;
+        }
+
         const constructionPayload = {
           sr_id: assignment.sr_id,
           assignment_id: assignment.id,
@@ -1076,6 +1086,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
           pending_note: pendingNote.trim() || null,
           routes: routesData.length > 0 ? routesData : null,
           organization_id: organizationId,
+          photo_counts: mergedPhotoCounts,
         } as any;
 
         if (existingConstruction) {
