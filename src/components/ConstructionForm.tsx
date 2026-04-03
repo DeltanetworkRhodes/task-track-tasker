@@ -410,46 +410,54 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
       const storagePrefix = `constructions/${safeSrId}/${existingConstruction.id}`;
 
       const { data: folders, error } = await supabase.storage.from("photos").list(storagePrefix);
-      if (error || !folders || cancelled) {
-        if (error) console.error("Failed to load existing construction files:", error);
-        return;
-      }
 
       const photoCounts: Record<string, number> = {};
       const otdrCounts: Record<string, number> = {};
 
-      const photoFolderToCategory: Record<string, string> = {
-        SKAMA: "ΣΚΑΜΑ",
-        ODEFSI: "ΟΔΕΥΣΗ",
-        BCP: "BCP",
-        BEP: "BEP",
-        BMO: "BMO",
-        FB: "FB",
-        KAMPINA: "ΚΑΜΠΙΝΑ",
-        G_FASI: "Γ_ΦΑΣΗ",
-      };
+      if (!error && folders && !cancelled) {
+        const photoFolderToCategory: Record<string, string> = {
+          SKAMA: "ΣΚΑΜΑ",
+          ODEFSI: "ΟΔΕΥΣΗ",
+          BCP: "BCP",
+          BEP: "BEP",
+          BMO: "BMO",
+          FB: "FB",
+          KAMPINA: "ΚΑΜΠΙΝΑ",
+          G_FASI: "Γ_ΦΑΣΗ",
+        };
 
-      const otdrFolderToCategory = (folderName: string) => {
-        const withoutPrefix = folderName.replace(/^OTDR_/, "");
-        if (withoutPrefix === "KAMPINA") return "ΚΑΜΠΙΝΑ";
-        return withoutPrefix;
-      };
+        const otdrFolderToCategory = (folderName: string) => {
+          const withoutPrefix = folderName.replace(/^OTDR_/, "");
+          if (withoutPrefix === "KAMPINA") return "ΚΑΜΠΙΝΑ";
+          return withoutPrefix;
+        };
 
-      for (const folder of folders) {
-        if (folder.id !== null) continue;
+        for (const folder of folders) {
+          if (folder.id !== null) continue;
 
-        const { data: files } = await supabase.storage.from("photos").list(`${storagePrefix}/${folder.name}`);
-        if (!files || cancelled) continue;
+          const { data: files } = await supabase.storage.from("photos").list(`${storagePrefix}/${folder.name}`);
+          if (!files || cancelled) continue;
 
-        const fileCount = files.filter((f) => f.id !== null).length;
-        if (!fileCount) continue;
+          const fileCount = files.filter((f) => f.id !== null).length;
+          if (!fileCount) continue;
 
-        if (folder.name.startsWith("OTDR_")) {
-          const key = otdrFolderToCategory(folder.name);
-          otdrCounts[key] = (otdrCounts[key] || 0) + fileCount;
-        } else {
-          const key = photoFolderToCategory[folder.name] || folder.name;
-          photoCounts[key] = (photoCounts[key] || 0) + fileCount;
+          if (folder.name.startsWith("OTDR_")) {
+            const key = otdrFolderToCategory(folder.name);
+            otdrCounts[key] = (otdrCounts[key] || 0) + fileCount;
+          } else {
+            const key = photoFolderToCategory[folder.name] || folder.name;
+            photoCounts[key] = (photoCounts[key] || 0) + fileCount;
+          }
+        }
+      }
+
+      // Fallback: use saved photo_counts from construction record (photos may have been moved to Drive)
+      const savedCounts = (existingConstruction as any)?.photo_counts as Record<string, number> | null;
+      if (savedCounts && typeof savedCounts === "object") {
+        for (const [key, count] of Object.entries(savedCounts)) {
+          if (typeof count === "number" && count > 0 && !(photoCounts[key] > 0)) {
+            photoCounts[key] = count;
+          }
         }
       }
 
