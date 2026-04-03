@@ -476,8 +476,8 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
             
             if (driveRes.data?.found && driveRes.data?.subfolders) {
               const driveFolderToCategory: Record<string, string> = {
-                "ΣΚΑΜΑ": "ΣΚΑΜΑ", "ΣΚΑΜΜΑ": "ΣΚΑΜΑ", "SKAMA": "ΣΚΑΜΑ", "ΣΚΑΜΑ": "ΣΚΑΜΑ",
-                "ΟΔΕΥΣΗ": "ΟΔΕΥΣΗ", "ΟΔΕΥΣΗ": "ΟΔΕΥΣΗ", "ODEFSI": "ΟΔΕΥΣΗ", "ΌΔΕΥΣΗ": "ΟΔΕΥΣΗ",
+                "ΣΚΑΜΑ": "ΣΚΑΜΑ", "ΣΚΑΜΜΑ": "ΣΚΑΜΑ", "SKAMA": "ΣΚΑΜΑ",
+                "ΟΔΕΥΣΗ": "ΟΔΕΥΣΗ", "ODEFSI": "ΟΔΕΥΣΗ", "ΌΔΕΥΣΗ": "ΟΔΕΥΣΗ",
                 "BCP": "BCP", "BEP": "BEP", "BMO": "BMO", "FB": "FB",
                 "FLOOR BOX": "FB", "FLOORBOX": "FB",
                 "ΚΑΜΠΙΝΑ": "ΚΑΜΠΙΝΑ", "ΚΑΜΠΊΝΑ": "ΚΑΜΠΙΝΑ", "KAMPINA": "ΚΑΜΠΙΝΑ",
