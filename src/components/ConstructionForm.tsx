@@ -1471,7 +1471,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
 
       const { data: existingConstructionRow, error: existingConstructionError } = await supabase
         .from("constructions")
-        .select("id")
+        .select("id, photo_counts")
         .eq("assignment_id", assignment.id)
         .order("updated_at", { ascending: false })
         .limit(1)
