@@ -410,46 +410,54 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
       const storagePrefix = `constructions/${safeSrId}/${existingConstruction.id}`;
 
       const { data: folders, error } = await supabase.storage.from("photos").list(storagePrefix);
-      if (error || !folders || cancelled) {
-        if (error) console.error("Failed to load existing construction files:", error);
-        return;
-      }
 
       const photoCounts: Record<string, number> = {};
       const otdrCounts: Record<string, number> = {};
 
-      const photoFolderToCategory: Record<string, string> = {
-        SKAMA: "ΣΚΑΜΑ",
-        ODEFSI: "ΟΔΕΥΣΗ",
-        BCP: "BCP",
-        BEP: "BEP",
-        BMO: "BMO",
-        FB: "FB",
-        KAMPINA: "ΚΑΜΠΙΝΑ",
-        G_FASI: "Γ_ΦΑΣΗ",
-      };
+      if (!error && folders && !cancelled) {
+        const photoFolderToCategory: Record<string, string> = {
+          SKAMA: "ΣΚΑΜΑ",
+          ODEFSI: "ΟΔΕΥΣΗ",
+          BCP: "BCP",
+          BEP: "BEP",
+          BMO: "BMO",
+          FB: "FB",
+          KAMPINA: "ΚΑΜΠΙΝΑ",
+          G_FASI: "Γ_ΦΑΣΗ",
+        };
 
-      const otdrFolderToCategory = (folderName: string) => {
-        const withoutPrefix = folderName.replace(/^OTDR_/, "");
-        if (withoutPrefix === "KAMPINA") return "ΚΑΜΠΙΝΑ";
-        return withoutPrefix;
-      };
+        const otdrFolderToCategory = (folderName: string) => {
+          const withoutPrefix = folderName.replace(/^OTDR_/, "");
+          if (withoutPrefix === "KAMPINA") return "ΚΑΜΠΙΝΑ";
+          return withoutPrefix;
+        };
 
-      for (const folder of folders) {
-        if (folder.id !== null) continue;
+        for (const folder of folders) {
+          if (folder.id !== null) continue;
 
-        const { data: files } = await supabase.storage.from("photos").list(`${storagePrefix}/${folder.name}`);
-        if (!files || cancelled) continue;
+          const { data: files } = await supabase.storage.from("photos").list(`${storagePrefix}/${folder.name}`);
+          if (!files || cancelled) continue;
 
-        const fileCount = files.filter((f) => f.id !== null).length;
-        if (!fileCount) continue;
+          const fileCount = files.filter((f) => f.id !== null).length;
+          if (!fileCount) continue;
 
-        if (folder.name.startsWith("OTDR_")) {
-          const key = otdrFolderToCategory(folder.name);
-          otdrCounts[key] = (otdrCounts[key] || 0) + fileCount;
-        } else {
-          const key = photoFolderToCategory[folder.name] || folder.name;
-          photoCounts[key] = (photoCounts[key] || 0) + fileCount;
+          if (folder.name.startsWith("OTDR_")) {
+            const key = otdrFolderToCategory(folder.name);
+            otdrCounts[key] = (otdrCounts[key] || 0) + fileCount;
+          } else {
+            const key = photoFolderToCategory[folder.name] || folder.name;
+            photoCounts[key] = (photoCounts[key] || 0) + fileCount;
+          }
+        }
+      }
+
+      // Fallback: use saved photo_counts from construction record (photos may have been moved to Drive)
+      const savedCounts = (existingConstruction as any)?.photo_counts as Record<string, number> | null;
+      if (savedCounts && typeof savedCounts === "object") {
+        for (const [key, count] of Object.entries(savedCounts)) {
+          if (typeof count === "number" && count > 0 && !(photoCounts[key] > 0)) {
+            photoCounts[key] = count;
+          }
         }
       }
 
@@ -1049,7 +1057,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
         // Find or create construction record
         const { data: existingConstruction, error: existingConstructionError } = await supabase
           .from("constructions")
-          .select("id")
+          .select("id, photo_counts")
           .eq("assignment_id", assignment.id)
           .order("updated_at", { ascending: false })
           .limit(1)
@@ -1061,6 +1069,16 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
         const routesData = routes
           .filter((r) => r.koi || r.fyraKoi)
           .map((r) => ({ label: r.label, koi: parseFloat(r.koi) || 0, fyra_koi: parseFloat(r.fyraKoi) || 0 }));
+
+        // Merge existing photo_counts with new uploads
+        const newPhotoCounts: Record<string, number> = {};
+        for (const [category, files] of Object.entries(categorizedPhotos)) {
+          if (files.length > 0) newPhotoCounts[category] = files.length;
+        }
+        const mergedPhotoCounts = { ...(existingConstruction?.photo_counts as Record<string, number> || {}), ...existingPhotoCounts };
+        for (const [key, count] of Object.entries(newPhotoCounts)) {
+          mergedPhotoCounts[key] = (mergedPhotoCounts[key] || 0) + count;
+        }
 
         const constructionPayload = {
           sr_id: assignment.sr_id,
@@ -1076,6 +1094,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
           pending_note: pendingNote.trim() || null,
           routes: routesData.length > 0 ? routesData : null,
           organization_id: organizationId,
+          photo_counts: mergedPhotoCounts,
         } as any;
 
         if (existingConstruction) {
@@ -1460,12 +1479,22 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
 
       const { data: existingConstructionRow, error: existingConstructionError } = await supabase
         .from("constructions")
-        .select("id")
+        .select("id, photo_counts")
         .eq("assignment_id", assignment.id)
         .order("updated_at", { ascending: false })
         .limit(1)
         .maybeSingle();
       if (existingConstructionError) throw existingConstructionError;
+
+      // Merge existing photo_counts with new uploads
+      const newPhotoCounts: Record<string, number> = {};
+      for (const [category, files] of Object.entries(categorizedPhotos)) {
+        if (files.length > 0) newPhotoCounts[category] = files.length;
+      }
+      const mergedPhotoCounts = { ...(existingConstructionRow as any)?.photo_counts as Record<string, number> || {}, ...existingPhotoCounts };
+      for (const [key, count] of Object.entries(newPhotoCounts)) {
+        mergedPhotoCounts[key] = (mergedPhotoCounts[key] || 0) + count;
+      }
 
       const constructionPayload = {
         sr_id: assignment.sr_id,
@@ -1481,6 +1510,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
         pending_note: pendingNote.trim() || null,
         routes: routesData.length > 0 ? routesData : null,
         organization_id: organizationId,
+        photo_counts: mergedPhotoCounts,
       } as any;
 
       let constructionId: string;
