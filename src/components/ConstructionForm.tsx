@@ -476,15 +476,27 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
             
             if (driveRes.data?.found && driveRes.data?.subfolders) {
               const driveFolderToCategory: Record<string, string> = {
-                "ΣΚΑΜΑ": "ΣΚΑΜΑ", "SKAMA": "ΣΚΑΜΑ",
-                "ΟΔΕΥΣΗ": "ΟΔΕΥΣΗ", "ODEFSI": "ΟΔΕΥΣΗ",
+                "ΣΚΑΜΑ": "ΣΚΑΜΑ", "ΣΚΑΜΜΑ": "ΣΚΑΜΑ", "SKAMA": "ΣΚΑΜΑ", "ΣΚΆΜΑ": "ΣΚΑΜΑ",
+                "ΟΔΕΥΣΗ": "ΟΔΕΥΣΗ", "ODEFSI": "ΟΔΕΥΣΗ", "ΌΔΕΥΣΗ": "ΟΔΕΥΣΗ",
                 "BCP": "BCP", "BEP": "BEP", "BMO": "BMO", "FB": "FB",
-                "ΚΑΜΠΙΝΑ": "ΚΑΜΠΙΝΑ", "KAMPINA": "ΚΑΜΠΙΝΑ",
-                "Γ_ΦΑΣΗ": "Γ_ΦΑΣΗ", "G_FASI": "Γ_ΦΑΣΗ",
+                "FLOOR BOX": "FB", "FLOORBOX": "FB",
+                "ΚΑΜΠΙΝΑ": "ΚΑΜΠΙΝΑ", "ΚΑΜΠΊΝΑ": "ΚΑΜΠΙΝΑ", "KAMPINA": "ΚΑΜΠΙΝΑ",
+                "Γ_ΦΑΣΗ": "Γ_ΦΑΣΗ", "Γ ΦΑΣΗ": "Γ_ΦΑΣΗ", "G_FASI": "Γ_ΦΑΣΗ", "Γ' ΦΑΣΗ": "Γ_ΦΑΣΗ", "Γ' ΦΆΣΗ": "Γ_ΦΑΣΗ",
+              };
+
+              const normalizeFolderName = (name: string): string => {
+                return name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().trim();
               };
 
               for (const [folderName, folderData] of Object.entries(driveRes.data.subfolders as Record<string, any>)) {
-                const categoryKey = driveFolderToCategory[folderName];
+                // Try exact match, then uppercase, then normalized (accent-stripped)
+                let categoryKey = driveFolderToCategory[folderName] || driveFolderToCategory[folderName.toUpperCase()];
+                if (!categoryKey) {
+                  const normalized = normalizeFolderName(folderName);
+                  categoryKey = Object.entries(driveFolderToCategory).find(
+                    ([k]) => normalizeFolderName(k) === normalized
+                  )?.[1] || "";
+                }
                 if (categoryKey && folderData.files?.length > 0) {
                   const imageCount = folderData.files.filter((f: any) =>
                     f.mimeType?.startsWith("image/")
