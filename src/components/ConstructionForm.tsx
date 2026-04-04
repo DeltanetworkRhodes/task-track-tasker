@@ -800,6 +800,14 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
     if (opticalPaths.length > 0) {
       setRoutes((prev) => {
         const updated = [...prev];
+        
+        // Check if any path is INHOUSE — if so, skip ΕΝΑΕΡΙΟ auto-fill
+        const hasInhouse = opticalPaths.some((path) => {
+          const raw = path.raw || path;
+          const pt = (raw["OPTICAL PATH TYPE"] || raw["optical_path_type"] || "").toUpperCase();
+          return pt.includes("INHOUSE") || pt.includes("ΚΑΘΕΤ") || pt.includes("BEP-BMO") || pt.includes("BMO-FB");
+        });
+        
         for (const path of opticalPaths) {
           const raw = path.raw || path;
           const pathType = (raw["OPTICAL PATH TYPE"] || raw["optical_path_type"] || "").toUpperCase();
@@ -816,6 +824,11 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
             matchIdx = 2;
           } else if (pathType.includes("INHOUSE") || pathType.includes("ΚΑΘΕΤ")) {
             matchIdx = 3;
+          }
+
+          // Skip ΕΝΑΕΡΙΟ routes (index 1, 2) when INHOUSE path exists
+          if (hasInhouse && (matchIdx === 1 || matchIdx === 2)) {
+            continue;
           }
 
           if (matchIdx >= 0) {
