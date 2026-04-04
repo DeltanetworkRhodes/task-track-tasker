@@ -2473,10 +2473,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                          <LabelCard color="primary" icon="🔌" title="Labels BEP">
                             {/* A. Μαύρη ίνα από καμπίνα */}
                             <LabelBox label="A. Label μαύρης ίνας (από καμπίνα)">
-                              <div className="space-y-0.5">
-                                <LabelLine text={`${cabName} (${cabTube || cabName})`} bold />
-                                <LabelLine text={fiberRange} bold />
-                              </div>
+                              <LabelLine text={`${cabName} (${cabTube || cabName})\n${fiberRange}`} bold />
                             </LabelBox>
                              {/* B. Πόρτα BEP */}
                               <LabelBox label="B. Στην πόρτα του BEP">
