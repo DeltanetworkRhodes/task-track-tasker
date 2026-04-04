@@ -2526,19 +2526,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                           return (
                           <LabelCard color="accent-foreground" icon="📡" title="Labels BMO">
                             {/* A. Πόρτα BMO — port-to-floor mapping */}
-                             <LabelBox label="A. Στην πόρτα του BMO">
-                               {/* Header: Cabinet (conduit) + fiber range */}
-                               <div className="relative group font-mono text-[11px] font-semibold bg-muted/50 rounded-md px-3 py-1.5 border border-border text-center">
-                                 <div>{cabName}{conduit ? ` (${conduit})` : ""}</div>
-                                 {fiberRange && <div>{fiberRange.replace("-", " - ")}</div>}
-                                 <button
-                                   type="button"
-                                   onClick={() => { navigator.clipboard.writeText(`${cabName}${conduit ? ` (${conduit})` : ""}\n${fiberRange.replace("-", " - ")}`); toast.success("Copied!"); }}
-                                   className="absolute right-1 top-1 opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded hover:bg-muted"
-                                 >
-                                   <Copy className="h-3 w-3 text-muted-foreground" />
-                                 </button>
-                               </div>
+                              <LabelBox label="A. Στην πόρτα του BMO">
 
                                {/* Fiber inputs per SB */}
                                {(aFibers.length > 0 || bFibers.length > 0) && (
