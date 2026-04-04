@@ -2502,10 +2502,10 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                                   {(() => {
                                     const individualLabels: string[] = [];
                                     colA.forEach((item) => {
-                                      individualLabels.push(`A${item.sbPort} - ${floorShort(item.floor)}`);
+                                      individualLabels.push(`A${item.port} - ${floorShort(item.floor)}`);
                                     });
                                     colB.forEach((item) => {
-                                      individualLabels.push(`B${item.sbPort} - ${floorShort(item.floor)}`);
+                                      individualLabels.push(`B${item.port} - ${floorShort(item.floor)}`);
                                     });
                                     return individualLabels.length > 0 ? (
                                       <div className="space-y-1 mt-1">
