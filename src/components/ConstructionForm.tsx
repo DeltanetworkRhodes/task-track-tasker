@@ -2538,128 +2538,14 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                          </LabelCard>
                        )}
 
-                        {/* ═══ 5. BMO ═══ */}
-                        {hasMobLabel && (() => {
-                          // Build SB → BMO port → floor mapping for A/B columns
-                          const sbPortMap: Record<string, { sbPort: number; bmoPort: number; floor: string }[]> = {};
-                          for (const p of bepBmoPaths) {
-                            const pathStr = p["OPTICAL PATH"] || "";
-                            const m = pathStr.match(/(SB\d+)\([^)]+\)\.(\d+).*BMO\d+_(\d+)/i);
-                            if (m) {
-                              const sbName = m[1].toUpperCase();
-                              const sbPort = parseInt(m[2], 10);
-                              const bmoPort = parseInt(m[3], 10);
-                              const floor = bmoPortToFloor[bmoPort] || "";
-                              if (!sbPortMap[sbName]) sbPortMap[sbName] = [];
-                              sbPortMap[sbName].push({ sbPort, bmoPort, floor });
-                            }
-                          }
-                          // Sort each SB group by sbPort
-                          Object.values(sbPortMap).forEach(arr => arr.sort((a, b) => a.sbPort - b.sbPort));
+                         {/* ═══ 5. BMO ═══ */}
+                         {hasMobLabel && (() => {
+                           // Conduit from BEP name (e.g. BEP01(c19) → c19)
+                           const conduitMatch = (bepName || "").match(/\(([^)]+)\)/);
+                           const conduit = conduitMatch ? conduitMatch[1] : "";
 
-                          const sbNames = Object.keys(sbPortMap).sort();
-                          const colA = sbPortMap[sbNames[0]] || [];
-                          const colB = sbPortMap[sbNames[1]] || [];
-
-                          // Split fibers into A/B: sorted fibers, odd-index → A, even-index → B
-                          const sortedFibers = [...cabFiberNums].sort((a, b) => a - b);
-                          const aFibers: number[] = [];
-                          const bFibers: number[] = [];
-                          sortedFibers.forEach((f, i) => (i % 2 === 0 ? aFibers : bFibers).push(f));
-
-                          // Conduit from BEP name (e.g. BEP01(c19) → c19)
-                          const conduitMatch = (bepName || "").match(/\(([^)]+)\)/);
-                          const conduit = conduitMatch ? conduitMatch[1] : "";
-
-                          // Compute max rows
-                          const maxPortRows = Math.max(colA.length, colB.length);
-
-                          return (
-                          <LabelCard color="accent-foreground" icon="📡" title="Labels BMO">
-                             {/* A. Πόρτα BMO — ίνες ανά όροφο */}
-                              {(() => {
-                                // Build rows: pair A and B fibers per floor
-                                // colA and colB have port-to-floor mappings
-                                // aFibers/bFibers have the fiber numbers
-                                // Merge into per-floor groups: each floor gets its A and B entries
-                                const floorRows: Record<string, { aEntries: { label: string; fiber: number }[]; bEntries: { label: string; fiber: number }[] }> = {};
-                                
-                                colA.forEach((entry, i) => {
-                                  const fl = floorShort(entry.floor);
-                                  if (!floorRows[fl]) floorRows[fl] = { aEntries: [], bEntries: [] };
-                                  floorRows[fl].aEntries.push({ label: `A${i + 1}`, fiber: aFibers[i] ?? 0 });
-                                });
-                                colB.forEach((entry, i) => {
-                                  const fl = floorShort(entry.floor);
-                                  if (!floorRows[fl]) floorRows[fl] = { aEntries: [], bEntries: [] };
-                                  floorRows[fl].bEntries.push({ label: `B${i + 1}`, fiber: bFibers[i] ?? 0 });
-                                });
-
-                                // If no port-to-floor data, fall back to simple A/B fiber display
-                                if (Object.keys(floorRows).length === 0 && (aFibers.length > 0 || bFibers.length > 0)) {
-                                  const maxF = Math.max(aFibers.length, bFibers.length);
-                                  const lines: string[] = [];
-                                  for (let i = 0; i < maxF; i++) {
-                                    const a = i < aFibers.length ? `A${i + 1} - ${aFibers[i]}` : "";
-                                    const b = i < bFibers.length ? `B${i + 1} - ${bFibers[i]}` : "";
-                                    lines.push(`${a}    ${b}`.trim());
-                                  }
-                                  return (
-                                    <LabelBox label="A. Στην πόρτα του BMO">
-                                      <div className="relative group font-mono text-[11px] font-semibold bg-muted/50 rounded-md px-3 py-1.5 border border-border">
-                                        <div className="grid grid-cols-2 gap-x-4">
-                                          <div className="space-y-0.5 text-center">
-                                            {aFibers.map((f, i) => <div key={i}>A{i + 1} - {f}</div>)}
-                                          </div>
-                                          <div className="space-y-0.5 text-center">
-                                            {bFibers.map((f, i) => <div key={i}>B{i + 1} - {f}</div>)}
-                                          </div>
-                                        </div>
-                                        <button type="button" onClick={() => { navigator.clipboard.writeText(lines.join("\n")); toast.success("Copied!"); }}
-                                          className="absolute right-1 top-1 opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded hover:bg-muted">
-                                          <Copy className="h-3 w-3 text-muted-foreground" />
-                                        </button>
-                                      </div>
-                                    </LabelBox>
-                                  );
-                                }
-
-                                // Sort floors
-                                const sortedFloors = Object.keys(floorRows).sort((a, b) => {
-                                  const numA = a.includes("ΗΜ") ? -0.5 : a.includes("ΥΡΟ") ? -1 : parseInt(a.replace(/[^-\d]/g, "") || "0", 10);
-                                  const numB = b.includes("ΗΜ") ? -0.5 : b.includes("ΥΡΟ") ? -1 : parseInt(b.replace(/[^-\d]/g, "") || "0", 10);
-                                  return numA - numB;
-                                });
-
-                                return sortedFloors.map((fl) => {
-                                  const { aEntries, bEntries } = floorRows[fl];
-                                  const maxR = Math.max(aEntries.length, bEntries.length);
-                                  const copyLines: string[] = [];
-                                  for (let i = 0; i < maxR; i++) {
-                                    const a = i < aEntries.length ? `${aEntries[i].label} - ${aEntries[i].fiber}` : "";
-                                    const b = i < bEntries.length ? `${bEntries[i].label} - ${bEntries[i].fiber}` : "";
-                                    copyLines.push(`${a}    ${b}`.trim());
-                                  }
-                                  return (
-                                    <LabelBox key={fl} label={`A. Πόρτα BMO — Όροφος ${fl}`}>
-                                      <div className="relative group font-mono text-[11px] font-semibold bg-muted/50 rounded-md px-3 py-1.5 border border-border">
-                                        <div className="grid grid-cols-2 gap-x-4">
-                                          <div className="space-y-0.5 text-center">
-                                            {aEntries.map((e, i) => <div key={i}>{e.label} - {e.fiber}</div>)}
-                                          </div>
-                                          <div className="space-y-0.5 text-center">
-                                            {bEntries.map((e, i) => <div key={i}>{e.label} - {e.fiber}</div>)}
-                                          </div>
-                                        </div>
-                                        <button type="button" onClick={() => { navigator.clipboard.writeText(copyLines.join("\n")); toast.success("Copied!"); }}
-                                          className="absolute right-1 top-1 opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded hover:bg-muted">
-                                          <Copy className="h-3 w-3 text-muted-foreground" />
-                                        </button>
-                                      </div>
-                                    </LabelBox>
-                                  );
-                                });
-                              })()}
+                           return (
+                           <LabelCard color="accent-foreground" icon="📡" title="Labels BMO">
 
                             {/* B. Εσωτερικά BMO — feed + range + departures */}
                              <LabelBox label="B. Εσωτερικά BMO">
