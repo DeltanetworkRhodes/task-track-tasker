@@ -2391,7 +2391,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                    );
 
                    const LabelLine = ({ text, bold }: { text: string; bold?: boolean }) => (
-                     <div className={`relative group text-center text-xs ${bold ? "font-bold" : ""} text-foreground bg-muted/50 rounded px-2 py-1.5 border border-border`}>
+                     <div className={`relative group text-center text-xs whitespace-pre-line ${bold ? "font-bold" : ""} text-foreground bg-muted/50 rounded px-2 py-1.5 border border-border`}>
                        {text}
                        <button
                          type="button"
@@ -2473,10 +2473,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                          <LabelCard color="primary" icon="🔌" title="Labels BEP">
                             {/* A. Μαύρη ίνα από καμπίνα */}
                             <LabelBox label="A. Label μαύρης ίνας (από καμπίνα)">
-                              <div className="space-y-0.5">
-                                <LabelLine text={`${cabName} (${cabTube || cabName})`} bold />
-                                <LabelLine text={fiberRange} bold />
-                              </div>
+                              <LabelLine text={`${cabName} (${cabTube || cabName})\n${fiberRange}`} bold />
                             </LabelBox>
                              {/* B. Πόρτα BEP */}
                               <LabelBox label="B. Στην πόρτα του BEP">
