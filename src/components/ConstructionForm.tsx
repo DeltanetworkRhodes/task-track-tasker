@@ -2510,11 +2510,11 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                                   {/* Individual A/B floor labels */}
                                   {(() => {
                                     const individualLabels: string[] = [];
-                                    colA.forEach((item, i) => {
-                                      individualLabels.push(`A${aFibers.length + i + 1} - ${floorShort(item.floor)}`);
+                                    colA.forEach((item) => {
+                                      individualLabels.push(`A${item.sbPort} - ${floorShort(item.floor)}`);
                                     });
-                                    colB.forEach((item, i) => {
-                                      individualLabels.push(`B${bFibers.length + i + 1} - ${floorShort(item.floor)}`);
+                                    colB.forEach((item) => {
+                                      individualLabels.push(`B${item.sbPort} - ${floorShort(item.floor)}`);
                                     });
                                     return individualLabels.length > 0 ? (
                                       <div className="space-y-1 mt-1">
