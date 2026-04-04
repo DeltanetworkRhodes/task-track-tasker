@@ -2525,77 +2525,90 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
 
                           return (
                           <LabelCard color="accent-foreground" icon="📡" title="Labels BMO">
-                            {/* A. Πόρτα BMO — port-to-floor mapping */}
-                              <LabelBox label="A. Στην πόρτα του BMO">
+                             {/* A. Πόρτα BMO — ίνες ανά όροφο */}
+                              {(() => {
+                                // Build rows: pair A and B fibers per floor
+                                // colA and colB have port-to-floor mappings
+                                // aFibers/bFibers have the fiber numbers
+                                // Merge into per-floor groups: each floor gets its A and B entries
+                                const floorRows: Record<string, { aEntries: { label: string; fiber: number }[]; bEntries: { label: string; fiber: number }[] }> = {};
+                                
+                                colA.forEach((entry, i) => {
+                                  const fl = floorShort(entry.floor);
+                                  if (!floorRows[fl]) floorRows[fl] = { aEntries: [], bEntries: [] };
+                                  floorRows[fl].aEntries.push({ label: `A${i + 1}`, fiber: aFibers[i] ?? 0 });
+                                });
+                                colB.forEach((entry, i) => {
+                                  const fl = floorShort(entry.floor);
+                                  if (!floorRows[fl]) floorRows[fl] = { aEntries: [], bEntries: [] };
+                                  floorRows[fl].bEntries.push({ label: `B${i + 1}`, fiber: bFibers[i] ?? 0 });
+                                });
 
-                               {/* Fiber inputs per SB */}
-                               {(aFibers.length > 0 || bFibers.length > 0) && (
-                                 <div className="relative group font-mono text-[11px] font-semibold bg-muted/50 rounded-md px-3 py-1.5 border border-border mt-1">
-                                    <div className="grid grid-cols-2 gap-x-4">
-                                      <div className="space-y-0.5 text-center">
-                                        {aFibers.map((f, i) => <div key={i}>A{i + 1} - {f}</div>)}
+                                // If no port-to-floor data, fall back to simple A/B fiber display
+                                if (Object.keys(floorRows).length === 0 && (aFibers.length > 0 || bFibers.length > 0)) {
+                                  const maxF = Math.max(aFibers.length, bFibers.length);
+                                  const lines: string[] = [];
+                                  for (let i = 0; i < maxF; i++) {
+                                    const a = i < aFibers.length ? `A${i + 1} - ${aFibers[i]}` : "";
+                                    const b = i < bFibers.length ? `B${i + 1} - ${bFibers[i]}` : "";
+                                    lines.push(`${a}    ${b}`.trim());
+                                  }
+                                  return (
+                                    <LabelBox label="A. Στην πόρτα του BMO">
+                                      <div className="relative group font-mono text-[11px] font-semibold bg-muted/50 rounded-md px-3 py-1.5 border border-border">
+                                        <div className="grid grid-cols-2 gap-x-4">
+                                          <div className="space-y-0.5 text-center">
+                                            {aFibers.map((f, i) => <div key={i}>A{i + 1} - {f}</div>)}
+                                          </div>
+                                          <div className="space-y-0.5 text-center">
+                                            {bFibers.map((f, i) => <div key={i}>B{i + 1} - {f}</div>)}
+                                          </div>
+                                        </div>
+                                        <button type="button" onClick={() => { navigator.clipboard.writeText(lines.join("\n")); toast.success("Copied!"); }}
+                                          className="absolute right-1 top-1 opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded hover:bg-muted">
+                                          <Copy className="h-3 w-3 text-muted-foreground" />
+                                        </button>
                                       </div>
-                                      <div className="space-y-0.5 text-center">
-                                        {bFibers.map((f, i) => <div key={i}>B{i + 1} - {f}</div>)}
-                                      </div>
-                                    </div>
-                                   <button
-                                     type="button"
-                                     onClick={() => {
-                                       const lines = [];
-                                       const max = Math.max(aFibers.length, bFibers.length);
-                                       for (let i = 0; i < max; i++) {
-                                         const a = i < aFibers.length ? `A${i + 1} - ${aFibers[i]}` : "";
-                                         const b = i < bFibers.length ? `B${i + 1} - ${bFibers[i]}` : "";
-                                         lines.push(`${a}    ${b}`.trim());
-                                       }
-                                       navigator.clipboard.writeText(lines.join("\n"));
-                                       toast.success("Copied!");
-                                     }}
-                                     className="absolute right-1 top-1 opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded hover:bg-muted"
-                                   >
-                                     <Copy className="h-3 w-3 text-muted-foreground" />
-                                   </button>
-                                 </div>
-                               )}
+                                    </LabelBox>
+                                  );
+                                }
 
-                               {/* Port-to-floor mapping in A/B columns */}
-                               {maxPortRows > 0 && (
-                                 <div className="relative group font-mono text-[11px] font-semibold bg-muted/50 rounded-md px-3 py-1.5 border border-border mt-1">
-                                    <div className="grid grid-cols-2 gap-x-4">
-                                      <div className="space-y-0.5 text-center">
-                                        {colA.map((entry, i) => {
-                                          const fl = floorShort(entry.floor);
-                                          return <div key={i}>A{aFibers.length + i + 1} - {fl}</div>;
-                                        })}
+                                // Sort floors
+                                const sortedFloors = Object.keys(floorRows).sort((a, b) => {
+                                  const numA = a.includes("ΗΜ") ? -0.5 : a.includes("ΥΡΟ") ? -1 : parseInt(a.replace(/[^-\d]/g, "") || "0", 10);
+                                  const numB = b.includes("ΗΜ") ? -0.5 : b.includes("ΥΡΟ") ? -1 : parseInt(b.replace(/[^-\d]/g, "") || "0", 10);
+                                  return numA - numB;
+                                });
+
+                                return sortedFloors.map((fl) => {
+                                  const { aEntries, bEntries } = floorRows[fl];
+                                  const maxR = Math.max(aEntries.length, bEntries.length);
+                                  const copyLines: string[] = [];
+                                  for (let i = 0; i < maxR; i++) {
+                                    const a = i < aEntries.length ? `${aEntries[i].label} - ${aEntries[i].fiber}` : "";
+                                    const b = i < bEntries.length ? `${bEntries[i].label} - ${bEntries[i].fiber}` : "";
+                                    copyLines.push(`${a}    ${b}`.trim());
+                                  }
+                                  return (
+                                    <LabelBox key={fl} label={`A. Πόρτα BMO — Όροφος ${fl}`}>
+                                      <div className="relative group font-mono text-[11px] font-semibold bg-muted/50 rounded-md px-3 py-1.5 border border-border">
+                                        <div className="grid grid-cols-2 gap-x-4">
+                                          <div className="space-y-0.5 text-center">
+                                            {aEntries.map((e, i) => <div key={i}>{e.label} - {e.fiber}</div>)}
+                                          </div>
+                                          <div className="space-y-0.5 text-center">
+                                            {bEntries.map((e, i) => <div key={i}>{e.label} - {e.fiber}</div>)}
+                                          </div>
+                                        </div>
+                                        <button type="button" onClick={() => { navigator.clipboard.writeText(copyLines.join("\n")); toast.success("Copied!"); }}
+                                          className="absolute right-1 top-1 opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded hover:bg-muted">
+                                          <Copy className="h-3 w-3 text-muted-foreground" />
+                                        </button>
                                       </div>
-                                      <div className="space-y-0.5 text-center">
-                                        {colB.map((entry, i) => {
-                                          const fl = floorShort(entry.floor);
-                                          return <div key={i}>B{bFibers.length + i + 1} - {fl}</div>;
-                                        })}
-                                      </div>
-                                    </div>
-                                   <button
-                                     type="button"
-                                     onClick={() => {
-                                       const lines = [];
-                                       const max = Math.max(colA.length, colB.length);
-                                       for (let i = 0; i < max; i++) {
-                                         const a = i < colA.length ? `A${aFibers.length + i + 1} - ${floorShort(colA[i].floor)}` : "";
-                                         const b = i < colB.length ? `B${bFibers.length + i + 1} - ${floorShort(colB[i].floor)}` : "";
-                                         lines.push(`${a}    ${b}`.trim());
-                                       }
-                                       navigator.clipboard.writeText(lines.join("\n"));
-                                       toast.success("Copied!");
-                                     }}
-                                     className="absolute right-1 top-1 opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded hover:bg-muted"
-                                   >
-                                     <Copy className="h-3 w-3 text-muted-foreground" />
-                                   </button>
-                                 </div>
-                               )}
-                             </LabelBox>
+                                    </LabelBox>
+                                  );
+                                });
+                              })()}
 
                             {/* B. Εσωτερικά BMO — feed + range + departures */}
                              <LabelBox label="B. Εσωτερικά BMO">
