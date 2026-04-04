@@ -280,10 +280,6 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
   const [submitProgress, setSubmitProgress] = useState("");
   const [showCompleteConfirm, setShowCompleteConfirm] = useState(false);
 
-  // ─── Existing uploaded photos from storage (persistence) ───
-  const [existingPhotoCounts, setExistingPhotoCounts] = useState<Record<string, number>>({});
-  const [existingOtdrCounts, setExistingOtdrCounts] = useState<Record<string, number>>({});
-
   // Load existing construction data when re-entering the form
   const { data: existingConstruction, isFetched: existingConstructionFetched } = useQuery({
     queryKey: ["existing_construction", assignment.id],
