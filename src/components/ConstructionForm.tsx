@@ -2372,29 +2372,20 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                    const hasMobLabel = !bepOnly && Object.keys(fbGroups).length > 0;
                     const hasFbLabel = !bepOnly && Object.keys(fbGroups).length > 0;
 
-                    // --- Compute A/B port-to-floor mapping for BEP door ---
-                    const sbPortMap: Record<string, { sbPort: number; bmoPort: number; floor: string }[]> = {};
-                    for (const p of bepBmoPaths) {
-                      const pathStr = p["OPTICAL PATH"] || "";
-                      const m3 = pathStr.match(/(SB\d+)\([^)]+\)\.(\d+).*BMO\d+_(\d+)/i);
-                      if (m3) {
-                        const sbName = m3[1].toUpperCase();
-                        const sbPort = parseInt(m3[2], 10);
-                        const bmoPort = parseInt(m3[3], 10);
-                        const floor = bmoPortToFloor[bmoPort] || "";
-                        if (!sbPortMap[sbName]) sbPortMap[sbName] = [];
-                        sbPortMap[sbName].push({ sbPort, bmoPort, floor });
-                      }
+                    // --- Compute BEP port-to-floor mapping for BEP door ---
+                    // Use bepToBmo + bmoPortToFloor chain (more reliable than SB regex)
+                    const bepPortFloors: { port: number; floor: string }[] = [];
+                    for (const [bepPort, bmoPort] of Object.entries(bepToBmo)) {
+                      const floor = bmoPortToFloor[bmoPort] || "";
+                      if (floor) bepPortFloors.push({ port: parseInt(bepPort as string, 10), floor });
                     }
-                    Object.values(sbPortMap).forEach(arr => arr.sort((a, b) => a.sbPort - b.sbPort));
-                    const sbNames = Object.keys(sbPortMap).sort();
-                    const colA = sbPortMap[sbNames[0]] || [];
-                    const colB = sbPortMap[sbNames[1]] || [];
-                    const sortedFibers = [...cabFiberNums].sort((a, b) => a - b);
-                    const aFibers: number[] = [];
-                    const bFibers: number[] = [];
-                    sortedFibers.forEach((f, i) => (i % 2 === 0 ? aFibers : bFibers).push(f));
-                    const maxPortRows = Math.max(colA.length, colB.length);
+                    bepPortFloors.sort((a, b) => a.port - b.port);
+
+                    // Split into A (odd ports or first half) and B (even ports or second half)
+                    // Based on user spec: A goes 1-6 then B
+                    const halfPoint = Math.ceil(bepPortFloors.length / 2);
+                    const colA = bepPortFloors.slice(0, halfPoint);
+                    const colB = bepPortFloors.slice(halfPoint);
 
                      if (!hasCabLabel && !hasBcpLabel && !hasBepLabel && !hasMobLabel && !hasFbLabel) return null;
 
@@ -2511,10 +2502,10 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                                   {(() => {
                                     const individualLabels: string[] = [];
                                     colA.forEach((item) => {
-                                      individualLabels.push(`A${item.sbPort} - ${floorShort(item.floor)}`);
+                                      individualLabels.push(`A${item.port} - ${floorShort(item.floor)}`);
                                     });
                                     colB.forEach((item) => {
-                                      individualLabels.push(`B${item.sbPort} - ${floorShort(item.floor)}`);
+                                      individualLabels.push(`B${item.port} - ${floorShort(item.floor)}`);
                                     });
                                     return individualLabels.length > 0 ? (
                                       <div className="space-y-1 mt-1">
