@@ -2471,35 +2471,22 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                        {/* ═══ 4. BEP ═══ */}
                        {hasBepLabel && (
                          <LabelCard color="primary" icon="🔌" title="Labels BEP">
-                           {/* A. Στα καλώδια */}
-                           <LabelBox label="A. Στα καλώδια του BEP">
-                             <div className="space-y-1">
-                               {/* Προς BMO ή FB */}
-                                 {bepBmoPorts.length > 0 && !bepOnly && (
-                                   <LabelLine text={`BMO | ${fiberCount}`} bold />
-                                 )}
-                                 {/* FB cables from BMO-FB */}
-                                  {Object.entries(fbGroups).sort(([a], [b]) => a.localeCompare(b)).map(([floorKey, fb]) => {
-                                    const fl = fb.floor.startsWith("+") || fb.floor.startsWith("-") ? fb.floor : `+${fb.floor}`;
-                                    return <LabelLine key={floorKey} text={`FB(${fl}) | ${floorFO(fb.floor)}`} bold />;
-                                  })}
-                                {bepOnly && (
-                                  <LabelLine text={`ΠΕΛΑΤΗ | 2FO`} bold />
-                                )}
-                             </div>
-                           </LabelBox>
-                            {/* B. Πόρτα BEP */}
-                             <LabelBox label="B. Στην πόρτα του BEP">
-                               <LabelBlock lines={[
-                                 `ΚΑΜΠΙΝΑ: ${cabName}`,
-                                  ...(hasBcpConnection && bcpName ? [`BCP: ${bcpName}`] : []),
-                                 `ΣΩΛΗΝΙΣΚΟΣ: ${cabTube || cabName}`,
-                                 `ΟΡΙΑ: ${fiberRange}`,
-                                 `ΠΟΡΤΑ 1: ΕΙΣΟΔΟΣ ΠΑΡΟΧΙΚΗΣ`,
-                                 `ΠΟΡΤΑ 2: SPLITTER`,
-                                 bepOnly ? `ΠΟΡΤΑ 3: PATCH TO ΠΕΛΑΤΗ` : `ΠΟΡΤΑ 3: PATCH TO BMO`,
-                               ]} />
-                             </LabelBox>
+                            {/* A. Μαύρη ίνα από καμπίνα */}
+                            <LabelBox label="A. Label μαύρης ίνας (από καμπίνα)">
+                              <div className="space-y-0.5">
+                                <LabelLine text={`${cabName} (${cabTube || cabName})`} bold />
+                                <LabelLine text={fiberRange} bold />
+                              </div>
+                            </LabelBox>
+                             {/* B. Πόρτα BEP */}
+                              <LabelBox label="B. Στην πόρτα του BEP">
+                                <LabelBlock lines={[
+                                  `ΚΑΜΠΙΝΑ: ${cabName}`,
+                                   ...(hasBcpConnection && bcpName ? [`BCP: ${bcpName}`] : []),
+                                  `ΣΩΛΗΝΙΣΚΟΣ: ${cabTube || cabName}`,
+                                  `ΟΡΙΑ: ${fiberRange}`,
+                                ]} />
+                              </LabelBox>
                          </LabelCard>
                        )}
 
