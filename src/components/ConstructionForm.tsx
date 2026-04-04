@@ -2373,16 +2373,37 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                     const hasFbLabel = !bepOnly && Object.keys(fbGroups).length > 0;
 
                     // --- Compute BEP port-to-floor mapping for BEP door ---
-                    // Use bepToBmo + bmoPortToFloor chain (more reliable than SB regex)
+                    // Use bepToBmo + bmoPortToFloor chain
                     const bepPortFloors: { port: number; floor: string }[] = [];
                     for (const [bepPort, bmoPort] of Object.entries(bepToBmo)) {
                       const floor = bmoPortToFloor[bmoPort] || "";
                       if (floor) bepPortFloors.push({ port: parseInt(bepPort as string, 10), floor });
                     }
+
+                    // Fallback: if chain produced nothing but we have floor details, build from floorDetailsArr
+                    if (bepPortFloors.length === 0 && floorDetailsArr.length > 0) {
+                      let portCounter = 1;
+                      // Sort floors by sortOrder
+                      const sortedFloorDetails = [...floorDetailsArr].sort((a, b) => {
+                        const order = (f: string) => {
+                          if (f === "ΥΠ" || f.startsWith("-")) return -100 + (parseInt(f.replace("-", ""), 10) || 0);
+                          if (f === "ΗΜ" || f === "ΗΜΙ") return -1;
+                          if (f === "ΙΣ" || f === "ΙΣΟ" || f === "0" || f === "00") return 0;
+                          return parseInt(f.replace("+", ""), 10) || 0;
+                        };
+                        return order(a.floor) - order(b.floor);
+                      });
+                      for (const fd of sortedFloorDetails) {
+                        const apts = fd.apartments || 1;
+                        for (let a = 0; a < apts; a++) {
+                          bepPortFloors.push({ port: portCounter++, floor: fd.floor });
+                        }
+                      }
+                    }
+
                     bepPortFloors.sort((a, b) => a.port - b.port);
 
-                    // Split into A (odd ports or first half) and B (even ports or second half)
-                    // Based on user spec: A goes 1-6 then B
+                    // Split into A first, then B
                     const halfPoint = Math.ceil(bepPortFloors.length / 2);
                     const colA = bepPortFloors.slice(0, halfPoint);
                     const colB = bepPortFloors.slice(halfPoint);
