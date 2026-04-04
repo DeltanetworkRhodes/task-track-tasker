@@ -2373,12 +2373,6 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                     const hasFbLabel = !bepOnly && Object.keys(fbGroups).length > 0;
 
                     // --- Compute A/B port-to-floor mapping for BEP door ---
-                    const bmoPortToFloor: Record<number, string> = {};
-                    for (const p of bmoFbPaths) {
-                      const pathStr = p["OPTICAL PATH"] || "";
-                      const m2 = pathStr.match(/BMO\d+_(\d+)_FB\(([^)]+)\)/i);
-                      if (m2) bmoPortToFloor[parseInt(m2[1], 10)] = normalizeFloorId(m2[2]);
-                    }
                     const sbPortMap: Record<string, { sbPort: number; bmoPort: number; floor: string }[]> = {};
                     for (const p of bepBmoPaths) {
                       const pathStr = p["OPTICAL PATH"] || "";
