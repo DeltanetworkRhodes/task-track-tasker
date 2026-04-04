@@ -309,9 +309,10 @@ export default function FtthLabelGenerator() {
         <Section title="BEP" icon="🔌" badge="COSMOTE Β' Φάση">
           <SubSection title="Εσωτερικά">
             <LabelPreview
-              label="A. Label καλωδίων"
-              text={`ΠΡΟΣ: ${f.destination} | ${f.fiberCapacity}`}
-              disabled={!f.destination.trim() || !hasFiber}
+              label="A. Label μαύρης ίνας (από καμπίνα)"
+              text={`${f.cabinet} (${f.tube || f.cabinet})\n${f.limits}`}
+              disabled={!hasCabinet || !hasLimits}
+              multiline
             />
           </SubSection>
           <SubSection title="Εξωτερικά">
@@ -321,9 +322,6 @@ export default function FtthLabelGenerator() {
                 `ΚΑΜΠΙΝΑ: ${f.cabinet}`,
                 `ΣΩΛΗΝΙΣΚΟΣ: ${f.tube || f.cabinet}`,
                 `ΟΡΙΑ: ${f.limits}`,
-                `ΠΟΡΤΑ 1: ${f.port1}`,
-                `ΠΟΡΤΑ 2: ${f.port2}`,
-                `ΠΟΡΤΑ 3: ${f.port3}`,
               ].join("\n")}
               disabled={!hasBepOutside}
               multiline
