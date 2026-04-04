@@ -2380,11 +2380,10 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                       if (floor) bepPortFloors.push({ port: parseInt(bepPort as string, 10), floor });
                     }
 
-                    // Fallback: if chain produced nothing but we have floor details, build from floorDetailsArr
+                    // Fallback 1: use floorDetailsArr (GIS floor_details)
                     if (bepPortFloors.length === 0 && floorDetailsArr.length > 0) {
                       let portCounter = 1;
-                      // Sort floors by sortOrder
-                      const sortedFloorDetails = [...floorDetailsArr].sort((a, b) => {
+                      const sortedFD = [...floorDetailsArr].sort((a, b) => {
                         const order = (f: string) => {
                           if (f === "ΥΠ" || f.startsWith("-")) return -100 + (parseInt(f.replace("-", ""), 10) || 0);
                           if (f === "ΗΜ" || f === "ΗΜΙ") return -1;
@@ -2393,10 +2392,21 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                         };
                         return order(a.floor) - order(b.floor);
                       });
-                      for (const fd of sortedFloorDetails) {
+                      for (const fd of sortedFD) {
                         const apts = fd.apartments || 1;
                         for (let a = 0; a < apts; a++) {
                           bepPortFloors.push({ port: portCounter++, floor: fd.floor });
+                        }
+                      }
+                    }
+
+                    // Fallback 2: use sortedFloors from BMO-FB paths
+                    if (bepPortFloors.length === 0 && sortedFloors.length > 0) {
+                      let portCounter = 1;
+                      for (const [floorKey, floorData] of sortedFloors) {
+                        const portCount = floorData.bmoPorts.length || 1;
+                        for (let a = 0; a < portCount; a++) {
+                          bepPortFloors.push({ port: portCounter++, floor: floorKey });
                         }
                       }
                     }
