@@ -2499,15 +2499,42 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                             <LabelBox label="A. Label μαύρης ίνας (από καμπίνα)">
                               <LabelLine text={`${cabName} (${cabTube || cabName})\n${fiberRange}`} bold />
                             </LabelBox>
-                             {/* B. Πόρτα BEP */}
-                              <LabelBox label="B. Στην πόρτα του BEP">
-                                <LabelBlock lines={[
-                                  `ΚΑΜΠΙΝΑ: ${cabName}`,
-                                   ...(hasBcpConnection && bcpName ? [`BCP: ${bcpName}`] : []),
-                                  `ΣΩΛΗΝΙΣΚΟΣ: ${cabTube || cabName}`,
-                                  `ΟΡΙΑ: ${fiberRange}`,
-                                ]} />
-                              </LabelBox>
+                              {/* B. Πόρτα BEP */}
+                               <LabelBox label="B. Στην πόρτα του BEP">
+                                 <LabelBlock lines={[
+                                   `ΚΑΜΠΙΝΑ: ${cabName}`,
+                                    ...(hasBcpConnection && bcpName ? [`BCP: ${bcpName}`] : []),
+                                   `ΣΩΛΗΝΙΣΚΟΣ: ${cabTube || cabName}`,
+                                   `ΟΡΙΑ: ${fiberRange}`,
+                                 ]} />
+                                 {/* A/B floor mapping grid */}
+                                 {(colA.length > 0 || colB.length > 0) && (() => {
+                                   const allRows: { a: string; b: string }[] = [];
+                                   const maxR = Math.max(colA.length, colB.length);
+                                   for (let i = 0; i < maxR; i++) {
+                                     const aLabel = i < colA.length ? `A${aFibers.length + i + 1} - ${floorShort(colA[i].floor)}` : "";
+                                     const bLabel = i < colB.length ? `B${bFibers.length + i + 1} - ${floorShort(colB[i].floor)}` : "";
+                                     allRows.push({ a: aLabel, b: bLabel });
+                                   }
+                                   const copyText = allRows.map(r => `${r.a}    ${r.b}`.trim()).join("\n");
+                                   return (
+                                     <div className="relative group font-mono text-[11px] font-semibold bg-muted/50 rounded-md px-3 py-1.5 border border-border mt-1">
+                                       <div className="grid grid-cols-2 gap-x-4">
+                                         <div className="space-y-0.5 text-center">
+                                           {allRows.map((r, i) => r.a ? <div key={i}>{r.a}</div> : null)}
+                                         </div>
+                                         <div className="space-y-0.5 text-center">
+                                           {allRows.map((r, i) => r.b ? <div key={i}>{r.b}</div> : null)}
+                                         </div>
+                                       </div>
+                                       <button type="button" onClick={() => { navigator.clipboard.writeText(copyText); toast.success("Copied!"); }}
+                                         className="absolute right-1 top-1 opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded hover:bg-muted">
+                                         <Copy className="h-3 w-3 text-muted-foreground" />
+                                       </button>
+                                     </div>
+                                   );
+                                 })()}
+                               </LabelBox>
                          </LabelCard>
                        )}
 
