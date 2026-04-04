@@ -2372,7 +2372,37 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                    const hasMobLabel = !bepOnly && Object.keys(fbGroups).length > 0;
                     const hasFbLabel = !bepOnly && Object.keys(fbGroups).length > 0;
 
-                    if (!hasCabLabel && !hasBcpLabel && !hasBepLabel && !hasMobLabel && !hasFbLabel) return null;
+                    // --- Compute A/B port-to-floor mapping for BEP door ---
+                    const bmoPortToFloor: Record<number, string> = {};
+                    for (const p of bmoFbPaths) {
+                      const pathStr = p["OPTICAL PATH"] || "";
+                      const m2 = pathStr.match(/BMO\d+_(\d+)_FB\(([^)]+)\)/i);
+                      if (m2) bmoPortToFloor[parseInt(m2[1], 10)] = normalizeFloorId(m2[2]);
+                    }
+                    const sbPortMap: Record<string, { sbPort: number; bmoPort: number; floor: string }[]> = {};
+                    for (const p of bepBmoPaths) {
+                      const pathStr = p["OPTICAL PATH"] || "";
+                      const m3 = pathStr.match(/(SB\d+)\([^)]+\)\.(\d+).*BMO\d+_(\d+)/i);
+                      if (m3) {
+                        const sbName = m3[1].toUpperCase();
+                        const sbPort = parseInt(m3[2], 10);
+                        const bmoPort = parseInt(m3[3], 10);
+                        const floor = bmoPortToFloor[bmoPort] || "";
+                        if (!sbPortMap[sbName]) sbPortMap[sbName] = [];
+                        sbPortMap[sbName].push({ sbPort, bmoPort, floor });
+                      }
+                    }
+                    Object.values(sbPortMap).forEach(arr => arr.sort((a, b) => a.sbPort - b.sbPort));
+                    const sbNames = Object.keys(sbPortMap).sort();
+                    const colA = sbPortMap[sbNames[0]] || [];
+                    const colB = sbPortMap[sbNames[1]] || [];
+                    const sortedFibers = [...cabFiberNums].sort((a, b) => a - b);
+                    const aFibers: number[] = [];
+                    const bFibers: number[] = [];
+                    sortedFibers.forEach((f, i) => (i % 2 === 0 ? aFibers : bFibers).push(f));
+                    const maxPortRows = Math.max(colA.length, colB.length);
+
+                     if (!hasCabLabel && !hasBcpLabel && !hasBepLabel && !hasMobLabel && !hasFbLabel) return null;
 
                    // Label card helper
                    const LabelCard = ({ color, icon, title, children }: { color: string; icon: string; title: string; children: React.ReactNode }) => (
