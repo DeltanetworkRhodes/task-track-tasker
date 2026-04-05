@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { FileSpreadsheet, Loader2, AlertTriangle } from "lucide-react";
-import { generateAsBuilt, preValidateAsBuilt } from "@/lib/generateAsBuilt";
+import { FileSpreadsheet, Loader2, AlertTriangle, Upload, CheckCircle2 } from "lucide-react";
+import { generateAsBuilt, preValidateAsBuilt, AsBuiltResult } from "@/lib/generateAsBuilt";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 interface AsBuiltExporterProps {
@@ -11,6 +12,33 @@ interface AsBuiltExporterProps {
   variant?: "default" | "outline" | "ghost" | "secondary";
   size?: "default" | "sm" | "lg" | "icon";
   className?: string;
+}
+
+async function uploadToDrive(srId: string, result: AsBuiltResult) {
+  if (!result.buffer || !result.fileName) return;
+
+  try {
+    const base64 = btoa(
+      new Uint8Array(result.buffer).reduce((data, byte) => data + String.fromCharCode(byte), "")
+    );
+
+    const { data, error } = await supabase.functions.invoke("upload-photo-to-drive", {
+      body: {
+        sr_id: srId,
+        file_name: result.fileName,
+        file_base64: base64,
+        mime_type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        subfolder: "ΕΓΓΡΑΦΑ",
+      },
+    });
+
+    if (error) throw error;
+    toast.success("AS-BUILD ανέβηκε στο Drive!", { icon: <CheckCircle2 className="h-4 w-4" /> });
+    return data;
+  } catch (err: any) {
+    console.warn("Drive upload failed:", err);
+    toast.warning("Το AS-BUILD δημιουργήθηκε τοπικά αλλά δεν ανέβηκε στο Drive.");
+  }
 }
 
 const AsBuiltExporter = ({
@@ -22,6 +50,7 @@ const AsBuiltExporter = ({
 }: AsBuiltExporterProps) => {
   const [generating, setGenerating] = useState(false);
   const [validating, setValidating] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [pendingWarnings, setPendingWarnings] = useState<string[] | null>(null);
 
   const doGenerate = async () => {
@@ -36,11 +65,19 @@ const AsBuiltExporter = ({
       } else {
         toast.success(`AS-BUILD για ${srId} δημιουργήθηκε!`);
       }
+
+      // Auto-upload to Drive (fire-and-forget style with UI feedback)
+      if (result.buffer) {
+        setUploading(true);
+        await uploadToDrive(srId, result);
+        setUploading(false);
+      }
     } catch (err: any) {
       toast.error(err.message || "Σφάλμα δημιουργίας AS-BUILD");
       console.error("AS-BUILD error:", err);
     } finally {
       setGenerating(false);
+      setUploading(false);
     }
   };
 
@@ -68,16 +105,18 @@ const AsBuiltExporter = ({
       <Button
         variant={variant}
         size={size}
-        disabled={disabled || isLoading}
+        disabled={disabled || isLoading || uploading}
         onClick={handleGenerate}
         className={className}
       >
-        {isLoading ? (
+        {uploading ? (
+          <Upload className="h-4 w-4 animate-pulse mr-1" />
+        ) : isLoading ? (
           <Loader2 className="h-4 w-4 animate-spin mr-1" />
         ) : (
           <FileSpreadsheet className="h-4 w-4 mr-1" />
         )}
-        AS-BUILD
+        {uploading ? "Upload Drive..." : "AS-BUILD"}
       </Button>
 
       {pendingWarnings && (
