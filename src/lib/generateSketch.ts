@@ -14,8 +14,10 @@ interface SketchInput {
   conduit: string;
   /** CAB identifier e.g. "G526" */
   cabId: string;
-  /** Distance from building (BEP) to distribution point (trench/σκάμα) in meters */
+  /** Distance from CAB to BEP (underground routing) in meters */
   trenchLengthM: number;
+  /** Distance from cabinet to building (υπόγεια όδευση) in meters - preferred for CAB-BEP distance */
+  distanceFromCabinet?: number;
   /** Full address string */
   address: string;
   /** Building ID e.g. "667102934" */
