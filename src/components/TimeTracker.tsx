@@ -75,19 +75,13 @@ const TimeTracker = ({ assignmentId, srId }: Props) => {
           <Timer className="h-3.5 w-3.5" />
           Check In / Out
         </p>
-        {totalMinutes > 0 && (
-          <Badge variant="outline" className="text-xs gap-1">
-            <Clock className="h-3 w-3" />
-            Σύνολο: {formatDuration(totalMinutes)}
-          </Badge>
-        )}
       </div>
 
       {activeEntry ? (
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <div className="h-2.5 w-2.5 rounded-full bg-green-500 animate-pulse" />
-            <LiveTimer checkIn={activeEntry.check_in} />
+            <span className="text-sm font-medium text-green-600">Σε εξέλιξη...</span>
           </div>
           <Button
             size="sm"
@@ -112,42 +106,6 @@ const TimeTracker = ({ assignmentId, srId }: Props) => {
         </Button>
       )}
 
-      {/* Recent entries */}
-      {entries.filter((e) => e.check_out).length > 0 && (
-        <div className="space-y-1.5 pt-1 border-t border-border">
-          <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
-            Ιστορικό
-          </p>
-          {entries
-            .filter((e) => e.check_out)
-            .slice(0, 5)
-            .map((e) => (
-              <div
-                key={e.id}
-                className="flex items-center justify-between text-xs text-muted-foreground"
-              >
-                <span>
-                  {new Date(e.check_in).toLocaleDateString("el-GR", {
-                    day: "numeric",
-                    month: "short",
-                  })}{" "}
-                  {new Date(e.check_in).toLocaleTimeString("el-GR", {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
-                  {" → "}
-                  {new Date(e.check_out!).toLocaleTimeString("el-GR", {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
-                </span>
-                <span className="font-medium text-foreground">
-                  {formatDuration(e.duration_minutes || 0)}
-                </span>
-              </div>
-            ))}
-        </div>
-      )}
     </Card>
   );
 };
