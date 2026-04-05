@@ -116,8 +116,9 @@ export function generateOteSketch(input: SketchInput): string {
   ctx.lineWidth = 2;
   ctx.stroke();
 
-  // ── Distance annotation above cable ──
-  const distText = `${input.trenchLengthM}m`;
+  // ── Distance annotation above cable (use distanceFromCabinet = underground CAB→BEP distance) ──
+  const cabToBepDistance = input.distanceFromCabinet || input.trenchLengthM;
+  const distText = `${cabToBepDistance}m`;
   const midCableX = (cableStartX + cableEndX) / 2;
   ctx.fillStyle = "#000000";
   ctx.font = "bold 18px Arial, sans-serif";
@@ -125,7 +126,22 @@ export function generateOteSketch(input: SketchInput): string {
   ctx.textBaseline = "bottom";
   ctx.fillText(distText, midCableX, cableY - 12);
 
-  // ── Conduit / Building ID label (inside building, top-right area) ──
+  // ── "ΥΠΟΓ. ΟΔΕΥΣΗ" label below cable line ──
+  ctx.font = "13px Arial, sans-serif";
+  ctx.fillStyle = "#555555";
+  ctx.textBaseline = "top";
+  ctx.fillText("ΥΠΟΓ. ΟΔΕΥΣΗ", midCableX, cableY + 8);
+
+  // ── Building ID label (inside building, top-left area) ──
+  ctx.fillStyle = "#000000";
+  ctx.font = "bold 16px Arial, sans-serif";
+  ctx.textAlign = "left";
+  ctx.textBaseline = "middle";
+  if (input.buildingId) {
+    ctx.fillText(`ID: ${input.buildingId}`, bldX + 15, bldY + 30);
+  }
+
+  // ── Conduit / CAB ID label (inside building, top-right area) ──
   const labelX = bldX + bldW / 2 + 40;
   const labelY = bldY + 50;
 
