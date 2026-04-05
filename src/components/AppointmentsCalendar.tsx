@@ -47,6 +47,7 @@ interface Appointment {
   area: string | null;
   description: string | null;
   survey_id: string | null;
+  duration_minutes: number;
 }
 
 interface AppointmentsCalendarProps {
