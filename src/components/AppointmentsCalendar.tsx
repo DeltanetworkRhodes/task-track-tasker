@@ -1,10 +1,11 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { useAssignments, useProfiles } from "@/hooks/useData";
 import { statusLabels } from "@/data/mockData";
 import { ChevronLeft, ChevronRight, CalendarDays, Clock, MapPin, User, GripVertical, Plus, Trash2, AlertTriangle } from "lucide-react";
+import CalendarMapView from "./CalendarMapView";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -49,7 +50,7 @@ interface Appointment {
 }
 
 interface AppointmentsCalendarProps {
-  viewMode: "month" | "week" | "day";
+  viewMode: "month" | "week" | "day" | "map";
 }
 
 const DAY_START_HOUR = 7;
