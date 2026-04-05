@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { useAssignments, useProfiles } from "@/hooks/useData";
 import { statusLabels } from "@/data/mockData";
-import { ChevronLeft, ChevronRight, CalendarDays, Clock, MapPin, User, GripVertical, Plus, X, Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, CalendarDays, Clock, MapPin, User, GripVertical, Plus, Trash2, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -18,14 +18,24 @@ const GREEK_MONTHS = [
 const GREEK_DAYS = ["Δευ", "Τρί", "Τετ", "Πέμ", "Παρ", "Σάβ", "Κυρ"];
 const GREEK_DAYS_FULL = ["Δευτέρα", "Τρίτη", "Τετάρτη", "Πέμπτη", "Παρασκευή", "Σάββατο", "Κυριακή"];
 
-const statusColors: Record<string, string> = {
-  pending: "bg-muted text-muted-foreground",
-  inspection: "bg-warning/15 text-warning",
-  pre_committed: "bg-primary/15 text-primary",
-  
-  construction: "bg-accent/15 text-accent-foreground",
-  completed: "bg-success/15 text-success",
-  cancelled: "bg-destructive/15 text-destructive",
+// Enhanced status colors with more distinct visual hierarchy
+const statusColors: Record<string, { bg: string; text: string; border: string; dot: string }> = {
+  pending:       { bg: "bg-amber-100 dark:bg-amber-900/30", text: "text-amber-800 dark:text-amber-300", border: "border-amber-300 dark:border-amber-700", dot: "bg-amber-500" },
+  inspection:    { bg: "bg-orange-100 dark:bg-orange-900/30", text: "text-orange-800 dark:text-orange-300", border: "border-orange-300 dark:border-orange-700", dot: "bg-orange-500" },
+  pre_committed: { bg: "bg-blue-100 dark:bg-blue-900/30", text: "text-blue-800 dark:text-blue-300", border: "border-blue-300 dark:border-blue-700", dot: "bg-blue-500" },
+  construction:  { bg: "bg-violet-100 dark:bg-violet-900/30", text: "text-violet-800 dark:text-violet-300", border: "border-violet-300 dark:border-violet-700", dot: "bg-violet-500" },
+  completed:     { bg: "bg-emerald-100 dark:bg-emerald-900/30", text: "text-emerald-800 dark:text-emerald-300", border: "border-emerald-300 dark:border-emerald-700", dot: "bg-emerald-500" },
+  submitted:     { bg: "bg-teal-100 dark:bg-teal-900/30", text: "text-teal-800 dark:text-teal-300", border: "border-teal-300 dark:border-teal-700", dot: "bg-teal-500" },
+  cancelled:     { bg: "bg-red-100 dark:bg-red-900/30", text: "text-red-800 dark:text-red-300", border: "border-red-300 dark:border-red-700", dot: "bg-red-500" },
+  paid:          { bg: "bg-green-100 dark:bg-green-900/30", text: "text-green-800 dark:text-green-300", border: "border-green-300 dark:border-green-700", dot: "bg-green-600" },
+};
+
+const defaultStatusColor = { bg: "bg-primary/10", text: "text-primary", border: "border-primary/30", dot: "bg-primary" };
+
+// Legacy flat class for month grid tiny badges
+const statusColorFlat = (status: string) => {
+  const c = statusColors[status] || defaultStatusColor;
+  return `${c.bg} ${c.text}`;
 };
 
 interface Appointment {
@@ -39,8 +49,12 @@ interface Appointment {
 }
 
 interface AppointmentsCalendarProps {
-  viewMode: "month" | "week";
+  viewMode: "month" | "week" | "day";
 }
+
+const DAY_START_HOUR = 7;
+const DAY_END_HOUR = 20;
+const HOUR_HEIGHT = 60; // px per hour
 
 const AppointmentsCalendar = ({ viewMode }: AppointmentsCalendarProps) => {
   const { organizationId } = useOrganization();
@@ -87,7 +101,6 @@ const AppointmentsCalendar = ({ viewMode }: AppointmentsCalendarProps) => {
     return map;
   }, [profiles]);
 
-  // Assignments enriched
   const assignments = useMemo(() => {
     return (dbAssignments || []).map((a) => ({
       id: a.id,
@@ -101,7 +114,6 @@ const AppointmentsCalendar = ({ viewMode }: AppointmentsCalendarProps) => {
     }));
   }, [dbAssignments, technicianMap]);
 
-  // Unscheduled assignments (no appointment yet)
   const scheduledSrIds = useMemo(() => {
     return new Set((appointments || []).map((a) => a.sr_id));
   }, [appointments]);
@@ -121,6 +133,27 @@ const AppointmentsCalendar = ({ viewMode }: AppointmentsCalendarProps) => {
       map.get(dateKey)!.push({ ...appt, assignment });
     });
     return map;
+  }, [appointments, assignments]);
+
+  // Conflict detection: find appointments where same technician has overlapping times (same hour)
+  const conflicts = useMemo(() => {
+    const conflictSet = new Set<string>();
+    const byTechAndHour = new Map<string, string[]>();
+    
+    (appointments || []).forEach((appt) => {
+      const assignment = assignments.find((a) => a.sr_id === appt.sr_id);
+      if (!assignment?.technician_id) return;
+      const d = new Date(appt.appointment_at);
+      const key = `${assignment.technician_id}-${appt.appointment_at.split("T")[0]}-${d.getHours()}`;
+      if (!byTechAndHour.has(key)) byTechAndHour.set(key, []);
+      byTechAndHour.get(key)!.push(appt.id);
+    });
+    
+    byTechAndHour.forEach((ids) => {
+      if (ids.length > 1) ids.forEach((id) => conflictSet.add(id));
+    });
+    
+    return conflictSet;
   }, [appointments, assignments]);
 
   // Calendar grid for month view
@@ -149,7 +182,7 @@ const AppointmentsCalendar = ({ viewMode }: AppointmentsCalendarProps) => {
     return dates;
   }, [currentDate]);
 
-  // Technicians for week view
+  // Technicians
   const technicians = useMemo(() => {
     const techIds = new Set<string>();
     assignments.forEach((a) => {
@@ -176,9 +209,21 @@ const AppointmentsCalendar = ({ viewMode }: AppointmentsCalendarProps) => {
     d.setDate(d.getDate() + 7);
     setCurrentDate(d);
   };
+  const prevDay = () => {
+    const d = new Date(currentDate);
+    d.setDate(d.getDate() - 1);
+    setCurrentDate(d);
+  };
+  const nextDay = () => {
+    const d = new Date(currentDate);
+    d.setDate(d.getDate() + 1);
+    setCurrentDate(d);
+  };
 
   const formatDateKey = (d: Date) =>
     `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+  const currentDateKey = formatDateKey(currentDate);
 
   const handleCreateAppointment = async () => {
     if (!createAssignmentId || !createDate) return;
@@ -187,7 +232,6 @@ const AppointmentsCalendar = ({ viewMode }: AppointmentsCalendarProps) => {
       const assignment = assignments.find((a) => a.id === createAssignmentId);
       if (!assignment) throw new Error("Δεν βρέθηκε η ανάθεση");
 
-      // Create date in local timezone with explicit offset to avoid UTC conversion
       const localDate = new Date(`${createDate}T${createHour}:00`);
       const appointmentAt = localDate.toISOString();
       const { error } = await supabase.from("appointments").insert({
@@ -222,13 +266,14 @@ const AppointmentsCalendar = ({ viewMode }: AppointmentsCalendarProps) => {
   };
 
   const handleDrop = useCallback(
-    async (dateKey: string) => {
+    async (dateKey: string, hour?: number) => {
       if (!draggedAssignment) return;
       const assignment = unscheduledAssignments.find((a) => a.id === draggedAssignment);
       if (!assignment) return;
 
       try {
-        const localDate = new Date(`${dateKey}T09:00:00`);
+        const h = hour !== undefined ? String(hour).padStart(2, "0") : "09";
+        const localDate = new Date(`${dateKey}T${h}:00:00`);
         const appointmentAt = localDate.toISOString();
         const { error } = await supabase.from("appointments").insert({
           sr_id: assignment.sr_id,
@@ -239,7 +284,7 @@ const AppointmentsCalendar = ({ viewMode }: AppointmentsCalendarProps) => {
           organization_id: organizationId,
         });
         if (error) throw error;
-        toast.success(`${assignment.sr_id} → ${dateKey}`);
+        toast.success(`${assignment.sr_id} → ${dateKey} ${h}:00`);
         queryClient.invalidateQueries({ queryKey: ["appointments-calendar"] });
       } catch (err: any) {
         toast.error(err.message);
@@ -251,34 +296,109 @@ const AppointmentsCalendar = ({ viewMode }: AppointmentsCalendarProps) => {
 
   const selectedAppts = selectedDate ? (appointmentsByDate.get(selectedDate) || []) : [];
 
-  // Hours for time select
   const hours = Array.from({ length: 13 }, (_, i) => {
     const h = i + 7;
     return `${String(h).padStart(2, "0")}:00`;
   });
 
+  // Day view data
+  const dayViewDateKey = currentDateKey;
+  const dayAppts = useMemo(() => {
+    return (appointmentsByDate.get(dayViewDateKey) || []);
+  }, [appointmentsByDate, dayViewDateKey]);
+
+  // Group day appointments by technician for the day view
+  const dayApptsPerTech = useMemo(() => {
+    const map = new Map<string, (Appointment & { assignment?: typeof assignments[0] })[]>();
+    dayAppts.forEach((appt) => {
+      const techId = appt.assignment?.technician_id || "__unassigned__";
+      if (!map.has(techId)) map.set(techId, []);
+      map.get(techId)!.push(appt);
+    });
+    // Also add technicians with no appointments for completeness
+    technicians.forEach((t) => {
+      if (!map.has(t.id)) map.set(t.id, []);
+    });
+    return map;
+  }, [dayAppts, technicians]);
+
+  const dayViewTechs = useMemo(() => {
+    const techs = Array.from(dayApptsPerTech.keys())
+      .filter((id) => id !== "__unassigned__")
+      .map((id) => ({ id, name: technicianMap.get(id) || "—" }));
+    // Put unassigned at the end
+    if (dayApptsPerTech.has("__unassigned__") && (dayApptsPerTech.get("__unassigned__")?.length ?? 0) > 0) {
+      techs.push({ id: "__unassigned__", name: "Χωρίς τεχνικό" });
+    }
+    return techs;
+  }, [dayApptsPerTech, technicianMap]);
+
+  // Navigation helpers
+  const navPrev = viewMode === "month" ? prevMonth : viewMode === "week" ? prevWeek : prevDay;
+  const navNext = viewMode === "month" ? nextMonth : viewMode === "week" ? nextWeek : nextDay;
+
+  const navLabel = viewMode === "month"
+    ? `${GREEK_MONTHS[month]} ${year}`
+    : viewMode === "week"
+    ? `${weekDates[0].getDate()} - ${weekDates[6].getDate()} ${GREEK_MONTHS[weekDates[6].getMonth()]} ${weekDates[6].getFullYear()}`
+    : currentDate.toLocaleDateString("el-GR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+
+  const viewLabel = viewMode === "month" ? "Μηνιαίο Ημερολόγιο" : viewMode === "week" ? "Εβδομαδιαίο Πρόγραμμα" : "Ημερήσιο Timeline";
+
+  // Status legend for visibility
+  const StatusLegend = () => (
+    <div className="flex flex-wrap gap-2 text-[10px]">
+      {Object.entries(statusColors).map(([status, colors]) => (
+        <div key={status} className="flex items-center gap-1">
+          <span className={`h-2 w-2 rounded-full ${colors.dot}`} />
+          <span className="text-muted-foreground">{statusLabels[status] || status}</span>
+        </div>
+      ))}
+    </div>
+  );
+
   return (
     <div className="space-y-4">
-      {/* Unscheduled assignments panel (drag source) */}
+      {/* Status Legend */}
+      <div className="rounded-xl border border-border bg-card p-2.5 flex items-center gap-3 flex-wrap">
+        <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Χρώματα:</span>
+        <StatusLegend />
+      </div>
+
+      {/* Conflict warning banner */}
+      {conflicts.size > 0 && (
+        <div className="rounded-xl border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 p-3 flex items-center gap-2">
+          <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0" />
+          <span className="text-xs text-amber-800 dark:text-amber-300 font-medium">
+            ⚠ Υπάρχουν {conflicts.size} ραντεβού με σύγκρουση (ίδιος τεχνικός, ίδια ώρα)
+          </span>
+        </div>
+      )}
+
+      {/* Unscheduled assignments panel */}
       {unscheduledAssignments.length > 0 && (
         <div className="rounded-xl border border-border bg-card p-3">
           <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-2">
             Χωρίς ραντεβού ({unscheduledAssignments.length}) — σύρε σε ημερομηνία
           </p>
           <div className="flex flex-wrap gap-1.5">
-            {unscheduledAssignments.slice(0, 20).map((a) => (
-              <div
-                key={a.id}
-                draggable
-                onDragStart={() => setDraggedAssignment(a.id)}
-                onDragEnd={() => setDraggedAssignment(null)}
-                className="flex items-center gap-1 bg-muted/50 hover:bg-muted rounded-lg px-2 py-1.5 cursor-grab active:cursor-grabbing transition-colors"
-              >
-                <GripVertical className="h-3 w-3 text-muted-foreground/50" />
-                <Badge variant="secondary" className="text-[10px] font-bold">{a.sr_id}</Badge>
-                <span className="text-[10px] text-muted-foreground">{a.area}</span>
-              </div>
-            ))}
+            {unscheduledAssignments.slice(0, 20).map((a) => {
+              const sc = statusColors[a.status] || defaultStatusColor;
+              return (
+                <div
+                  key={a.id}
+                  draggable
+                  onDragStart={() => setDraggedAssignment(a.id)}
+                  onDragEnd={() => setDraggedAssignment(null)}
+                  className={`flex items-center gap-1 ${sc.bg} hover:opacity-80 rounded-lg px-2 py-1.5 cursor-grab active:cursor-grabbing transition-colors border ${sc.border}`}
+                >
+                  <GripVertical className="h-3 w-3 text-muted-foreground/50" />
+                  <span className={`h-1.5 w-1.5 rounded-full ${sc.dot}`} />
+                  <Badge variant="secondary" className="text-[10px] font-bold">{a.sr_id}</Badge>
+                  <span className="text-[10px] text-muted-foreground">{a.area}</span>
+                </div>
+              );
+            })}
             {unscheduledAssignments.length > 20 && (
               <span className="text-[10px] text-muted-foreground self-center">+{unscheduledAssignments.length - 20} ακόμα</span>
             )}
@@ -290,24 +410,27 @@ const AppointmentsCalendar = ({ viewMode }: AppointmentsCalendarProps) => {
       <div className="flex items-center justify-between">
         <h2 className="font-bold text-sm flex items-center gap-2 text-foreground">
           <CalendarDays className="h-4 w-4 text-primary" />
-          {viewMode === "month" ? "Μηνιαίο Ημερολόγιο" : "Εβδομαδιαίο Πρόγραμμα"}
+          {viewLabel}
         </h2>
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={viewMode === "month" ? prevMonth : prevWeek}>
+          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={navPrev}>
             <ChevronLeft className="h-4 w-4" />
           </Button>
           <span className="text-sm font-semibold text-foreground min-w-[160px] text-center">
-            {viewMode === "month"
-              ? `${GREEK_MONTHS[month]} ${year}`
-              : `${weekDates[0].getDate()} - ${weekDates[6].getDate()} ${GREEK_MONTHS[weekDates[6].getMonth()]} ${weekDates[6].getFullYear()}`}
+            {navLabel}
           </span>
-          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={viewMode === "month" ? nextMonth : nextWeek}>
+          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={navNext}>
             <ChevronRight className="h-4 w-4" />
           </Button>
+          {viewMode !== "month" && (
+            <Button variant="outline" size="sm" className="text-xs h-7 ml-1" onClick={() => setCurrentDate(new Date())}>
+              Σήμερα
+            </Button>
+          )}
         </div>
       </div>
 
-      {/* MONTH VIEW */}
+      {/* ============ MONTH VIEW ============ */}
       {viewMode === "month" && (
         <>
           <div className="rounded-xl border border-border bg-card overflow-hidden">
@@ -327,6 +450,7 @@ const AppointmentsCalendar = ({ viewMode }: AppointmentsCalendarProps) => {
                 const isToday = dateKey === todayKey;
                 const isSelected = dateKey === selectedDate;
                 const isPast = new Date(dateKey) < new Date(todayKey);
+                const hasConflict = dayAppts.some((a) => conflicts.has(a.id));
 
                 return (
                   <button
@@ -345,32 +469,38 @@ const AppointmentsCalendar = ({ viewMode }: AppointmentsCalendarProps) => {
                       <span className={`text-xs font-bold inline-flex items-center justify-center h-5 w-5 rounded-full ${isToday ? "bg-primary text-primary-foreground" : "text-foreground"}`}>
                         {day}
                       </span>
-                      {!isPast && (
-                        <span
-                          onClick={(e) => { e.stopPropagation(); setCreateDate(dateKey); setShowCreateDialog(true); }}
-                          className="h-4 w-4 rounded-full flex items-center justify-center text-muted-foreground/40 hover:text-primary hover:bg-primary/10 transition-colors cursor-pointer"
-                        >
-                          <Plus className="h-3 w-3" />
-                        </span>
-                      )}
+                      <div className="flex items-center gap-0.5">
+                        {hasConflict && <AlertTriangle className="h-3 w-3 text-amber-500" />}
+                        {!isPast && (
+                          <span
+                            onClick={(e) => { e.stopPropagation(); setCreateDate(dateKey); setShowCreateDialog(true); }}
+                            className="h-4 w-4 rounded-full flex items-center justify-center text-muted-foreground/40 hover:text-primary hover:bg-primary/10 transition-colors cursor-pointer"
+                          >
+                            <Plus className="h-3 w-3" />
+                          </span>
+                        )}
+                      </div>
                     </div>
                     {dayAppts.length > 0 && (
                       <div className="mt-0.5 space-y-0.5">
-                        {dayAppts.slice(0, 3).map((a) => (
-                          <div
-                            key={a.id}
-                            className={`text-[8px] sm:text-[9px] font-medium rounded px-1 py-0.5 truncate ${
-                              a.assignment ? statusColors[a.assignment.status] || "bg-primary/15 text-primary" : "bg-primary/15 text-primary"
-                            }`}
-                          >
-                            {a.sr_id}
-                            {a.assignment && (
-                              <span className="hidden sm:inline ml-0.5 opacity-70">
-                                • {a.assignment.technician_name?.split(" ")[0]}
-                              </span>
-                            )}
-                          </div>
-                        ))}
+                        {dayAppts.slice(0, 3).map((a) => {
+                          const sc = a.assignment ? (statusColors[a.assignment.status] || defaultStatusColor) : defaultStatusColor;
+                          const isConflict = conflicts.has(a.id);
+                          return (
+                            <div
+                              key={a.id}
+                              className={`text-[8px] sm:text-[9px] font-medium rounded px-1 py-0.5 truncate ${sc.bg} ${sc.text} ${isConflict ? "ring-1 ring-amber-400 dark:ring-amber-600" : ""}`}
+                            >
+                              <span className={`inline-block h-1.5 w-1.5 rounded-full ${sc.dot} mr-0.5`} />
+                              {a.sr_id}
+                              {a.assignment && (
+                                <span className="hidden sm:inline ml-0.5 opacity-70">
+                                  • {a.assignment.technician_name?.split(" ")[0]}
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })}
                         {dayAppts.length > 3 && (
                           <div className="text-[9px] text-muted-foreground font-bold">+{dayAppts.length - 3}</div>
                         )}
@@ -389,57 +519,81 @@ const AppointmentsCalendar = ({ viewMode }: AppointmentsCalendarProps) => {
                 <h3 className="text-sm font-bold text-foreground">
                   {new Date(selectedDate + "T00:00:00").toLocaleDateString("el-GR", { weekday: "long", day: "numeric", month: "long" })}
                 </h3>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="gap-1.5 text-xs"
-                  onClick={() => { setCreateDate(selectedDate); setShowCreateDialog(true); }}
-                >
-                  <Plus className="h-3.5 w-3.5" />
-                  Ραντεβού
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5 text-xs"
+                    onClick={() => {
+                      setCurrentDate(new Date(selectedDate + "T00:00:00"));
+                      // parent will need to switch — for now we go to day via setSelectedDate
+                    }}
+                  >
+                    <Clock className="h-3.5 w-3.5" />
+                    Timeline
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5 text-xs"
+                    onClick={() => { setCreateDate(selectedDate); setShowCreateDialog(true); }}
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    Ραντεβού
+                  </Button>
+                </div>
               </div>
               {selectedAppts.length === 0 ? (
                 <p className="text-xs text-muted-foreground">Δεν υπάρχουν ραντεβού</p>
               ) : (
                 <div className="space-y-2">
-                  {selectedAppts.map((a) => (
-                    <div key={a.id} className="flex items-start gap-3 bg-muted/50 rounded-lg px-3 py-2.5 group">
-                      <div className="flex-1 min-w-0 space-y-1">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <Badge variant="secondary" className="text-[10px] font-bold">{a.sr_id}</Badge>
+                  {selectedAppts.map((a) => {
+                    const sc = a.assignment ? (statusColors[a.assignment.status] || defaultStatusColor) : defaultStatusColor;
+                    const isConflict = conflicts.has(a.id);
+                    return (
+                      <div key={a.id} className={`flex items-start gap-3 rounded-lg px-3 py-2.5 group border ${sc.border} ${sc.bg} ${isConflict ? "ring-2 ring-amber-400" : ""}`}>
+                        <div className="flex-1 min-w-0 space-y-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className={`h-2.5 w-2.5 rounded-full ${sc.dot}`} />
+                            <Badge variant="secondary" className="text-[10px] font-bold">{a.sr_id}</Badge>
+                            {a.assignment && (
+                              <Badge className={`text-[9px] ${sc.bg} ${sc.text} border-0`}>
+                                {statusLabels[a.assignment.status] || a.assignment.status}
+                              </Badge>
+                            )}
+                            <span className="text-[11px] text-muted-foreground flex items-center gap-1">
+                              <Clock className="h-3 w-3" />
+                              {new Date(a.appointment_at).toLocaleTimeString("el-GR", { hour: "2-digit", minute: "2-digit" })}
+                            </span>
+                            {isConflict && (
+                              <span className="text-[9px] text-amber-600 dark:text-amber-400 font-bold flex items-center gap-0.5">
+                                <AlertTriangle className="h-3 w-3" /> Σύγκρουση!
+                              </span>
+                            )}
+                          </div>
                           {a.assignment && (
-                            <Badge className={`text-[9px] ${statusColors[a.assignment.status]}`}>
-                              {statusLabels[a.assignment.status] || a.assignment.status}
-                            </Badge>
+                            <p className="text-xs text-foreground flex items-center gap-1">
+                              <User className="h-3 w-3 text-muted-foreground" /> {a.assignment.technician_name}
+                            </p>
                           )}
-                          <span className="text-[11px] text-muted-foreground flex items-center gap-1">
-                            <Clock className="h-3 w-3" />
-                            {new Date(a.appointment_at).toLocaleTimeString("el-GR", { hour: "2-digit", minute: "2-digit" })}
-                          </span>
+                          {a.customer_name && (
+                            <p className="text-[11px] text-muted-foreground">{a.customer_name}</p>
+                          )}
+                          {a.area && (
+                            <p className="text-[11px] text-muted-foreground flex items-center gap-1">
+                              <MapPin className="h-3 w-3" /> {a.area}
+                            </p>
+                          )}
                         </div>
-                        {a.assignment && (
-                          <p className="text-xs text-foreground flex items-center gap-1">
-                            <User className="h-3 w-3 text-muted-foreground" /> {a.assignment.technician_name}
-                          </p>
-                        )}
-                        {a.customer_name && (
-                          <p className="text-[11px] text-muted-foreground">{a.customer_name}</p>
-                        )}
-                        {a.area && (
-                          <p className="text-[11px] text-muted-foreground flex items-center gap-1">
-                            <MapPin className="h-3 w-3" /> {a.area}
-                          </p>
-                        )}
+                        <button
+                          onClick={() => handleDeleteAppointment(a.id)}
+                          className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg hover:bg-destructive/10 text-destructive/60 hover:text-destructive transition-all"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
                       </div>
-                      <button
-                        onClick={() => handleDeleteAppointment(a.id)}
-                        className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg hover:bg-destructive/10 text-destructive/60 hover:text-destructive transition-all"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -447,7 +601,7 @@ const AppointmentsCalendar = ({ viewMode }: AppointmentsCalendarProps) => {
         </>
       )}
 
-      {/* WEEK VIEW — Technician timeline */}
+      {/* ============ WEEK VIEW ============ */}
       {viewMode === "week" && (
         <div className="rounded-xl border border-border bg-card overflow-hidden overflow-x-auto">
           <table className="w-full min-w-[700px]">
@@ -477,7 +631,6 @@ const AppointmentsCalendar = ({ viewMode }: AppointmentsCalendarProps) => {
                 </tr>
               ) : (
                 technicians.map((tech) => {
-                  // Get this tech's appointments for each day
                   const techAssignments = assignments.filter((a) => a.technician_id === tech.id);
                   const techSrIds = new Set(techAssignments.map((a) => a.sr_id));
 
@@ -507,21 +660,25 @@ const AppointmentsCalendar = ({ viewMode }: AppointmentsCalendarProps) => {
                             onDrop={(e) => { e.preventDefault(); e.currentTarget.classList.remove("bg-primary/10"); handleDrop(dk); }}
                           >
                             <div className="space-y-1 min-h-[40px]">
-                              {dayAppts.map((appt) => (
-                                <div
-                                  key={appt.id}
-                                  className={`text-[9px] font-medium rounded px-1.5 py-1 truncate cursor-default ${
-                                    appt.assignment ? statusColors[appt.assignment.status] || "bg-primary/15 text-primary" : "bg-primary/15 text-primary"
-                                  }`}
-                                  title={`${appt.sr_id} — ${new Date(appt.appointment_at).toLocaleTimeString("el-GR", { hour: "2-digit", minute: "2-digit" })}`}
-                                >
-                                  <div className="flex items-center gap-1">
-                                    <Clock className="h-2.5 w-2.5 shrink-0" />
-                                    {new Date(appt.appointment_at).toLocaleTimeString("el-GR", { hour: "2-digit", minute: "2-digit" })}
+                              {dayAppts.map((appt) => {
+                                const sc = appt.assignment ? (statusColors[appt.assignment.status] || defaultStatusColor) : defaultStatusColor;
+                                const isConflict = conflicts.has(appt.id);
+                                return (
+                                  <div
+                                    key={appt.id}
+                                    className={`text-[9px] font-medium rounded px-1.5 py-1 truncate cursor-default border ${sc.bg} ${sc.text} ${sc.border} ${isConflict ? "ring-1 ring-amber-400" : ""}`}
+                                    title={`${appt.sr_id} — ${new Date(appt.appointment_at).toLocaleTimeString("el-GR", { hour: "2-digit", minute: "2-digit" })}${isConflict ? " ⚠ ΣΥΓΚΡΟΥΣΗ" : ""}`}
+                                  >
+                                    <div className="flex items-center gap-1">
+                                      <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${sc.dot}`} />
+                                      <Clock className="h-2.5 w-2.5 shrink-0" />
+                                      {new Date(appt.appointment_at).toLocaleTimeString("el-GR", { hour: "2-digit", minute: "2-digit" })}
+                                      {isConflict && <AlertTriangle className="h-2.5 w-2.5 text-amber-500 shrink-0" />}
+                                    </div>
+                                    <div className="font-bold truncate">{appt.sr_id}</div>
                                   </div>
-                                  <div className="font-bold truncate">{appt.sr_id}</div>
-                                </div>
-                              ))}
+                                );
+                              })}
                               {dayAppts.length === 0 && (
                                 <div className="h-full flex items-center justify-center">
                                   <span className="text-[9px] text-muted-foreground/30">—</span>
@@ -537,6 +694,118 @@ const AppointmentsCalendar = ({ viewMode }: AppointmentsCalendarProps) => {
               )}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* ============ DAY VIEW — Hourly Timeline ============ */}
+      {viewMode === "day" && (
+        <div className="rounded-xl border border-border bg-card overflow-hidden">
+          {dayViewTechs.length === 0 ? (
+            <div className="text-center py-12 text-sm text-muted-foreground">
+              Δεν υπάρχουν τεχνικοί με αναθέσεις
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <div className="min-w-[600px]">
+                {/* Header row with technician names */}
+                <div className="flex border-b border-border bg-muted/50 sticky top-0 z-10">
+                  <div className="w-[60px] shrink-0 px-2 py-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground border-r border-border">
+                    Ώρα
+                  </div>
+                  {dayViewTechs.map((tech) => (
+                    <div
+                      key={tech.id}
+                      className="flex-1 min-w-[140px] px-2 py-2 text-center border-r border-border last:border-r-0"
+                    >
+                      <div className="flex items-center justify-center gap-1.5">
+                        <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary shrink-0">
+                          {tech.name.charAt(0)}
+                        </div>
+                        <span className="text-xs font-semibold text-foreground truncate">{tech.name}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Hour rows */}
+                {Array.from({ length: DAY_END_HOUR - DAY_START_HOUR + 1 }, (_, i) => {
+                  const hour = DAY_START_HOUR + i;
+                  const now = new Date();
+                  const isCurrentHour = currentDateKey === todayKey && now.getHours() === hour;
+
+                  return (
+                    <div key={hour} className={`flex border-b border-border last:border-b-0 ${isCurrentHour ? "bg-primary/5" : ""}`} style={{ minHeight: `${HOUR_HEIGHT}px` }}>
+                      {/* Hour label */}
+                      <div className="w-[60px] shrink-0 px-2 py-1.5 text-[11px] font-mono text-muted-foreground border-r border-border text-right pr-3 relative">
+                        {String(hour).padStart(2, "0")}:00
+                        {isCurrentHour && (
+                          <div className="absolute right-0 top-0 w-1 h-full bg-primary rounded-l" />
+                        )}
+                      </div>
+
+                      {/* Technician columns */}
+                      {dayViewTechs.map((tech) => {
+                        const techAppts = (dayApptsPerTech.get(tech.id) || []).filter((appt) => {
+                          const apptHour = new Date(appt.appointment_at).getHours();
+                          return apptHour === hour;
+                        });
+
+                        return (
+                          <div
+                            key={tech.id}
+                            className="flex-1 min-w-[140px] px-1 py-1 border-r border-border last:border-r-0 relative"
+                            onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add("bg-primary/10"); }}
+                            onDragLeave={(e) => { e.currentTarget.classList.remove("bg-primary/10"); }}
+                            onDrop={(e) => { e.preventDefault(); e.currentTarget.classList.remove("bg-primary/10"); handleDrop(dayViewDateKey, hour); }}
+                          >
+                            <div className="space-y-1">
+                              {techAppts.map((appt) => {
+                                const sc = appt.assignment ? (statusColors[appt.assignment.status] || defaultStatusColor) : defaultStatusColor;
+                                const isConflict = conflicts.has(appt.id);
+                                return (
+                                  <div
+                                    key={appt.id}
+                                    className={`rounded-lg px-2 py-1.5 border ${sc.bg} ${sc.border} ${sc.text} ${isConflict ? "ring-2 ring-amber-400 dark:ring-amber-600" : ""} group relative`}
+                                  >
+                                    <div className="flex items-center justify-between">
+                                      <div className="flex items-center gap-1 min-w-0">
+                                        <span className={`h-2 w-2 rounded-full shrink-0 ${sc.dot}`} />
+                                        <span className="text-[10px] font-bold truncate">{appt.sr_id}</span>
+                                        {isConflict && <AlertTriangle className="h-3 w-3 text-amber-500 shrink-0" />}
+                                      </div>
+                                      <button
+                                        onClick={() => handleDeleteAppointment(appt.id)}
+                                        className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-destructive/10 text-destructive/60 hover:text-destructive transition-all"
+                                      >
+                                        <Trash2 className="h-3 w-3" />
+                                      </button>
+                                    </div>
+                                    <div className="text-[9px] opacity-75 flex items-center gap-1 mt-0.5">
+                                      <Clock className="h-2.5 w-2.5" />
+                                      {new Date(appt.appointment_at).toLocaleTimeString("el-GR", { hour: "2-digit", minute: "2-digit" })}
+                                    </div>
+                                    {appt.area && (
+                                      <div className="text-[9px] opacity-70 flex items-center gap-1 truncate">
+                                        <MapPin className="h-2.5 w-2.5 shrink-0" />
+                                        {appt.area}
+                                      </div>
+                                    )}
+                                    {appt.customer_name && (
+                                      <div className="text-[9px] opacity-70 truncate">{appt.customer_name}</div>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
