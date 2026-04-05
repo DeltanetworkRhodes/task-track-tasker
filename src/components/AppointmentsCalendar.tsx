@@ -112,6 +112,8 @@ const AppointmentsCalendar = ({ viewMode }: AppointmentsCalendarProps) => {
       technician_name: a.technician_id ? technicianMap.get(a.technician_id) || "—" : "Χωρίς ανάθεση",
       customer_name: (a as any).customer_name || "",
       address: (a as any).address || "",
+      latitude: (a as any).latitude as number | null,
+      longitude: (a as any).longitude as number | null,
     }));
   }, [dbAssignments, technicianMap]);
 
