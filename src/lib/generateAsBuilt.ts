@@ -1144,6 +1144,9 @@ export async function generateAsBuiltFromData(data: AsBuiltData): Promise<AsBuil
           distanceFromCabinet: data.distanceFromCabinet || 0,
           address: data.address || "",
           buildingId: data.buildingId || "",
+          verticalRouting: data.verticalRouting || "",
+          floors: data.floors || 0,
+          bepFloor: data.bepFloor || "",
         });
       } catch (e) {
         console.warn("Auto-sketch generation failed:", e);
