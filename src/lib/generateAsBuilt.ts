@@ -1209,6 +1209,8 @@ const DEMO_SR_DATA: DemoSRMap = {
       { type: "Β", description: "Πόρτα-πόρτα", quantity: 8 },
     ],
     sketchImageUrl: null, isNewInfrastructure: true, trenchLengthM: 45, cabId: "CAB-112",
+    bcpPlacement: "", bcpKind: "", bcpBepCableType: "", bcpBepLength: 0,
+    verticalRouting: "ΚΛΙΜΑΚΟΣΤΑΣΙΟ", escalitType: "", bcpType: "", totalCableLength: 426,
   },
   "SR-DEMO-03": {
     srId: "SR-DEMO-03", buildingId: "BLD-FAL-008", areaType: "OTE", floors: 4,
