@@ -142,22 +142,28 @@ async function fetchAsBuiltData(srId: string): Promise<AsBuiltData> {
   }));
 
   const floorBoxes: FloorBox[] = floorDetails.map((fd: any) => {
-    // Sum FB counts from all FB columns (FB01, FB02, FB03, FB04)
     const fb01 = Number(fd.fb_count ?? fd.FB01 ?? fd["FB01"] ?? 0);
     const fb02 = Number(fd.FB02 ?? fd["FB02"] ?? 0);
     const fb03 = Number(fd.FB03 ?? fd["FB03"] ?? 0);
     const fb04 = Number(fd.FB04 ?? fd["FB04"] ?? 0);
     const totalFb = fb01 + fb02 + fb03 + fb04;
-    // Use FB01 TYPE as primary, fall back to FB02-04 TYPE
-    const fbType = fd.fb_type ?? fd.FB01_TYPE ?? fd["FB01 TYPE"]
-      ?? fd["FB02 TYPE"] ?? fd["FB03 TYPE"] ?? fd["FB04 TYPE"] ?? "";
+    const fbType = fd.fb_type ?? fd.FB01_TYPE ?? fd["FB01 TYPE"] ?? "";
+    const fb02Type = fd.FB02_TYPE ?? fd["FB02 TYPE"] ?? "";
+    const fb03Type = fd.FB03_TYPE ?? fd["FB03 TYPE"] ?? "";
+    const fb04Type = fd.FB04_TYPE ?? fd["FB04 TYPE"] ?? "";
     return {
       floor: fd.floor ?? fd["ΟΡΟΦΟΣ"] ?? fd.ΟΡΟΦΟΣ ?? "",
       fb_id: fd.fb_id ?? fd.FB_ID ?? fd["GIS ID"] ?? "",
       apartments: Number(fd.apartments ?? fd["ΔΙΑΜΕΡΙΣΜΑΤΑ"] ?? fd.ΔΙΑΜΕΡΙΣΜΑΤΑ ?? 0),
       shops: Number(fd.shops ?? fd["ΚΑΤΑΣΤΗΜΑΤΑ"] ?? fd.ΚΑΤΑΣΤΗΜΑΤΑ ?? 0),
       fb_count: totalFb || fb01,
-      fb_type: fbType,
+      fb_type: fbType || fb02Type || fb03Type || fb04Type,
+      fb02_count: fb02 || undefined,
+      fb02_type: fb02Type || undefined,
+      fb03_count: fb03 || undefined,
+      fb03_type: fb03Type || undefined,
+      fb04_count: fb04 || undefined,
+      fb04_type: fb04Type || undefined,
       fb_customer: fd.fb_customer ?? fd["FB ΠΕΛΑΤΗ"] ?? fd.FB_ΠΕΛΑΤΗ ?? "",
       customer_space: fd.customer_space ?? fd["ΑΡΙΘΜΗΣΗ ΧΩΡΟΥ ΠΕΛΑΤΗ"] ?? fd.ΑΡΙΘΜΗΣΗ_ΧΩΡΟΥ_ΠΕΛΑΤΗ ?? "",
       meters: Number(fd.meters ?? fd["ΜΕΤΡΑ"] ?? fd.ΜΕΤΡΑ ?? 0),
@@ -185,6 +191,20 @@ async function fetchAsBuiltData(srId: string): Promise<AsBuiltData> {
         floor: w.floor || w["ΟΡΟΦΟΣ"] || "",
       }));
   }
+
+  // Extract BCP-BEP connection data from GIS
+  const rawData = (gisData?.raw_data as any) || {};
+  const bcpPlacement = rawData.bcp_placement || rawData["ΣΗΜΕΙΟ ΤΟΠΟΘΕΤΗΣΗΣ"] || "";
+  const bcpKind = rawData.bcp_kind || rawData["ΕΙΔΟΣ"] || "";
+  const bcpBepCableType = rawData.bcp_bep_cable_type || rawData["ΤΥΠΟΣ ΚΟΙ ΣΥΝΔΕΣΗ ΒCP ΜΕ BEP"] || "";
+  const bcpBepLength = Number(rawData.bcp_bep_length || rawData["ΜΗΚΟΣ BCP-BEP"] || 0);
+  const verticalRouting = rawData.vertical_routing || rawData["Είδος κάθετης υποδομής"] || "";
+  const escalitType = rawData.escalit_type || rawData["ΕΣΚΑΛΗΤ"] || "";
+  const bcpTypeOriz = rawData.bcp_type_oriz || rawData["BCP ΕΙΔΟΣ"] || "";
+
+  // Total cable length = underground distance + sum of floor meters (vertical)
+  const verticalMeters = floorBoxes.reduce((sum, fb) => sum + (fb.meters || 0), 0);
+  const totalCableLength = Number(gisData?.distance_from_cabinet || 0) + verticalMeters;
 
   return {
     srId: assignment.sr_id,
@@ -218,6 +238,14 @@ async function fetchAsBuiltData(srId: string): Promise<AsBuiltData> {
     isNewInfrastructure,
     trenchLengthM,
     cabId: assignment.cab || construction?.cab || "",
+    bcpPlacement,
+    bcpKind,
+    bcpBepCableType,
+    bcpBepLength,
+    verticalRouting,
+    escalitType,
+    bcpType: bcpTypeOriz,
+    totalCableLength,
   };
 }
 
