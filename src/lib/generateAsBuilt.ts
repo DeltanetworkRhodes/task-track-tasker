@@ -1062,6 +1062,9 @@ function logPreview(d: AsBuiltData) {
 export interface AsBuiltResult {
   success: boolean;
   warnings: string[];
+  /** The generated Excel buffer for Drive upload */
+  buffer?: ArrayBuffer;
+  fileName?: string;
 }
 
 export function validateAsBuiltData(data: AsBuiltData): string[] {
@@ -1144,6 +1147,9 @@ export async function generateAsBuiltFromData(data: AsBuiltData): Promise<AsBuil
           distanceFromCabinet: data.distanceFromCabinet || 0,
           address: data.address || "",
           buildingId: data.buildingId || "",
+          verticalRouting: data.verticalRouting || "",
+          floors: data.floors || 0,
+          bepFloor: data.bepFloor || "",
         });
       } catch (e) {
         console.warn("Auto-sketch generation failed:", e);
@@ -1164,19 +1170,21 @@ export async function generateAsBuiltFromData(data: AsBuiltData): Promise<AsBuil
 
   // Generate and download
   const buffer = await workbook.xlsx.writeBuffer();
+  const arrayBuf = new Uint8Array(buffer instanceof ArrayBuffer ? buffer : (buffer as Uint8Array)).buffer as ArrayBuffer;
   const blob = new Blob([buffer], {
     type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   });
+  const fileName = `ΦΥΛΛΟ_ΑΠΟΛΟΓΙΣΜΟΥ_${data.srId}.xlsx`;
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `AS-BUILD_${data.srId}_${new Date().toISOString().slice(0, 10)}.xlsx`;
+  a.download = fileName;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 
-  return { success: true, warnings };
+  return { success: true, warnings, buffer: arrayBuf, fileName };
 }
 
 /* ────────────────────────────────────────────
