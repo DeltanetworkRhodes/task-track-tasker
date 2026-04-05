@@ -504,43 +504,164 @@ const AppointmentsCalendar = ({ viewMode }: AppointmentsCalendarProps) => {
 
   return (
     <div className="flex flex-col lg:flex-row gap-4">
-      {/* ===== LEFT SIDEBAR — Unscheduled Assignments ===== */}
+      {/* ===== LEFT SIDEBAR — Unscheduled Assignments (searchable) ===== */}
       {unscheduledAssignments.length > 0 && (
-        <div className="lg:w-[260px] xl:w-[300px] shrink-0 space-y-3">
-          <div className="rounded-xl border border-border bg-card p-3 lg:sticky lg:top-4">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                Χωρίς ραντεβού
-              </p>
-              <Badge variant="secondary" className="text-[10px]">{unscheduledAssignments.length}</Badge>
-            </div>
-            <p className="text-[10px] text-muted-foreground mb-3">Σύρε σε ημερομηνία για προγραμματισμό</p>
-            <div className="flex flex-row lg:flex-col flex-wrap gap-1.5 max-h-[60vh] overflow-y-auto pr-1">
-              {unscheduledAssignments.slice(0, 30).map((a) => {
-                const sc = statusColors[a.status] || defaultStatusColor;
-                const tc = a.technician_id ? techColorMap.get(a.technician_id) : null;
-                return (
-                  <div
-                    key={a.id}
-                    draggable
-                    onDragStart={() => setDraggedAssignment(a.id)}
-                    onDragEnd={() => setDraggedAssignment(null)}
-                    className={`flex items-center gap-1.5 ${sc.bg} hover:opacity-80 rounded-lg px-2 py-2 cursor-grab active:cursor-grabbing transition-colors border ${sc.border}`}
-                  >
-                    <GripVertical className="h-3 w-3 text-muted-foreground/40 shrink-0" />
-                    {tc && <span className={`h-2 w-2 rounded-full shrink-0 ${tc.dot}`} title={a.technician_name} />}
-                    <span className={`h-2 w-2 rounded-full shrink-0 ${sc.dot}`} />
-                    <div className="min-w-0 flex-1">
-                      <div className="text-[10px] font-bold truncate">{a.sr_id}</div>
-                      <div className="text-[9px] text-muted-foreground truncate">{a.area}</div>
-                    </div>
-                  </div>
-                );
-              })}
-              {unscheduledAssignments.length > 30 && (
-                <span className="text-[10px] text-muted-foreground text-center py-1">+{unscheduledAssignments.length - 30} ακόμα</span>
+        <div className={`shrink-0 space-y-2 transition-all ${sidebarCollapsed ? "lg:w-[48px]" : "lg:w-[280px] xl:w-[320px]"}`}>
+          <div className="rounded-xl border border-border bg-card lg:sticky lg:top-4 overflow-hidden">
+            {/* Header */}
+            <div className="flex items-center justify-between px-3 py-2.5 border-b border-border bg-muted/30">
+              {!sidebarCollapsed && (
+                <div className="flex items-center gap-2 min-w-0">
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                    Χωρίς ραντεβού
+                  </p>
+                  <Badge variant="secondary" className="text-[10px]">{unscheduledAssignments.length}</Badge>
+                </div>
               )}
+              <button
+                onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                className="p-1 rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
+                title={sidebarCollapsed ? "Άνοιγμα" : "Σύμπτυξη"}
+              >
+                <ChevronLeft className={`h-3.5 w-3.5 transition-transform ${sidebarCollapsed ? "rotate-180" : ""}`} />
+              </button>
             </div>
+
+            {!sidebarCollapsed && (
+              <>
+                {/* Search */}
+                <div className="px-2.5 pt-2.5 pb-1.5">
+                  <div className="relative">
+                    <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+                    <Input
+                      placeholder="Αναζήτηση SR, περιοχή, πελάτη..."
+                      value={sidebarSearch}
+                      onChange={(e) => { setSidebarSearch(e.target.value); setSidebarShowCount(30); }}
+                      className="h-7 pl-7 pr-7 text-[11px] bg-muted/30 border-0 focus-visible:ring-1"
+                    />
+                    {sidebarSearch && (
+                      <button
+                        onClick={() => setSidebarSearch("")}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Mini filters */}
+                <div className="px-2.5 pb-2 flex items-center gap-1.5">
+                  <Select value={sidebarTechFilter} onValueChange={(v) => { setSidebarTechFilter(v); setSidebarShowCount(30); }}>
+                    <SelectTrigger className="h-6 text-[10px] border-0 bg-muted/40 px-2 w-auto min-w-[80px]">
+                      <User className="h-2.5 w-2.5 mr-1 shrink-0" />
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Όλοι</SelectItem>
+                      {technicians.map(t => (
+                        <SelectItem key={t.id} value={t.id}>
+                          <div className="flex items-center gap-1">
+                            <span className={`h-2 w-2 rounded-full ${techColorMap.get(t.id)?.dot || "bg-muted"}`} />
+                            {t.name.split(" ")[0]}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select value={sidebarAreaFilter} onValueChange={(v) => { setSidebarAreaFilter(v); setSidebarShowCount(30); }}>
+                    <SelectTrigger className="h-6 text-[10px] border-0 bg-muted/40 px-2 w-auto min-w-[80px]">
+                      <MapPin className="h-2.5 w-2.5 mr-1 shrink-0" />
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Όλες</SelectItem>
+                      {uniqueAreas.map(a => (
+                        <SelectItem key={a} value={a}>{a}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {(sidebarTechFilter !== "all" || sidebarAreaFilter !== "all" || sidebarSearch) && (
+                    <button
+                      onClick={() => { setSidebarSearch(""); setSidebarTechFilter("all"); setSidebarAreaFilter("all"); }}
+                      className="text-[9px] text-destructive hover:underline"
+                    >
+                      Καθαρ.
+                    </button>
+                  )}
+                </div>
+
+                {/* Filtered list */}
+                {(() => {
+                  const searchLower = sidebarSearch.toLowerCase().trim();
+                  const filtered = unscheduledAssignments.filter(a => {
+                    if (sidebarTechFilter !== "all" && a.technician_id !== sidebarTechFilter) return false;
+                    if (sidebarAreaFilter !== "all" && a.area !== sidebarAreaFilter) return false;
+                    if (searchLower) {
+                      const haystack = `${a.sr_id} ${a.area} ${a.customer_name} ${a.technician_name} ${a.address}`.toLowerCase();
+                      return haystack.includes(searchLower);
+                    }
+                    return true;
+                  });
+                  const shown = filtered.slice(0, sidebarShowCount);
+                  const remaining = filtered.length - shown.length;
+
+                  return (
+                    <div className="px-2 pb-2">
+                      {searchLower || sidebarTechFilter !== "all" || sidebarAreaFilter !== "all" ? (
+                        <p className="text-[9px] text-muted-foreground mb-1.5 px-0.5">
+                          {filtered.length} αποτελέσματα {searchLower ? `για "${sidebarSearch}"` : ""}
+                        </p>
+                      ) : null}
+                      <div className="flex flex-col gap-1 max-h-[55vh] overflow-y-auto pr-0.5">
+                        {shown.length === 0 && (
+                          <p className="text-[10px] text-muted-foreground text-center py-4">
+                            Δεν βρέθηκαν αναθέσεις
+                          </p>
+                        )}
+                        {shown.map((a) => {
+                          const sc = statusColors[a.status] || defaultStatusColor;
+                          const tc = a.technician_id ? techColorMap.get(a.technician_id) : null;
+                          return (
+                            <div
+                              key={a.id}
+                              draggable
+                              onDragStart={() => setDraggedAssignment(a.id)}
+                              onDragEnd={() => setDraggedAssignment(null)}
+                              className={`flex items-center gap-1.5 ${sc.bg} hover:opacity-80 rounded-lg px-2 py-1.5 cursor-grab active:cursor-grabbing transition-colors border ${sc.border}`}
+                            >
+                              <GripVertical className="h-3 w-3 text-muted-foreground/40 shrink-0" />
+                              {tc && <span className={`h-2 w-2 rounded-full shrink-0 ${tc.dot}`} title={a.technician_name} />}
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-1">
+                                  <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${sc.dot}`} />
+                                  <span className="text-[10px] font-bold truncate">{a.sr_id}</span>
+                                </div>
+                                <div className="text-[9px] text-muted-foreground truncate">
+                                  {a.area}{a.customer_name ? ` • ${a.customer_name}` : ""}
+                                </div>
+                                <div className="text-[8px] text-muted-foreground/60 truncate">
+                                  {a.technician_name}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                        {remaining > 0 && (
+                          <button
+                            onClick={() => setSidebarShowCount(prev => prev + 50)}
+                            className="flex items-center justify-center gap-1 text-[10px] text-primary hover:underline py-2"
+                          >
+                            <ChevronDown className="h-3 w-3" />
+                            Φόρτωσε {Math.min(remaining, 50)} ακόμα ({remaining} απομένουν)
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()}
+              </>
+            )}
           </div>
         </div>
       )}
