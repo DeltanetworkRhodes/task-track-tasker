@@ -1,9 +1,7 @@
-import { useState, useEffect } from "react";
 import { useTimeTracking } from "@/hooks/useTimeTracking";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { LogIn, LogOut, Clock, Timer } from "lucide-react";
+import { LogIn, Timer } from "lucide-react";
 import { toast } from "sonner";
 
 interface Props {
