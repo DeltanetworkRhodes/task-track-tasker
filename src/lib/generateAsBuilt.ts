@@ -220,6 +220,20 @@ async function fetchAsBuiltData(srId: string): Promise<AsBuiltData> {
   const escalitType = rawData.escalit_type || rawData["ΕΣΚΑΛΗΤ"] || "";
   const bcpTypeOriz = rawData.bcp_type_oriz || rawData["BCP ΕΙΔΟΣ"] || "";
 
+  // Multi-BCP: extract additional BCP connections from raw_data array
+  const additionalBcpConnections: { placement: string; kind: string; cableType: string; length: number }[] = [];
+  const bcpArray = rawData.bcp_connections || rawData["BCP_CONNECTIONS"] || [];
+  if (Array.isArray(bcpArray)) {
+    bcpArray.forEach((bcp: any) => {
+      additionalBcpConnections.push({
+        placement: bcp.placement || bcp["ΣΗΜΕΙΟ ΤΟΠΟΘΕΤΗΣΗΣ"] || "",
+        kind: bcp.kind || bcp["ΕΙΔΟΣ"] || "",
+        cableType: bcp.cable_type || bcp["ΤΥΠΟΣ ΚΟΙ"] || "",
+        length: Number(bcp.length || bcp["ΜΗΚΟΣ"] || 0),
+      });
+    });
+  }
+
   // Total cable length = underground distance + sum of floor meters (vertical)
   const verticalMeters = floorBoxes.reduce((sum, fb) => sum + (fb.meters || 0), 0);
   const totalCableLength = Number(gisData?.distance_from_cabinet || 0) + verticalMeters;
@@ -264,6 +278,11 @@ async function fetchAsBuiltData(srId: string): Promise<AsBuiltData> {
     escalitType,
     bcpType: bcpTypeOriz,
     totalCableLength,
+    technicianName,
+    akId: construction?.ak || "",
+    sesId: construction?.ses_id || "",
+    exportDate: new Date().toLocaleDateString("el-GR"),
+    additionalBcpConnections,
   };
 }
 
