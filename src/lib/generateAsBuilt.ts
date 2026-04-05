@@ -520,81 +520,67 @@ function fillLabelsBepSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
 }
 
 function fillLabelsBmoSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
-  // Write BMO type header to H2
-  ws.getCell("H2").value = getBmoHeader(d.bmoType);
+  // Template has formulas in visible cells (B7=AE2, D7=AE3, I6=AE2, Q6=$AE$2 etc.)
+  // We only need to fill data columns Y and Z-AE. DO NOT overwrite column A (visible layout).
 
-  // Structure from reference AS-BUILD:
-  // Column A: ALL BEP paths (same as LABELS BEP column A)
-  // Column Y: BMO-FB paths (raw data)
-  // Columns Z-AE: Pre-computed values (overriding MID formulas)
-  //   Z = BMO ID (e.g., "BMO01_01a"), AA = FB path (e.g., "FB(+00).1_01")
-  //   AD = sequential index, AE = final FB label (=AA basically)
+  // Update A3 with actual BEP header for this SR
+  ws.getCell("A3").value = getBepHeader(d.bepType);
+  // Update BCP header at A21 if BCP exists
+  if (d.newBcp) {
+    ws.getCell("A21").value = getBcpHeader(d.newBcp);
+  }
 
-  const bepBmoPaths = d.opticalPaths.filter(op => op.type === "BEP-BMO");
-  const bepOnlyPaths = d.opticalPaths.filter(op => op.type === "BEP" || op.type === "BCP-BEP");
-  const cabBepPaths = d.opticalPaths.filter(op => op.type === "CAB-BEP" || op.type === "CAB-BCP");
   const bmoFbPaths = d.opticalPaths.filter(op => op.type === "BMO-FB" || op.type === "BMO");
-  const allBepPaths = [...bepBmoPaths, ...bepOnlyPaths];
 
-  // Clear data columns A, Y, and ALL shared formula columns (shared formulas extend to row 96)
-  for (let r = 1; r <= 96; r++) {
-    ws.getCell(r, 25).value = r === 1 ? "OPTICAL PATH" : "";  // Y
-    ws.getCell(r, 26).value = "";  // Z
-    ws.getCell(r, 27).value = "";  // AA
-    ws.getCell(r, 29).value = "";  // AC
-    ws.getCell(r, 30).value = "";  // AD
-    ws.getCell(r, 31).value = "";  // AE
-  }
-  for (let r = 2; r <= 40; r++) {
-    ws.getCell(r, 1).value = null;   // A
+  // Clear data columns Y, Z-AE (rows 2-96) — preserve row 1 headers
+  for (let r = 2; r <= 96; r++) {
+    ws.getCell(r, 25).value = "";   // Y
+    ws.getCell(r, 26).value = "";   // Z
+    ws.getCell(r, 27).value = "";   // AA
+    ws.getCell(r, 30).value = "";   // AD
+    ws.getCell(r, 31).value = "";   // AE
   }
 
-  // Column A: Write all BEP paths, then "χωρίς ports" padding, then CAB-BEP paths
-  let aRow = 2;
-  for (const op of allBepPaths) {
-    ws.getCell(aRow, 1).value = op.path;
-    aRow++;
-  }
-  const bepSlots = 12;
-  for (let i = allBepPaths.length; i < bepSlots; i++) {
-    ws.getCell(aRow, 1).value = "χωρίς ports";
-    aRow++;
-  }
-  for (const op of cabBepPaths) {
-    ws.getCell(aRow, 1).value = op.path;
-    aRow++;
-  }
-
-  // Column Y: Write BMO-FB paths for formula inputs
+  // Column Y: Write BMO-FB paths
   for (let i = 0; i < 36; i++) {
     const r = 2 + i;
     ws.getCell(r, 25).value = i < bmoFbPaths.length ? bmoFbPaths[i].path : "";
   }
 
-  // Columns Z, AA, AD, AE: Pre-compute values (replaces MID formulas)
+  // Columns Z, AA, AD, AE: Pre-compute values
   for (let i = 0; i < 36; i++) {
     const r = 2 + i;
     if (i < bmoFbPaths.length) {
       const p = bmoFbPaths[i].path;
-      // Z = BMO ID (e.g., "BMO01_1" or "BMO01_01a")
       const bmoMatch = p.match(/(BMO\d+[_]\d+a?)/);
-      ws.getCell(r, 26).value = bmoMatch ? bmoMatch[1] : "";
-      // AA = FB path (e.g., "FB(+00).1_01")
+      ws.getCell(r, 26).value = bmoMatch ? bmoMatch[1] : "";   // Z
       const fbMatch = p.match(/(FB\([^)]+\)\.\d+_\d+)/);
-      ws.getCell(r, 27).value = fbMatch ? fbMatch[1] : "";
-      // AD = sequential index
-      ws.getCell(r, 30).value = i + 1;
-      // AE = final label = FB path (same as AA)
-      ws.getCell(r, 31).value = fbMatch ? fbMatch[1] : "";
+      ws.getCell(r, 27).value = fbMatch ? fbMatch[1] : "";     // AA
+      ws.getCell(r, 30).value = i + 1;                          // AD
+      ws.getCell(r, 31).value = fbMatch ? fbMatch[1] : "";     // AE
     } else {
-      ws.getCell(r, 26).value = "";
-      ws.getCell(r, 27).value = "";
-      ws.getCell(r, 30).value = i + 1;
-      ws.getCell(r, 31).value = "";
+      ws.getCell(r, 30).value = i + 1;                          // AD
     }
   }
 
-  console.log(`✅ LABELS BMO: wrote ${bmoFbPaths.length} BMO-FB paths to Y + pre-computed Z-AE, ${aRow - 2} total to A`);
+  // Update visible BMO labels (rows 7-12, B/D columns) — override cached formula values
+  const maxLabelPairs = 6;
+  for (let pair = 0; pair < maxLabelPairs; pair++) {
+    const r = 7 + pair;
+    const aeIdxA = 2 + pair * 2;
+    const aeIdxB = 3 + pair * 2;
+    const labelA = ws.getCell(aeIdxA, 31).value || "";
+    const labelB = ws.getCell(aeIdxB, 31).value || "";
+    const hasA = labelA && labelA !== "";
+    const hasB = labelB && labelB !== "";
+    ws.getCell(r, 2).value = hasA ? labelA : "-";       // B
+    ws.getCell(r, 4).value = hasB ? labelB : "-";       // D
+    if (!hasA && !hasB) {
+      ws.getCell(r, 5).value = "χωρίς ports";           // E
+    }
+  }
+
+  console.log(`✅ LABELS BMO: wrote ${bmoFbPaths.length} BMO-FB paths to Y + pre-computed Z-AE`);
 }
 
 /* ────────────────────────────────────────────
