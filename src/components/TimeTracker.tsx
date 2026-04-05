@@ -69,7 +69,7 @@ const TimeTracker = ({ assignmentId, srId }: Props) => {
   };
 
   return (
-    <Card className="p-3 space-y-3">
+    <Card className="p-3 space-y-3 border-amber-500/30 bg-amber-500/5">
       <div className="flex items-center justify-between">
         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
           <Timer className="h-3.5 w-3.5" />
@@ -103,7 +103,7 @@ const TimeTracker = ({ assignmentId, srId }: Props) => {
       ) : (
         <Button
           size="sm"
-          className="w-full gap-2 min-h-[44px]"
+          className="w-full gap-2 min-h-[44px] bg-amber-500 hover:bg-amber-600 text-white"
           onClick={handleCheckIn}
           disabled={checkIn.isPending}
         >
