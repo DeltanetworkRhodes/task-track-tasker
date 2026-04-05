@@ -435,6 +435,7 @@ const AppointmentsCalendar = ({ viewMode }: AppointmentsCalendarProps) => {
         technician_name: appt.assignment.technician_name,
         technician_id: appt.assignment.technician_id,
         address: appt.assignment.address,
+        building_id_hemd: appt.assignment.building_id_hemd,
       } : undefined,
     }));
   }, [dayAppts]);
