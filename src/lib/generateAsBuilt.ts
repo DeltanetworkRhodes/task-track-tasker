@@ -686,9 +686,16 @@ function fillLabelsBmoSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
    ──────────────────────────────────────────── */
 
 function fillEpimetrisiSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
-  // ── 0. ΣΤΟΙΧΕΙΑ ΑΙΤΗΜΑΤΟΣ ──
+  // ── 0. ΣΤΟΙΧΕΙΑ ΑΙΤΗΜΑΤΟΣ + META ──
   ws.getCell("E5").value = d.srId;
   ws.getCell("F5").value = d.address;
+  // Export date
+  ws.getCell("R4").value = d.exportDate || new Date().toLocaleDateString("el-GR");
+  // Technician name
+  if (d.technicianName) ws.getCell("R5").value = d.technicianName;
+  // AK and SES IDs
+  if (d.akId) ws.getCell("S8").value = d.akId;
+  if (d.sesId) ws.getCell("T8").value = d.sesId;
 
   // ── 1. ΚΤΗΡΙΟ ── Row 8
   ws.getCell("B8").value = d.srId;
@@ -716,12 +723,22 @@ function fillEpimetrisiSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
 
   // ── 3. BEP position ── (B22 is a label — don't overwrite)
 
-  // ── 3a. KOI BCP-BEP section (rows 17-18) ──
+  // ── 3a. KOI BCP-BEP section (rows 17-18+) ──
   if (d.bcpPlacement || d.bcpKind || d.bcpBepCableType) {
     ws.getCell("D18").value = d.bcpPlacement || "";
     ws.getCell("E18").value = d.bcpKind || "";
     ws.getCell("F18").value = d.bcpBepCableType || "";
     ws.getCell("G18").value = d.bcpBepLength || "";
+  }
+  // Multi-BCP: additional connections on rows 19+
+  if (d.additionalBcpConnections && d.additionalBcpConnections.length > 0) {
+    d.additionalBcpConnections.forEach((bcp, idx) => {
+      const r = 19 + idx;
+      ws.getCell(r, 4).value = bcp.placement || "";  // D
+      ws.getCell(r, 5).value = bcp.kind || "";        // E
+      ws.getCell(r, 6).value = bcp.cableType || "";   // F
+      ws.getCell(r, 7).value = bcp.length || "";      // G
+    });
   }
 
   // ── 4. BEP-ΟΡΟΦΟΙ ── Rows 25-39 (clear first)
