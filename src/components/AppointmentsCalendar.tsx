@@ -509,17 +509,37 @@ const AppointmentsCalendar = ({ viewMode }: AppointmentsCalendarProps) => {
       {/* ============ MONTH VIEW ============ */}
       {viewMode === "month" && (
         <>
-          <div className="rounded-xl border border-border bg-card overflow-hidden">
-            <div className="grid grid-cols-7 bg-muted/50">
-              {GREEK_DAYS.map((d) => (
-                <div key={d} className="text-center text-[10px] font-bold uppercase tracking-wider text-muted-foreground py-2">
+          <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-sm">
+            {/* Day headers */}
+            <div className="grid grid-cols-7">
+              {GREEK_DAYS_FULL.map((d, i) => (
+                <div
+                  key={d}
+                  className={`text-center text-[11px] font-semibold py-3 border-b border-border ${
+                    i >= 5 ? "text-muted-foreground/60 bg-muted/30" : "text-muted-foreground"
+                  }`}
+                >
                   {d}
                 </div>
               ))}
             </div>
+
+            {/* Calendar grid */}
             <div className="grid grid-cols-7">
               {calendarDays.map((day, i) => {
-                if (day === null) return <div key={i} className="border-t border-border bg-muted/20 min-h-[60px] sm:min-h-[80px]" />;
+                const colIdx = i % 7;
+                const isWeekend = colIdx >= 5;
+
+                if (day === null) {
+                  return (
+                    <div
+                      key={i}
+                      className={`min-h-[90px] sm:min-h-[110px] border-b border-r border-border last:border-r-0 ${
+                        isWeekend ? "bg-muted/20" : "bg-card"
+                      }`}
+                    />
+                  );
+                }
 
                 const dateKey = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
                 const dayAppts = appointmentsByDate.get(dateKey) || [];
@@ -532,53 +552,112 @@ const AppointmentsCalendar = ({ viewMode }: AppointmentsCalendarProps) => {
                   <button
                     key={i}
                     onClick={() => setSelectedDate(isSelected ? null : dateKey)}
-                    onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add("ring-2", "ring-primary/40"); }}
-                    onDragLeave={(e) => { e.currentTarget.classList.remove("ring-2", "ring-primary/40"); }}
-                    onDrop={(e) => { e.preventDefault(); e.currentTarget.classList.remove("ring-2", "ring-primary/40"); handleDrop(dateKey); }}
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      e.currentTarget.classList.add("ring-2", "ring-primary/50", "ring-inset");
+                    }}
+                    onDragLeave={(e) => {
+                      e.currentTarget.classList.remove("ring-2", "ring-primary/50", "ring-inset");
+                    }}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      e.currentTarget.classList.remove("ring-2", "ring-primary/50", "ring-inset");
+                      handleDrop(dateKey);
+                    }}
                     className={`
-                      border-t border-border min-h-[60px] sm:min-h-[80px] p-1 text-left transition-all relative
-                      ${isSelected ? "bg-primary/10 ring-1 ring-primary/30" : "hover:bg-muted/50"}
-                      ${isPast && !isToday ? "opacity-60" : ""}
+                      min-h-[90px] sm:min-h-[110px] p-1.5 sm:p-2 text-left transition-all relative
+                      border-b border-r border-border last:border-r-0 group/cell
+                      ${isWeekend ? "bg-muted/15" : "bg-card"}
+                      ${isSelected ? "bg-primary/8 shadow-inner" : "hover:bg-accent/30"}
+                      ${isPast && !isToday ? "opacity-50" : ""}
                     `}
                   >
-                    <div className="flex items-center justify-between">
-                      <span className={`text-xs font-bold inline-flex items-center justify-center h-5 w-5 rounded-full ${isToday ? "bg-primary text-primary-foreground" : "text-foreground"}`}>
+                    {/* Day number + actions */}
+                    <div className="flex items-start justify-between mb-1">
+                      <span
+                        className={`
+                          text-sm font-semibold inline-flex items-center justify-center h-7 w-7 rounded-full transition-colors
+                          ${isToday
+                            ? "bg-primary text-primary-foreground shadow-md"
+                            : isSelected
+                            ? "bg-primary/15 text-primary"
+                            : "text-foreground hover:bg-muted"
+                          }
+                        `}
+                      >
                         {day}
                       </span>
-                      <div className="flex items-center gap-0.5">
-                        {hasConflict && <AlertTriangle className="h-3 w-3 text-amber-500" />}
+                      <div className="flex items-center gap-0.5 opacity-0 group-hover/cell:opacity-100 transition-opacity">
+                        {hasConflict && <AlertTriangle className="h-3.5 w-3.5 text-amber-500 opacity-100" />}
                         {!isPast && (
                           <span
-                            onClick={(e) => { e.stopPropagation(); setCreateDate(dateKey); setShowCreateDialog(true); }}
-                            className="h-4 w-4 rounded-full flex items-center justify-center text-muted-foreground/40 hover:text-primary hover:bg-primary/10 transition-colors cursor-pointer"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setCreateDate(dateKey);
+                              setShowCreateDialog(true);
+                            }}
+                            className="h-6 w-6 rounded-full flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors cursor-pointer"
                           >
-                            <Plus className="h-3 w-3" />
+                            <Plus className="h-3.5 w-3.5" />
                           </span>
                         )}
                       </div>
                     </div>
+
+                    {/* Appointments */}
                     {dayAppts.length > 0 && (
-                      <div className="mt-0.5 space-y-0.5">
+                      <div className="space-y-0.5">
                         {dayAppts.slice(0, 3).map((a) => {
-                          const sc = a.assignment ? (statusColors[a.assignment.status] || defaultStatusColor) : defaultStatusColor;
+                          const sc = a.assignment
+                            ? statusColors[a.assignment.status] || defaultStatusColor
+                            : defaultStatusColor;
                           const isConflict = conflicts.has(a.id);
                           return (
                             <div
                               key={a.id}
-                              className={`text-[8px] sm:text-[9px] font-medium rounded px-1 py-0.5 truncate ${sc.bg} ${sc.text} ${isConflict ? "ring-1 ring-amber-400 dark:ring-amber-600" : ""}`}
+                              className={`
+                                text-[9px] sm:text-[10px] font-medium rounded-md px-1.5 py-0.5 truncate
+                                border-l-[3px] ${sc.border} ${sc.bg} ${sc.text}
+                                ${isConflict ? "ring-1 ring-amber-400 dark:ring-amber-600" : ""}
+                                hover:shadow-sm transition-shadow
+                              `}
                             >
-                              <span className={`inline-block h-1.5 w-1.5 rounded-full ${sc.dot} mr-0.5`} />
-                              {a.sr_id}
+                              <span className="font-bold">{a.sr_id}</span>
                               {a.assignment && (
-                                <span className="hidden sm:inline ml-0.5 opacity-70">
-                                  • {a.assignment.technician_name?.split(" ")[0]}
+                                <span className="hidden sm:inline ml-1 opacity-60 font-normal">
+                                  {a.assignment.technician_name?.split(" ")[0]}
                                 </span>
                               )}
                             </div>
                           );
                         })}
                         {dayAppts.length > 3 && (
-                          <div className="text-[9px] text-muted-foreground font-bold">+{dayAppts.length - 3}</div>
+                          <div className="text-[9px] text-muted-foreground font-semibold pl-1.5">
+                            +{dayAppts.length - 3} ακόμα
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Appointment count dot */}
+                    {dayAppts.length > 0 && !isSelected && (
+                      <div className="absolute bottom-1.5 right-1.5 flex items-center gap-0.5">
+                        {dayAppts.length <= 5 ? (
+                          dayAppts.map((a, idx) => {
+                            const sc = a.assignment
+                              ? statusColors[a.assignment.status] || defaultStatusColor
+                              : defaultStatusColor;
+                            return (
+                              <span
+                                key={idx}
+                                className={`h-1.5 w-1.5 rounded-full ${sc.dot} hidden sm:block`}
+                              />
+                            );
+                          })
+                        ) : (
+                          <Badge variant="secondary" className="text-[8px] h-4 px-1 hidden sm:flex">
+                            {dayAppts.length}
+                          </Badge>
                         )}
                       </div>
                     )}
@@ -588,13 +667,22 @@ const AppointmentsCalendar = ({ viewMode }: AppointmentsCalendarProps) => {
             </div>
           </div>
 
-          {/* Selected day detail */}
+          {/* Selected day detail - slide-in panel */}
           {selectedDate && (
-            <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+            <div className="rounded-2xl border border-border bg-card p-5 space-y-4 shadow-sm animate-in slide-in-from-top-2 duration-200">
               <div className="flex items-center justify-between">
-                <h3 className="text-sm font-bold text-foreground">
-                  {new Date(selectedDate + "T00:00:00").toLocaleDateString("el-GR", { weekday: "long", day: "numeric", month: "long" })}
-                </h3>
+                <div>
+                  <h3 className="text-base font-bold text-foreground">
+                    {new Date(selectedDate + "T00:00:00").toLocaleDateString("el-GR", {
+                      weekday: "long",
+                      day: "numeric",
+                      month: "long",
+                    })}
+                  </h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {selectedAppts.length} ραντεβού
+                  </p>
+                </div>
                 <div className="flex items-center gap-2">
                   <Button
                     variant="outline"
@@ -602,17 +690,18 @@ const AppointmentsCalendar = ({ viewMode }: AppointmentsCalendarProps) => {
                     className="gap-1.5 text-xs"
                     onClick={() => {
                       setCurrentDate(new Date(selectedDate + "T00:00:00"));
-                      // parent will need to switch — for now we go to day via setSelectedDate
                     }}
                   >
                     <Clock className="h-3.5 w-3.5" />
                     Timeline
                   </Button>
                   <Button
-                    variant="outline"
                     size="sm"
                     className="gap-1.5 text-xs"
-                    onClick={() => { setCreateDate(selectedDate); setShowCreateDialog(true); }}
+                    onClick={() => {
+                      setCreateDate(selectedDate);
+                      setShowCreateDialog(true);
+                    }}
                   >
                     <Plus className="h-3.5 w-3.5" />
                     Ραντεβού
@@ -620,53 +709,73 @@ const AppointmentsCalendar = ({ viewMode }: AppointmentsCalendarProps) => {
                 </div>
               </div>
               {selectedAppts.length === 0 ? (
-                <p className="text-xs text-muted-foreground">Δεν υπάρχουν ραντεβού</p>
+                <p className="text-sm text-muted-foreground py-4 text-center">
+                  Δεν υπάρχουν ραντεβού αυτή την ημέρα
+                </p>
               ) : (
-                <div className="space-y-2">
+                <div className="grid gap-2 sm:grid-cols-2">
                   {selectedAppts.map((a) => {
-                    const sc = a.assignment ? (statusColors[a.assignment.status] || defaultStatusColor) : defaultStatusColor;
+                    const sc = a.assignment
+                      ? statusColors[a.assignment.status] || defaultStatusColor
+                      : defaultStatusColor;
                     const isConflict = conflicts.has(a.id);
                     return (
-                      <div key={a.id} className={`flex items-start gap-3 rounded-lg px-3 py-2.5 group border ${sc.border} ${sc.bg} ${isConflict ? "ring-2 ring-amber-400" : ""}`}>
-                        <div className="flex-1 min-w-0 space-y-1">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className={`h-2.5 w-2.5 rounded-full ${sc.dot}`} />
-                            <Badge variant="secondary" className="text-[10px] font-bold">{a.sr_id}</Badge>
-                            {a.assignment && (
-                              <Badge className={`text-[9px] ${sc.bg} ${sc.text} border-0`}>
-                                {statusLabels[a.assignment.status] || a.assignment.status}
-                              </Badge>
-                            )}
-                            <span className="text-[11px] text-muted-foreground flex items-center gap-1">
-                              <Clock className="h-3 w-3" />
-                              {new Date(a.appointment_at).toLocaleTimeString("el-GR", { hour: "2-digit", minute: "2-digit" })}
-                            </span>
-                            {isConflict && (
-                              <span className="text-[9px] text-amber-600 dark:text-amber-400 font-bold flex items-center gap-0.5">
-                                <AlertTriangle className="h-3 w-3" /> Σύγκρουση!
+                      <div
+                        key={a.id}
+                        className={`
+                          rounded-xl px-4 py-3 group border-l-4 ${sc.border} bg-card border border-border
+                          ${isConflict ? "ring-2 ring-amber-400" : ""}
+                          hover:shadow-md transition-shadow
+                        `}
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="space-y-1.5 min-w-0 flex-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-sm font-bold text-foreground">{a.sr_id}</span>
+                              {a.assignment && (
+                                <Badge className={`text-[9px] ${sc.bg} ${sc.text} border-0`}>
+                                  {statusLabels[a.assignment.status] || a.assignment.status}
+                                </Badge>
+                              )}
+                              {isConflict && (
+                                <span className="text-[9px] text-amber-600 dark:text-amber-400 font-bold flex items-center gap-0.5">
+                                  <AlertTriangle className="h-3 w-3" /> Σύγκρουση
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                              <span className="flex items-center gap-1">
+                                <Clock className="h-3.5 w-3.5" />
+                                {new Date(a.appointment_at).toLocaleTimeString("el-GR", {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })}
                               </span>
+                              {a.assignment && (
+                                <span className="flex items-center gap-1">
+                                  <User className="h-3.5 w-3.5" />
+                                  {a.assignment.technician_name}
+                                </span>
+                              )}
+                            </div>
+                            {(a.customer_name || a.area) && (
+                              <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                                {a.area && (
+                                  <span className="flex items-center gap-1">
+                                    <MapPin className="h-3 w-3" /> {a.area}
+                                  </span>
+                                )}
+                                {a.customer_name && <span>• {a.customer_name}</span>}
+                              </div>
                             )}
                           </div>
-                          {a.assignment && (
-                            <p className="text-xs text-foreground flex items-center gap-1">
-                              <User className="h-3 w-3 text-muted-foreground" /> {a.assignment.technician_name}
-                            </p>
-                          )}
-                          {a.customer_name && (
-                            <p className="text-[11px] text-muted-foreground">{a.customer_name}</p>
-                          )}
-                          {a.area && (
-                            <p className="text-[11px] text-muted-foreground flex items-center gap-1">
-                              <MapPin className="h-3 w-3" /> {a.area}
-                            </p>
-                          )}
+                          <button
+                            onClick={() => handleDeleteAppointment(a.id)}
+                            className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg hover:bg-destructive/10 text-destructive/60 hover:text-destructive transition-all"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
                         </div>
-                        <button
-                          onClick={() => handleDeleteAppointment(a.id)}
-                          className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg hover:bg-destructive/10 text-destructive/60 hover:text-destructive transition-all"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
                       </div>
                     );
                   })}
