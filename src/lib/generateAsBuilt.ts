@@ -70,6 +70,16 @@ interface AsBuiltData {
   isNewInfrastructure: boolean;
   trenchLengthM: number;
   cabId: string;
+  // BCP-BEP connection data
+  bcpPlacement: string;    // ΣΗΜΕΙΟ ΤΟΠΟΘΕΤΗΣΗΣ (e.g. "BCP ΕΠΙ ΤΟΥ ΚΤΙΡΙΟΥ")
+  bcpKind: string;         // ΕΙΔΟΣ (e.g. "BCP ΝΕΟ")
+  bcpBepCableType: string; // ΤΥΠΟΣ ΚΟΙ ΣΥΝΔΕΣΗ BCP ΜΕ BEP (e.g. "4 FO G652D")
+  bcpBepLength: number;    // ΜΗΚΟΣ BCP-BEP
+  // ΟΡΙΖΟΝΤΟΓΡΑΦΙΑ extra fields
+  verticalRouting: string; // Είδος κάθετης υποδομής (ΚΑΓΚΕΛΟ, ΚΛΙΜΑΚΟΣΤΑΣΙΟ, etc.)
+  escalitType: string;     // ΕΣΚΑΛΗΤ type
+  bcpType: string;         // BCP ΕΙΔΟΣ for ΟΡΙΖΟΝΤΟΓΡΑΦΙΑ
+  totalCableLength: number; // Total cable length (underground + vertical) for F13
 }
 
 /* ────────────────────────────────────────────
