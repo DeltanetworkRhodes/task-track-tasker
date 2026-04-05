@@ -1184,6 +1184,8 @@ const DEMO_SR_DATA: DemoSRMap = {
       { type: "Α", description: "Υλοποίηση Υποδομής Εισαγωγής", quantity: 1, floor: "+00" },
     ],
     sketchImageUrl: null, isNewInfrastructure: false, trenchLengthM: 0, cabId: "CAB-045",
+    bcpPlacement: "", bcpKind: "", bcpBepCableType: "", bcpBepLength: 0,
+    verticalRouting: "ΚΑΓΚΕΛΟ", escalitType: "", bcpType: "", totalCableLength: 138,
   },
   "SR-DEMO-02": {
     srId: "SR-DEMO-02", buildingId: "BLD-IAL-015", areaType: "OTE", floors: 5,
