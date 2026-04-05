@@ -615,6 +615,7 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
     if (status === "construction") {
       return (
         <div className="space-y-3">
+          <TimeTracker assignmentId={assignment.id} srId={assignment.sr_id} />
           <Button
             className={btnClass}
             onClick={() => setShowCrewPanel(true)}
