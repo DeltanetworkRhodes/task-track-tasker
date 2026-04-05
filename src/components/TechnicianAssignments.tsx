@@ -877,8 +877,6 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
                 {/* SR Comments / Chat */}
                 <SRComments assignmentId={selectedAssignment.id} />
 
-                {/* Time Tracker — above action buttons */}
-                <TimeTracker assignmentId={selectedAssignment.id} srId={selectedAssignment.sr_id} />
 
                 {/* Action buttons — inside scroll */}
                 <div className="pt-2 pb-4">
