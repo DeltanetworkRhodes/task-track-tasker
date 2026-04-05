@@ -115,6 +115,17 @@ async function fetchAsBuiltData(srId: string): Promise<AsBuiltData> {
     .eq("assignment_id", assignment.id)
     .maybeSingle();
 
+  // Fetch technician name
+  let technicianName = "";
+  if (assignment.technician_id) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("full_name")
+      .eq("user_id", assignment.technician_id)
+      .maybeSingle();
+    technicianName = profile?.full_name || "";
+  }
+
   let works: ConstructionWork[] = [];
   if (construction) {
     const { data: cWorks } = await supabase
