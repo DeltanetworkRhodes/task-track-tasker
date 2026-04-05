@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { useAssignments, useProfiles } from "@/hooks/useData";
 import { statusLabels } from "@/data/mockData";
-import { ChevronLeft, ChevronRight, CalendarDays, Clock, MapPin, User, GripVertical, Plus, Trash2, AlertTriangle } from "lucide-react";
+import { ChevronLeft, ChevronRight, CalendarDays, Clock, MapPin, User, GripVertical, Plus, Trash2, AlertTriangle, Filter, BarChart3, Printer, Download } from "lucide-react";
 import CalendarMapView from "./CalendarMapView";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -18,6 +18,18 @@ const GREEK_MONTHS = [
 ];
 const GREEK_DAYS = ["Δευ", "Τρί", "Τετ", "Πέμ", "Παρ", "Σάβ", "Κυρ"];
 const GREEK_DAYS_FULL = ["Δευτέρα", "Τρίτη", "Τετάρτη", "Πέμπτη", "Παρασκευή", "Σάββατο", "Κυριακή"];
+
+// Technician color palette — distinct hues for each tech
+const TECH_COLORS = [
+  { bg: "bg-blue-100 dark:bg-blue-900/30", text: "text-blue-800 dark:text-blue-300", ring: "ring-blue-400", dot: "bg-blue-500", avatar: "bg-blue-500" },
+  { bg: "bg-rose-100 dark:bg-rose-900/30", text: "text-rose-800 dark:text-rose-300", ring: "ring-rose-400", dot: "bg-rose-500", avatar: "bg-rose-500" },
+  { bg: "bg-teal-100 dark:bg-teal-900/30", text: "text-teal-800 dark:text-teal-300", ring: "ring-teal-400", dot: "bg-teal-500", avatar: "bg-teal-500" },
+  { bg: "bg-purple-100 dark:bg-purple-900/30", text: "text-purple-800 dark:text-purple-300", ring: "ring-purple-400", dot: "bg-purple-500", avatar: "bg-purple-500" },
+  { bg: "bg-orange-100 dark:bg-orange-900/30", text: "text-orange-800 dark:text-orange-300", ring: "ring-orange-400", dot: "bg-orange-500", avatar: "bg-orange-500" },
+  { bg: "bg-cyan-100 dark:bg-cyan-900/30", text: "text-cyan-800 dark:text-cyan-300", ring: "ring-cyan-400", dot: "bg-cyan-500", avatar: "bg-cyan-500" },
+  { bg: "bg-pink-100 dark:bg-pink-900/30", text: "text-pink-800 dark:text-pink-300", ring: "ring-pink-400", dot: "bg-pink-500", avatar: "bg-pink-500" },
+  { bg: "bg-lime-100 dark:bg-lime-900/30", text: "text-lime-800 dark:text-lime-300", ring: "ring-lime-400", dot: "bg-lime-500", avatar: "bg-lime-500" },
+];
 
 // Enhanced status colors with more distinct visual hierarchy
 const statusColors: Record<string, { bg: string; text: string; border: string; dot: string }> = {
@@ -33,11 +45,14 @@ const statusColors: Record<string, { bg: string; text: string; border: string; d
 
 const defaultStatusColor = { bg: "bg-primary/10", text: "text-primary", border: "border-primary/30", dot: "bg-primary" };
 
-// Legacy flat class for month grid tiny badges
-const statusColorFlat = (status: string) => {
-  const c = statusColors[status] || defaultStatusColor;
-  return `${c.bg} ${c.text}`;
-};
+// Get ISO week number
+function getWeekNumber(d: Date): number {
+  const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const dayNum = date.getUTCDay() || 7;
+  date.setUTCDate(date.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+  return Math.ceil((((date.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
+}
 
 interface Appointment {
   id: string;
@@ -56,7 +71,7 @@ interface AppointmentsCalendarProps {
 
 const DAY_START_HOUR = 7;
 const DAY_END_HOUR = 20;
-const HOUR_HEIGHT = 60; // px per hour
+const HOUR_HEIGHT = 60;
 
 const AppointmentsCalendar = ({ viewMode }: AppointmentsCalendarProps) => {
   const { organizationId } = useOrganization();
@@ -69,6 +84,12 @@ const AppointmentsCalendar = ({ viewMode }: AppointmentsCalendarProps) => {
   const [createAssignmentId, setCreateAssignmentId] = useState("");
   const [creating, setCreating] = useState(false);
   const [draggedAssignment, setDraggedAssignment] = useState<string | null>(null);
+
+  // Filter states
+  const [filterTech, setFilterTech] = useState<string>("all");
+  const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [filterArea, setFilterArea] = useState<string>("all");
+  const [showFilters, setShowFilters] = useState(false);
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -118,6 +139,17 @@ const AppointmentsCalendar = ({ viewMode }: AppointmentsCalendarProps) => {
     }));
   }, [dbAssignments, technicianMap]);
 
+  // Technician color map (stable mapping)
+  const techColorMap = useMemo(() => {
+    const map = new Map<string, typeof TECH_COLORS[0]>();
+    const techIds = new Set<string>();
+    assignments.forEach((a) => { if (a.technician_id) techIds.add(a.technician_id); });
+    Array.from(techIds).forEach((id, i) => {
+      map.set(id, TECH_COLORS[i % TECH_COLORS.length]);
+    });
+    return map;
+  }, [assignments]);
+
   const scheduledSrIds = useMemo(() => {
     return new Set((appointments || []).map((a) => a.sr_id));
   }, [appointments]);
@@ -128,18 +160,38 @@ const AppointmentsCalendar = ({ viewMode }: AppointmentsCalendarProps) => {
     );
   }, [assignments, scheduledSrIds]);
 
+  // Unique areas for filter
+  const uniqueAreas = useMemo(() => {
+    const areas = new Set<string>();
+    assignments.forEach((a) => { if (a.area) areas.add(a.area); });
+    return Array.from(areas).sort();
+  }, [assignments]);
+
+  // Unique statuses for filter
+  const uniqueStatuses = useMemo(() => {
+    const statuses = new Set<string>();
+    assignments.forEach((a) => statuses.add(a.status));
+    return Array.from(statuses);
+  }, [assignments]);
+
   const appointmentsByDate = useMemo(() => {
     const map = new Map<string, (Appointment & { assignment?: typeof assignments[0] })[]>();
     (appointments || []).forEach((appt) => {
       const dateKey = appt.appointment_at.split("T")[0];
       const assignment = assignments.find((a) => a.sr_id === appt.sr_id);
+
+      // Apply filters
+      if (filterTech !== "all" && assignment?.technician_id !== filterTech) return;
+      if (filterStatus !== "all" && assignment?.status !== filterStatus) return;
+      if (filterArea !== "all" && assignment?.area !== filterArea) return;
+
       if (!map.has(dateKey)) map.set(dateKey, []);
       map.get(dateKey)!.push({ ...appt, assignment });
     });
     return map;
-  }, [appointments, assignments]);
+  }, [appointments, assignments, filterTech, filterStatus, filterArea]);
 
-  // Conflict detection: find appointments where same technician has overlapping times (same hour)
+  // Conflict detection
   const conflicts = useMemo(() => {
     const conflictSet = new Set<string>();
     const byTechAndHour = new Map<string, string[]>();
@@ -159,6 +211,16 @@ const AppointmentsCalendar = ({ viewMode }: AppointmentsCalendarProps) => {
     
     return conflictSet;
   }, [appointments, assignments]);
+
+  // Mini stats
+  const stats = useMemo(() => {
+    const todayKey = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}-${String(new Date().getDate()).padStart(2, "0")}`;
+    const todayAppts = appointmentsByDate.get(todayKey) || [];
+    const totalThisMonth = Array.from(appointmentsByDate.values()).reduce((sum, arr) => sum + arr.length, 0);
+    const completedCount = todayAppts.filter(a => a.assignment?.status === "completed").length;
+    const pendingCount = todayAppts.filter(a => a.assignment?.status === "pending").length;
+    return { today: todayAppts.length, month: totalThisMonth, completed: completedCount, pending: pendingCount, conflicts: conflicts.size };
+  }, [appointmentsByDate, conflicts]);
 
   // Calendar grid for month view
   const firstDay = new Date(year, month, 1);
@@ -298,6 +360,11 @@ const AppointmentsCalendar = ({ viewMode }: AppointmentsCalendarProps) => {
     [draggedAssignment, unscheduledAssignments, organizationId, queryClient]
   );
 
+  // Print/export handler
+  const handlePrint = () => {
+    window.print();
+  };
+
   const selectedAppts = selectedDate ? (appointmentsByDate.get(selectedDate) || []) : [];
 
   const hours = Array.from({ length: 13 }, (_, i) => {
@@ -319,7 +386,6 @@ const AppointmentsCalendar = ({ viewMode }: AppointmentsCalendarProps) => {
       if (!map.has(techId)) map.set(techId, []);
       map.get(techId)!.push(appt);
     });
-    // Also add technicians with no appointments for completeness
     technicians.forEach((t) => {
       if (!map.has(t.id)) map.set(t.id, []);
     });
@@ -330,7 +396,6 @@ const AppointmentsCalendar = ({ viewMode }: AppointmentsCalendarProps) => {
     const techs = Array.from(dayApptsPerTech.keys())
       .filter((id) => id !== "__unassigned__")
       .map((id) => ({ id, name: technicianMap.get(id) || "—" }));
-    // Put unassigned at the end
     if (dayApptsPerTech.has("__unassigned__") && (dayApptsPerTech.get("__unassigned__")?.length ?? 0) > 0) {
       techs.push({ id: "__unassigned__", name: "Χωρίς τεχνικό" });
     }
@@ -341,11 +406,13 @@ const AppointmentsCalendar = ({ viewMode }: AppointmentsCalendarProps) => {
   const navPrev = viewMode === "month" ? prevMonth : viewMode === "week" ? prevWeek : prevDay;
   const navNext = viewMode === "month" ? nextMonth : viewMode === "week" ? nextWeek : nextDay;
 
+  const weekNum = getWeekNumber(currentDate);
+
   const navLabel = viewMode === "month"
     ? `${GREEK_MONTHS[month]} ${year}`
     : viewMode === "week"
-    ? `${weekDates[0].getDate()} - ${weekDates[6].getDate()} ${GREEK_MONTHS[weekDates[6].getMonth()]} ${weekDates[6].getFullYear()}`
-    : currentDate.toLocaleDateString("el-GR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+    ? `Εβδ. ${getWeekNumber(weekDates[0])} — ${weekDates[0].getDate()} - ${weekDates[6].getDate()} ${GREEK_MONTHS[weekDates[6].getMonth()]} ${weekDates[6].getFullYear()}`
+    : `${currentDate.toLocaleDateString("el-GR", { weekday: "long", day: "numeric", month: "long", year: "numeric" })} (Εβδ. ${weekNum})`;
 
   const viewLabel = viewMode === "month" ? "Μηνιαίο Ημερολόγιο" : viewMode === "week" ? "Εβδομαδιαίο Πρόγραμμα" : viewMode === "map" ? "Χάρτης Ημέρας" : "Ημερήσιο Timeline";
 
@@ -412,7 +479,7 @@ const AppointmentsCalendar = ({ viewMode }: AppointmentsCalendarProps) => {
     document.addEventListener("mouseup", handleMouseUp);
   }, [queryClient]);
 
-  // Status legend for visibility
+  // Status legend
   const StatusLegend = () => (
     <div className="flex flex-wrap gap-2 text-[10px]">
       {Object.entries(statusColors).map(([status, colors]) => (
@@ -423,6 +490,9 @@ const AppointmentsCalendar = ({ viewMode }: AppointmentsCalendarProps) => {
       ))}
     </div>
   );
+
+  // Active filter count
+  const activeFilters = [filterTech, filterStatus, filterArea].filter(f => f !== "all").length;
 
   return (
     <div className="flex flex-col lg:flex-row gap-4">
@@ -440,6 +510,7 @@ const AppointmentsCalendar = ({ viewMode }: AppointmentsCalendarProps) => {
             <div className="flex flex-row lg:flex-col flex-wrap gap-1.5 max-h-[60vh] overflow-y-auto pr-1">
               {unscheduledAssignments.slice(0, 30).map((a) => {
                 const sc = statusColors[a.status] || defaultStatusColor;
+                const tc = a.technician_id ? techColorMap.get(a.technician_id) : null;
                 return (
                   <div
                     key={a.id}
@@ -449,6 +520,7 @@ const AppointmentsCalendar = ({ viewMode }: AppointmentsCalendarProps) => {
                     className={`flex items-center gap-1.5 ${sc.bg} hover:opacity-80 rounded-lg px-2 py-2 cursor-grab active:cursor-grabbing transition-colors border ${sc.border}`}
                   >
                     <GripVertical className="h-3 w-3 text-muted-foreground/40 shrink-0" />
+                    {tc && <span className={`h-2 w-2 rounded-full shrink-0 ${tc.dot}`} title={a.technician_name} />}
                     <span className={`h-2 w-2 rounded-full shrink-0 ${sc.dot}`} />
                     <div className="min-w-0 flex-1">
                       <div className="text-[10px] font-bold truncate">{a.sr_id}</div>
@@ -467,17 +539,150 @@ const AppointmentsCalendar = ({ viewMode }: AppointmentsCalendarProps) => {
 
       {/* ===== MAIN CALENDAR AREA ===== */}
       <div className="flex-1 min-w-0 space-y-3">
-        {/* Legend + Conflicts row */}
+        {/* ===== MINI STATS BAR ===== */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5">
+            <BarChart3 className="h-3.5 w-3.5 text-primary" />
+            <span className="text-[10px] font-semibold text-foreground">{stats.today}</span>
+            <span className="text-[10px] text-muted-foreground">σήμερα</span>
+          </div>
+          <div className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5">
+            <CalendarDays className="h-3.5 w-3.5 text-muted-foreground" />
+            <span className="text-[10px] font-semibold text-foreground">{stats.month}</span>
+            <span className="text-[10px] text-muted-foreground">μήνα</span>
+          </div>
+          {stats.completed > 0 && (
+            <div className="flex items-center gap-1.5 rounded-lg border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20 px-3 py-1.5">
+              <span className="h-2 w-2 rounded-full bg-emerald-500" />
+              <span className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-300">{stats.completed}</span>
+              <span className="text-[10px] text-emerald-600 dark:text-emerald-400">ολοκληρ.</span>
+            </div>
+          )}
+          {stats.pending > 0 && (
+            <div className="flex items-center gap-1.5 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 px-3 py-1.5">
+              <span className="h-2 w-2 rounded-full bg-amber-500" />
+              <span className="text-[10px] font-semibold text-amber-700 dark:text-amber-300">{stats.pending}</span>
+              <span className="text-[10px] text-amber-600 dark:text-amber-400">εκκρεμή</span>
+            </div>
+          )}
+          {stats.conflicts > 0 && (
+            <div className="flex items-center gap-1.5 rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 px-3 py-1.5">
+              <AlertTriangle className="h-3.5 w-3.5 text-red-500" />
+              <span className="text-[10px] font-semibold text-red-700 dark:text-red-300">{stats.conflicts}</span>
+              <span className="text-[10px] text-red-600 dark:text-red-400">συγκρούσεις</span>
+            </div>
+          )}
+
+          <div className="ml-auto flex items-center gap-1.5">
+            {/* Filter toggle */}
+            <Button
+              variant={showFilters ? "default" : "outline"}
+              size="sm"
+              className="gap-1.5 text-[10px] h-7 px-2.5"
+              onClick={() => setShowFilters(!showFilters)}
+            >
+              <Filter className="h-3 w-3" />
+              Φίλτρα
+              {activeFilters > 0 && (
+                <Badge variant="destructive" className="h-4 w-4 p-0 flex items-center justify-center text-[8px] rounded-full">
+                  {activeFilters}
+                </Badge>
+              )}
+            </Button>
+            {/* Print */}
+            <Button variant="outline" size="sm" className="gap-1.5 text-[10px] h-7 px-2.5" onClick={handlePrint}>
+              <Printer className="h-3 w-3" />
+              <span className="hidden sm:inline">Εκτύπωση</span>
+            </Button>
+          </div>
+        </div>
+
+        {/* ===== QUICK FILTERS ===== */}
+        {showFilters && (
+          <div className="flex items-center gap-2 flex-wrap rounded-xl border border-border bg-card p-3 animate-in slide-in-from-top-1 duration-200">
+            <div className="flex items-center gap-1.5">
+              <User className="h-3.5 w-3.5 text-muted-foreground" />
+              <Select value={filterTech} onValueChange={setFilterTech}>
+                <SelectTrigger className="h-7 w-[150px] text-[11px]">
+                  <SelectValue placeholder="Τεχνικός" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Όλοι οι τεχνικοί</SelectItem>
+                  {technicians.map(t => (
+                    <SelectItem key={t.id} value={t.id}>
+                      <div className="flex items-center gap-1.5">
+                        <span className={`h-2 w-2 rounded-full ${techColorMap.get(t.id)?.dot || "bg-muted"}`} />
+                        {t.name}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full bg-muted-foreground" />
+              <Select value={filterStatus} onValueChange={setFilterStatus}>
+                <SelectTrigger className="h-7 w-[140px] text-[11px]">
+                  <SelectValue placeholder="Κατάσταση" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Όλες</SelectItem>
+                  {uniqueStatuses.map(s => (
+                    <SelectItem key={s} value={s}>
+                      <div className="flex items-center gap-1.5">
+                        <span className={`h-2 w-2 rounded-full ${statusColors[s]?.dot || "bg-muted"}`} />
+                        {statusLabels[s] || s}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
+              <Select value={filterArea} onValueChange={setFilterArea}>
+                <SelectTrigger className="h-7 w-[140px] text-[11px]">
+                  <SelectValue placeholder="Περιοχή" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Όλες</SelectItem>
+                  {uniqueAreas.map(a => (
+                    <SelectItem key={a} value={a}>{a}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {activeFilters > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-[10px] h-7 text-destructive hover:text-destructive"
+                onClick={() => { setFilterTech("all"); setFilterStatus("all"); setFilterArea("all"); }}
+              >
+                Καθαρισμός
+              </Button>
+            )}
+          </div>
+        )}
+
+        {/* Legend + Technician colors row */}
         <div className="flex items-center gap-3 flex-wrap">
           <div className="rounded-lg border border-border bg-card px-2.5 py-1.5 flex items-center gap-2 flex-wrap">
             <StatusLegend />
           </div>
-          {conflicts.size > 0 && (
-            <div className="rounded-lg border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 px-2.5 py-1.5 flex items-center gap-1.5">
-              <AlertTriangle className="h-3.5 w-3.5 text-amber-600 shrink-0" />
-              <span className="text-[10px] text-amber-800 dark:text-amber-300 font-medium">
-                {conflicts.size} σύγκρουση
-              </span>
+          {/* Technician color legend */}
+          {technicians.length > 0 && (
+            <div className="rounded-lg border border-border bg-card px-2.5 py-1.5 flex items-center gap-2 flex-wrap">
+              <span className="text-[10px] font-semibold text-muted-foreground mr-1">Τεχνικοί:</span>
+              {technicians.map(t => {
+                const tc = techColorMap.get(t.id);
+                return (
+                  <div key={t.id} className="flex items-center gap-1">
+                    <span className={`h-2.5 w-2.5 rounded-full ${tc?.dot || "bg-muted"}`} />
+                    <span className="text-[10px] text-muted-foreground">{t.name.split(" ")[0]}</span>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
@@ -604,24 +809,27 @@ const AppointmentsCalendar = ({ viewMode }: AppointmentsCalendarProps) => {
                       </div>
                     </div>
 
-                    {/* Appointments */}
+                    {/* Appointments with technician color indicator */}
                     {dayAppts.length > 0 && (
                       <div className="space-y-0.5">
                         {dayAppts.slice(0, 3).map((a) => {
                           const sc = a.assignment
                             ? statusColors[a.assignment.status] || defaultStatusColor
                             : defaultStatusColor;
+                          const tc = a.assignment?.technician_id ? techColorMap.get(a.assignment.technician_id) : null;
                           const isConflict = conflicts.has(a.id);
                           return (
                             <div
                               key={a.id}
                               className={`
                                 text-[9px] sm:text-[10px] font-medium rounded-md px-1.5 py-0.5 truncate
-                                border-l-[3px] ${sc.border} ${sc.bg} ${sc.text}
+                                border-l-[3px] ${tc ? `border-l-current` : sc.border} ${sc.bg} ${sc.text}
                                 ${isConflict ? "ring-1 ring-amber-400 dark:ring-amber-600" : ""}
                                 hover:shadow-sm transition-shadow
                               `}
+                              style={tc ? { borderLeftColor: `var(--tw-${tc.dot?.replace("bg-", "")})` } : undefined}
                             >
+                              {tc && <span className={`inline-block h-1.5 w-1.5 rounded-full ${tc.dot} mr-0.5 align-middle`} />}
                               <span className="font-bold">{a.sr_id}</span>
                               {a.assignment && (
                                 <span className="hidden sm:inline ml-1 opacity-60 font-normal">
@@ -644,13 +852,11 @@ const AppointmentsCalendar = ({ viewMode }: AppointmentsCalendarProps) => {
                       <div className="absolute bottom-1.5 right-1.5 flex items-center gap-0.5">
                         {dayAppts.length <= 5 ? (
                           dayAppts.map((a, idx) => {
-                            const sc = a.assignment
-                              ? statusColors[a.assignment.status] || defaultStatusColor
-                              : defaultStatusColor;
+                            const tc = a.assignment?.technician_id ? techColorMap.get(a.assignment.technician_id) : null;
                             return (
                               <span
                                 key={idx}
-                                className={`h-1.5 w-1.5 rounded-full ${sc.dot} hidden sm:block`}
+                                className={`h-1.5 w-1.5 rounded-full ${tc?.dot || (a.assignment ? (statusColors[a.assignment.status] || defaultStatusColor).dot : defaultStatusColor.dot)} hidden sm:block`}
                               />
                             );
                           })
@@ -667,7 +873,7 @@ const AppointmentsCalendar = ({ viewMode }: AppointmentsCalendarProps) => {
             </div>
           </div>
 
-          {/* Selected day detail - slide-in panel */}
+          {/* Selected day detail */}
           {selectedDate && (
             <div className="rounded-2xl border border-border bg-card p-5 space-y-4 shadow-sm animate-in slide-in-from-top-2 duration-200">
               <div className="flex items-center justify-between">
@@ -718,6 +924,7 @@ const AppointmentsCalendar = ({ viewMode }: AppointmentsCalendarProps) => {
                     const sc = a.assignment
                       ? statusColors[a.assignment.status] || defaultStatusColor
                       : defaultStatusColor;
+                    const tc = a.assignment?.technician_id ? techColorMap.get(a.assignment.technician_id) : null;
                     const isConflict = conflicts.has(a.id);
                     return (
                       <div
@@ -736,6 +943,9 @@ const AppointmentsCalendar = ({ viewMode }: AppointmentsCalendarProps) => {
                                 <Badge className={`text-[9px] ${sc.bg} ${sc.text} border-0`}>
                                   {statusLabels[a.assignment.status] || a.assignment.status}
                                 </Badge>
+                              )}
+                              {tc && (
+                                <span className={`h-3 w-3 rounded-full ${tc.dot}`} title={a.assignment?.technician_name} />
                               )}
                               {isConflict && (
                                 <span className="text-[9px] text-amber-600 dark:text-amber-400 font-bold flex items-center gap-0.5">
@@ -818,12 +1028,13 @@ const AppointmentsCalendar = ({ viewMode }: AppointmentsCalendarProps) => {
                 technicians.map((tech) => {
                   const techAssignments = assignments.filter((a) => a.technician_id === tech.id);
                   const techSrIds = new Set(techAssignments.map((a) => a.sr_id));
+                  const tc = techColorMap.get(tech.id);
 
                   return (
                     <tr key={tech.id} className="border-t border-border hover:bg-muted/20">
                       <td className="px-3 py-2 border-r border-border sticky left-0 bg-card z-10">
                         <div className="flex items-center gap-2">
-                          <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary shrink-0">
+                          <div className={`h-6 w-6 rounded-full ${tc?.avatar || "bg-primary/10"} flex items-center justify-center text-[10px] font-bold text-white shrink-0`}>
                             {tech.name.charAt(0)}
                           </div>
                           <span className="text-xs font-medium text-foreground truncate">{tech.name}</span>
@@ -855,7 +1066,7 @@ const AppointmentsCalendar = ({ viewMode }: AppointmentsCalendarProps) => {
                                     title={`${appt.sr_id} — ${new Date(appt.appointment_at).toLocaleTimeString("el-GR", { hour: "2-digit", minute: "2-digit" })}${isConflict ? " ⚠ ΣΥΓΚΡΟΥΣΗ" : ""}`}
                                   >
                                     <div className="flex items-center gap-1">
-                                      <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${sc.dot}`} />
+                                      <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${tc?.dot || sc.dot}`} />
                                       <Clock className="h-2.5 w-2.5 shrink-0" />
                                       {new Date(appt.appointment_at).toLocaleTimeString("el-GR", { hour: "2-digit", minute: "2-digit" })}
                                       {isConflict && <AlertTriangle className="h-2.5 w-2.5 text-amber-500 shrink-0" />}
@@ -897,19 +1108,22 @@ const AppointmentsCalendar = ({ viewMode }: AppointmentsCalendarProps) => {
                   <div className="w-[60px] shrink-0 px-2 py-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground border-r border-border">
                     Ώρα
                   </div>
-                  {dayViewTechs.map((tech) => (
-                    <div
-                      key={tech.id}
-                      className="flex-1 min-w-[140px] px-2 py-2 text-center border-r border-border last:border-r-0"
-                    >
-                      <div className="flex items-center justify-center gap-1.5">
-                        <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary shrink-0">
-                          {tech.name.charAt(0)}
+                  {dayViewTechs.map((tech) => {
+                    const tc = techColorMap.get(tech.id);
+                    return (
+                      <div
+                        key={tech.id}
+                        className="flex-1 min-w-[140px] px-2 py-2 text-center border-r border-border last:border-r-0"
+                      >
+                        <div className="flex items-center justify-center gap-1.5">
+                          <div className={`h-6 w-6 rounded-full ${tc?.avatar || "bg-primary/10"} flex items-center justify-center text-[10px] font-bold text-white shrink-0`}>
+                            {tech.name.charAt(0)}
+                          </div>
+                          <span className="text-xs font-semibold text-foreground truncate">{tech.name}</span>
                         </div>
-                        <span className="text-xs font-semibold text-foreground truncate">{tech.name}</span>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
 
                 {/* Hour rows */}
@@ -920,7 +1134,6 @@ const AppointmentsCalendar = ({ viewMode }: AppointmentsCalendarProps) => {
 
                   return (
                     <div key={hour} className={`flex border-b border-border last:border-b-0 ${isCurrentHour ? "bg-primary/5" : ""}`} style={{ minHeight: `${HOUR_HEIGHT}px` }}>
-                      {/* Hour label */}
                       <div className="w-[60px] shrink-0 px-2 py-1.5 text-[11px] font-mono text-muted-foreground border-r border-border text-right pr-3 relative">
                         {String(hour).padStart(2, "0")}:00
                         {isCurrentHour && (
@@ -928,12 +1141,12 @@ const AppointmentsCalendar = ({ viewMode }: AppointmentsCalendarProps) => {
                         )}
                       </div>
 
-                      {/* Technician columns */}
                       {dayViewTechs.map((tech) => {
                         const techAppts = (dayApptsPerTech.get(tech.id) || []).filter((appt) => {
                           const apptHour = new Date(appt.appointment_at).getHours();
                           return apptHour === hour;
                         });
+                        const tc = techColorMap.get(tech.id);
 
                         return (
                           <div
@@ -958,7 +1171,7 @@ const AppointmentsCalendar = ({ viewMode }: AppointmentsCalendarProps) => {
                                   >
                                     <div className="flex items-center justify-between">
                                       <div className="flex items-center gap-1 min-w-0">
-                                        <span className={`h-2 w-2 rounded-full shrink-0 ${sc.dot}`} />
+                                        <span className={`h-2 w-2 rounded-full shrink-0 ${tc?.dot || sc.dot}`} />
                                         <span className="text-[10px] font-bold truncate">{appt.sr_id}</span>
                                         {isConflict && <AlertTriangle className="h-3 w-3 text-amber-500 shrink-0" />}
                                       </div>
@@ -1009,7 +1222,6 @@ const AppointmentsCalendar = ({ viewMode }: AppointmentsCalendarProps) => {
       {/* ============ MAP VIEW ============ */}
       {viewMode === "map" && (
         <>
-          {/* Navigation for map view */}
           <CalendarMapView
             appointments={mapAppointments}
             dateLabel={navLabel}
