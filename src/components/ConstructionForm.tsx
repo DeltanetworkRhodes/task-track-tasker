@@ -85,6 +85,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
   const orgName = organization?.name || "DELTANETWORK";
   const queryClient = useQueryClient();
   const { analyzeConstructionPhoto, getConstructionResult, isConstructionAnalyzing, hasRejectedPhotos, overrideResult } = useConstructionPhotoAnalysis();
+  const { activeEntry, checkOut } = useTimeTracking(assignment.id);
 
   // Override dialog state
   const [overrideTarget, setOverrideTarget] = useState<{ category: string; index: number } | null>(null);
