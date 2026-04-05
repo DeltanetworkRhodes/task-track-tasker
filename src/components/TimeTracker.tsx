@@ -9,40 +9,6 @@ interface Props {
   srId: string;
 }
 
-function formatDuration(minutes: number): string {
-  const h = Math.floor(minutes / 60);
-  const m = Math.round(minutes % 60);
-  if (h === 0) return `${m} λεπτά`;
-  return `${h}ω ${m}λ`;
-}
-
-function LiveTimer({ checkIn }: { checkIn: string }) {
-  const [elapsed, setElapsed] = useState("");
-
-  useEffect(() => {
-    const update = () => {
-      const diff = Date.now() - new Date(checkIn).getTime();
-      const totalSec = Math.floor(diff / 1000);
-      const h = Math.floor(totalSec / 3600);
-      const m = Math.floor((totalSec % 3600) / 60);
-      const s = totalSec % 60;
-      setElapsed(
-        h > 0
-          ? `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`
-          : `${m}:${String(s).padStart(2, "0")}`
-      );
-    };
-    update();
-    const interval = setInterval(update, 1000);
-    return () => clearInterval(interval);
-  }, [checkIn]);
-
-  return (
-    <span className="font-mono text-lg font-bold text-green-600 tabular-nums">
-      {elapsed}
-    </span>
-  );
-}
 
 const TimeTracker = ({ assignmentId, srId }: Props) => {
   const { activeEntry, checkIn } =
