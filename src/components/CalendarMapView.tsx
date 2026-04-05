@@ -1,9 +1,10 @@
-import { useEffect, useRef, useMemo } from "react";
+import { useEffect, useRef, useMemo, useState } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Clock, MapPin, User, Navigation } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Clock, MapPin, User, Navigation, CalendarDays, List } from "lucide-react";
 
 interface MapAppointment {
   id: string;
@@ -19,6 +20,19 @@ interface MapAppointment {
     technician_id: string | null;
     address?: string;
   };
+}
+
+interface UnscheduledOnMap {
+  id: string;
+  sr_id: string;
+  area: string;
+  status: string;
+  technician_name: string;
+  technician_id: string | null;
+  customer_name: string;
+  address: string;
+  latitude: number | null;
+  longitude: number | null;
 }
 
 const statusMarkerColors: Record<string, string> = {
@@ -57,25 +71,48 @@ function createNumberedIcon(index: number, color: string) {
   });
 }
 
+function createDotIcon(color: string) {
+  return L.divIcon({
+    className: "",
+    iconSize: [18, 18],
+    iconAnchor: [9, 9],
+    popupAnchor: [0, -12],
+    html: `<div style="
+      width:18px;height:18px;border-radius:50%;
+      background:${color};border:2px solid white;
+      box-shadow:0 1px 4px rgba(0,0,0,0.3);
+      opacity:0.8;
+    "></div>`,
+  });
+}
+
 interface CalendarMapViewProps {
   appointments: MapAppointment[];
   dateLabel: string;
+  unscheduledAssignments?: UnscheduledOnMap[];
 }
 
-const CalendarMapView = ({ appointments, dateLabel }: CalendarMapViewProps) => {
+type MapMode = "appointments" | "all";
+
+const CalendarMapView = ({ appointments, dateLabel, unscheduledAssignments = [] }: CalendarMapViewProps) => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const markersRef = useRef<L.Marker[]>([]);
-  const polylineRef = useRef<L.Polyline | null>(null);
+  const [mapMode, setMapMode] = useState<MapMode>("all");
 
-  // Sort appointments by time
+  // Appointments with coords
   const sorted = useMemo(() => {
     return [...appointments]
       .filter((a) => a.latitude && a.longitude)
       .sort((a, b) => new Date(a.appointment_at).getTime() - new Date(b.appointment_at).getTime());
   }, [appointments]);
 
-  // Group by technician for route coloring
+  // Unscheduled with coords
+  const unscheduledWithCoords = useMemo(() => {
+    return unscheduledAssignments.filter(a => a.latitude && a.longitude);
+  }, [unscheduledAssignments]);
+
+  // Group appointments by technician
   const techGroups = useMemo(() => {
     const map = new Map<string, MapAppointment[]>();
     sorted.forEach((a) => {
@@ -86,11 +123,23 @@ const CalendarMapView = ({ appointments, dateLabel }: CalendarMapViewProps) => {
     return map;
   }, [sorted]);
 
+  // Build stable tech color map
+  const techColorMap = useMemo(() => {
+    const map = new Map<string, string>();
+    const techIds = new Set<string>();
+    sorted.forEach(a => { if (a.assignment?.technician_id) techIds.add(a.assignment.technician_id); });
+    unscheduledWithCoords.forEach(a => { if (a.technician_id) techIds.add(a.technician_id); });
+    Array.from(techIds).forEach((id, i) => {
+      map.set(id, techColors[i % techColors.length]);
+    });
+    return map;
+  }, [sorted, unscheduledWithCoords]);
+
   // Init map
   useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) return;
 
-    const map = L.map(mapContainerRef.current).setView([36.4341, 28.2176], 12);
+    const map = L.map(mapContainerRef.current).setView([37.98, 23.73], 10);
     L.tileLayer("https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}", {
       attribution: "&copy; Google Maps",
       maxZoom: 20,
@@ -104,91 +153,157 @@ const CalendarMapView = ({ appointments, dateLabel }: CalendarMapViewProps) => {
     };
   }, []);
 
-  // Update markers
+  // Update markers whenever data or mode changes
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
 
-    // Clear old
+    // Clear old markers & polylines
     markersRef.current.forEach((m) => m.remove());
     markersRef.current = [];
-    if (polylineRef.current) {
-      polylineRef.current.remove();
-      polylineRef.current = null;
-    }
-
-    // Remove any existing polylines
     map.eachLayer((layer) => {
       if (layer instanceof L.Polyline && !(layer instanceof L.TileLayer)) {
         layer.remove();
       }
     });
 
-    if (sorted.length === 0) return;
+    const allCoords: L.LatLngExpression[] = [];
 
-    let counter = 1;
-    const techIds = Array.from(techGroups.keys());
+    // 1) Draw scheduled appointments (numbered markers with routes)
+    if (sorted.length > 0) {
+      let counter = 1;
+      const techIds = Array.from(techGroups.keys());
 
-    techIds.forEach((techId, techIndex) => {
-      const techAppts = techGroups.get(techId) || [];
-      const color = techColors[techIndex % techColors.length];
-      const coords: L.LatLngExpression[] = [];
+      techIds.forEach((techId) => {
+        const techAppts = techGroups.get(techId) || [];
+        const color = techColorMap.get(techId) || techColors[0];
+        const coords: L.LatLngExpression[] = [];
 
-      techAppts.forEach((appt) => {
-        if (!appt.latitude || !appt.longitude) return;
+        techAppts.forEach((appt) => {
+          if (!appt.latitude || !appt.longitude) return;
 
-        const icon = createNumberedIcon(counter, color);
-        const time = new Date(appt.appointment_at).toLocaleTimeString("el-GR", {
-          hour: "2-digit",
-          minute: "2-digit",
+          const icon = createNumberedIcon(counter, color);
+          const time = new Date(appt.appointment_at).toLocaleTimeString("el-GR", {
+            hour: "2-digit",
+            minute: "2-digit",
+          });
+          const techName = appt.assignment?.technician_name || "—";
+
+          const popup = `
+            <div style="font-size:13px;min-width:180px;">
+              <div style="font-weight:bold;font-size:14px;margin-bottom:4px;">
+                #${counter} ${appt.sr_id}
+              </div>
+              <div style="font-size:11px;color:#666;">🕐 ${time}</div>
+              <div style="font-size:11px;color:#666;">👤 ${techName}</div>
+              ${appt.customer_name ? `<div style="font-size:11px;color:#666;">📋 ${appt.customer_name}</div>` : ""}
+              ${appt.area ? `<div style="font-size:11px;color:#666;">📍 ${appt.area}</div>` : ""}
+              ${appt.assignment?.address ? `<div style="font-size:11px;color:#666;">🏠 ${appt.assignment.address}</div>` : ""}
+              <div style="margin-top:4px;"><span style="background:${color};color:white;padding:1px 6px;border-radius:4px;font-size:10px;">Ραντεβού</span></div>
+            </div>
+          `;
+
+          const marker = L.marker([appt.latitude, appt.longitude], { icon })
+            .bindPopup(popup)
+            .addTo(map);
+          markersRef.current.push(marker);
+          coords.push([appt.latitude, appt.longitude]);
+          allCoords.push([appt.latitude, appt.longitude]);
+          counter++;
         });
-        const techName = appt.assignment?.technician_name || "—";
+
+        // Draw route line per technician
+        if (coords.length > 1) {
+          L.polyline(coords, {
+            color,
+            weight: 3,
+            opacity: 0.7,
+            dashArray: "8, 6",
+          }).addTo(map);
+        }
+      });
+    }
+
+    // 2) Draw unscheduled assignments as dots (if mode is "all")
+    if (mapMode === "all" && unscheduledWithCoords.length > 0) {
+      unscheduledWithCoords.forEach((a) => {
+        if (!a.latitude || !a.longitude) return;
+        const statusColor = statusMarkerColors[a.status] || "#9ca3af";
+        const icon = createDotIcon(statusColor);
 
         const popup = `
           <div style="font-size:13px;min-width:180px;">
             <div style="font-weight:bold;font-size:14px;margin-bottom:4px;">
-              #${counter} ${appt.sr_id}
+              ${a.sr_id}
             </div>
-            <div style="font-size:11px;color:#666;">🕐 ${time}</div>
-            <div style="font-size:11px;color:#666;">👤 ${techName}</div>
-            ${appt.customer_name ? `<div style="font-size:11px;color:#666;">📋 ${appt.customer_name}</div>` : ""}
-            ${appt.area ? `<div style="font-size:11px;color:#666;">📍 ${appt.area}</div>` : ""}
+            <div style="font-size:11px;color:#666;">👤 ${a.technician_name}</div>
+            ${a.customer_name ? `<div style="font-size:11px;color:#666;">📋 ${a.customer_name}</div>` : ""}
+            ${a.area ? `<div style="font-size:11px;color:#666;">📍 ${a.area}</div>` : ""}
+            ${a.address ? `<div style="font-size:11px;color:#666;">🏠 ${a.address}</div>` : ""}
+            <div style="margin-top:4px;"><span style="background:${statusColor};color:white;padding:1px 6px;border-radius:4px;font-size:10px;">Χωρίς ραντεβού</span></div>
           </div>
         `;
 
-        const marker = L.marker([appt.latitude, appt.longitude], { icon })
+        const marker = L.marker([a.latitude, a.longitude], { icon })
           .bindPopup(popup)
           .addTo(map);
         markersRef.current.push(marker);
-        coords.push([appt.latitude, appt.longitude]);
-        counter++;
+        allCoords.push([a.latitude, a.longitude]);
       });
-
-      // Draw route line per technician
-      if (coords.length > 1) {
-        L.polyline(coords, {
-          color,
-          weight: 3,
-          opacity: 0.7,
-          dashArray: "8, 6",
-        }).addTo(map);
-      }
-    });
+    }
 
     // Fit bounds
-    const allCoords = sorted
-      .filter((a) => a.latitude && a.longitude)
-      .map((a) => [a.latitude!, a.longitude!] as L.LatLngExpression);
-
     if (allCoords.length > 0) {
       map.fitBounds(L.latLngBounds(allCoords), { padding: [40, 40], maxZoom: 15 });
     }
-  }, [sorted, techGroups]);
+  }, [sorted, techGroups, techColorMap, mapMode, unscheduledWithCoords]);
 
   const noGeoAppts = appointments.filter((a) => !a.latitude || !a.longitude);
+  const noGeoUnscheduled = unscheduledAssignments.filter(a => !a.latitude || !a.longitude);
+
+  const totalOnMap = sorted.length + (mapMode === "all" ? unscheduledWithCoords.length : 0);
+  const totalNoGeo = noGeoAppts.length + (mapMode === "all" ? noGeoUnscheduled.length : 0);
 
   return (
     <div className="space-y-3">
+      {/* Map mode toggle */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-1 bg-muted/50 p-0.5 rounded-lg">
+          <Button
+            variant={mapMode === "all" ? "default" : "ghost"}
+            size="sm"
+            className="gap-1.5 text-[10px] h-7"
+            onClick={() => setMapMode("all")}
+          >
+            <MapPin className="h-3 w-3" />
+            Όλα τα SR ({sorted.length + unscheduledWithCoords.length})
+          </Button>
+          <Button
+            variant={mapMode === "appointments" ? "default" : "ghost"}
+            size="sm"
+            className="gap-1.5 text-[10px] h-7"
+            onClick={() => setMapMode("appointments")}
+          >
+            <CalendarDays className="h-3 w-3" />
+            Μόνο ραντεβού ({sorted.length})
+          </Button>
+        </div>
+        <div className="flex items-center gap-3 text-[10px] text-muted-foreground ml-auto">
+          <span className="flex items-center gap-1">
+            <span className="inline-block w-4 h-4 rounded-full border-2 border-white shadow" style={{ background: "#3b82f6" }}>
+              <span className="block text-[8px] text-white text-center leading-[12px] font-bold">1</span>
+            </span>
+            Ραντεβού
+          </span>
+          {mapMode === "all" && (
+            <span className="flex items-center gap-1">
+              <span className="inline-block w-3 h-3 rounded-full border-2 border-white shadow opacity-80" style={{ background: "#f59e0b" }} />
+              Χωρίς ραντεβού
+            </span>
+          )}
+        </div>
+      </div>
+
       <Card className="overflow-hidden">
         <div className="h-[55vh] min-h-[350px]">
           <div ref={mapContainerRef} className="h-full w-full" />
@@ -203,9 +318,9 @@ const CalendarMapView = ({ appointments, dateLabel }: CalendarMapViewProps) => {
             <span className="text-xs font-bold text-foreground">Διαδρομές Τεχνικών</span>
           </div>
           <div className="flex flex-wrap gap-3">
-            {Array.from(techGroups.entries()).map(([techId, appts], i) => {
+            {Array.from(techGroups.entries()).map(([techId, appts]) => {
               const techName = appts[0]?.assignment?.technician_name || "Χωρίς τεχνικό";
-              const color = techColors[i % techColors.length];
+              const color = techColorMap.get(techId) || techColors[0];
               return (
                 <div key={techId} className="flex items-center gap-1.5 text-xs">
                   <span
@@ -221,13 +336,13 @@ const CalendarMapView = ({ appointments, dateLabel }: CalendarMapViewProps) => {
         </Card>
       )}
 
-      {/* Appointments without coordinates */}
-      {noGeoAppts.length > 0 && (
+      {/* Summary of items without coordinates */}
+      {totalNoGeo > 0 && (
         <Card className="p-3">
           <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-2">
-            Χωρίς συντεταγμένες ({noGeoAppts.length})
+            Χωρίς συντεταγμένες ({totalNoGeo})
           </p>
-          <div className="space-y-1.5">
+          <div className="space-y-1.5 max-h-[200px] overflow-y-auto">
             {noGeoAppts.map((a) => (
               <div key={a.id} className="flex items-center gap-2 text-xs text-muted-foreground">
                 <Badge variant="secondary" className="text-[10px] font-bold">{a.sr_id}</Badge>
@@ -240,18 +355,32 @@ const CalendarMapView = ({ appointments, dateLabel }: CalendarMapViewProps) => {
                     <MapPin className="h-3 w-3" /> {a.area}
                   </span>
                 )}
-                {a.assignment && (
+                <Badge variant="outline" className="text-[8px]">Ραντεβού</Badge>
+              </div>
+            ))}
+            {mapMode === "all" && noGeoUnscheduled.slice(0, 20).map((a) => (
+              <div key={a.id} className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Badge variant="secondary" className="text-[10px] font-bold">{a.sr_id}</Badge>
+                {a.area && (
                   <span className="flex items-center gap-1">
-                    <User className="h-3 w-3" /> {a.assignment.technician_name}
+                    <MapPin className="h-3 w-3" /> {a.area}
+                  </span>
+                )}
+                {a.technician_name && (
+                  <span className="flex items-center gap-1">
+                    <User className="h-3 w-3" /> {a.technician_name}
                   </span>
                 )}
               </div>
             ))}
+            {mapMode === "all" && noGeoUnscheduled.length > 20 && (
+              <p className="text-[10px] text-muted-foreground">+{noGeoUnscheduled.length - 20} ακόμα χωρίς συντεταγμένες</p>
+            )}
           </div>
         </Card>
       )}
 
-      {appointments.length === 0 && (
+      {totalOnMap === 0 && totalNoGeo === 0 && (
         <div className="text-center py-12 text-sm text-muted-foreground">
           Δεν υπάρχουν ραντεβού για {dateLabel}
         </div>
