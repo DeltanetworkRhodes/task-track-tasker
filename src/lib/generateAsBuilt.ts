@@ -756,6 +756,10 @@ function fillEpimetrisiSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
     ws.getCell(r, 6).value = fd.fb_type;             // F = FB01 TYPE
     ws.getCell(r, 7).value = fd.fb02_count || "";    // G = FB02
     ws.getCell(r, 8).value = fd.fb02_type || "";     // H = FB02 TYPE
+    ws.getCell(r, 9).value = fd.fb03_count || "";    // I = FB03
+    ws.getCell(r, 10).value = fd.fb03_type || "";    // J = FB03 TYPE
+    ws.getCell(r, 11).value = fd.fb04_count || "";   // K = FB04
+    ws.getCell(r, 12).value = fd.fb04_type || "";    // L = FB04 TYPE
     ws.getCell(r, 13).value = fd.fb_customer || "";  // M = FB ΠΕΛΑΤΗ
     ws.getCell(r, 14).value = fd.customer_space || "";// N = ΑΡΙΘΜΗΣΗ ΧΩΡΟΥ ΠΕΛΑΤΗ
     ws.getCell(r, 15).value = fd.fb_id || "";        // O = GIS ID
