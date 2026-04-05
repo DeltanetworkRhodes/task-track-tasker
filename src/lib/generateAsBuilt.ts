@@ -627,8 +627,8 @@ function fillEpimetrisiSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
   ws.getCell("E13").value = "4' μ cable";
   ws.getCell("F13").value = d.distanceFromCabinet;
 
-  // ── 3. BEP position ──
-  ws.getCell("B22").value = d.bepFloor;
+  // ── 3. BEP position ── (B22 is a label "ΟΡΟΦΟΣ ΤΟΠΟΘΕΤΗΣΗΣ ΒΕΡ" — don't overwrite)
+  // BEP floor value already written at G8 above
 
   // ── 4. BEP-ΟΡΟΦΟΙ ── Rows 25-39 (clear first)
   for (let r = 25; r <= 39; r++) {
@@ -645,6 +645,7 @@ function fillEpimetrisiSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
     ws.getCell(r, 6).value = fd.fb_type;             // F = FB01 TYPE
     ws.getCell(r, 13).value = fd.fb_customer || "";  // M = FB ΠΕΛΑΤΗ
     ws.getCell(r, 14).value = fd.customer_space || "";// N = ΑΡΙΘΜΗΣΗ ΧΩΡΟΥ ΠΕΛΑΤΗ
+    ws.getCell(r, 15).value = fd.fb_id || "";        // O = GIS ID
     ws.getCell(r, 16).value = fd.meters || "";       // P = ΜΕΤΡΑ
     ws.getCell(r, 17).value = fd.pipe_type || "";    // Q = ΕΙΔΟΣ
   });
@@ -857,8 +858,9 @@ function fillEpimetrisiSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
   console.log(`✅ BMO-FB: wrote ${bmoWritten} FB paths to T50:W71`);
 
   // ── 6. ΟΡΙΖΟΝΤΟΓΡΑΦΙΑ ──
+  // U83="ΑΠΟΣΤΑΣΗ ΒΜΟ- BEP" → V83=distance value
+  ws.getCell("V83").value = d.distanceFromCabinet || "";
   ws.getCell("V85").value = d.isNewInfrastructure ? "ΝΕΑ ΥΠΟΔΟΜΗ" : "";
-  ws.getCell("V86").value = d.distanceFromCabinet || "";
   ws.getCell("V91").value = d.trenchLengthM || "";
 }
 
