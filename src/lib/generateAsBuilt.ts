@@ -13,6 +13,12 @@ interface FloorBox {
   shops: number;
   fb_count: number;
   fb_type: string;
+  fb02_count?: number;
+  fb02_type?: string;
+  fb03_count?: number;
+  fb03_type?: string;
+  fb04_count?: number;
+  fb04_type?: string;
   fb_customer?: string;
   customer_space?: string;
   meters?: number;
@@ -64,6 +70,16 @@ interface AsBuiltData {
   isNewInfrastructure: boolean;
   trenchLengthM: number;
   cabId: string;
+  // BCP-BEP connection data
+  bcpPlacement: string;    // ΣΗΜΕΙΟ ΤΟΠΟΘΕΤΗΣΗΣ (e.g. "BCP ΕΠΙ ΤΟΥ ΚΤΙΡΙΟΥ")
+  bcpKind: string;         // ΕΙΔΟΣ (e.g. "BCP ΝΕΟ")
+  bcpBepCableType: string; // ΤΥΠΟΣ ΚΟΙ ΣΥΝΔΕΣΗ BCP ΜΕ BEP (e.g. "4 FO G652D")
+  bcpBepLength: number;    // ΜΗΚΟΣ BCP-BEP
+  // ΟΡΙΖΟΝΤΟΓΡΑΦΙΑ extra fields
+  verticalRouting: string; // Είδος κάθετης υποδομής (ΚΑΓΚΕΛΟ, ΚΛΙΜΑΚΟΣΤΑΣΙΟ, etc.)
+  escalitType: string;     // ΕΣΚΑΛΗΤ type
+  bcpType: string;         // BCP ΕΙΔΟΣ for ΟΡΙΖΟΝΤΟΓΡΑΦΙΑ
+  totalCableLength: number; // Total cable length (underground + vertical) for F13
 }
 
 /* ────────────────────────────────────────────
@@ -126,22 +142,28 @@ async function fetchAsBuiltData(srId: string): Promise<AsBuiltData> {
   }));
 
   const floorBoxes: FloorBox[] = floorDetails.map((fd: any) => {
-    // Sum FB counts from all FB columns (FB01, FB02, FB03, FB04)
     const fb01 = Number(fd.fb_count ?? fd.FB01 ?? fd["FB01"] ?? 0);
     const fb02 = Number(fd.FB02 ?? fd["FB02"] ?? 0);
     const fb03 = Number(fd.FB03 ?? fd["FB03"] ?? 0);
     const fb04 = Number(fd.FB04 ?? fd["FB04"] ?? 0);
     const totalFb = fb01 + fb02 + fb03 + fb04;
-    // Use FB01 TYPE as primary, fall back to FB02-04 TYPE
-    const fbType = fd.fb_type ?? fd.FB01_TYPE ?? fd["FB01 TYPE"]
-      ?? fd["FB02 TYPE"] ?? fd["FB03 TYPE"] ?? fd["FB04 TYPE"] ?? "";
+    const fbType = fd.fb_type ?? fd.FB01_TYPE ?? fd["FB01 TYPE"] ?? "";
+    const fb02Type = fd.FB02_TYPE ?? fd["FB02 TYPE"] ?? "";
+    const fb03Type = fd.FB03_TYPE ?? fd["FB03 TYPE"] ?? "";
+    const fb04Type = fd.FB04_TYPE ?? fd["FB04 TYPE"] ?? "";
     return {
       floor: fd.floor ?? fd["ΟΡΟΦΟΣ"] ?? fd.ΟΡΟΦΟΣ ?? "",
       fb_id: fd.fb_id ?? fd.FB_ID ?? fd["GIS ID"] ?? "",
       apartments: Number(fd.apartments ?? fd["ΔΙΑΜΕΡΙΣΜΑΤΑ"] ?? fd.ΔΙΑΜΕΡΙΣΜΑΤΑ ?? 0),
       shops: Number(fd.shops ?? fd["ΚΑΤΑΣΤΗΜΑΤΑ"] ?? fd.ΚΑΤΑΣΤΗΜΑΤΑ ?? 0),
       fb_count: totalFb || fb01,
-      fb_type: fbType,
+      fb_type: fbType || fb02Type || fb03Type || fb04Type,
+      fb02_count: fb02 || undefined,
+      fb02_type: fb02Type || undefined,
+      fb03_count: fb03 || undefined,
+      fb03_type: fb03Type || undefined,
+      fb04_count: fb04 || undefined,
+      fb04_type: fb04Type || undefined,
       fb_customer: fd.fb_customer ?? fd["FB ΠΕΛΑΤΗ"] ?? fd.FB_ΠΕΛΑΤΗ ?? "",
       customer_space: fd.customer_space ?? fd["ΑΡΙΘΜΗΣΗ ΧΩΡΟΥ ΠΕΛΑΤΗ"] ?? fd.ΑΡΙΘΜΗΣΗ_ΧΩΡΟΥ_ΠΕΛΑΤΗ ?? "",
       meters: Number(fd.meters ?? fd["ΜΕΤΡΑ"] ?? fd.ΜΕΤΡΑ ?? 0),
@@ -169,6 +191,20 @@ async function fetchAsBuiltData(srId: string): Promise<AsBuiltData> {
         floor: w.floor || w["ΟΡΟΦΟΣ"] || "",
       }));
   }
+
+  // Extract BCP-BEP connection data from GIS
+  const rawData = (gisData?.raw_data as any) || {};
+  const bcpPlacement = rawData.bcp_placement || rawData["ΣΗΜΕΙΟ ΤΟΠΟΘΕΤΗΣΗΣ"] || "";
+  const bcpKind = rawData.bcp_kind || rawData["ΕΙΔΟΣ"] || "";
+  const bcpBepCableType = rawData.bcp_bep_cable_type || rawData["ΤΥΠΟΣ ΚΟΙ ΣΥΝΔΕΣΗ ΒCP ΜΕ BEP"] || "";
+  const bcpBepLength = Number(rawData.bcp_bep_length || rawData["ΜΗΚΟΣ BCP-BEP"] || 0);
+  const verticalRouting = rawData.vertical_routing || rawData["Είδος κάθετης υποδομής"] || "";
+  const escalitType = rawData.escalit_type || rawData["ΕΣΚΑΛΗΤ"] || "";
+  const bcpTypeOriz = rawData.bcp_type_oriz || rawData["BCP ΕΙΔΟΣ"] || "";
+
+  // Total cable length = underground distance + sum of floor meters (vertical)
+  const verticalMeters = floorBoxes.reduce((sum, fb) => sum + (fb.meters || 0), 0);
+  const totalCableLength = Number(gisData?.distance_from_cabinet || 0) + verticalMeters;
 
   return {
     srId: assignment.sr_id,
@@ -202,6 +238,14 @@ async function fetchAsBuiltData(srId: string): Promise<AsBuiltData> {
     isNewInfrastructure,
     trenchLengthM,
     cabId: assignment.cab || construction?.cab || "",
+    bcpPlacement,
+    bcpKind,
+    bcpBepCableType,
+    bcpBepLength,
+    verticalRouting,
+    escalitType,
+    bcpType: bcpTypeOriz,
+    totalCableLength,
   };
 }
 
@@ -622,13 +666,20 @@ function fillEpimetrisiSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
   ws.getCell("Q8").value = d.newBcp;
   ws.getCell("R8").value = d.conduit;
 
-  // ── 2. KOI CAB first box ── Row 13
+  // ── 2. KOI CAB first box ── Row 13 (total cable length = underground + vertical)
   ws.getCell("D13").value = "BEP";
   ws.getCell("E13").value = "4' μ cable";
-  ws.getCell("F13").value = d.distanceFromCabinet;
+  ws.getCell("F13").value = d.totalCableLength || d.distanceFromCabinet;
 
-  // ── 3. BEP position ── (B22 is a label "ΟΡΟΦΟΣ ΤΟΠΟΘΕΤΗΣΗΣ ΒΕΡ" — don't overwrite)
-  // BEP floor value already written at G8 above
+  // ── 3. BEP position ── (B22 is a label — don't overwrite)
+
+  // ── 3a. KOI BCP-BEP section (rows 17-18) ──
+  if (d.bcpPlacement || d.bcpKind || d.bcpBepCableType) {
+    ws.getCell("D18").value = d.bcpPlacement || "";
+    ws.getCell("E18").value = d.bcpKind || "";
+    ws.getCell("F18").value = d.bcpBepCableType || "";
+    ws.getCell("G18").value = d.bcpBepLength || "";
+  }
 
   // ── 4. BEP-ΟΡΟΦΟΙ ── Rows 25-39 (clear first)
   for (let r = 25; r <= 39; r++) {
@@ -643,6 +694,8 @@ function fillEpimetrisiSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
     ws.getCell(r, 4).value = fd.shops;               // D = ΚΑΤΑΣΤΗΜΑΤΑ
     ws.getCell(r, 5).value = fd.fb_count;            // E = FB01
     ws.getCell(r, 6).value = fd.fb_type;             // F = FB01 TYPE
+    ws.getCell(r, 7).value = fd.fb02_count || "";    // G = FB02
+    ws.getCell(r, 8).value = fd.fb02_type || "";     // H = FB02 TYPE
     ws.getCell(r, 13).value = fd.fb_customer || "";  // M = FB ΠΕΛΑΤΗ
     ws.getCell(r, 14).value = fd.customer_space || "";// N = ΑΡΙΘΜΗΣΗ ΧΩΡΟΥ ΠΕΛΑΤΗ
     ws.getCell(r, 15).value = fd.fb_id || "";        // O = GIS ID
@@ -858,10 +911,13 @@ function fillEpimetrisiSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
   console.log(`✅ BMO-FB: wrote ${bmoWritten} FB paths to T50:W71`);
 
   // ── 6. ΟΡΙΖΟΝΤΟΓΡΑΦΙΑ ──
-  // U83="ΑΠΟΣΤΑΣΗ ΒΜΟ- BEP" → V83=distance value
-  ws.getCell("V83").value = d.distanceFromCabinet || "";
+  ws.getCell("V83").value = d.distanceFromCabinet || "";  // ΑΠΟΣΤΑΣΗ ΒΜΟ-BEP
   ws.getCell("V85").value = d.isNewInfrastructure ? "ΝΕΑ ΥΠΟΔΟΜΗ" : "";
-  ws.getCell("V91").value = d.trenchLengthM || "";
+  if (d.verticalRouting) ws.getCell("V89").value = d.verticalRouting;  // ΕΣΚΑΛΗΤ/ΚΑΓΚΕΛΟ
+  ws.getCell("V91").value = d.trenchLengthM || "";  // ΝΕΑ ΣΩΛΗΝΩΣΗ
+  if (d.escalitType) ws.getCell("V95").value = d.escalitType;  // ΕΣΚΑΛΗΤ Β1
+  if (d.bcpType) ws.getCell("V98").value = d.bcpType;  // BCP ΕΙΔΟΣ
+  if (d.newBcp) ws.getCell("V99").value = d.newBcp;  // BCP details
 }
 
 /** Extract cable index from CAB-BEP/CAB-BCP path string.
@@ -1128,6 +1184,8 @@ const DEMO_SR_DATA: DemoSRMap = {
       { type: "Α", description: "Υλοποίηση Υποδομής Εισαγωγής", quantity: 1, floor: "+00" },
     ],
     sketchImageUrl: null, isNewInfrastructure: false, trenchLengthM: 0, cabId: "CAB-045",
+    bcpPlacement: "", bcpKind: "", bcpBepCableType: "", bcpBepLength: 0,
+    verticalRouting: "ΚΑΓΚΕΛΟ", escalitType: "", bcpType: "", totalCableLength: 138,
   },
   "SR-DEMO-02": {
     srId: "SR-DEMO-02", buildingId: "BLD-IAL-015", areaType: "OTE", floors: 5,
@@ -1151,6 +1209,8 @@ const DEMO_SR_DATA: DemoSRMap = {
       { type: "Β", description: "Πόρτα-πόρτα", quantity: 8 },
     ],
     sketchImageUrl: null, isNewInfrastructure: true, trenchLengthM: 45, cabId: "CAB-112",
+    bcpPlacement: "", bcpKind: "", bcpBepCableType: "", bcpBepLength: 0,
+    verticalRouting: "ΚΛΙΜΑΚΟΣΤΑΣΙΟ", escalitType: "", bcpType: "", totalCableLength: 426,
   },
   "SR-DEMO-03": {
     srId: "SR-DEMO-03", buildingId: "BLD-FAL-008", areaType: "OTE", floors: 4,
@@ -1173,6 +1233,8 @@ const DEMO_SR_DATA: DemoSRMap = {
       { type: "Β", description: "Πόρτα-πόρτα", quantity: 6 },
     ],
     sketchImageUrl: null, isNewInfrastructure: false, trenchLengthM: 0, cabId: "CAB-089",
+    bcpPlacement: "", bcpKind: "", bcpBepCableType: "", bcpBepLength: 0,
+    verticalRouting: "ΚΑΓΚΕΛΟ", escalitType: "", bcpType: "", totalCableLength: 240,
   },
   "2-334066371997": {
     srId: "2-334066371997", buildingId: "667102934", areaType: "OTE", floors: 4,
@@ -1218,6 +1280,8 @@ const DEMO_SR_DATA: DemoSRMap = {
       { type: "Β", description: "Διασύνδεση των μετρητών κατανάλωσης ρεύματος", quantity: 1, floor: "+00" },
     ],
     sketchImageUrl: null, isNewInfrastructure: true, trenchLengthM: 156, cabId: "G526",
+    bcpPlacement: "", bcpKind: "", bcpBepCableType: "", bcpBepLength: 0,
+    verticalRouting: "ΚΑΓΚΕΛΟ", escalitType: "", bcpType: "", totalCableLength: 220,
   },
 };
 
