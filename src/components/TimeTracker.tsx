@@ -3,7 +3,7 @@ import { useTimeTracking } from "@/hooks/useTimeTracking";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Play, Square, Clock, Timer } from "lucide-react";
+import { LogIn, LogOut, Clock, Timer } from "lucide-react";
 import { toast } from "sonner";
 
 interface Props {
@@ -53,7 +53,7 @@ const TimeTracker = ({ assignmentId, srId }: Props) => {
   const handleCheckIn = async () => {
     try {
       await checkIn.mutateAsync();
-      toast.success("⏱️ Χρονομέτρηση ξεκίνησε!");
+      toast.success("✅ Check In επιτυχές!");
     } catch (err: any) {
       toast.error(err.message || "Σφάλμα check-in");
     }
@@ -62,7 +62,7 @@ const TimeTracker = ({ assignmentId, srId }: Props) => {
   const handleCheckOut = async () => {
     try {
       await checkOut.mutateAsync(undefined);
-      toast.success("⏹️ Χρονομέτρηση σταμάτησε!");
+      toast.success("✅ Check Out επιτυχές!");
     } catch (err: any) {
       toast.error(err.message || "Σφάλμα check-out");
     }
@@ -73,7 +73,7 @@ const TimeTracker = ({ assignmentId, srId }: Props) => {
       <div className="flex items-center justify-between">
         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
           <Timer className="h-3.5 w-3.5" />
-          Χρονομέτρηση
+          Check In / Out
         </p>
         {totalMinutes > 0 && (
           <Badge variant="outline" className="text-xs gap-1">
@@ -96,19 +96,19 @@ const TimeTracker = ({ assignmentId, srId }: Props) => {
             onClick={handleCheckOut}
             disabled={checkOut.isPending}
           >
-            <Square className="h-3.5 w-3.5" />
-            Stop
+            <LogOut className="h-3.5 w-3.5" />
+            Check Out
           </Button>
         </div>
       ) : (
         <Button
           size="sm"
-          className="w-full gap-2 min-h-[40px] bg-green-600 hover:bg-green-700 text-white"
+          className="w-full gap-2 min-h-[44px]"
           onClick={handleCheckIn}
           disabled={checkIn.isPending}
         >
-          <Play className="h-4 w-4" />
-          Έναρξη Χρονομέτρησης
+          <LogIn className="h-4 w-4" />
+          Check In
         </Button>
       )}
 
