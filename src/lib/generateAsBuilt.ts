@@ -352,17 +352,23 @@ function fillKtirioSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
 
 function fillOrofoiSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
   // Clear rows 2-20 (max 18 floors)
-  clearDataRows(ws, 2, 20, 14);
+  clearDataRows(ws, 2, 20, 16);
   d.floorDetails.forEach((fd, idx) => {
     const r = 2 + idx;
-    ws.getCell(r, 1).value = fd.floor as any;     // A = ΟΡΟΦΟΣ
-    ws.getCell(r, 2).value = fd.apartments;         // B = ΔΙΑΜΕΡΙΣΜΑΤΑ
-    ws.getCell(r, 3).value = fd.shops;              // C = ΚΑΤΑΣΤΗΜΑΤΑ
-    ws.getCell(r, 4).value = fd.fb_count;           // D = FB01
-    ws.getCell(r, 5).value = fd.fb_type;            // E = FB01 TYPE
-    ws.getCell(r, 12).value = fd.fb_customer || ""; // L = FB ΠΕΛΑΤΗ
+    ws.getCell(r, 1).value = fd.floor as any;       // A = ΟΡΟΦΟΣ
+    ws.getCell(r, 2).value = fd.apartments;           // B = ΔΙΑΜΕΡΙΣΜΑΤΑ
+    ws.getCell(r, 3).value = fd.shops;                // C = ΚΑΤΑΣΤΗΜΑΤΑ
+    ws.getCell(r, 4).value = fd.fb_count;             // D = FB01
+    ws.getCell(r, 5).value = fd.fb_type;              // E = FB01 TYPE
+    ws.getCell(r, 6).value = fd.fb02_count || "";     // F = FB02
+    ws.getCell(r, 7).value = fd.fb02_type || "";      // G = FB02 TYPE
+    ws.getCell(r, 8).value = fd.fb03_count || "";     // H = FB03
+    ws.getCell(r, 9).value = fd.fb03_type || "";      // I = FB03 TYPE
+    ws.getCell(r, 10).value = fd.meters || "";         // J = ΜΕΤΡΑ
+    ws.getCell(r, 11).value = fd.pipe_type || "";      // K = ΕΙΔΟΣ
+    ws.getCell(r, 12).value = fd.fb_customer || "";    // L = FB ΠΕΛΑΤΗ
     ws.getCell(r, 13).value = fd.customer_space || ""; // M = ΑΡΙΘΜΗΣΗ ΧΩΡΟΥ ΠΕΛΑΤΗ
-    ws.getCell(r, 14).value = fd.fb_id || "";       // N = GIS ID
+    ws.getCell(r, 14).value = fd.fb_id || "";          // N = GIS ID
   });
 }
 /* ────────────────────────────────────────────
