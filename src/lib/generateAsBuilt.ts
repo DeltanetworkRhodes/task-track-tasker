@@ -857,13 +857,10 @@ function fillEpimetrisiSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
     if (r <= 71) {
       if (!isB) {
         ws.getCell(r, 20).value = pairIdx + 3;
-      if (!isB) {
-        ws.getCell(r, 20).value = pairIdx + 3;
         ws.getCell(r, 21).value = pairIdx + 3 > 20 ? "-" : 0;
         ws.getCell(r, 22).value = pairIdx + 27;
       } else {
         ws.getCell(r, 23).value = pairIdx + 27 > 44 ? "-" : 0;
-        // Mark empty BMO slots with "χωρίς ports"
         if (i >= bmoWritten) {
           ws.getCell(r, 24).value = "χωρίς ports";
         }
