@@ -1475,6 +1475,11 @@ const AssignmentTable = ({ assignments, selectedIds = [], onSelectionChange }: A
               )}
             </div>
 
+            {/* Time Tracking Summary */}
+            {selected?.id && (
+              <TimeTrackingSummary assignmentId={selected.id} />
+            )}
+
             {/* Footer */}
             <div className="pt-3 border-t border-border/30 flex items-center justify-between text-[10px] text-muted-foreground/50">
               <span>Πηγή: {selected?.sourceTab || '—'}</span>
