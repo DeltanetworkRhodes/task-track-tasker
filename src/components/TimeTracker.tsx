@@ -61,7 +61,7 @@ const TimeTracker = ({ assignmentId, srId }: Props) => {
 
   const handleCheckOut = async () => {
     try {
-      await checkOut.mutateAsync();
+      await checkOut.mutateAsync(undefined);
       toast.success("⏹️ Χρονομέτρηση σταμάτησε!");
     } catch (err: any) {
       toast.error(err.message || "Σφάλμα check-out");
