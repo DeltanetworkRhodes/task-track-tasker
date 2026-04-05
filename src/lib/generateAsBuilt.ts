@@ -693,6 +693,24 @@ function fillEpimetrisiSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
   // BEP header at F61 (col 6) per template
   ws.getCell("F61").value = getBepHeader(d.bepType);
 
+  // BMO position headers (T47-T48 per template)
+  ws.getCell("T47").value = "ΘΕΣΗ";
+  ws.getCell("U47").value = "A";
+  ws.getCell("V47").value = "ΘΕΣΗ";
+  ws.getCell("W47").value = "B";
+  ws.getCell("X47").value = "ΠΑΡΑΤΗΡΗΣΕΙΣ";
+  // BMO positions row 48 (from cabinet)
+  ws.getCell("T48").value = 1;
+  ws.getCell("U48").value = 1;
+  ws.getCell("V48").value = 25;
+  ws.getCell("W48").value = 2;
+  ws.getCell("X48").value = "από καμπίνα";
+  // BMO positions row 49
+  ws.getCell("T49").value = 2;
+  ws.getCell("U49").value = 3;
+  ws.getCell("V49").value = 26;
+  ws.getCell("W49").value = 4;
+
   // ══════════════════════════════════════════════════════════════
   // 5b. CABLE INDICES (rows 53-58, F=index, G=cable_number, H=address)
   // Extract cable numbers from ALL CAB-BEP/CAB-BCP paths
