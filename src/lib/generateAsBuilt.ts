@@ -1062,6 +1062,9 @@ function logPreview(d: AsBuiltData) {
 export interface AsBuiltResult {
   success: boolean;
   warnings: string[];
+  /** The generated Excel buffer for Drive upload */
+  buffer?: ArrayBuffer;
+  fileName?: string;
 }
 
 export function validateAsBuiltData(data: AsBuiltData): string[] {
