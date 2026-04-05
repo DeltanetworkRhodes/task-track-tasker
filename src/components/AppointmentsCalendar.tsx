@@ -1,10 +1,11 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { useAssignments, useProfiles } from "@/hooks/useData";
 import { statusLabels } from "@/data/mockData";
 import { ChevronLeft, ChevronRight, CalendarDays, Clock, MapPin, User, GripVertical, Plus, Trash2, AlertTriangle } from "lucide-react";
+import CalendarMapView from "./CalendarMapView";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -46,10 +47,11 @@ interface Appointment {
   area: string | null;
   description: string | null;
   survey_id: string | null;
+  duration_minutes: number;
 }
 
 interface AppointmentsCalendarProps {
-  viewMode: "month" | "week" | "day";
+  viewMode: "month" | "week" | "day" | "map";
 }
 
 const DAY_START_HOUR = 7;
@@ -79,7 +81,7 @@ const AppointmentsCalendar = ({ viewMode }: AppointmentsCalendarProps) => {
       const end = new Date(year, month + 2, 0, 23, 59, 59).toISOString();
       const { data, error } = await supabase
         .from("appointments")
-        .select("id, sr_id, appointment_at, customer_name, area, description, survey_id")
+        .select("id, sr_id, appointment_at, customer_name, area, description, survey_id, duration_minutes")
         .eq("organization_id", organizationId)
         .gte("appointment_at", start)
         .lte("appointment_at", end)
@@ -111,6 +113,8 @@ const AppointmentsCalendar = ({ viewMode }: AppointmentsCalendarProps) => {
       technician_name: a.technician_id ? technicianMap.get(a.technician_id) || "—" : "Χωρίς ανάθεση",
       customer_name: (a as any).customer_name || "",
       address: (a as any).address || "",
+      latitude: (a as any).latitude as number | null,
+      longitude: (a as any).longitude as number | null,
     }));
   }, [dbAssignments, technicianMap]);
 
@@ -343,7 +347,70 @@ const AppointmentsCalendar = ({ viewMode }: AppointmentsCalendarProps) => {
     ? `${weekDates[0].getDate()} - ${weekDates[6].getDate()} ${GREEK_MONTHS[weekDates[6].getMonth()]} ${weekDates[6].getFullYear()}`
     : currentDate.toLocaleDateString("el-GR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
 
-  const viewLabel = viewMode === "month" ? "Μηνιαίο Ημερολόγιο" : viewMode === "week" ? "Εβδομαδιαίο Πρόγραμμα" : "Ημερήσιο Timeline";
+  const viewLabel = viewMode === "month" ? "Μηνιαίο Ημερολόγιο" : viewMode === "week" ? "Εβδομαδιαίο Πρόγραμμα" : viewMode === "map" ? "Χάρτης Ημέρας" : "Ημερήσιο Timeline";
+
+  // Map view appointments with coordinates from assignments
+  const mapAppointments = useMemo(() => {
+    return dayAppts.map((appt) => ({
+      ...appt,
+      latitude: appt.assignment?.latitude ?? null,
+      longitude: appt.assignment?.longitude ?? null,
+      assignment: appt.assignment ? {
+        status: appt.assignment.status,
+        technician_name: appt.assignment.technician_name,
+        technician_id: appt.assignment.technician_id,
+        address: appt.assignment.address,
+      } : undefined,
+    }));
+  }, [dayAppts]);
+
+  // Drag resize handler
+  const resizingRef = useRef<{ apptId: string; startY: number; startDuration: number } | null>(null);
+
+  const handleResizeStart = useCallback((e: React.MouseEvent, apptId: string, currentDuration: number) => {
+    e.preventDefault();
+    e.stopPropagation();
+    resizingRef.current = { apptId, startY: e.clientY, startDuration: currentDuration };
+
+    const handleMouseMove = (me: MouseEvent) => {
+      if (!resizingRef.current) return;
+      const dy = me.clientY - resizingRef.current.startY;
+      const dMinutes = Math.round(dy / (HOUR_HEIGHT / 60));
+      const newDuration = Math.max(15, Math.min(480, resizingRef.current.startDuration + dMinutes));
+      const el = document.querySelector(`[data-appt-resize="${apptId}"]`) as HTMLElement;
+      if (el) {
+        el.style.height = `${(newDuration / 60) * HOUR_HEIGHT - 4}px`;
+      }
+    };
+
+    const handleMouseUp = async (me: MouseEvent) => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+      if (!resizingRef.current) return;
+      const dy = me.clientY - resizingRef.current.startY;
+      const dMinutes = Math.round(dy / (HOUR_HEIGHT / 60));
+      const newDuration = Math.max(15, Math.min(480, resizingRef.current.startDuration + dMinutes));
+      resizingRef.current = null;
+
+      if (newDuration === currentDuration) return;
+
+      try {
+        const { error } = await supabase
+          .from("appointments")
+          .update({ duration_minutes: newDuration })
+          .eq("id", apptId);
+        if (error) throw error;
+        toast.success(`Διάρκεια: ${newDuration} λεπτά`);
+        queryClient.invalidateQueries({ queryKey: ["appointments-calendar"] });
+      } catch (err: any) {
+        toast.error(err.message);
+        queryClient.invalidateQueries({ queryKey: ["appointments-calendar"] });
+      }
+    };
+
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
+  }, [queryClient]);
 
   // Status legend for visibility
   const StatusLegend = () => (
@@ -762,10 +829,14 @@ const AppointmentsCalendar = ({ viewMode }: AppointmentsCalendarProps) => {
                               {techAppts.map((appt) => {
                                 const sc = appt.assignment ? (statusColors[appt.assignment.status] || defaultStatusColor) : defaultStatusColor;
                                 const isConflict = conflicts.has(appt.id);
+                                const duration = (appt as any).duration_minutes || 60;
+                                const heightPx = (duration / 60) * HOUR_HEIGHT - 4;
                                 return (
                                   <div
                                     key={appt.id}
-                                    className={`rounded-lg px-2 py-1.5 border ${sc.bg} ${sc.border} ${sc.text} ${isConflict ? "ring-2 ring-amber-400 dark:ring-amber-600" : ""} group relative`}
+                                    data-appt-resize={appt.id}
+                                    style={{ height: `${heightPx}px`, minHeight: "28px" }}
+                                    className={`rounded-lg px-2 py-1.5 border ${sc.bg} ${sc.border} ${sc.text} ${isConflict ? "ring-2 ring-amber-400 dark:ring-amber-600" : ""} group relative overflow-hidden`}
                                   >
                                     <div className="flex items-center justify-between">
                                       <div className="flex items-center gap-1 min-w-0">
@@ -783,6 +854,7 @@ const AppointmentsCalendar = ({ viewMode }: AppointmentsCalendarProps) => {
                                     <div className="text-[9px] opacity-75 flex items-center gap-1 mt-0.5">
                                       <Clock className="h-2.5 w-2.5" />
                                       {new Date(appt.appointment_at).toLocaleTimeString("el-GR", { hour: "2-digit", minute: "2-digit" })}
+                                      <span className="opacity-60">({duration}΄)</span>
                                     </div>
                                     {appt.area && (
                                       <div className="text-[9px] opacity-70 flex items-center gap-1 truncate">
@@ -793,6 +865,13 @@ const AppointmentsCalendar = ({ viewMode }: AppointmentsCalendarProps) => {
                                     {appt.customer_name && (
                                       <div className="text-[9px] opacity-70 truncate">{appt.customer_name}</div>
                                     )}
+                                    {/* Resize handle */}
+                                    <div
+                                      className="absolute bottom-0 left-0 right-0 h-2 cursor-s-resize opacity-0 group-hover:opacity-100 flex items-center justify-center bg-gradient-to-t from-black/10 to-transparent rounded-b-lg"
+                                      onMouseDown={(e) => handleResizeStart(e, appt.id, duration)}
+                                    >
+                                      <div className="w-6 h-0.5 rounded-full bg-current opacity-50" />
+                                    </div>
                                   </div>
                                 );
                               })}
@@ -807,6 +886,17 @@ const AppointmentsCalendar = ({ viewMode }: AppointmentsCalendarProps) => {
             </div>
           )}
         </div>
+      )}
+
+      {/* ============ MAP VIEW ============ */}
+      {viewMode === "map" && (
+        <>
+          {/* Navigation for map view */}
+          <CalendarMapView
+            appointments={mapAppointments}
+            dateLabel={navLabel}
+          />
+        </>
       )}
 
       {isLoading && (

@@ -48,6 +48,7 @@ export type Database = {
           created_at: string
           customer_name: string | null
           description: string | null
+          duration_minutes: number
           id: string
           organization_id: string | null
           sr_id: string
@@ -59,6 +60,7 @@ export type Database = {
           created_at?: string
           customer_name?: string | null
           description?: string | null
+          duration_minutes?: number
           id?: string
           organization_id?: string | null
           sr_id: string
@@ -70,6 +72,7 @@ export type Database = {
           created_at?: string
           customer_name?: string | null
           description?: string | null
+          duration_minutes?: number
           id?: string
           organization_id?: string | null
           sr_id?: string

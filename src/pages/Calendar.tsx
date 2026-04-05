@@ -1,10 +1,10 @@
 import { useState } from "react";
 import AppLayout from "@/components/AppLayout";
 import AppointmentsCalendar from "@/components/AppointmentsCalendar";
-import { LayoutGrid, List, Clock } from "lucide-react";
+import { LayoutGrid, List, Clock, MapIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-type ViewMode = "month" | "week" | "day";
+type ViewMode = "month" | "week" | "day" | "map";
 
 const Calendar = () => {
   const [view, setView] = useState<ViewMode>("month");
@@ -46,6 +46,15 @@ const Calendar = () => {
             >
               <Clock className="h-3.5 w-3.5" />
               Ημέρα
+            </Button>
+            <Button
+              variant={view === "map" ? "default" : "ghost"}
+              size="sm"
+              className="gap-1.5 text-xs h-8"
+              onClick={() => setView("map")}
+            >
+              <MapIcon className="h-3.5 w-3.5" />
+              Χάρτης
             </Button>
           </div>
         </div>
