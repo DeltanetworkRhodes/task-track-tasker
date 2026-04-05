@@ -412,20 +412,22 @@ function generateBmoLabelString(path: string): string {
 }
 
 function fillLabelsBepSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
-  // Write BEP type header to H2
-  ws.getCell("H2").value = getBepHeader(d.bepType);
+  // Template has formulas in visible cells (B7=AG2, D7=AG3, I6=AG2, Q6=$AG$2 etc.)
+  // We only need to fill data columns Y and AA-AG. DO NOT overwrite column A (visible layout).
 
-  // Structure from reference AS-BUILD:
-  // Column A: ALL BEP paths (BEP-BMO first, then BEP-only, then "χωρίς ports", then CAB-BEP)
-  // Column Y: BEP-BMO paths (raw data)
-  // Columns AA-AG: Pre-computed values (overriding MID formulas which break on variable-length paths)
-  //   AA = SB ID (e.g., "SB01"), AB = port (e.g., ".01_"), AC = BMO ID (e.g., "BMO01_01a")
-  //   AD = FB path from BMO lookup, AF = sequential index, AG = final label
-  // Visible B/D cols reference AG; I/J reference AG too
+  // Update A3 with actual BEP header for this SR
+  ws.getCell("A3").value = getBepHeader(d.bepType);
+  // Update BCP header at A21 if BCP exists
+  if (d.newBcp) {
+    ws.getCell("A21").value = getBcpHeader(d.newBcp);
+  }
+  // Update H31 (SMALL BCP with splitter detail) if BCP exists
+  if (d.newBcp) {
+    ws.getCell("H31").value = getBcpHeader(d.newBcp);
+  }
 
   const bepBmoPaths = d.opticalPaths.filter(op => op.type === "BEP-BMO");
   const bepOnlyPaths = d.opticalPaths.filter(op => op.type === "BEP" || op.type === "BCP-BEP");
-  const cabBepPaths = d.opticalPaths.filter(op => op.type === "CAB-BEP" || op.type === "CAB-BCP");
   const allBepPaths = [...bepBmoPaths, ...bepOnlyPaths];
 
   // Build BMO→FB map for label generation
@@ -436,36 +438,15 @@ function fillLabelsBepSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
     if (bmoMatch && fbMatch) bmoFbMap.set(bmoMatch[1], fbMatch[1]);
   });
 
-  // Clear data columns A, Y, and ALL shared formula columns (shared formulas extend to row 96)
-  for (let r = 1; r <= 96; r++) {
-    ws.getCell(r, 25).value = r === 1 ? "OPTICAL PATH" : "";  // Y
-    ws.getCell(r, 27).value = "";  // AA
-    ws.getCell(r, 28).value = "";  // AB
-    ws.getCell(r, 29).value = "";  // AC
-    ws.getCell(r, 30).value = "";  // AD
-    ws.getCell(r, 32).value = "";  // AF
-    ws.getCell(r, 33).value = "";  // AG
-  }
-  for (let r = 2; r <= 20; r++) {
-    ws.getCell(r, 1).value = null;   // A
-  }
-
-  // Column A: Write all BEP paths, then "χωρίς ports" padding, then CAB-BEP paths
-  let aRow = 2;
-  for (const op of allBepPaths) {
-    ws.getCell(aRow, 1).value = op.path;
-    aRow++;
-  }
-  // Pad with "χωρίς ports" for unused BEP slots (up to 12 total BEP)
-  const bepSlots = 12;
-  for (let i = allBepPaths.length; i < bepSlots; i++) {
-    ws.getCell(aRow, 1).value = "χωρίς ports";
-    aRow++;
-  }
-  // Write CAB-BEP paths after
-  for (const op of cabBepPaths) {
-    ws.getCell(aRow, 1).value = op.path;
-    aRow++;
+  // Clear data columns Y, AA-AG (rows 2-96) — preserve row 1 headers
+  for (let r = 2; r <= 96; r++) {
+    ws.getCell(r, 25).value = "";   // Y
+    ws.getCell(r, 27).value = "";   // AA
+    ws.getCell(r, 28).value = "";   // AB
+    ws.getCell(r, 29).value = "";   // AC
+    ws.getCell(r, 30).value = "";   // AD
+    ws.getCell(r, 32).value = "";   // AF
+    ws.getCell(r, 33).value = "";   // AG
   }
 
   // Column Y: Write ALL BEP paths (BEP-BMO + BEP-only) for formula inputs
@@ -479,29 +460,24 @@ function fillLabelsBepSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
     const r = 2 + i;
     const p = allBepPaths[i].path;
 
-    // AA = SB ID (e.g., "SB01")
     const sbIdMatch = p.match(/(SB\d+)/);
     const sbId = sbIdMatch ? sbIdMatch[1] : "";
-    ws.getCell(r, 27).value = sbId;
+    ws.getCell(r, 27).value = sbId;                     // AA
 
-    // AB = port number (e.g., ".01_")
     const portMatch = p.match(/SB\d+\([\d:]+\)\.(\d+)/);
     const port = portMatch ? `.${portMatch[1]}_` : "";
-    ws.getCell(r, 28).value = port;
+    ws.getCell(r, 28).value = port;                     // AB
 
-    // AC = BMO ID (e.g., "BMO01_01a")
     const bmoMatch = p.match(/(BMO\d+[_]\d+a?)/);
     const bmoId = bmoMatch ? bmoMatch[1] : "";
-    ws.getCell(r, 29).value = bmoId;
+    ws.getCell(r, 29).value = bmoId;                    // AC
 
-    // AD = FB path from BMO→FB map lookup
     const fbPath = bmoId ? (bmoFbMap.get(bmoId) || "") : "";
-    ws.getCell(r, 30).value = fbPath;
+    ws.getCell(r, 30).value = fbPath;                   // AD
 
-    // AF = sequential index
-    ws.getCell(r, 32).value = i + 1;
+    ws.getCell(r, 32).value = i + 1;                    // AF
 
-    // AG = final label: "SB01.01_FB(+00).1_01_BMO01_01a"
+    // AG = final label
     let label = "";
     if (sbId && port && fbPath && bmoId) {
       label = `${sbId}${port}${fbPath}_${bmoId}`;
@@ -512,10 +488,35 @@ function fillLabelsBepSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
     } else {
       label = p;
     }
-    ws.getCell(r, 33).value = label;
+    ws.getCell(r, 33).value = label;                    // AG
   }
 
-  console.log(`✅ LABELS BEP: wrote ${allBepPaths.length} BEP paths to Y + pre-computed AA-AG, ${aRow - 2} total to A`);
+  // For unused paths beyond data, set AG to "_" (matches template pattern for empty formula refs)
+  for (let i = allBepPaths.length; i < 37; i++) {
+    const r = 2 + i;
+    ws.getCell(r, 32).value = i + 1;                    // AF = sequential index
+    ws.getCell(r, 33).value = "_";                       // AG = empty marker
+  }
+
+  // Update visible BEP labels (rows 7-12, B/D columns) — override cached formula values
+  // Template formulas: B7=AG2, D7=AG3, B8=AG4, D8=AG5, etc.
+  const maxLabelPairs = 6; // rows 7-12
+  for (let pair = 0; pair < maxLabelPairs; pair++) {
+    const r = 7 + pair;
+    const agIdxA = 2 + pair * 2;
+    const agIdxB = 3 + pair * 2;
+    const labelA = ws.getCell(agIdxA, 33).value || "";
+    const labelB = ws.getCell(agIdxB, 33).value || "";
+    const hasA = labelA && labelA !== "_" && labelA !== "";
+    const hasB = labelB && labelB !== "_" && labelB !== "";
+    ws.getCell(r, 2).value = hasA ? labelA : "-";       // B
+    ws.getCell(r, 4).value = hasB ? labelB : "-";       // D
+    if (!hasA && !hasB) {
+      ws.getCell(r, 5).value = "χωρίς ports";           // E
+    }
+  }
+
+  console.log(`✅ LABELS BEP: wrote ${allBepPaths.length} paths to Y + pre-computed AA-AG`);
 }
 
 function fillLabelsBmoSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
