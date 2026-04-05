@@ -822,36 +822,46 @@ function fillEpimetrisiSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
   // ══════════════════════════════════════════════════════════════
   const bmoFbPaths = d.opticalPaths.filter(op => op.type === "BMO-FB" || op.type === "BMO");
 
-  // Clear old BMO-FB data (rows 50-68, cols U-X = 21-24)
-  for (let r = 50; r <= 68; r++) {
-    ws.getCell(r, 21).value = 0;   // U
-    ws.getCell(r, 23).value = 0;   // W
+  // Clear old BMO-FB data (rows 50-71, cols T-X = 20-24)
+  for (let r = 50; r <= 71; r++) {
+    ws.getCell(r, 20).value = null;  // T = position A
+    ws.getCell(r, 21).value = null;  // U = FB path A
+    ws.getCell(r, 22).value = null;  // V = position B
+    ws.getCell(r, 23).value = null;  // W = FB path B
+    ws.getCell(r, 24).value = null;  // X = notes
   }
 
   // Extract FB paths from BMO-FB paths and write them paired
+  // Template: T=position(3,4,...), U=FB_A, V=position(27,28,...), W=FB_B
   for (let i = 0; i < bmoFbPaths.length && i < 36; i++) {
     const pairIdx = Math.floor(i / 2);
     const r = 50 + pairIdx;
     const isB = i % 2 === 1;
-    // Extract the FB part: "BMO01_1_FB(+00).1_01" -> "FB(+00).1_01"
     const fbMatch = bmoFbPaths[i].path.match(/(FB\([^)]+\)\.\d+_\d+)/);
     const fbLabel = fbMatch ? fbMatch[1] : bmoFbPaths[i].path;
     if (!isB) {
-      ws.getCell(r, 21).value = fbLabel;  // U = FB path A
+      ws.getCell(r, 20).value = pairIdx + 3;       // T = position (3,4,5...)
+      ws.getCell(r, 21).value = fbLabel;            // U = FB path A
+      ws.getCell(r, 22).value = pairIdx + 27;       // V = position (27,28,29...)
     } else {
-      ws.getCell(r, 23).value = fbLabel;  // W = FB path B
+      ws.getCell(r, 23).value = fbLabel;            // W = FB path B
     }
   }
 
-  // Fill remaining with 0 or -
+  // Fill remaining slots with 0/- and position indices
   const bmoWritten = Math.min(bmoFbPaths.length, 36);
   for (let i = bmoWritten; i < 36; i++) {
     const pairIdx = Math.floor(i / 2);
     const r = 50 + pairIdx;
     const isB = i % 2 === 1;
-    if (r <= 68) {
-      if (!isB) ws.getCell(r, 21).value = 0;
-      else ws.getCell(r, 23).value = 0;
+    if (r <= 71) {
+      if (!isB) {
+        ws.getCell(r, 20).value = pairIdx + 3;
+        ws.getCell(r, 21).value = 0;
+        ws.getCell(r, 22).value = pairIdx + 27;
+      } else {
+        ws.getCell(r, 23).value = 0;
+      }
     }
   }
   console.log(`✅ BMO-FB: wrote ${bmoWritten} FB paths to U50:W68`);
