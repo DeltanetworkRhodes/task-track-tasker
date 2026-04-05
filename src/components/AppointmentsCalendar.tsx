@@ -144,6 +144,7 @@ const AppointmentsCalendar = ({ viewMode }: AppointmentsCalendarProps) => {
       address: (a as any).address || "",
       latitude: (a as any).latitude as number | null,
       longitude: (a as any).longitude as number | null,
+      building_id_hemd: a.building_id_hemd || null,
     }));
   }, [dbAssignments, technicianMap]);
 
