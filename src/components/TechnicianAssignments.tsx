@@ -794,6 +794,9 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
                   </div>
                 </Card>
 
+                {/* Time Tracker */}
+                <TimeTracker assignmentId={selectedAssignment.id} srId={selectedAssignment.sr_id} />
+
                 {/* Pre-Work Checklist - visible for pending assignments */}
                 {(selectedAssignment.status === "pending" || selectedAssignment.status === "inspection") && (
                   <PreWorkChecklist
