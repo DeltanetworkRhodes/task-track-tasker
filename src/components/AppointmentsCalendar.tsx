@@ -829,10 +829,14 @@ const AppointmentsCalendar = ({ viewMode }: AppointmentsCalendarProps) => {
                               {techAppts.map((appt) => {
                                 const sc = appt.assignment ? (statusColors[appt.assignment.status] || defaultStatusColor) : defaultStatusColor;
                                 const isConflict = conflicts.has(appt.id);
+                                const duration = (appt as any).duration_minutes || 60;
+                                const heightPx = (duration / 60) * HOUR_HEIGHT - 4;
                                 return (
                                   <div
                                     key={appt.id}
-                                    className={`rounded-lg px-2 py-1.5 border ${sc.bg} ${sc.border} ${sc.text} ${isConflict ? "ring-2 ring-amber-400 dark:ring-amber-600" : ""} group relative`}
+                                    data-appt-resize={appt.id}
+                                    style={{ height: `${heightPx}px`, minHeight: "28px" }}
+                                    className={`rounded-lg px-2 py-1.5 border ${sc.bg} ${sc.border} ${sc.text} ${isConflict ? "ring-2 ring-amber-400 dark:ring-amber-600" : ""} group relative overflow-hidden`}
                                   >
                                     <div className="flex items-center justify-between">
                                       <div className="flex items-center gap-1 min-w-0">
@@ -850,6 +854,7 @@ const AppointmentsCalendar = ({ viewMode }: AppointmentsCalendarProps) => {
                                     <div className="text-[9px] opacity-75 flex items-center gap-1 mt-0.5">
                                       <Clock className="h-2.5 w-2.5" />
                                       {new Date(appt.appointment_at).toLocaleTimeString("el-GR", { hour: "2-digit", minute: "2-digit" })}
+                                      <span className="opacity-60">({duration}΄)</span>
                                     </div>
                                     {appt.area && (
                                       <div className="text-[9px] opacity-70 flex items-center gap-1 truncate">
@@ -860,6 +865,13 @@ const AppointmentsCalendar = ({ viewMode }: AppointmentsCalendarProps) => {
                                     {appt.customer_name && (
                                       <div className="text-[9px] opacity-70 truncate">{appt.customer_name}</div>
                                     )}
+                                    {/* Resize handle */}
+                                    <div
+                                      className="absolute bottom-0 left-0 right-0 h-2 cursor-s-resize opacity-0 group-hover:opacity-100 flex items-center justify-center bg-gradient-to-t from-black/10 to-transparent rounded-b-lg"
+                                      onMouseDown={(e) => handleResizeStart(e, appt.id, duration)}
+                                    >
+                                      <div className="w-6 h-0.5 rounded-full bg-current opacity-50" />
+                                    </div>
                                   </div>
                                 );
                               })}
