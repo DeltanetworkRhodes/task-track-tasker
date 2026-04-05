@@ -3245,6 +3245,33 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
         </Alert>
       )}
 
+      {/* Check Out button */}
+      {activeEntry && (
+        <div className="flex items-center justify-between gap-3 p-3 rounded-lg border border-amber-500/30 bg-amber-500/5">
+          <div className="flex items-center gap-2">
+            <div className="h-2.5 w-2.5 rounded-full bg-green-500 animate-pulse" />
+            <span className="text-sm font-medium text-green-600">Σε εξέλιξη...</span>
+          </div>
+          <Button
+            size="sm"
+            variant="destructive"
+            className="gap-1.5 min-h-[40px]"
+            onClick={async () => {
+              try {
+                await checkOut.mutateAsync(undefined);
+                toast.success("✅ Check Out επιτυχές!");
+              } catch (err: any) {
+                toast.error(err.message || "Σφάλμα check-out");
+              }
+            }}
+            disabled={checkOut.isPending}
+          >
+            <LogOut className="h-3.5 w-3.5" />
+            Check Out
+          </Button>
+        </div>
+      )}
+
       {/* Submit */}
       <div className="space-y-3">
         <Button 
