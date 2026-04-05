@@ -1233,6 +1233,8 @@ const DEMO_SR_DATA: DemoSRMap = {
       { type: "Β", description: "Πόρτα-πόρτα", quantity: 6 },
     ],
     sketchImageUrl: null, isNewInfrastructure: false, trenchLengthM: 0, cabId: "CAB-089",
+    bcpPlacement: "", bcpKind: "", bcpBepCableType: "", bcpBepLength: 0,
+    verticalRouting: "ΚΑΓΚΕΛΟ", escalitType: "", bcpType: "", totalCableLength: 240,
   },
   "2-334066371997": {
     srId: "2-334066371997", buildingId: "667102934", areaType: "OTE", floors: 4,
@@ -1278,6 +1280,8 @@ const DEMO_SR_DATA: DemoSRMap = {
       { type: "Β", description: "Διασύνδεση των μετρητών κατανάλωσης ρεύματος", quantity: 1, floor: "+00" },
     ],
     sketchImageUrl: null, isNewInfrastructure: true, trenchLengthM: 156, cabId: "G526",
+    bcpPlacement: "", bcpKind: "", bcpBepCableType: "", bcpBepLength: 0,
+    verticalRouting: "ΚΑΓΚΕΛΟ", escalitType: "", bcpType: "", totalCableLength: 220,
   },
 };
 
