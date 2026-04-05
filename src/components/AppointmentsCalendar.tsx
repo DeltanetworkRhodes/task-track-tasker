@@ -81,7 +81,7 @@ const AppointmentsCalendar = ({ viewMode }: AppointmentsCalendarProps) => {
       const end = new Date(year, month + 2, 0, 23, 59, 59).toISOString();
       const { data, error } = await supabase
         .from("appointments")
-        .select("id, sr_id, appointment_at, customer_name, area, description, survey_id")
+        .select("id, sr_id, appointment_at, customer_name, area, description, survey_id, duration_minutes")
         .eq("organization_id", organizationId)
         .gte("appointment_at", start)
         .lte("appointment_at", end)
