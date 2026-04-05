@@ -1247,7 +1247,7 @@ const DEMO_SR_DATA: DemoSRMap = {
       { type: "Β", description: "Πόρτα-πόρτα", quantity: 8 },
     ],
     sketchImageUrl: null, isNewInfrastructure: true, trenchLengthM: 45, cabId: "CAB-112",
-    bcpPlacement: "", bcpKind: "", bcpBepCableType: "", bcpBepLength: 0,
+    verticalRouting: "ΚΛΙΜΑΚΟΣΤΑΣΙΟ", escalitType: "", bcpType: "", totalCableLength: 426,
     technicianName: "Γιώργος Αντωνίου", akId: "AK-112", sesId: "SES-205", exportDate: "", additionalBcpConnections: [],
   },
   "SR-DEMO-03": {
@@ -1271,7 +1271,7 @@ const DEMO_SR_DATA: DemoSRMap = {
       { type: "Β", description: "Πόρτα-πόρτα", quantity: 6 },
     ],
     sketchImageUrl: null, isNewInfrastructure: false, trenchLengthM: 0, cabId: "CAB-089",
-    bcpPlacement: "", bcpKind: "", bcpBepCableType: "", bcpBepLength: 0,
+    verticalRouting: "ΚΑΓΚΕΛΟ", escalitType: "", bcpType: "", totalCableLength: 240,
     technicianName: "Νίκος Κωστόπουλος", akId: "AK-089", sesId: "SES-310", exportDate: "", additionalBcpConnections: [],
   },
   "2-334066371997": {
