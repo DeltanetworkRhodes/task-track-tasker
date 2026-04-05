@@ -87,7 +87,7 @@ const TimeTracker = ({ assignmentId, srId }: Props) => {
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <div className="h-2.5 w-2.5 rounded-full bg-green-500 animate-pulse" />
-            <LiveTimer checkIn={activeEntry.check_in} />
+            <span className="text-sm font-medium text-green-600">Σε εξέλιξη...</span>
           </div>
           <Button
             size="sm"
