@@ -274,13 +274,14 @@ function fillOrofoiSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
   clearDataRows(ws, 2, 20, 14);
   d.floorDetails.forEach((fd, idx) => {
     const r = 2 + idx;
-    ws.getCell(r, 1).value = fd.floor as any;     // ΟΡΟΦΟΣ
-    ws.getCell(r, 2).value = fd.apartments;         // ΔΙΑΜΕΡΙΣΜΑΤΑ
-    ws.getCell(r, 3).value = fd.shops;              // ΚΑΤΑΣΤΗΜΑΤΑ
-    ws.getCell(r, 4).value = fd.fb_count;           // FB01
-    ws.getCell(r, 5).value = fd.fb_type;            // FB01 TYPE
-    ws.getCell(r, 12).value = fd.fb_customer || ""; // FB ΠΕΛΑΤΗ
-    ws.getCell(r, 13).value = fd.customer_space || ""; // ΑΡΙΘΜΗΣΗ ΧΩΡΟΥ ΠΕΛΑΤΗ
+    ws.getCell(r, 1).value = fd.floor as any;     // A = ΟΡΟΦΟΣ
+    ws.getCell(r, 2).value = fd.apartments;         // B = ΔΙΑΜΕΡΙΣΜΑΤΑ
+    ws.getCell(r, 3).value = fd.shops;              // C = ΚΑΤΑΣΤΗΜΑΤΑ
+    ws.getCell(r, 4).value = fd.fb_count;           // D = FB01
+    ws.getCell(r, 5).value = fd.fb_type;            // E = FB01 TYPE
+    ws.getCell(r, 12).value = fd.fb_customer || ""; // L = FB ΠΕΛΑΤΗ
+    ws.getCell(r, 13).value = fd.customer_space || ""; // M = ΑΡΙΘΜΗΣΗ ΧΩΡΟΥ ΠΕΛΑΤΗ
+    ws.getCell(r, 14).value = fd.fb_id || "";       // N = GIS ID
   });
 }
 /* ────────────────────────────────────────────
@@ -669,25 +670,46 @@ function fillEpimetrisiSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
   const allCabPaths = d.opticalPaths.filter(op => op.type === "CAB-BEP" || op.type === "CAB-BCP");
   // Primary path = the one containing SGA/SGB + SB (full routing), if any
   const primaryCab = allCabPaths.find(op => /SG[AB]\d+/i.test(op.path) && /SB\d+/i.test(op.path));
+  // Order: primary first, then rest
+  const orderedCabPaths = primaryCab
+    ? [primaryCab, ...allCabPaths.filter(p => p !== primaryCab)]
+    : [...allCabPaths];
 
   for (let r = 44; r <= 47; r++) {
-    ws.getCell(r, 6).value = "CAB-BEP"; // F = type label
-    ws.getCell(r, 7).value = "CAB-BEP"; // G = filler
+    ws.getCell(r, 6).value = null; // F
+    ws.getCell(r, 7).value = null; // G
   }
-  if (primaryCab) {
-    ws.getCell(44, 6).value = primaryCab.type;
-    ws.getCell(44, 7).value = primaryCab.path;
-  } else if (allCabPaths.length > 0) {
-    ws.getCell(44, 6).value = allCabPaths[0].type;
-    ws.getCell(44, 7).value = allCabPaths[0].path;
+  for (let i = 0; i < orderedCabPaths.length && i < 4; i++) {
+    ws.getCell(44 + i, 6).value = orderedCabPaths[i].type;
+    ws.getCell(44 + i, 7).value = orderedCabPaths[i].path;
   }
-  console.log(`✅ CAB-BEP: wrote primary path to F44:G44, ${allCabPaths.length} total`);
+  console.log(`✅ CAB-BEP: wrote ${Math.min(orderedCabPaths.length, 4)} paths to F44:G47`);
 
   // ══════════════════════════════════════════════════════════════
   // 5a2. Write BMO type header at I46 and BEP type header at B61
   // ══════════════════════════════════════════════════════════════
-  ws.getCell("I46").value = getBmoHeader(d.bmoType);
-  ws.getCell("B61").value = getBepHeader(d.bepType);
+  // BMO header at T46 (col 20) per template
+  ws.getCell("T46").value = getBmoHeader(d.bmoType);
+  // BEP header at F61 (col 6) per template
+  ws.getCell("F61").value = getBepHeader(d.bepType);
+
+  // BMO position headers (T47-T48 per template)
+  ws.getCell("T47").value = "ΘΕΣΗ";
+  ws.getCell("U47").value = "A";
+  ws.getCell("V47").value = "ΘΕΣΗ";
+  ws.getCell("W47").value = "B";
+  ws.getCell("X47").value = "ΠΑΡΑΤΗΡΗΣΕΙΣ";
+  // BMO positions row 48 (from cabinet)
+  ws.getCell("T48").value = 1;
+  ws.getCell("U48").value = 1;
+  ws.getCell("V48").value = 25;
+  ws.getCell("W48").value = 2;
+  ws.getCell("X48").value = "από καμπίνα";
+  // BMO positions row 49
+  ws.getCell("T49").value = 2;
+  ws.getCell("U49").value = 3;
+  ws.getCell("V49").value = 26;
+  ws.getCell("W49").value = 4;
 
   // ══════════════════════════════════════════════════════════════
   // 5b. CABLE INDICES (rows 53-58, F=index, G=cable_number, H=address)
@@ -800,39 +822,52 @@ function fillEpimetrisiSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
   // ══════════════════════════════════════════════════════════════
   const bmoFbPaths = d.opticalPaths.filter(op => op.type === "BMO-FB" || op.type === "BMO");
 
-  // Clear old BMO-FB data (rows 50-68, cols U-X = 21-24)
-  for (let r = 50; r <= 68; r++) {
-    ws.getCell(r, 21).value = 0;   // U
-    ws.getCell(r, 23).value = 0;   // W
+  // Clear old BMO-FB data (rows 50-71, cols T-X = 20-24)
+  for (let r = 50; r <= 71; r++) {
+    ws.getCell(r, 20).value = null;  // T = position A
+    ws.getCell(r, 21).value = null;  // U = FB path A
+    ws.getCell(r, 22).value = null;  // V = position B
+    ws.getCell(r, 23).value = null;  // W = FB path B
+    ws.getCell(r, 24).value = null;  // X = notes
   }
 
   // Extract FB paths from BMO-FB paths and write them paired
+  // Template: T=position(3,4,...), U=FB_A, V=position(27,28,...), W=FB_B
   for (let i = 0; i < bmoFbPaths.length && i < 36; i++) {
     const pairIdx = Math.floor(i / 2);
     const r = 50 + pairIdx;
     const isB = i % 2 === 1;
-    // Extract the FB part: "BMO01_1_FB(+00).1_01" -> "FB(+00).1_01"
     const fbMatch = bmoFbPaths[i].path.match(/(FB\([^)]+\)\.\d+_\d+)/);
     const fbLabel = fbMatch ? fbMatch[1] : bmoFbPaths[i].path;
     if (!isB) {
-      ws.getCell(r, 21).value = fbLabel;  // U = FB path A
+      ws.getCell(r, 20).value = pairIdx + 3;       // T = position (3,4,5...)
+      ws.getCell(r, 21).value = fbLabel;            // U = FB path A
+      ws.getCell(r, 22).value = pairIdx + 27;       // V = position (27,28,29...)
     } else {
-      ws.getCell(r, 23).value = fbLabel;  // W = FB path B
+      ws.getCell(r, 23).value = fbLabel;            // W = FB path B
     }
   }
 
-  // Fill remaining with 0 or -
+  // Fill remaining slots with 0/- and position indices
   const bmoWritten = Math.min(bmoFbPaths.length, 36);
   for (let i = bmoWritten; i < 36; i++) {
     const pairIdx = Math.floor(i / 2);
     const r = 50 + pairIdx;
     const isB = i % 2 === 1;
-    if (r <= 68) {
-      if (!isB) ws.getCell(r, 21).value = 0;
-      else ws.getCell(r, 23).value = 0;
+    if (r <= 71) {
+      if (!isB) {
+        ws.getCell(r, 20).value = pairIdx + 3;
+        ws.getCell(r, 21).value = pairIdx + 3 > 20 ? "-" : 0;
+        ws.getCell(r, 22).value = pairIdx + 27;
+      } else {
+        ws.getCell(r, 23).value = pairIdx + 27 > 44 ? "-" : 0;
+        if (i >= bmoWritten) {
+          ws.getCell(r, 24).value = "χωρίς ports";
+        }
+      }
     }
   }
-  console.log(`✅ BMO-FB: wrote ${bmoWritten} FB paths to U50:W68`);
+  console.log(`✅ BMO-FB: wrote ${bmoWritten} FB paths to T50:W71`);
 
   // ── 6. ΟΡΙΖΟΝΤΟΓΡΑΦΙΑ ──
   ws.getCell("V85").value = d.isNewInfrastructure ? "ΝΕΑ ΥΠΟΔΟΜΗ" : "";
