@@ -22,6 +22,7 @@ import IncompleteSurveys from "@/components/IncompleteSurveys";
 import ConstructionForm from "@/components/ConstructionForm";
 import SRComments from "@/components/SRComments";
 import PreWorkChecklist from "@/components/PreWorkChecklist";
+import TimeTracker from "@/components/TimeTracker";
 
 const statusFlow: { value: string; label: string }[] = [
   { value: "pending", label: "Αναμονή" },
