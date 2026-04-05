@@ -666,13 +666,20 @@ function fillEpimetrisiSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
   ws.getCell("Q8").value = d.newBcp;
   ws.getCell("R8").value = d.conduit;
 
-  // ── 2. KOI CAB first box ── Row 13
+  // ── 2. KOI CAB first box ── Row 13 (total cable length = underground + vertical)
   ws.getCell("D13").value = "BEP";
   ws.getCell("E13").value = "4' μ cable";
-  ws.getCell("F13").value = d.distanceFromCabinet;
+  ws.getCell("F13").value = d.totalCableLength || d.distanceFromCabinet;
 
-  // ── 3. BEP position ── (B22 is a label "ΟΡΟΦΟΣ ΤΟΠΟΘΕΤΗΣΗΣ ΒΕΡ" — don't overwrite)
-  // BEP floor value already written at G8 above
+  // ── 3. BEP position ── (B22 is a label — don't overwrite)
+
+  // ── 3a. KOI BCP-BEP section (rows 17-18) ──
+  if (d.bcpPlacement || d.bcpKind || d.bcpBepCableType) {
+    ws.getCell("D18").value = d.bcpPlacement || "";
+    ws.getCell("E18").value = d.bcpKind || "";
+    ws.getCell("F18").value = d.bcpBepCableType || "";
+    ws.getCell("G18").value = d.bcpBepLength || "";
+  }
 
   // ── 4. BEP-ΟΡΟΦΟΙ ── Rows 25-39 (clear first)
   for (let r = 25; r <= 39; r++) {
@@ -687,6 +694,8 @@ function fillEpimetrisiSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
     ws.getCell(r, 4).value = fd.shops;               // D = ΚΑΤΑΣΤΗΜΑΤΑ
     ws.getCell(r, 5).value = fd.fb_count;            // E = FB01
     ws.getCell(r, 6).value = fd.fb_type;             // F = FB01 TYPE
+    ws.getCell(r, 7).value = fd.fb02_count || "";    // G = FB02
+    ws.getCell(r, 8).value = fd.fb02_type || "";     // H = FB02 TYPE
     ws.getCell(r, 13).value = fd.fb_customer || "";  // M = FB ΠΕΛΑΤΗ
     ws.getCell(r, 14).value = fd.customer_space || "";// N = ΑΡΙΘΜΗΣΗ ΧΩΡΟΥ ΠΕΛΑΤΗ
     ws.getCell(r, 15).value = fd.fb_id || "";        // O = GIS ID
@@ -902,10 +911,13 @@ function fillEpimetrisiSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
   console.log(`✅ BMO-FB: wrote ${bmoWritten} FB paths to T50:W71`);
 
   // ── 6. ΟΡΙΖΟΝΤΟΓΡΑΦΙΑ ──
-  // U83="ΑΠΟΣΤΑΣΗ ΒΜΟ- BEP" → V83=distance value
-  ws.getCell("V83").value = d.distanceFromCabinet || "";
+  ws.getCell("V83").value = d.distanceFromCabinet || "";  // ΑΠΟΣΤΑΣΗ ΒΜΟ-BEP
   ws.getCell("V85").value = d.isNewInfrastructure ? "ΝΕΑ ΥΠΟΔΟΜΗ" : "";
-  ws.getCell("V91").value = d.trenchLengthM || "";
+  if (d.verticalRouting) ws.getCell("V89").value = d.verticalRouting;  // ΕΣΚΑΛΗΤ/ΚΑΓΚΕΛΟ
+  ws.getCell("V91").value = d.trenchLengthM || "";  // ΝΕΑ ΣΩΛΗΝΩΣΗ
+  if (d.escalitType) ws.getCell("V95").value = d.escalitType;  // ΕΣΚΑΛΗΤ Β1
+  if (d.bcpType) ws.getCell("V98").value = d.bcpType;  // BCP ΕΙΔΟΣ
+  if (d.newBcp) ws.getCell("V99").value = d.newBcp;  // BCP details
 }
 
 /** Extract cable index from CAB-BEP/CAB-BCP path string.
