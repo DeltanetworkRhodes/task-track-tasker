@@ -13,6 +13,12 @@ interface FloorBox {
   shops: number;
   fb_count: number;
   fb_type: string;
+  fb02_count?: number;
+  fb02_type?: string;
+  fb03_count?: number;
+  fb03_type?: string;
+  fb04_count?: number;
+  fb04_type?: string;
   fb_customer?: string;
   customer_space?: string;
   meters?: number;
