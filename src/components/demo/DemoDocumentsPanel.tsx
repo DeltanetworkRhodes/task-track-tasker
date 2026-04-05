@@ -153,6 +153,7 @@ const DemoDocumentsPanel = () => {
                       conduit: getDemoAsBuiltData(selectedSr.srId).conduit,
                       cabId: getDemoAsBuiltData(selectedSr.srId).cabId,
                       trenchLengthM: getDemoAsBuiltData(selectedSr.srId).trenchLengthM,
+                      distanceFromCabinet: getDemoAsBuiltData(selectedSr.srId).distanceFromCabinet,
                       address: selectedSr.address,
                       buildingId: getDemoAsBuiltData(selectedSr.srId).buildingId,
                     })}
