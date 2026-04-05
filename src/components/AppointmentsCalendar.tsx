@@ -425,77 +425,86 @@ const AppointmentsCalendar = ({ viewMode }: AppointmentsCalendarProps) => {
   );
 
   return (
-    <div className="space-y-4">
-      {/* Status Legend */}
-      <div className="rounded-xl border border-border bg-card p-2.5 flex items-center gap-3 flex-wrap">
-        <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Χρώματα:</span>
-        <StatusLegend />
-      </div>
-
-      {/* Conflict warning banner */}
-      {conflicts.size > 0 && (
-        <div className="rounded-xl border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 p-3 flex items-center gap-2">
-          <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0" />
-          <span className="text-xs text-amber-800 dark:text-amber-300 font-medium">
-            ⚠ Υπάρχουν {conflicts.size} ραντεβού με σύγκρουση (ίδιος τεχνικός, ίδια ώρα)
-          </span>
-        </div>
-      )}
-
-      {/* Unscheduled assignments panel */}
+    <div className="flex flex-col lg:flex-row gap-4">
+      {/* ===== LEFT SIDEBAR — Unscheduled Assignments ===== */}
       {unscheduledAssignments.length > 0 && (
-        <div className="rounded-xl border border-border bg-card p-3">
-          <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-2">
-            Χωρίς ραντεβού ({unscheduledAssignments.length}) — σύρε σε ημερομηνία
-          </p>
-          <div className="flex flex-wrap gap-1.5">
-            {unscheduledAssignments.slice(0, 20).map((a) => {
-              const sc = statusColors[a.status] || defaultStatusColor;
-              return (
-                <div
-                  key={a.id}
-                  draggable
-                  onDragStart={() => setDraggedAssignment(a.id)}
-                  onDragEnd={() => setDraggedAssignment(null)}
-                  className={`flex items-center gap-1 ${sc.bg} hover:opacity-80 rounded-lg px-2 py-1.5 cursor-grab active:cursor-grabbing transition-colors border ${sc.border}`}
-                >
-                  <GripVertical className="h-3 w-3 text-muted-foreground/50" />
-                  <span className={`h-1.5 w-1.5 rounded-full ${sc.dot}`} />
-                  <Badge variant="secondary" className="text-[10px] font-bold">{a.sr_id}</Badge>
-                  <span className="text-[10px] text-muted-foreground">{a.area}</span>
-                </div>
-              );
-            })}
-            {unscheduledAssignments.length > 20 && (
-              <span className="text-[10px] text-muted-foreground self-center">+{unscheduledAssignments.length - 20} ακόμα</span>
-            )}
+        <div className="lg:w-[260px] xl:w-[300px] shrink-0 space-y-3">
+          <div className="rounded-xl border border-border bg-card p-3 lg:sticky lg:top-4">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                Χωρίς ραντεβού
+              </p>
+              <Badge variant="secondary" className="text-[10px]">{unscheduledAssignments.length}</Badge>
+            </div>
+            <p className="text-[10px] text-muted-foreground mb-3">Σύρε σε ημερομηνία για προγραμματισμό</p>
+            <div className="flex flex-row lg:flex-col flex-wrap gap-1.5 max-h-[60vh] overflow-y-auto pr-1">
+              {unscheduledAssignments.slice(0, 30).map((a) => {
+                const sc = statusColors[a.status] || defaultStatusColor;
+                return (
+                  <div
+                    key={a.id}
+                    draggable
+                    onDragStart={() => setDraggedAssignment(a.id)}
+                    onDragEnd={() => setDraggedAssignment(null)}
+                    className={`flex items-center gap-1.5 ${sc.bg} hover:opacity-80 rounded-lg px-2 py-2 cursor-grab active:cursor-grabbing transition-colors border ${sc.border}`}
+                  >
+                    <GripVertical className="h-3 w-3 text-muted-foreground/40 shrink-0" />
+                    <span className={`h-2 w-2 rounded-full shrink-0 ${sc.dot}`} />
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[10px] font-bold truncate">{a.sr_id}</div>
+                      <div className="text-[9px] text-muted-foreground truncate">{a.area}</div>
+                    </div>
+                  </div>
+                );
+              })}
+              {unscheduledAssignments.length > 30 && (
+                <span className="text-[10px] text-muted-foreground text-center py-1">+{unscheduledAssignments.length - 30} ακόμα</span>
+              )}
+            </div>
           </div>
         </div>
       )}
 
-      {/* Navigation */}
-      <div className="flex items-center justify-between">
-        <h2 className="font-bold text-sm flex items-center gap-2 text-foreground">
-          <CalendarDays className="h-4 w-4 text-primary" />
-          {viewLabel}
-        </h2>
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={navPrev}>
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <span className="text-sm font-semibold text-foreground min-w-[160px] text-center">
-            {navLabel}
-          </span>
-          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={navNext}>
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-          {viewMode !== "month" && (
-            <Button variant="outline" size="sm" className="text-xs h-7 ml-1" onClick={() => setCurrentDate(new Date())}>
-              Σήμερα
-            </Button>
+      {/* ===== MAIN CALENDAR AREA ===== */}
+      <div className="flex-1 min-w-0 space-y-3">
+        {/* Legend + Conflicts row */}
+        <div className="flex items-center gap-3 flex-wrap">
+          <div className="rounded-lg border border-border bg-card px-2.5 py-1.5 flex items-center gap-2 flex-wrap">
+            <StatusLegend />
+          </div>
+          {conflicts.size > 0 && (
+            <div className="rounded-lg border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 px-2.5 py-1.5 flex items-center gap-1.5">
+              <AlertTriangle className="h-3.5 w-3.5 text-amber-600 shrink-0" />
+              <span className="text-[10px] text-amber-800 dark:text-amber-300 font-medium">
+                {conflicts.size} σύγκρουση
+              </span>
+            </div>
           )}
         </div>
-      </div>
+
+        {/* Navigation */}
+        <div className="flex items-center justify-between">
+          <h2 className="font-bold text-sm flex items-center gap-2 text-foreground">
+            <CalendarDays className="h-4 w-4 text-primary" />
+            {viewLabel}
+          </h2>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={navPrev}>
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <span className="text-sm font-semibold text-foreground min-w-[160px] text-center">
+              {navLabel}
+            </span>
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={navNext}>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+            {viewMode !== "month" && (
+              <Button variant="outline" size="sm" className="text-xs h-7 ml-1" onClick={() => setCurrentDate(new Date())}>
+                Σήμερα
+              </Button>
+            )}
+          </div>
+        </div>
 
       {/* ============ MONTH VIEW ============ */}
       {viewMode === "month" && (
