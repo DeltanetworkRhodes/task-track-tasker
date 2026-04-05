@@ -92,6 +92,13 @@ const AppointmentsCalendar = ({ viewMode }: AppointmentsCalendarProps) => {
   const [filterArea, setFilterArea] = useState<string>("all");
   const [showFilters, setShowFilters] = useState(false);
 
+  // Sidebar search & filters
+  const [sidebarSearch, setSidebarSearch] = useState("");
+  const [sidebarTechFilter, setSidebarTechFilter] = useState<string>("all");
+  const [sidebarAreaFilter, setSidebarAreaFilter] = useState<string>("all");
+  const [sidebarShowCount, setSidebarShowCount] = useState(30);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
 
