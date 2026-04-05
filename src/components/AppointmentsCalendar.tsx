@@ -346,7 +346,70 @@ const AppointmentsCalendar = ({ viewMode }: AppointmentsCalendarProps) => {
     ? `${weekDates[0].getDate()} - ${weekDates[6].getDate()} ${GREEK_MONTHS[weekDates[6].getMonth()]} ${weekDates[6].getFullYear()}`
     : currentDate.toLocaleDateString("el-GR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
 
-  const viewLabel = viewMode === "month" ? "Μηνιαίο Ημερολόγιο" : viewMode === "week" ? "Εβδομαδιαίο Πρόγραμμα" : "Ημερήσιο Timeline";
+  const viewLabel = viewMode === "month" ? "Μηνιαίο Ημερολόγιο" : viewMode === "week" ? "Εβδομαδιαίο Πρόγραμμα" : viewMode === "map" ? "Χάρτης Ημέρας" : "Ημερήσιο Timeline";
+
+  // Map view appointments with coordinates from assignments
+  const mapAppointments = useMemo(() => {
+    return dayAppts.map((appt) => ({
+      ...appt,
+      latitude: appt.assignment?.latitude ?? null,
+      longitude: appt.assignment?.longitude ?? null,
+      assignment: appt.assignment ? {
+        status: appt.assignment.status,
+        technician_name: appt.assignment.technician_name,
+        technician_id: appt.assignment.technician_id,
+        address: appt.assignment.address,
+      } : undefined,
+    }));
+  }, [dayAppts]);
+
+  // Drag resize handler
+  const resizingRef = useRef<{ apptId: string; startY: number; startDuration: number } | null>(null);
+
+  const handleResizeStart = useCallback((e: React.MouseEvent, apptId: string, currentDuration: number) => {
+    e.preventDefault();
+    e.stopPropagation();
+    resizingRef.current = { apptId, startY: e.clientY, startDuration: currentDuration };
+
+    const handleMouseMove = (me: MouseEvent) => {
+      if (!resizingRef.current) return;
+      const dy = me.clientY - resizingRef.current.startY;
+      const dMinutes = Math.round(dy / (HOUR_HEIGHT / 60));
+      const newDuration = Math.max(15, Math.min(480, resizingRef.current.startDuration + dMinutes));
+      const el = document.querySelector(`[data-appt-resize="${apptId}"]`) as HTMLElement;
+      if (el) {
+        el.style.height = `${(newDuration / 60) * HOUR_HEIGHT - 4}px`;
+      }
+    };
+
+    const handleMouseUp = async (me: MouseEvent) => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+      if (!resizingRef.current) return;
+      const dy = me.clientY - resizingRef.current.startY;
+      const dMinutes = Math.round(dy / (HOUR_HEIGHT / 60));
+      const newDuration = Math.max(15, Math.min(480, resizingRef.current.startDuration + dMinutes));
+      resizingRef.current = null;
+
+      if (newDuration === currentDuration) return;
+
+      try {
+        const { error } = await supabase
+          .from("appointments")
+          .update({ duration_minutes: newDuration })
+          .eq("id", apptId);
+        if (error) throw error;
+        toast.success(`Διάρκεια: ${newDuration} λεπτά`);
+        queryClient.invalidateQueries({ queryKey: ["appointments-calendar"] });
+      } catch (err: any) {
+        toast.error(err.message);
+        queryClient.invalidateQueries({ queryKey: ["appointments-calendar"] });
+      }
+    };
+
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
+  }, [queryClient]);
 
   // Status legend for visibility
   const StatusLegend = () => (
