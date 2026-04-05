@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { Assignment, statusLabels } from "@/data/mockData";
 import { Camera, MessageSquare, ExternalLink, User, MapPin, Phone, Hash, FolderOpen, FileText, Image, Loader2, Clock, ArrowRight, Trash2, Eye, Users, Settings2, Building, Briefcase, Tag, Navigation, GripVertical, Save, Pencil, Mail, MoreHorizontal, ClipboardCheck, Check } from "lucide-react";
 import SRComments from "@/components/SRComments";
+import TimeTrackingSummary from "@/components/TimeTrackingSummary";
 import CallStatusBadge from "@/components/CallStatusBadge";
 import CallStatusPopover from "@/components/CallStatusPopover";
 import CrewAssignmentPanel from "@/components/CrewAssignmentPanel";
