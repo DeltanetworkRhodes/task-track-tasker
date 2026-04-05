@@ -1073,6 +1073,10 @@ export function validateAsBuiltData(data: AsBuiltData): string[] {
   if (data.opticalPaths.length === 0) warnings.push("Δεν υπάρχουν Optical Paths");
   if (data.floors === 0) warnings.push("Αριθμός ορόφων είναι 0");
   if (!data.cabId) warnings.push("Λείπει CAB ID");
+  if (!data.bepType) warnings.push("Λείπει BEP Type — τα headers εξοπλισμού θα είναι κενά");
+  if (!data.bmoType) warnings.push("Λείπει BMO Type — τα headers εξοπλισμού θα είναι κενά");
+  if (!data.conduit) warnings.push("Λείπει Conduit — τα optical paths δεν θα έχουν σωστό κωδικό");
+  if (data.distanceFromCabinet === 0) warnings.push("Απόσταση από CAB είναι 0");
   return warnings;
 }
 
