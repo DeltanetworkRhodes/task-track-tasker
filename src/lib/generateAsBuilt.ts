@@ -1170,7 +1170,7 @@ export async function generateAsBuiltFromData(data: AsBuiltData): Promise<AsBuil
 
   // Generate and download
   const buffer = await workbook.xlsx.writeBuffer();
-  const arrayBuf = buffer instanceof ArrayBuffer ? buffer : (buffer as Uint8Array).buffer;
+  const arrayBuf = new Uint8Array(buffer instanceof ArrayBuffer ? buffer : (buffer as Uint8Array)).buffer as ArrayBuffer;
   const blob = new Blob([buffer], {
     type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   });
