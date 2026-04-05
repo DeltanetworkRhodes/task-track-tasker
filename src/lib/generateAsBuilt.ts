@@ -310,14 +310,18 @@ function extractBrandFromType(typeStr: string): string {
 }
 
 function getBepHeader(bepType: string): string {
+  if (!bepType || !bepType.trim()) return "";
   const size = extractSizeFromType(bepType);
   const brand = extractBrandFromType(bepType);
+  if (!size && !brand) return bepType; // return raw if can't parse
   return `${size || "?"} BEP with 1 splitter  ${brand}`.trim();
 }
 
 function getBmoHeader(bmoType: string): string {
+  if (!bmoType || !bmoType.trim()) return "";
   const size = extractSizeFromType(bmoType);
   const brand = extractBrandFromType(bmoType);
+  if (!size && !brand) return bmoType;
   return `ΒΜΟ ${size || "?"} with 1 splitter  ${brand}`.trim();
 }
 
@@ -325,6 +329,7 @@ function getBcpHeader(newBcp: string): string {
   if (!newBcp || !newBcp.trim()) return "";
   const size = extractSizeFromType(newBcp);
   const brand = extractBrandFromType(newBcp);
+  if (!size && !brand) return newBcp;
   return `${size || "?"} BCP with 1 splitter  ${brand}`.trim();
 }
 
@@ -988,6 +993,7 @@ export async function generateAsBuiltFromData(data: AsBuiltData): Promise<AsBuil
           conduit: data.conduit || data.bepType || "",
           cabId: data.cabId || "",
           trenchLengthM: data.trenchLengthM || 0,
+          distanceFromCabinet: data.distanceFromCabinet || 0,
           address: data.address || "",
           buildingId: data.buildingId || "",
         });
