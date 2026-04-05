@@ -1223,6 +1223,7 @@ const DEMO_SR_DATA: DemoSRMap = {
     sketchImageUrl: null, isNewInfrastructure: false, trenchLengthM: 0, cabId: "CAB-045",
     bcpPlacement: "", bcpKind: "", bcpBepCableType: "", bcpBepLength: 0,
     verticalRouting: "ΚΑΓΚΕΛΟ", escalitType: "", bcpType: "", totalCableLength: 138,
+    technicianName: "Δημήτρης Παπαδόπουλος", akId: "AK-045", sesId: "SES-101", exportDate: "", additionalBcpConnections: [],
   },
   "SR-DEMO-02": {
     srId: "SR-DEMO-02", buildingId: "BLD-IAL-015", areaType: "OTE", floors: 5,
@@ -1247,7 +1248,7 @@ const DEMO_SR_DATA: DemoSRMap = {
     ],
     sketchImageUrl: null, isNewInfrastructure: true, trenchLengthM: 45, cabId: "CAB-112",
     bcpPlacement: "", bcpKind: "", bcpBepCableType: "", bcpBepLength: 0,
-    verticalRouting: "ΚΛΙΜΑΚΟΣΤΑΣΙΟ", escalitType: "", bcpType: "", totalCableLength: 426,
+    technicianName: "Γιώργος Αντωνίου", akId: "AK-112", sesId: "SES-205", exportDate: "", additionalBcpConnections: [],
   },
   "SR-DEMO-03": {
     srId: "SR-DEMO-03", buildingId: "BLD-FAL-008", areaType: "OTE", floors: 4,
@@ -1271,7 +1272,7 @@ const DEMO_SR_DATA: DemoSRMap = {
     ],
     sketchImageUrl: null, isNewInfrastructure: false, trenchLengthM: 0, cabId: "CAB-089",
     bcpPlacement: "", bcpKind: "", bcpBepCableType: "", bcpBepLength: 0,
-    verticalRouting: "ΚΑΓΚΕΛΟ", escalitType: "", bcpType: "", totalCableLength: 240,
+    technicianName: "Νίκος Κωστόπουλος", akId: "AK-089", sesId: "SES-310", exportDate: "", additionalBcpConnections: [],
   },
   "2-334066371997": {
     srId: "2-334066371997", buildingId: "667102934", areaType: "OTE", floors: 4,
