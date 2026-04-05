@@ -1986,6 +1986,50 @@ export type Database = {
           },
         ]
       }
+      work_time_entries: {
+        Row: {
+          assignment_id: string
+          check_in: string
+          check_out: string | null
+          created_at: string
+          duration_minutes: number | null
+          id: string
+          notes: string | null
+          organization_id: string | null
+          technician_id: string
+        }
+        Insert: {
+          assignment_id: string
+          check_in?: string
+          check_out?: string | null
+          created_at?: string
+          duration_minutes?: number | null
+          id?: string
+          notes?: string | null
+          organization_id?: string | null
+          technician_id: string
+        }
+        Update: {
+          assignment_id?: string
+          check_in?: string
+          check_out?: string | null
+          created_at?: string
+          duration_minutes?: number | null
+          id?: string
+          notes?: string | null
+          organization_id?: string | null
+          technician_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "work_time_entries_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "assignments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

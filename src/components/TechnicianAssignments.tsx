@@ -22,6 +22,7 @@ import IncompleteSurveys from "@/components/IncompleteSurveys";
 import ConstructionForm from "@/components/ConstructionForm";
 import SRComments from "@/components/SRComments";
 import PreWorkChecklist from "@/components/PreWorkChecklist";
+import TimeTracker from "@/components/TimeTracker";
 
 const statusFlow: { value: string; label: string }[] = [
   { value: "pending", label: "Αναμονή" },
@@ -792,6 +793,9 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
                     <span>{new Date(selectedAssignment.created_at).toLocaleDateString("el-GR")}</span>
                   </div>
                 </Card>
+
+                {/* Time Tracker */}
+                <TimeTracker assignmentId={selectedAssignment.id} srId={selectedAssignment.sr_id} />
 
                 {/* Pre-Work Checklist - visible for pending assignments */}
                 {(selectedAssignment.status === "pending" || selectedAssignment.status === "inspection") && (
