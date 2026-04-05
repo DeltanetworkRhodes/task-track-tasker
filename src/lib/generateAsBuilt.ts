@@ -274,13 +274,14 @@ function fillOrofoiSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
   clearDataRows(ws, 2, 20, 14);
   d.floorDetails.forEach((fd, idx) => {
     const r = 2 + idx;
-    ws.getCell(r, 1).value = fd.floor as any;     // ΟΡΟΦΟΣ
-    ws.getCell(r, 2).value = fd.apartments;         // ΔΙΑΜΕΡΙΣΜΑΤΑ
-    ws.getCell(r, 3).value = fd.shops;              // ΚΑΤΑΣΤΗΜΑΤΑ
-    ws.getCell(r, 4).value = fd.fb_count;           // FB01
-    ws.getCell(r, 5).value = fd.fb_type;            // FB01 TYPE
-    ws.getCell(r, 12).value = fd.fb_customer || ""; // FB ΠΕΛΑΤΗ
-    ws.getCell(r, 13).value = fd.customer_space || ""; // ΑΡΙΘΜΗΣΗ ΧΩΡΟΥ ΠΕΛΑΤΗ
+    ws.getCell(r, 1).value = fd.floor as any;     // A = ΟΡΟΦΟΣ
+    ws.getCell(r, 2).value = fd.apartments;         // B = ΔΙΑΜΕΡΙΣΜΑΤΑ
+    ws.getCell(r, 3).value = fd.shops;              // C = ΚΑΤΑΣΤΗΜΑΤΑ
+    ws.getCell(r, 4).value = fd.fb_count;           // D = FB01
+    ws.getCell(r, 5).value = fd.fb_type;            // E = FB01 TYPE
+    ws.getCell(r, 12).value = fd.fb_customer || ""; // L = FB ΠΕΛΑΤΗ
+    ws.getCell(r, 13).value = fd.customer_space || ""; // M = ΑΡΙΘΜΗΣΗ ΧΩΡΟΥ ΠΕΛΑΤΗ
+    ws.getCell(r, 14).value = fd.fb_id || "";       // N = GIS ID
   });
 }
 /* ────────────────────────────────────────────
@@ -669,25 +670,28 @@ function fillEpimetrisiSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
   const allCabPaths = d.opticalPaths.filter(op => op.type === "CAB-BEP" || op.type === "CAB-BCP");
   // Primary path = the one containing SGA/SGB + SB (full routing), if any
   const primaryCab = allCabPaths.find(op => /SG[AB]\d+/i.test(op.path) && /SB\d+/i.test(op.path));
+  // Order: primary first, then rest
+  const orderedCabPaths = primaryCab
+    ? [primaryCab, ...allCabPaths.filter(p => p !== primaryCab)]
+    : [...allCabPaths];
 
   for (let r = 44; r <= 47; r++) {
-    ws.getCell(r, 6).value = "CAB-BEP"; // F = type label
-    ws.getCell(r, 7).value = "CAB-BEP"; // G = filler
+    ws.getCell(r, 6).value = null; // F
+    ws.getCell(r, 7).value = null; // G
   }
-  if (primaryCab) {
-    ws.getCell(44, 6).value = primaryCab.type;
-    ws.getCell(44, 7).value = primaryCab.path;
-  } else if (allCabPaths.length > 0) {
-    ws.getCell(44, 6).value = allCabPaths[0].type;
-    ws.getCell(44, 7).value = allCabPaths[0].path;
+  for (let i = 0; i < orderedCabPaths.length && i < 4; i++) {
+    ws.getCell(44 + i, 6).value = orderedCabPaths[i].type;
+    ws.getCell(44 + i, 7).value = orderedCabPaths[i].path;
   }
-  console.log(`✅ CAB-BEP: wrote primary path to F44:G44, ${allCabPaths.length} total`);
+  console.log(`✅ CAB-BEP: wrote ${Math.min(orderedCabPaths.length, 4)} paths to F44:G47`);
 
   // ══════════════════════════════════════════════════════════════
   // 5a2. Write BMO type header at I46 and BEP type header at B61
   // ══════════════════════════════════════════════════════════════
-  ws.getCell("I46").value = getBmoHeader(d.bmoType);
-  ws.getCell("B61").value = getBepHeader(d.bepType);
+  // BMO header at T46 (col 20) per template
+  ws.getCell("T46").value = getBmoHeader(d.bmoType);
+  // BEP header at F61 (col 6) per template
+  ws.getCell("F61").value = getBepHeader(d.bepType);
 
   // ══════════════════════════════════════════════════════════════
   // 5b. CABLE INDICES (rows 53-58, F=index, G=cable_number, H=address)
