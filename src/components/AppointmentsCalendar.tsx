@@ -1354,6 +1354,7 @@ const AppointmentsCalendar = ({ viewMode }: AppointmentsCalendarProps) => {
           <CalendarMapView
             appointments={mapAppointments}
             dateLabel={navLabel}
+            unscheduledAssignments={unscheduledAssignments}
           />
         </>
       )}
