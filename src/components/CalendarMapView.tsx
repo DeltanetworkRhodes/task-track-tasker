@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Clock, MapPin, User, Navigation, CalendarDays, Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface MapAppointment {
   id: string;
@@ -19,6 +20,7 @@ interface MapAppointment {
     technician_name: string;
     technician_id: string | null;
     address?: string;
+    building_id_hemd?: string;
   };
 }
 
@@ -33,6 +35,7 @@ interface UnscheduledOnMap {
   address: string;
   latitude: number | null;
   longitude: number | null;
+  building_id_hemd?: string | null;
 }
 
 const statusMarkerColors: Record<string, string> = {
@@ -57,16 +60,11 @@ function createNumberedIcon(index: number, color: string) {
     iconSize: [32, 40],
     iconAnchor: [16, 40],
     popupAnchor: [0, -40],
-    html: `<div style="
-      position:relative;width:32px;height:40px;
-    ">
+    html: `<div style="position:relative;width:32px;height:40px;">
       <svg width="32" height="40" viewBox="0 0 32 40">
         <path d="M16 0C7.2 0 0 7.2 0 16c0 12 16 24 16 24s16-12 16-24C32 7.2 24.8 0 16 0z" fill="${color}" stroke="white" stroke-width="2"/>
       </svg>
-      <span style="
-        position:absolute;top:6px;left:0;right:0;
-        text-align:center;color:white;font-size:13px;font-weight:bold;
-      ">${index}</span>
+      <span style="position:absolute;top:6px;left:0;right:0;text-align:center;color:white;font-size:13px;font-weight:bold;">${index}</span>
     </div>`,
   });
 }
@@ -77,40 +75,8 @@ function createDotIcon(color: string) {
     iconSize: [18, 18],
     iconAnchor: [9, 9],
     popupAnchor: [0, -12],
-    html: `<div style="
-      width:18px;height:18px;border-radius:50%;
-      background:${color};border:2px solid white;
-      box-shadow:0 1px 4px rgba(0,0,0,0.3);
-      opacity:0.8;
-    "></div>`,
+    html: `<div style="width:18px;height:18px;border-radius:50%;background:${color};border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,0.3);opacity:0.8;"></div>`,
   });
-}
-
-// Geocode cache to avoid re-fetching
-const geocodeCache = new Map<string, { lat: number; lng: number } | null>();
-
-async function geocodeAddress(address: string, area?: string): Promise<{ lat: number; lng: number } | null> {
-  const query = [address, area, "Ελλάδα"].filter(Boolean).join(", ");
-  if (geocodeCache.has(query)) return geocodeCache.get(query)!;
-
-  try {
-    const encoded = encodeURIComponent(query);
-    const res = await fetch(
-      `https://nominatim.openstreetmap.org/search?q=${encoded}&format=json&limit=1&countrycodes=gr`,
-      { headers: { "Accept-Language": "el" } }
-    );
-    const data = await res.json();
-    if (data && data.length > 0) {
-      const result = { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
-      geocodeCache.set(query, result);
-      return result;
-    }
-    geocodeCache.set(query, null);
-    return null;
-  } catch {
-    geocodeCache.set(query, null);
-    return null;
-  }
 }
 
 interface CalendarMapViewProps {
@@ -126,7 +92,7 @@ interface GeocodedItem {
   lat: number;
   lng: number;
   original: MapAppointment | UnscheduledOnMap;
-  geocoded: boolean; // true if coords came from geocoding
+  source: "coords" | "registry" | "hemd";
 }
 
 const CalendarMapView = ({ appointments, dateLabel, unscheduledAssignments = [] }: CalendarMapViewProps) => {
@@ -137,97 +103,213 @@ const CalendarMapView = ({ appointments, dateLabel, unscheduledAssignments = [] 
   const [geocodedAppts, setGeocodedAppts] = useState<GeocodedItem[]>([]);
   const [geocodedUnscheduled, setGeocodedUnscheduled] = useState<GeocodedItem[]>([]);
   const [isGeocoding, setIsGeocoding] = useState(false);
-  const [geocodeStats, setGeocodeStats] = useState({ total: 0, found: 0, notFound: 0 });
+  const [geocodeStats, setGeocodeStats] = useState({ fromCoords: 0, fromRegistry: 0, fromHemd: 0, notFound: 0 });
 
-  // Geocode appointments
-  const geocodeAppointments = useCallback(async () => {
+  // Resolve coordinates for all items using buildings_registry + HEMD
+  const resolveLocations = useCallback(async () => {
     setIsGeocoding(true);
-    const results: GeocodedItem[] = [];
-    let found = 0, notFound = 0;
 
-    const sorted = [...appointments].sort(
+    const apptResults: GeocodedItem[] = [];
+    const unscheduledResults: GeocodedItem[] = [];
+    let fromCoords = 0, fromRegistry = 0, fromHemd = 0, notFound = 0;
+
+    // Collect all items needing resolution
+    type NeedResolution = {
+      itemType: "appointment" | "unscheduled";
+      original: MapAppointment | UnscheduledOnMap;
+      address?: string;
+      area?: string;
+      building_id_hemd?: string | null;
+    };
+
+    const needResolution: NeedResolution[] = [];
+
+    // Sort appointments by time
+    const sortedAppts = [...appointments].sort(
       (a, b) => new Date(a.appointment_at).getTime() - new Date(b.appointment_at).getTime()
     );
 
-    for (const appt of sorted) {
+    // Step 1: Separate items with coords from those needing lookup
+    for (const appt of sortedAppts) {
       if (appt.latitude && appt.longitude) {
-        results.push({
-          type: "appointment",
-          lat: Number(appt.latitude),
-          lng: Number(appt.longitude),
-          original: appt,
-          geocoded: false,
-        });
-        found++;
-        continue;
-      }
-
-      const address = appt.assignment?.address;
-      const area = appt.area;
-      if (address || area) {
-        const coords = await geocodeAddress(address || "", area || undefined);
-        if (coords) {
-          results.push({
-            type: "appointment",
-            lat: coords.lat,
-            lng: coords.lng,
-            original: appt,
-            geocoded: true,
-          });
-          found++;
-        } else {
-          notFound++;
-        }
+        apptResults.push({ type: "appointment", lat: Number(appt.latitude), lng: Number(appt.longitude), original: appt, source: "coords" });
+        fromCoords++;
       } else {
-        notFound++;
+        needResolution.push({
+          itemType: "appointment",
+          original: appt,
+          address: appt.assignment?.address,
+          area: appt.area || undefined,
+          building_id_hemd: appt.assignment?.building_id_hemd,
+        });
       }
     }
-
-    setGeocodedAppts(results);
-    setGeocodeStats(prev => ({ ...prev, total: appointments.length, found, notFound }));
-    setIsGeocoding(false);
-  }, [appointments]);
-
-  const geocodeUnscheduledItems = useCallback(async () => {
-    const results: GeocodedItem[] = [];
 
     for (const a of unscheduledAssignments) {
       if (a.latitude && a.longitude) {
-        results.push({
-          type: "unscheduled",
-          lat: Number(a.latitude),
-          lng: Number(a.longitude),
+        unscheduledResults.push({ type: "unscheduled", lat: Number(a.latitude), lng: Number(a.longitude), original: a, source: "coords" });
+        fromCoords++;
+      } else {
+        needResolution.push({
+          itemType: "unscheduled",
           original: a,
-          geocoded: false,
+          address: a.address,
+          area: a.area || undefined,
+          building_id_hemd: a.building_id_hemd,
         });
-        continue;
-      }
-
-      if (a.address || a.area) {
-        const coords = await geocodeAddress(a.address || "", a.area || undefined);
-        if (coords) {
-          results.push({
-            type: "unscheduled",
-            lat: coords.lat,
-            lng: coords.lng,
-            original: a,
-            geocoded: true,
-          });
-        }
       }
     }
 
-    setGeocodedUnscheduled(results);
-  }, [unscheduledAssignments]);
+    // Step 2: Batch lookup from buildings_registry
+    if (needResolution.length > 0) {
+      try {
+        // Collect all building IDs and addresses to search
+        const buildingIds = needResolution
+          .map(n => n.building_id_hemd)
+          .filter((id): id is string => !!id);
 
-  // Trigger geocoding when data changes
-  useEffect(() => {
-    geocodeAppointments();
-  }, [geocodeAppointments]);
+        const addresses = needResolution
+          .filter(n => !n.building_id_hemd && n.address)
+          .map(n => n.address!)
+          .filter(Boolean);
 
-  useEffect(() => {
-    geocodeUnscheduledItems();
-  }, [geocodeUnscheduledItems]);
+        // Query by building_id first
+        let registryResults: Array<{ building_id: string | null; address: string; latitude: number | null; longitude: number | null }> = [];
+
+        if (buildingIds.length > 0) {
+          const { data } = await supabase
+            .from("buildings_registry")
+            .select("building_id, address, latitude, longitude")
+            .in("building_id", buildingIds)
+            .not("latitude", "is", null)
+            .not("longitude", "is", null);
+          if (data) registryResults.push(...data);
+        }
+
+        // Also search by address patterns
+        if (addresses.length > 0) {
+          for (const addr of addresses.slice(0, 30)) {
+            // Extract street name for matching
+            const streetMatch = addr.match(/^([A-ZΑ-Ωα-ωά-ώ\s]+)/i);
+            if (streetMatch && streetMatch[1].trim().length > 3) {
+              const { data } = await supabase
+                .from("buildings_registry")
+                .select("building_id, address, latitude, longitude")
+                .ilike("address", `%${streetMatch[1].trim()}%`)
+                .not("latitude", "is", null)
+                .not("longitude", "is", null)
+                .limit(5);
+              if (data) registryResults.push(...data);
+            }
+          }
+        }
+
+        // Build lookup maps
+        const byBuildingId = new Map<string, { lat: number; lng: number }>();
+        const byAddress = new Map<string, { lat: number; lng: number }>();
+
+        for (const r of registryResults) {
+          if (r.latitude && r.longitude) {
+            if (r.building_id) byBuildingId.set(r.building_id, { lat: Number(r.latitude), lng: Number(r.longitude) });
+            byAddress.set(r.address.toUpperCase(), { lat: Number(r.latitude), lng: Number(r.longitude) });
+          }
+        }
+
+        // Match items against registry
+        const stillNeedResolution: NeedResolution[] = [];
+
+        for (const item of needResolution) {
+          let found: { lat: number; lng: number } | null = null;
+
+          // Try building_id match
+          if (item.building_id_hemd && byBuildingId.has(item.building_id_hemd)) {
+            found = byBuildingId.get(item.building_id_hemd)!;
+          }
+
+          // Try address match
+          if (!found && item.address) {
+            const upperAddr = item.address.toUpperCase();
+            for (const [regAddr, coords] of byAddress) {
+              if (regAddr.includes(upperAddr) || upperAddr.includes(regAddr)) {
+                found = coords;
+                break;
+              }
+            }
+          }
+
+          if (found) {
+            const geoItem: GeocodedItem = {
+              type: item.itemType,
+              lat: found.lat,
+              lng: found.lng,
+              original: item.original,
+              source: "registry",
+            };
+            if (item.itemType === "appointment") apptResults.push(geoItem);
+            else unscheduledResults.push(geoItem);
+            fromRegistry++;
+          } else {
+            stillNeedResolution.push(item);
+          }
+        }
+
+        // Step 3: Use HEMD lookup for remaining (batch, max 10 to avoid overload)
+        const hemdBatch = stillNeedResolution.filter(n => n.address).slice(0, 10);
+        for (const item of hemdBatch) {
+          try {
+            const { data, error } = await supabase.functions.invoke("lookup-building-id", {
+              body: {
+                address: item.address,
+                area: item.area,
+                auto_save: false,
+              },
+            });
+
+            if (!error && data?.results?.length > 0) {
+              const best = data.results[0];
+              if (best.latitude && best.longitude) {
+                const geoItem: GeocodedItem = {
+                  type: item.itemType,
+                  lat: best.latitude,
+                  lng: best.longitude,
+                  original: item.original,
+                  source: "hemd",
+                };
+                if (item.itemType === "appointment") apptResults.push(geoItem);
+                else unscheduledResults.push(geoItem);
+                fromHemd++;
+                continue;
+              }
+            }
+          } catch (e) {
+            console.warn("HEMD lookup failed for", item.address, e);
+          }
+          notFound++;
+        }
+
+        // Count remaining not-found items
+        notFound += stillNeedResolution.length - hemdBatch.length;
+
+      } catch (err) {
+        console.error("Location resolution error:", err);
+        notFound += needResolution.length;
+      }
+    }
+
+    // Re-sort appointments by time
+    apptResults.sort((a, b) => {
+      const aAppt = a.original as MapAppointment;
+      const bAppt = b.original as MapAppointment;
+      return new Date(aAppt.appointment_at).getTime() - new Date(bAppt.appointment_at).getTime();
+    });
+
+    setGeocodedAppts(apptResults);
+    setGeocodedUnscheduled(unscheduledResults);
+    setGeocodeStats({ fromCoords, fromRegistry, fromHemd, notFound });
+    setIsGeocoding(false);
+  }, [appointments, unscheduledAssignments]);
+
+  useEffect(() => { resolveLocations(); }, [resolveLocations]);
 
   // Group appointments by technician
   const techGroups = useMemo(() => {
@@ -241,7 +323,6 @@ const CalendarMapView = ({ appointments, dateLabel, unscheduledAssignments = [] 
     return map;
   }, [geocodedAppts]);
 
-  // Build stable tech color map
   const techColorMap = useMemo(() => {
     const map = new Map<string, string>();
     const techIds = new Set<string>();
@@ -268,10 +349,7 @@ const CalendarMapView = ({ appointments, dateLabel, unscheduledAssignments = [] 
       maxZoom: 20,
     }).addTo(map);
     mapRef.current = map;
-    return () => {
-      map.remove();
-      mapRef.current = null;
-    };
+    return () => { map.remove(); mapRef.current = null; };
   }, []);
 
   // Update markers
@@ -282,9 +360,7 @@ const CalendarMapView = ({ appointments, dateLabel, unscheduledAssignments = [] 
     markersRef.current.forEach((m) => m.remove());
     markersRef.current = [];
     map.eachLayer((layer) => {
-      if (layer instanceof L.Polyline && !(layer instanceof L.TileLayer)) {
-        layer.remove();
-      }
+      if (layer instanceof L.Polyline && !(layer instanceof L.TileLayer)) layer.remove();
     });
 
     const allCoords: L.LatLngExpression[] = [];
@@ -292,9 +368,7 @@ const CalendarMapView = ({ appointments, dateLabel, unscheduledAssignments = [] 
     // 1) Draw scheduled appointments
     if (geocodedAppts.length > 0) {
       let counter = 1;
-      const techIds = Array.from(techGroups.keys());
-
-      techIds.forEach((techId) => {
+      Array.from(techGroups.keys()).forEach((techId) => {
         const techItems = techGroups.get(techId) || [];
         const color = techColorMap.get(techId) || techColors[0];
         const coords: L.LatLngExpression[] = [];
@@ -302,33 +376,24 @@ const CalendarMapView = ({ appointments, dateLabel, unscheduledAssignments = [] 
         techItems.forEach((item) => {
           const appt = item.original as MapAppointment;
           const icon = createNumberedIcon(counter, color);
-          const time = new Date(appt.appointment_at).toLocaleTimeString("el-GR", {
-            hour: "2-digit",
-            minute: "2-digit",
-          });
+          const time = new Date(appt.appointment_at).toLocaleTimeString("el-GR", { hour: "2-digit", minute: "2-digit" });
           const techName = appt.assignment?.technician_name || "—";
-          const geocodeBadge = item.geocoded
-            ? `<div style="font-size:9px;color:#f59e0b;margin-top:2px;">📍 Βρέθηκε από διεύθυνση</div>`
-            : "";
+          const sourceLabel = item.source === "registry" ? "📋 Μητρώο κτιρίων" : item.source === "hemd" ? "🔗 ΧΕΜΔ" : "";
 
           const popup = `
             <div style="font-size:13px;min-width:180px;">
-              <div style="font-weight:bold;font-size:14px;margin-bottom:4px;">
-                #${counter} ${appt.sr_id}
-              </div>
+              <div style="font-weight:bold;font-size:14px;margin-bottom:4px;">#${counter} ${appt.sr_id}</div>
               <div style="font-size:11px;color:#666;">🕐 ${time}</div>
               <div style="font-size:11px;color:#666;">👤 ${techName}</div>
               ${appt.customer_name ? `<div style="font-size:11px;color:#666;">📋 ${appt.customer_name}</div>` : ""}
               ${appt.area ? `<div style="font-size:11px;color:#666;">📍 ${appt.area}</div>` : ""}
               ${appt.assignment?.address ? `<div style="font-size:11px;color:#666;">🏠 ${appt.assignment.address}</div>` : ""}
-              ${geocodeBadge}
+              ${sourceLabel ? `<div style="font-size:9px;color:#f59e0b;margin-top:2px;">${sourceLabel}</div>` : ""}
               <div style="margin-top:4px;"><span style="background:${color};color:white;padding:1px 6px;border-radius:4px;font-size:10px;">Ραντεβού</span></div>
             </div>
           `;
 
-          const marker = L.marker([item.lat, item.lng], { icon })
-            .bindPopup(popup)
-            .addTo(map);
+          const marker = L.marker([item.lat, item.lng], { icon }).bindPopup(popup).addTo(map);
           markersRef.current.push(marker);
           coords.push([item.lat, item.lng]);
           allCoords.push([item.lat, item.lng]);
@@ -336,43 +401,32 @@ const CalendarMapView = ({ appointments, dateLabel, unscheduledAssignments = [] 
         });
 
         if (coords.length > 1) {
-          L.polyline(coords, {
-            color,
-            weight: 3,
-            opacity: 0.7,
-            dashArray: "8, 6",
-          }).addTo(map);
+          L.polyline(coords, { color, weight: 3, opacity: 0.7, dashArray: "8, 6" }).addTo(map);
         }
       });
     }
 
-    // 2) Draw unscheduled assignments as dots
+    // 2) Draw unscheduled
     if (mapMode === "all" && geocodedUnscheduled.length > 0) {
       geocodedUnscheduled.forEach((item) => {
         const a = item.original as UnscheduledOnMap;
         const statusColor = statusMarkerColors[a.status] || "#9ca3af";
         const icon = createDotIcon(statusColor);
-        const geocodeBadge = item.geocoded
-          ? `<div style="font-size:9px;color:#f59e0b;margin-top:2px;">📍 Βρέθηκε από διεύθυνση</div>`
-          : "";
+        const sourceLabel = item.source === "registry" ? "📋 Μητρώο κτιρίων" : item.source === "hemd" ? "🔗 ΧΕΜΔ" : "";
 
         const popup = `
           <div style="font-size:13px;min-width:180px;">
-            <div style="font-weight:bold;font-size:14px;margin-bottom:4px;">
-              ${a.sr_id}
-            </div>
+            <div style="font-weight:bold;font-size:14px;margin-bottom:4px;">${a.sr_id}</div>
             <div style="font-size:11px;color:#666;">👤 ${a.technician_name}</div>
             ${a.customer_name ? `<div style="font-size:11px;color:#666;">📋 ${a.customer_name}</div>` : ""}
             ${a.area ? `<div style="font-size:11px;color:#666;">📍 ${a.area}</div>` : ""}
             ${a.address ? `<div style="font-size:11px;color:#666;">🏠 ${a.address}</div>` : ""}
-            ${geocodeBadge}
+            ${sourceLabel ? `<div style="font-size:9px;color:#f59e0b;margin-top:2px;">${sourceLabel}</div>` : ""}
             <div style="margin-top:4px;"><span style="background:${statusColor};color:white;padding:1px 6px;border-radius:4px;font-size:10px;">Χωρίς ραντεβού</span></div>
           </div>
         `;
 
-        const marker = L.marker([item.lat, item.lng], { icon })
-          .bindPopup(popup)
-          .addTo(map);
+        const marker = L.marker([item.lat, item.lng], { icon }).bindPopup(popup).addTo(map);
         markersRef.current.push(marker);
         allCoords.push([item.lat, item.lng]);
       });
@@ -383,7 +437,7 @@ const CalendarMapView = ({ appointments, dateLabel, unscheduledAssignments = [] 
     }
   }, [geocodedAppts, techGroups, techColorMap, mapMode, geocodedUnscheduled]);
 
-  // Items that couldn't be placed on map at all
+  // No-location items
   const noLocationAppts = appointments.filter(
     (a) => !a.latitude && !a.longitude && !geocodedAppts.some((g) => g.original === a)
   );
@@ -393,28 +447,16 @@ const CalendarMapView = ({ appointments, dateLabel, unscheduledAssignments = [] 
 
   const totalOnMap = geocodedAppts.length + (mapMode === "all" ? geocodedUnscheduled.length : 0);
   const totalNoLocation = noLocationAppts.length + (mapMode === "all" ? noLocationUnscheduled.length : 0);
-  const geocodedCount = geocodedAppts.filter((g) => g.geocoded).length + geocodedUnscheduled.filter((g) => g.geocoded).length;
 
   return (
     <div className="space-y-3">
-      {/* Map mode toggle */}
       <div className="flex items-center gap-2 flex-wrap">
         <div className="flex items-center gap-1 bg-muted/50 p-0.5 rounded-lg">
-          <Button
-            variant={mapMode === "all" ? "default" : "ghost"}
-            size="sm"
-            className="gap-1.5 text-[10px] h-7"
-            onClick={() => setMapMode("all")}
-          >
+          <Button variant={mapMode === "all" ? "default" : "ghost"} size="sm" className="gap-1.5 text-[10px] h-7" onClick={() => setMapMode("all")}>
             <MapPin className="h-3 w-3" />
             Όλα τα SR ({geocodedAppts.length + geocodedUnscheduled.length})
           </Button>
-          <Button
-            variant={mapMode === "appointments" ? "default" : "ghost"}
-            size="sm"
-            className="gap-1.5 text-[10px] h-7"
-            onClick={() => setMapMode("appointments")}
-          >
+          <Button variant={mapMode === "appointments" ? "default" : "ghost"} size="sm" className="gap-1.5 text-[10px] h-7" onClick={() => setMapMode("appointments")}>
             <CalendarDays className="h-3 w-3" />
             Μόνο ραντεβού ({geocodedAppts.length})
           </Button>
@@ -423,14 +465,19 @@ const CalendarMapView = ({ appointments, dateLabel, unscheduledAssignments = [] 
         {isGeocoding && (
           <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
             <Loader2 className="h-3 w-3 animate-spin" />
-            Αναζήτηση διευθύνσεων...
+            Αναζήτηση τοποθεσιών...
           </div>
         )}
 
-        {geocodedCount > 0 && !isGeocoding && (
-          <Badge variant="outline" className="text-[9px] gap-1">
-            📍 {geocodedCount} βρέθηκαν από διεύθυνση
-          </Badge>
+        {!isGeocoding && (geocodeStats.fromRegistry > 0 || geocodeStats.fromHemd > 0) && (
+          <div className="flex items-center gap-2">
+            {geocodeStats.fromRegistry > 0 && (
+              <Badge variant="outline" className="text-[9px] gap-1">📋 {geocodeStats.fromRegistry} από μητρώο</Badge>
+            )}
+            {geocodeStats.fromHemd > 0 && (
+              <Badge variant="outline" className="text-[9px] gap-1">🔗 {geocodeStats.fromHemd} από ΧΕΜΔ</Badge>
+            )}
+          </div>
         )}
 
         <div className="flex items-center gap-3 text-[10px] text-muted-foreground ml-auto">
@@ -455,7 +502,6 @@ const CalendarMapView = ({ appointments, dateLabel, unscheduledAssignments = [] 
         </div>
       </Card>
 
-      {/* Route legend */}
       {techGroups.size > 0 && (
         <Card className="p-3">
           <div className="flex items-center gap-2 mb-2">
@@ -469,10 +515,7 @@ const CalendarMapView = ({ appointments, dateLabel, unscheduledAssignments = [] 
               const color = techColorMap.get(techId) || techColors[0];
               return (
                 <div key={techId} className="flex items-center gap-1.5 text-xs">
-                  <span
-                    className="h-3 w-3 rounded-full shrink-0"
-                    style={{ backgroundColor: color }}
-                  />
+                  <span className="h-3 w-3 rounded-full shrink-0" style={{ backgroundColor: color }} />
                   <span className="font-medium text-foreground">{techName}</span>
                   <span className="text-muted-foreground">({items.length} ραντεβού)</span>
                 </div>
@@ -482,7 +525,6 @@ const CalendarMapView = ({ appointments, dateLabel, unscheduledAssignments = [] 
         </Card>
       )}
 
-      {/* Summary of items without location */}
       {totalNoLocation > 0 && (
         <Card className="p-3">
           <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-2">
@@ -496,33 +538,16 @@ const CalendarMapView = ({ appointments, dateLabel, unscheduledAssignments = [] 
                   <Clock className="h-3 w-3" />
                   {new Date(a.appointment_at).toLocaleTimeString("el-GR", { hour: "2-digit", minute: "2-digit" })}
                 </span>
-                {a.area && (
-                  <span className="flex items-center gap-1">
-                    <MapPin className="h-3 w-3" /> {a.area}
-                  </span>
-                )}
-                {a.assignment?.address && (
-                  <span className="text-[10px] truncate max-w-[200px]">🏠 {a.assignment.address}</span>
-                )}
-                <Badge variant="outline" className="text-[8px]">Ραντεβού</Badge>
+                {a.area && <span className="flex items-center gap-1"><MapPin className="h-3 w-3" /> {a.area}</span>}
+                {a.assignment?.address && <span className="text-[10px] truncate max-w-[200px]">🏠 {a.assignment.address}</span>}
               </div>
             ))}
             {mapMode === "all" && noLocationUnscheduled.slice(0, 20).map((a) => (
               <div key={a.id} className="flex items-center gap-2 text-xs text-muted-foreground">
                 <Badge variant="secondary" className="text-[10px] font-bold">{a.sr_id}</Badge>
-                {a.area && (
-                  <span className="flex items-center gap-1">
-                    <MapPin className="h-3 w-3" /> {a.area}
-                  </span>
-                )}
-                {a.address && (
-                  <span className="text-[10px] truncate max-w-[200px]">🏠 {a.address}</span>
-                )}
-                {a.technician_name && (
-                  <span className="flex items-center gap-1">
-                    <User className="h-3 w-3" /> {a.technician_name}
-                  </span>
-                )}
+                {a.area && <span className="flex items-center gap-1"><MapPin className="h-3 w-3" /> {a.area}</span>}
+                {a.address && <span className="text-[10px] truncate max-w-[200px]">🏠 {a.address}</span>}
+                {a.technician_name && <span className="flex items-center gap-1"><User className="h-3 w-3" /> {a.technician_name}</span>}
               </div>
             ))}
             {mapMode === "all" && noLocationUnscheduled.length > 20 && (
