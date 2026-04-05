@@ -8,7 +8,8 @@ import { useOrganization } from "@/contexts/OrganizationContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Trash2, Loader2, CheckCircle, HardHat, Package, Wrench, Camera, X, ChevronDown, ChevronRight, Plus, Minus, MapPin, Route, BrainCircuit, ShieldCheck, ShieldAlert, AlertTriangle, Save, GitMerge, Building2, Copy } from "lucide-react";
+import { useTimeTracking } from "@/hooks/useTimeTracking";
+import { Trash2, Loader2, CheckCircle, HardHat, Package, Wrench, Camera, X, ChevronDown, ChevronRight, Plus, Minus, MapPin, Route, BrainCircuit, ShieldCheck, ShieldAlert, AlertTriangle, Save, GitMerge, Building2, Copy, LogOut } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -84,6 +85,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
   const orgName = organization?.name || "DELTANETWORK";
   const queryClient = useQueryClient();
   const { analyzeConstructionPhoto, getConstructionResult, isConstructionAnalyzing, hasRejectedPhotos, overrideResult } = useConstructionPhotoAnalysis();
+  const { activeEntry, checkOut } = useTimeTracking(assignment.id);
 
   // Override dialog state
   const [overrideTarget, setOverrideTarget] = useState<{ category: string; index: number } | null>(null);
@@ -3241,6 +3243,33 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
             ))}
           </AlertDescription>
         </Alert>
+      )}
+
+      {/* Check Out button */}
+      {activeEntry && (
+        <div className="flex items-center justify-between gap-3 p-3 rounded-lg border border-amber-500/30 bg-amber-500/5">
+          <div className="flex items-center gap-2">
+            <div className="h-2.5 w-2.5 rounded-full bg-green-500 animate-pulse" />
+            <span className="text-sm font-medium text-green-600">Σε εξέλιξη...</span>
+          </div>
+          <Button
+            size="sm"
+            variant="destructive"
+            className="gap-1.5 min-h-[40px]"
+            onClick={async () => {
+              try {
+                await checkOut.mutateAsync(undefined);
+                toast.success("✅ Check Out επιτυχές!");
+              } catch (err: any) {
+                toast.error(err.message || "Σφάλμα check-out");
+              }
+            }}
+            disabled={checkOut.isPending}
+          >
+            <LogOut className="h-3.5 w-3.5" />
+            Check Out
+          </Button>
+        </div>
       )}
 
       {/* Submit */}
