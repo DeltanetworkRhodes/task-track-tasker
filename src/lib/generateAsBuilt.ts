@@ -71,15 +71,22 @@ interface AsBuiltData {
   trenchLengthM: number;
   cabId: string;
   // BCP-BEP connection data
-  bcpPlacement: string;    // ΣΗΜΕΙΟ ΤΟΠΟΘΕΤΗΣΗΣ (e.g. "BCP ΕΠΙ ΤΟΥ ΚΤΙΡΙΟΥ")
-  bcpKind: string;         // ΕΙΔΟΣ (e.g. "BCP ΝΕΟ")
-  bcpBepCableType: string; // ΤΥΠΟΣ ΚΟΙ ΣΥΝΔΕΣΗ BCP ΜΕ BEP (e.g. "4 FO G652D")
-  bcpBepLength: number;    // ΜΗΚΟΣ BCP-BEP
+  bcpPlacement: string;
+  bcpKind: string;
+  bcpBepCableType: string;
+  bcpBepLength: number;
   // ΟΡΙΖΟΝΤΟΓΡΑΦΙΑ extra fields
-  verticalRouting: string; // Είδος κάθετης υποδομής (ΚΑΓΚΕΛΟ, ΚΛΙΜΑΚΟΣΤΑΣΙΟ, etc.)
-  escalitType: string;     // ΕΣΚΑΛΗΤ type
-  bcpType: string;         // BCP ΕΙΔΟΣ for ΟΡΙΖΟΝΤΟΓΡΑΦΙΑ
-  totalCableLength: number; // Total cable length (underground + vertical) for F13
+  verticalRouting: string;
+  escalitType: string;
+  bcpType: string;
+  totalCableLength: number;
+  // New fields
+  technicianName: string;
+  akId: string;
+  sesId: string;
+  exportDate: string;
+  // Multi-BCP support
+  additionalBcpConnections: { placement: string; kind: string; cableType: string; length: number }[];
 }
 
 /* ────────────────────────────────────────────
