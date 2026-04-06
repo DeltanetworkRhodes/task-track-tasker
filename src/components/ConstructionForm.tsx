@@ -128,7 +128,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
   // storageName uses ASCII for Supabase Storage compatibility
   const ALL_PHOTO_CATEGORIES = [
     { key: "ΣΚΑΜΑ", storageName: "SKAMA", label: "Σκάμα", icon: "⛏️", workPrefixes: ["1991", "1965"] },
-    { key: "ΟΔΕΥΣΗ", storageName: "ODEFSI", label: "Όδευση", icon: "🛤️", workPrefixes: ["1963", "1993"] },
+    { key: "ΟΔΕΥΣΗ", storageName: "ODEFSI", label: "Όδευση", icon: "🛤️", workPrefixes: ["1963", "1965", "1993"] },
     { key: "BCP", storageName: "BCP", label: "BCP", icon: "📦", workPrefixes: ["1991", "1993"] },
     { key: "BEP", storageName: "BEP", label: "BEP", icon: "🔌", workPrefixes: ["1963", "1965", "1970"] },
     { key: "BMO", storageName: "BMO", label: "BMO", icon: "📡", workPrefixes: ["1970"] },
