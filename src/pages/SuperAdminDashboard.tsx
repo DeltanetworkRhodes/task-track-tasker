@@ -441,7 +441,10 @@ const SuperAdminDashboard = () => {
     setImpersonating(orgId);
     try {
       const { data, error } = await supabase.functions.invoke("impersonate-user", {
-        body: { organization_id: orgId },
+        body: {
+          organization_id: orgId,
+          redirect_to: `${window.location.origin}/dashboard`,
+        },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);

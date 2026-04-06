@@ -39,8 +39,12 @@ Deno.serve(async (req) => {
       throw new Error("Only super_admin can impersonate users");
     }
 
-    const { organization_id } = await req.json();
+    const { organization_id, redirect_to } = await req.json();
     if (!organization_id) throw new Error("organization_id required");
+
+    const redirectUrl = typeof redirect_to === "string" && /^https?:\/\//.test(redirect_to)
+      ? redirect_to
+      : undefined;
 
     // Find the first admin of this organization
     const { data: profiles } = await supabaseAdmin
@@ -62,10 +66,11 @@ Deno.serve(async (req) => {
     const targetUser = adminUser || profiles[0];
     if (!targetUser.email) throw new Error("Target user has no email");
 
-    // Generate magic link
+    // Generate magic link on the same app origin the super admin is currently using
     const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
       type: "magiclink",
       email: targetUser.email,
+      options: redirectUrl ? { redirectTo: redirectUrl } : undefined,
     });
 
     if (linkError) throw linkError;
