@@ -42,9 +42,13 @@ Deno.serve(async (req) => {
     const { organization_id, redirect_to } = await req.json();
     if (!organization_id) throw new Error("organization_id required");
 
-    const redirectUrl = typeof redirect_to === "string" && /^https?:\/\//.test(redirect_to)
+    const requestOrigin = req.headers.get("origin");
+    const referer = req.headers.get("referer");
+    const refererOrigin = referer ? new URL(referer).origin : null;
+    const safeRedirectTo = typeof redirect_to === "string" && /^https?:\/\//.test(redirect_to)
       ? redirect_to
-      : undefined;
+      : null;
+    const redirectUrl = safeRedirectTo ?? ((requestOrigin || refererOrigin) ? `${requestOrigin || refererOrigin}/dashboard` : undefined);
 
     // Find the first admin of this organization
     const { data: profiles } = await supabaseAdmin
