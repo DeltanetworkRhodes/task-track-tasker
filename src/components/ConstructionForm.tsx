@@ -3220,7 +3220,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
           ) : (
             <>
               <Save className="h-4 w-4" />
-              {isCrewMode ? "💾 Αποθήκευση Εργασιών" : "Υποβολή Κατασκευής"}
+              {isCrewMode ? "💾 Αποθήκευση Εργασιών" : "💾 Αποθήκευση Κατασκευής"}
             </>
           )}
         </Button>
