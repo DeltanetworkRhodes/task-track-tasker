@@ -50,6 +50,10 @@ interface Props {
   crewAssignmentIds?: string[];
   /** Crew mode: lighter save (no assignment status change, no emails) */
   isCrewMode?: boolean;
+  /** Crew mode: only show works whose code starts with these prefixes */
+  filterWorkPrefixes?: string[];
+  /** Crew mode: only show materials whose code matches these codes */
+  filterMaterialCodes?: string[];
 }
 
 // Category definitions for works based on code prefix
