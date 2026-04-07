@@ -174,15 +174,15 @@ const ConstructionProgressTab = ({ assignments, isLoading }: Props) => {
     },
   });
 
-  // Fetch construction works counts
+  // Fetch construction works with pricing codes
   const constructionIds = constructions.map((c: any) => c.id);
   const { data: worksData = [] } = useQuery({
-    queryKey: ["construction-works-counts", constructionIds.join(",")],
+    queryKey: ["construction-works-detail", constructionIds.join(",")],
     enabled: constructionIds.length > 0,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("construction_works")
-        .select("construction_id")
+        .select("construction_id, work_pricing_id, work_pricing:work_pricing_id(code)")
         .in("construction_id", constructionIds);
       if (error) throw error;
       return data as any[];
