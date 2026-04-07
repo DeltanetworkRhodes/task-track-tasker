@@ -2,10 +2,9 @@ import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/contexts/OrganizationContext";
-import { useWorkCategories } from "@/hooks/useCrewData";
 import { useProfiles } from "@/hooks/useData";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CheckCircle2, Clock, User, HardHat, MapPin, Camera, Timer, CalendarDays, Circle, Wrench } from "lucide-react";
+import { CheckCircle2, Clock, User, HardHat, MapPin, Camera, Timer, CalendarDays, Circle, Wrench, FolderOpen } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { el } from "date-fns/locale";
 
@@ -31,36 +30,46 @@ function formatDuration(minutes: number): string {
   return `${h}ω ${m}λ`;
 }
 
-type CrewStatus = "not_started" | "in_progress" | "completed";
+// Known Drive photo categories and their display names
+const PHOTO_CATEGORY_LABELS: Record<string, string> = {
+  "ΣΚΑΜΑ": "Σκάμμα",
+  "ΟΔΕΥΣΗ": "Οδεύσεις",
+  "ΚΑΜΠΙΝΑ": "Καμπίνα",
+  "BEP": "BEP",
+  "BMO": "BMO",
+  "BCP": "BCP",
+  "FB": "FB",
+  "Γ_ΦΑΣΗ": "Γ' Φάση",
+  "ΕΜΦΥΣΗΣΗ": "Εμφύσηση",
+};
 
-function getCrewRealStatus(crew: any, photoCount: number, hasWorks: boolean): CrewStatus {
-  const hasPhotos = photoCount > 0;
-  if (!hasPhotos && !hasWorks) return "not_started";
-  if (hasPhotos && hasWorks) return "completed";
-  return "in_progress";
-}
+type ProgressLevel = "none" | "photos_only" | "works_only" | "complete";
 
-const statusConfig: Record<CrewStatus, { icon: typeof CheckCircle2; classes: string; label: string }> = {
-  not_started: {
+const progressConfig: Record<ProgressLevel, { icon: typeof CheckCircle2; classes: string; label: string }> = {
+  none: {
     icon: Circle,
     classes: "bg-muted/50 text-muted-foreground border-border",
-    label: "Δεν ξεκίνησε",
+    label: "Κενό",
   },
-  in_progress: {
-    icon: Clock,
+  photos_only: {
+    icon: Camera,
+    classes: "bg-blue-500/10 text-blue-700 border-blue-500/20 dark:text-blue-400",
+    label: "Μόνο φωτό",
+  },
+  works_only: {
+    icon: Wrench,
     classes: "bg-amber-500/10 text-amber-700 border-amber-500/20 dark:text-amber-400",
-    label: "Σε εξέλιξη",
+    label: "Μόνο εργασίες",
   },
-  completed: {
+  complete: {
     icon: CheckCircle2,
     classes: "bg-green-500/10 text-green-700 border-green-500/20 dark:text-green-400",
-    label: "Ολοκληρώθηκε",
+    label: "Πλήρες",
   },
 };
 
 const ConstructionProgressTab = ({ assignments, isLoading }: Props) => {
   const { organizationId } = useOrganization();
-  const { data: categories = [] } = useWorkCategories();
   const { data: profiles = [] } = useProfiles();
 
   const constructionAssignments = useMemo(
@@ -70,62 +79,32 @@ const ConstructionProgressTab = ({ assignments, isLoading }: Props) => {
 
   const assignmentIds = constructionAssignments.map((a) => a.id);
 
-  // Fetch crew assignments
-  const { data: crewAssignments = [] } = useQuery({
-    queryKey: ["crew-progress-all", assignmentIds.join(",")],
+  // Fetch constructions with photo_counts and works
+  const { data: constructions = [] } = useQuery({
+    queryKey: ["constructions-progress", assignmentIds.join(",")],
     enabled: assignmentIds.length > 0,
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("sr_crew_assignments" as any)
-        .select("*")
+        .from("constructions")
+        .select("id, assignment_id, sr_id, photo_counts, status")
         .in("assignment_id", assignmentIds);
       if (error) throw error;
       return data as any[];
     },
   });
 
-  // Fetch crew photos counts
-  const crewAssignmentIds = crewAssignments.map((c) => c.id);
-  const { data: crewPhotos = [] } = useQuery({
-    queryKey: ["crew-photos-counts", crewAssignmentIds.join(",")],
-    enabled: crewAssignmentIds.length > 0,
+  // Fetch construction works counts
+  const constructionIds = constructions.map((c: any) => c.id);
+  const { data: worksData = [] } = useQuery({
+    queryKey: ["construction-works-counts", constructionIds.join(",")],
+    enabled: constructionIds.length > 0,
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("sr_crew_photos" as any)
-        .select("crew_assignment_id")
-        .in("crew_assignment_id", crewAssignmentIds);
-      if (error) throw error;
-      return data as any[];
-    },
-  });
-
-  // Fetch construction works counts per assignment
-  const { data: constructionWorks = [] } = useQuery({
-    queryKey: ["construction-works-progress", assignmentIds.join(",")],
-    enabled: assignmentIds.length > 0,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("construction_works" as any)
-        .select("construction_id")
-        .in("construction_id", assignmentIds.length > 0 ? assignmentIds : ["__none__"]);
-      // construction_works links via construction_id -> constructions -> assignment_id
-      // We need to go through constructions table
-      const { data: constructions, error: cErr } = await supabase
-        .from("constructions" as any)
-        .select("id, assignment_id")
-        .in("assignment_id", assignmentIds);
-      if (cErr) throw cErr;
-      const constructionIds = (constructions as any[]).map((c) => c.id);
-      if (constructionIds.length === 0) return [];
-      const { data: works, error: wErr } = await supabase
-        .from("construction_works" as any)
+        .from("construction_works")
         .select("construction_id")
         .in("construction_id", constructionIds);
-      if (wErr) throw wErr;
-      // Map construction_id back to assignment_id
-      const cMap: Record<string, string> = {};
-      (constructions as any[]).forEach((c) => { cMap[c.id] = c.assignment_id; });
-      return (works as any[]).map((w) => ({ ...w, assignment_id: cMap[w.construction_id] }));
+      if (error) throw error;
+      return data as any[];
     },
   });
 
@@ -160,32 +139,21 @@ const ConstructionProgressTab = ({ assignments, isLoading }: Props) => {
   });
 
   // Group data
-  const crewByAssignment = useMemo(() => {
-    const map: Record<string, any[]> = {};
-    crewAssignments.forEach((ca) => {
-      if (!map[ca.assignment_id]) map[ca.assignment_id] = [];
-      map[ca.assignment_id].push(ca);
+  const constructionByAssignment = useMemo(() => {
+    const map: Record<string, any> = {};
+    constructions.forEach((c: any) => {
+      map[c.assignment_id] = c;
     });
     return map;
-  }, [crewAssignments]);
+  }, [constructions]);
 
-  const photosPerCrew = useMemo(() => {
+  const worksPerConstruction = useMemo(() => {
     const map: Record<string, number> = {};
-    crewPhotos.forEach((p: any) => {
-      map[p.crew_assignment_id] = (map[p.crew_assignment_id] || 0) + 1;
+    (worksData as any[]).forEach((w) => {
+      map[w.construction_id] = (map[w.construction_id] || 0) + 1;
     });
     return map;
-  }, [crewPhotos]);
-
-  const worksPerAssignment = useMemo(() => {
-    const map: Record<string, number> = {};
-    (constructionWorks as any[]).forEach((w) => {
-      if (w.assignment_id) {
-        map[w.assignment_id] = (map[w.assignment_id] || 0) + 1;
-      }
-    });
-    return map;
-  }, [constructionWorks]);
+  }, [worksData]);
 
   const timePerAssignment = useMemo(() => {
     const map: Record<string, { total: number; active: number }> = {};
@@ -213,14 +181,6 @@ const ConstructionProgressTab = ({ assignments, isLoading }: Props) => {
     return m;
   }, [profiles]);
 
-  const categoryMap = useMemo(() => {
-    const m: Record<string, string> = {};
-    (categories || []).forEach((c: any) => {
-      m[c.id] = c.name;
-    });
-    return m;
-  }, [categories]);
-
   if (isLoading) {
     return (
       <div className="p-4 space-y-3">
@@ -243,26 +203,26 @@ const ConstructionProgressTab = ({ assignments, isLoading }: Props) => {
   return (
     <div className="divide-y divide-border">
       {constructionAssignments.map((a) => {
-        const crews = crewByAssignment[a.id] || [];
-        const totalCategories = crews.length;
-        const hasWorksForAssignment = (worksPerAssignment[a.id] || 0) > 0;
+        const construction = constructionByAssignment[a.id];
+        const photoCounts: Record<string, number> = construction?.photo_counts || {};
+        const photoCategories = Object.entries(photoCounts).filter(([, count]) => (count as number) > 0);
+        const totalPhotos = photoCategories.reduce((sum, [, count]) => sum + (count as number), 0);
+        const worksCount = construction ? (worksPerConstruction[construction.id] || 0) : 0;
 
-        // Calculate real progress based on photos + works
-        const crewStatuses = crews.map((crew) => {
-          const photoCount = photosPerCrew[crew.id] || 0;
-          return getCrewRealStatus(crew, photoCount, hasWorksForAssignment);
-        });
-        const completedCount = crewStatuses.filter((s) => s === "completed").length;
-        const inProgressCount = crewStatuses.filter((s) => s === "in_progress").length;
-        const progressRaw = totalCategories > 0
-          ? ((completedCount * 100) + (inProgressCount * 50)) / totalCategories
-          : 0;
-        const progress = Math.round(progressRaw);
+        const hasPhotos = totalPhotos > 0;
+        const hasWorks = worksCount > 0;
+
+        let progressLevel: ProgressLevel = "none";
+        if (hasPhotos && hasWorks) progressLevel = "complete";
+        else if (hasPhotos) progressLevel = "photos_only";
+        else if (hasWorks) progressLevel = "works_only";
+
+        // Progress: photos = 50%, works = 50%
+        const progress = (hasPhotos ? 50 : 0) + (hasWorks ? 50 : 0);
 
         const timeData = timePerAssignment[a.id];
         const startedAt = constructionStartMap[a.id];
-        const worksCount = worksPerAssignment[a.id] || 0;
-        const totalPhotos = crews.reduce((sum, crew) => sum + (photosPerCrew[crew.id] || 0), 0);
+        const pConfig = progressConfig[progressLevel];
 
         return (
           <div key={a.id} className="p-4 sm:p-5 hover:bg-muted/30 transition-colors">
@@ -298,26 +258,19 @@ const ConstructionProgressTab = ({ assignments, isLoading }: Props) => {
                   }`}>
                     {progress}%
                   </span>
-                  <p className="text-[10px] text-muted-foreground">
-                    {completedCount}✅ {inProgressCount > 0 ? `${inProgressCount}🔄` : ""}
-                  </p>
                 </div>
                 <div className="w-20 h-2.5 rounded-full bg-muted overflow-hidden">
                   <div className="h-full flex">
                     <div
                       className="h-full bg-green-500 transition-all"
-                      style={{ width: totalCategories > 0 ? `${(completedCount / totalCategories) * 100}%` : "0%" }}
-                    />
-                    <div
-                      className="h-full bg-amber-400 transition-all"
-                      style={{ width: totalCategories > 0 ? `${(inProgressCount / totalCategories) * 100}%` : "0%" }}
+                      style={{ width: `${progress}%` }}
                     />
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Stats row: timeline, time, photos, works */}
+            {/* Stats row */}
             <div className="flex items-center gap-4 mb-2.5 text-[11px] text-muted-foreground flex-wrap">
               {startedAt && (
                 <span className="flex items-center gap-1" title={new Date(startedAt).toLocaleString("el-GR")}>
@@ -338,56 +291,44 @@ const ConstructionProgressTab = ({ assignments, isLoading }: Props) => {
                   )}
                 </span>
               )}
-              <span className="flex items-center gap-1">
+              <span className={`flex items-center gap-1 ${hasPhotos ? "text-foreground font-medium" : ""}`}>
                 <Camera className="h-3 w-3" />
                 {totalPhotos} φωτο
               </span>
-              <span className="flex items-center gap-1">
+              <span className={`flex items-center gap-1 ${hasWorks ? "text-foreground font-medium" : ""}`}>
                 <Wrench className="h-3 w-3" />
                 {worksCount} εργασίες
               </span>
             </div>
 
-            {/* Category progress chips */}
-            {crews.length > 0 && (
-              <div className="flex flex-wrap gap-1.5">
-                {crews.map((crew, idx) => {
-                  const photoCount = photosPerCrew[crew.id] || 0;
-                  const realStatus = crewStatuses[idx];
-                  const config = statusConfig[realStatus];
-                  const StatusIcon = config.icon;
-                  const catName = categoryMap[crew.category_id] || "—";
-                  const techName = profileMap[crew.technician_id] || "";
-                  return (
-                    <div
-                      key={crew.id}
-                      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-all ${config.classes}`}
-                      title={`${catName}: ${config.label}${techName ? ` → ${techName}` : ""} (${photoCount} φωτο)`}
-                    >
-                      <StatusIcon className="h-3 w-3" />
-                      <span className="max-w-[120px] truncate">{catName}</span>
-                      {photoCount > 0 && (
-                        <span className="inline-flex items-center gap-0.5 opacity-70">
-                          <Camera className="h-2.5 w-2.5" />
-                          {photoCount}
-                        </span>
-                      )}
-                      {techName && (
-                        <span className="text-[10px] opacity-60 max-w-[80px] truncate">
-                          ({techName.split(" ")[0]})
-                        </span>
-                      )}
-                    </div>
-                  );
-                })}
+            {/* Photo categories from Drive */}
+            {photoCategories.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mb-1.5">
+                {photoCategories.map(([cat, count]) => (
+                  <div
+                    key={cat}
+                    className="inline-flex items-center gap-1 rounded-full border border-blue-500/20 bg-blue-500/10 px-2.5 py-1 text-[11px] font-medium text-blue-700 dark:text-blue-400"
+                  >
+                    <FolderOpen className="h-3 w-3" />
+                    <span>{PHOTO_CATEGORY_LABELS[cat] || cat}</span>
+                    <span className="opacity-70">{count as number}</span>
+                  </div>
+                ))}
               </div>
             )}
 
-            {crews.length === 0 && (
-              <p className="text-xs text-muted-foreground/60 italic">
-                Δεν υπάρχουν αναθέσεις συνεργείου
-              </p>
-            )}
+            {/* Overall status chip */}
+            <div className="flex items-center gap-1.5 mt-1">
+              <div className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium ${pConfig.classes}`}>
+                <pConfig.icon className="h-3 w-3" />
+                <span>{pConfig.label}</span>
+              </div>
+              {!hasPhotos && !hasWorks && (
+                <span className="text-[11px] text-muted-foreground/60 italic">
+                  Δεν υπάρχουν δεδομένα ακόμα
+                </span>
+              )}
+            </div>
           </div>
         );
       })}
