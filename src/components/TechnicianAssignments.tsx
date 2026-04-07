@@ -77,6 +77,14 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
     const cat = (workCategoriesData || []).find((c: any) => c.id === ca.category_id);
     return cat?.photo_categories || [];
   });
+  const crewWorkPrefixes = (myCrewAssignments || []).flatMap((ca: any) => {
+    const cat = (workCategoriesData || []).find((c: any) => c.id === ca.category_id);
+    return cat?.work_prefixes || [];
+  });
+  const crewMaterialCodes = (myCrewAssignments || []).flatMap((ca: any) => {
+    const cat = (workCategoriesData || []).find((c: any) => c.id === ca.category_id);
+    return cat?.material_codes || [];
+  });
   const crewAssignmentIds = (myCrewAssignments || []).map((ca: any) => ca.id);
 
   // Fetch existing survey for selected assignment
