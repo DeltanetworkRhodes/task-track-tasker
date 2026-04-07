@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useEffect, useCallback } from "react";
+import { useState, useMemo, useRef, useEffect, useCallback } from "react"; // BEP door fix v2
 import { uploadPhotoDrive } from "@/lib/driveUpload";
 import { hapticFeedback } from "@/lib/haptics";
 import { compressImage } from "@/lib/imageCompression";
