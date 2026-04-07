@@ -1096,6 +1096,22 @@ const Surveys = () => {
                     )}
                   </Card>
 
+                  {/* Crew Assignment */}
+                  {(() => {
+                    const assignment = assignmentMap[normalizeSrId(selectedSurvey.sr_id)];
+                    if (!assignment) return null;
+                    return (
+                      <div className="pt-2 border-t border-border/30">
+                        <CrewAssignmentPanel assignment={{
+                          id: assignment.id,
+                          technician_id: assignment.technician_id,
+                          sr_id: assignment.sr_id,
+                          area: assignment.area,
+                        }} />
+                      </div>
+                    );
+                  })()}
+
                   {/* Files */}
                   {Object.entries(groupedFiles).map(([type, files]) => {
                     const Icon = fileTypeIcons[type] || FileImage;
