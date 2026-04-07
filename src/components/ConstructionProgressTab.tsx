@@ -31,19 +31,22 @@ function formatDuration(minutes: number): string {
   return `${h}ω ${m}λ`;
 }
 
-// Normalize Drive folder name for matching with category photo_categories
-// e.g. "ΣΚΑΜΑ" (Drive) should match "ΣΚΑΜΜΑ" (category), "Γ_ΦΑΣΗ" -> "Γ ΦΑΣΗ"
+// Normalize: strip accents, uppercase, remove underscores
 function normalizeName(name: string): string {
   return name
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // strip accents (ά→α, ό→ο etc)
     .toUpperCase()
     .replace(/_/g, " ")
     .replace(/ΜΜ/g, "Μ") // ΣΚΑΜΜΑ -> ΣΚΑΜΑ
+    .replace(/['']/g, "") // remove apostrophes
     .trim();
 }
 
 function driveKeyMatchesCategory(driveKey: string, categoryPhotoCat: string): boolean {
   const dk = normalizeName(driveKey);
   const cp = normalizeName(categoryPhotoCat);
+  // Exact match or partial contains
   return dk === cp || dk.includes(cp) || cp.includes(dk);
 }
 
