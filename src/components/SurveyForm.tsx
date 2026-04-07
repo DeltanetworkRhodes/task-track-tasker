@@ -571,7 +571,7 @@ interface FileUploadSectionProps {
   capture?: boolean;
   isCompressing?: boolean;
   compressionStats?: { original: number; compressed: number };
-  isAiAnalyzing?: boolean;
+  
 }
 
 const FileUploadSection = ({
@@ -585,7 +585,7 @@ const FileUploadSection = ({
   capture,
   isCompressing,
   compressionStats,
-  isAiAnalyzing,
+  
 }: FileUploadSectionProps) => {
   const savings = compressionStats
     ? Math.round((1 - compressionStats.compressed / compressionStats.original) * 100)
