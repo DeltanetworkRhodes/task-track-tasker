@@ -19,6 +19,7 @@ const LoginPage = () => {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [forgotSent, setForgotSent] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
 
   if (authLoading) return <div className="flex min-h-screen items-center justify-center bg-background"><div className="text-muted-foreground">Φόρτωση...</div></div>;
   if (user) return <Navigate to="/" replace />;
