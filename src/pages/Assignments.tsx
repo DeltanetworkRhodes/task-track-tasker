@@ -4,10 +4,11 @@ import AssignmentTable from "@/components/AssignmentTable";
 import CreateAssignmentDialog from "@/components/CreateAssignmentDialog";
 import AssignmentsImport from "@/components/AssignmentsImport";
 import SyncButton from "@/components/SyncButton";
+import ConstructionProgressTab from "@/components/ConstructionProgressTab";
 import { useAssignments } from "@/hooks/useData";
 import { useUserRole } from "@/hooks/useUserRole";
 import { statusLabels } from "@/data/mockData";
-import { ClipboardCheck, Filter, Search, Plus, UserX, CheckCircle2, XCircle, ListChecks, AlertCircle, Radio, FileSpreadsheet } from "lucide-react";
+import { ClipboardCheck, Filter, Search, Plus, UserX, CheckCircle2, XCircle, ListChecks, AlertCircle, Radio, FileSpreadsheet, HardHat } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -15,6 +16,7 @@ const AdminLiveMap = lazy(() => import("@/components/AdminLiveMap"));
 
 const tabs = [
   { key: "active", label: "Ενεργές", icon: ListChecks },
+  { key: "construction", label: "Κατασκευές", icon: HardHat },
   { key: "unassigned", label: "Χωρίς Ανάθεση", icon: UserX },
   { key: "cancelled", label: "Ακυρωμένες", icon: XCircle },
   { key: "all", label: "Όλες", icon: ClipboardCheck },
@@ -79,8 +81,10 @@ const Assignments = () => {
 
   // Tab counts — only pending + cancelled in this page
   const pendingOnly = assignments.filter(a => a.status === "pending");
+  const constructionOnly = assignments.filter(a => a.status === "construction");
   const tabCounts = useMemo(() => ({
     active: pendingOnly.length,
+    construction: constructionOnly.length,
     unassigned: pendingOnly.filter(a => !(a as any).technicianId).length,
     cancelled: assignments.filter(a => a.status === "cancelled").length,
     all: pendingOnly.length + assignments.filter(a => a.status === "cancelled").length,
@@ -175,6 +179,20 @@ const Assignments = () => {
           <Suspense fallback={<div className="p-12 text-center"><Skeleton className="h-[60vh] w-full rounded-xl" /></div>}>
             <AdminLiveMap />
           </Suspense>
+        ) : activeTab === "construction" ? (
+          <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
+            <div className="flex items-center gap-2 border-b border-border px-4 sm:px-5 py-3 sm:py-4">
+              <HardHat className="h-4 w-4 text-primary shrink-0" />
+              <h2 className="font-bold text-sm">Κατασκευές — Πρόοδος Συνεργείων</h2>
+              <span className="ml-auto text-[10px] sm:text-xs text-muted-foreground font-bold bg-muted px-2 py-0.5 rounded-full">
+                {constructionOnly.length}
+              </span>
+            </div>
+            <ConstructionProgressTab
+              assignments={assignments as any}
+              isLoading={!!isLoading}
+            />
+          </div>
         ) : (
           <>
             {/* Filters row */}
