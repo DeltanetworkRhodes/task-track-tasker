@@ -793,6 +793,18 @@ const ConstructionPage = () => {
                     </Card>
                   )}
 
+                  {/* Crew Assignment */}
+                  {assignment && (
+                    <div className="pt-2 border-t border-border/30">
+                      <CrewAssignmentPanel assignment={{
+                        id: assignment.id,
+                        technician_id: assignment.technician_id,
+                        sr_id: assignment.sr_id,
+                        area: assignment.area,
+                      }} />
+                    </div>
+                  )}
+
                   {/* Date */}
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <Calendar className="h-3.5 w-3.5" />
