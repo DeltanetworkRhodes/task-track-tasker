@@ -2719,7 +2719,8 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                 </div>
               </div>
             </div>
-          ))}
+            );
+          })}
           <div className="flex justify-between text-xs font-semibold text-foreground bg-muted/50 rounded-lg p-2">
             <span>Σύνολο</span>
             <span>KOI: {totalKoi.toFixed(1)}m · ΦΥΡΑ: {totalFyraKoi.toFixed(1)}m</span>
