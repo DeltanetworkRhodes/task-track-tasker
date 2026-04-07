@@ -112,14 +112,7 @@ const SurveyForm = ({ assignments, prefillSrId, prefillArea, onComplete }: Props
       const file = processedFiles[i];
       const preview = URL.createObjectURL(file);
 
-      // AI analysis only when online and for image files
-      if (isOnline() && file.type.startsWith("image/")) {
-        const result = await analyzePhoto(file, photoType, category, startIndex + i);
-        if (!result.isValid) {
-          URL.revokeObjectURL(preview);
-          continue; // Skip rejected photos
-        }
-      }
+
 
       accepted.push({ file, preview });
     }
@@ -474,7 +467,7 @@ const SurveyForm = ({ assignments, prefillSrId, prefillArea, onComplete }: Props
         capture
         isCompressing={compressing["building"]}
         compressionStats={compressionStats["building"]}
-        isAiAnalyzing={isAnalyzing("building")}
+        
       />
 
       {/* SCREENSHOTS */}
@@ -487,7 +480,7 @@ const SurveyForm = ({ assignments, prefillSrId, prefillArea, onComplete }: Props
         accept="image/*"
         isCompressing={compressing["screenshots"]}
         compressionStats={compressionStats["screenshots"]}
-        isAiAnalyzing={isAnalyzing("screenshots")}
+        
       />
 
       {/* ΔΕΛΤΙΟ ΑΥΤΟΨΙΑΣ PDF */}

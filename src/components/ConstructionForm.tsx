@@ -1099,10 +1099,6 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
 
   const handleSubmit = async () => {
     hapticFeedback.medium();
-    if (hasRejectedPhotos()) {
-      toast.error("Υπάρχουν φωτογραφίες που δεν πέρασαν τον έλεγχο ΟΤΕ. Αντικαταστήστε τες πριν την υποβολή.");
-      return;
-    }
     if (!isCrewMode && !cab.trim()) {
       toast.error("Η Καμπίνα (CAB) είναι υποχρεωτική");
       return;
@@ -2958,7 +2954,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
           {visiblePhotoCategories.map((cat) => {
             const catPhotos = categorizedPhotos[cat.key] || [];
             const catPreviews = categorizedPreviews[cat.key] || [];
-            const analyzing = isConstructionAnalyzing(cat.key);
+            
             return (
               <div key={cat.key} className="border border-border rounded-lg p-3 space-y-2">
                 <div className="flex items-center justify-between">
