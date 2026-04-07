@@ -3114,49 +3114,6 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
       </Card>
 
 
-      {/* Override Dialog */}
-      {overrideTarget && (
-        <Card className="p-4 space-y-3 border-amber-500/40 bg-amber-500/5">
-          <div className="flex items-center gap-2">
-            <AlertTriangle className="h-4 w-4 text-amber-600" />
-            <span className="text-sm font-semibold text-amber-700">Override Απόρριψης AI</span>
-          </div>
-          <Label className="text-xs text-muted-foreground">
-            Αιτιολογία override (υποχρεωτικό):
-          </Label>
-          <Textarea
-            value={overrideReason}
-            onChange={(e) => setOverrideReason(e.target.value)}
-            placeholder="π.χ. Η φωτογραφία είναι σωστή, το AI έκανε λάθος αναγνώριση..."
-            className="text-xs min-h-[60px]"
-          />
-          <div className="flex gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setOverrideTarget(null)}
-              className="text-xs"
-            >
-              Ακύρωση
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              disabled={!overrideReason.trim()}
-              className="text-xs bg-amber-600 hover:bg-amber-700 text-white"
-              onClick={() => {
-                overrideResult(overrideTarget.category, overrideTarget.index, overrideReason.trim());
-                toast.warning("⚠️ Override καταγράφηκε");
-                setOverrideTarget(null);
-                setOverrideReason("");
-              }}
-            >
-              Επιβεβαίωση Override
-            </Button>
-          </div>
-        </Card>
-      )}
 
       {/* Existing uploaded files summary */}
       {(Object.keys(existingPhotoCounts).length > 0 || Object.keys(existingOtdrCounts).length > 0) && (
