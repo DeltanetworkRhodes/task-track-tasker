@@ -3073,7 +3073,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
       </Card>
 
       {/* OTDR Measurements - PDF uploads */}
-      <Card className="p-4 space-y-3">
+      {!isCrewMode && <Card className="p-4 space-y-3">
         <div className="flex items-center justify-between">
           <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
             📊 Μετρήσεις OTDR (PDF)
@@ -3136,7 +3136,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
             );
           })}
         </div>
-      </Card>
+      </Card>}
 
 
 
