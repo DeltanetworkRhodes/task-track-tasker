@@ -4,10 +4,11 @@ import AssignmentTable from "@/components/AssignmentTable";
 import CreateAssignmentDialog from "@/components/CreateAssignmentDialog";
 import AssignmentsImport from "@/components/AssignmentsImport";
 import SyncButton from "@/components/SyncButton";
+import ConstructionProgressTab from "@/components/ConstructionProgressTab";
 import { useAssignments } from "@/hooks/useData";
 import { useUserRole } from "@/hooks/useUserRole";
 import { statusLabels } from "@/data/mockData";
-import { ClipboardCheck, Filter, Search, Plus, UserX, CheckCircle2, XCircle, ListChecks, AlertCircle, Radio, FileSpreadsheet } from "lucide-react";
+import { ClipboardCheck, Filter, Search, Plus, UserX, CheckCircle2, XCircle, ListChecks, AlertCircle, Radio, FileSpreadsheet, HardHat } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -15,6 +16,7 @@ const AdminLiveMap = lazy(() => import("@/components/AdminLiveMap"));
 
 const tabs = [
   { key: "active", label: "Ενεργές", icon: ListChecks },
+  { key: "construction", label: "Κατασκευές", icon: HardHat },
   { key: "unassigned", label: "Χωρίς Ανάθεση", icon: UserX },
   { key: "cancelled", label: "Ακυρωμένες", icon: XCircle },
   { key: "all", label: "Όλες", icon: ClipboardCheck },
