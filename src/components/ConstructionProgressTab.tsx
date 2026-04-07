@@ -31,51 +31,50 @@ function formatDuration(minutes: number): string {
   return `${h}ω ${m}λ`;
 }
 
+// === Fixed 7 progress categories ===
+const PROGRESS_CATEGORIES = [
+  { key: "skama", label: "Σκάμα", icon: "⛏️", driveFolders: ["ΣΚΑΜΑ", "ΣΚΑΜΜΑ"], type: "photos" },
+  { key: "odefsi", label: "Όδευση", icon: "🛤️", driveFolders: ["ΟΔΕΥΣΗ", "ΟΔΕΥΣΕΙΣ"], type: "photos" },
+  { key: "bep", label: "BEP", icon: "🔌", driveFolders: ["BEP"], type: "photos" },
+  { key: "bmo", label: "BMO", icon: "📡", driveFolders: ["BMO"], type: "photos" },
+  { key: "fb", label: "Floor Box", icon: "📋", driveFolders: ["FB", "FLOOR BOX", "FLOORBOX"], type: "photos" },
+  { key: "g_fasi", label: "Γ' Φάση", icon: "👤", driveFolders: ["Γ_ΦΑΣΗ", "Γ ΦΑΣΗ", "ΤΕΛΙΚΗ"], type: "photos" },
+  { key: "emfysisi", label: "Εμφύσηση", icon: "💨", driveFolders: [], type: "works", workCodes: ["1980"] },
+  { key: "otdr", label: "OTDR", icon: "📏", driveFolders: ["OTDR", "ΚΟΛΛΗΣΗ"], type: "measurements" },
+] as const;
+
 // Normalize: strip accents, uppercase, remove underscores
 function normalizeName(name: string): string {
   return name
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "") // strip accents (ά→α, ό→ο etc)
+    .replace(/[\u0300-\u036f]/g, "")
     .toUpperCase()
     .replace(/_/g, " ")
-    .replace(/ΜΜ/g, "Μ") // ΣΚΑΜΜΑ -> ΣΚΑΜΑ
-    .replace(/['']/g, "") // remove apostrophes
+    .replace(/ΜΜ/g, "Μ")
+    .replace(/[''`]/g, "")
     .trim();
 }
 
-function driveKeyMatchesCategory(driveKey: string, categoryPhotoCat: string): boolean {
-  const dk = normalizeName(driveKey);
-  const cp = normalizeName(categoryPhotoCat);
-  // Exact match or partial contains
-  return dk === cp || dk.includes(cp) || cp.includes(dk);
+function folderMatchesAny(folderName: string, targets: readonly string[]): boolean {
+  const nf = normalizeName(folderName);
+  return targets.some((t) => {
+    const nt = normalizeName(t);
+    return nf === nt || nf.includes(nt) || nt.includes(nf);
+  });
 }
 
-// Check how many of a category's expected photo folders have actual photos in Drive
-function getCategoryPhotoStatus(
-  categoryPhotoCategories: string[],
+// Count photos in Drive/DB for a set of folder name targets
+function countPhotosForCategory(
+  targets: readonly string[],
   photoCounts: Record<string, number>
-): { hasAny: boolean; matchedCount: number; totalExpected: number; photoCount: number } {
-  if (!categoryPhotoCategories || categoryPhotoCategories.length === 0) {
-    return { hasAny: false, matchedCount: 0, totalExpected: 0, photoCount: 0 };
-  }
-  let matchedCount = 0;
-  let photoCount = 0;
-  const driveKeys = Object.keys(photoCounts);
-
-  for (const expectedCat of categoryPhotoCategories) {
-    const match = driveKeys.find((dk) => driveKeyMatchesCategory(dk, expectedCat));
-    if (match && photoCounts[match] > 0) {
-      matchedCount++;
-      photoCount += photoCounts[match];
+): number {
+  let total = 0;
+  for (const [key, count] of Object.entries(photoCounts)) {
+    if (folderMatchesAny(key, targets) && count > 0) {
+      total += count;
     }
   }
-
-  return {
-    hasAny: matchedCount > 0,
-    matchedCount,
-    totalExpected: categoryPhotoCategories.length,
-    photoCount,
-  };
+  return total;
 }
 
 type CrewStatus = "not_started" | "partial" | "completed";
@@ -84,7 +83,7 @@ const statusConfig: Record<CrewStatus, { icon: typeof CheckCircle2; classes: str
   not_started: {
     icon: Circle,
     classes: "bg-muted/50 text-muted-foreground border-border",
-    label: "Δεν ξεκίνησε",
+    label: "—",
   },
   partial: {
     icon: Clock,
@@ -94,7 +93,7 @@ const statusConfig: Record<CrewStatus, { icon: typeof CheckCircle2; classes: str
   completed: {
     icon: CheckCircle2,
     classes: "bg-green-500/10 text-green-700 border-green-500/20 dark:text-green-400",
-    label: "Ολοκληρώθηκε",
+    label: "✅",
   },
 };
 
