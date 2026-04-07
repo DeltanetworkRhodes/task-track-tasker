@@ -323,8 +323,14 @@ const ConstructionProgressTab = ({ assignments, isLoading }: Props) => {
           return cat?.requires_measurements && c.measurements && Object.keys(c.measurements).length > 0;
         });
 
-        // Evaluate fixed 8 categories
-        const categoryStatuses = PROGRESS_CATEGORIES.map((pc) => {
+        // SRs starting with digits (77xxx, 88xxx) without "2-" prefix don't have Γ' Φάση
+        const hasGFasi = /^2-/.test(a.srId);
+        const applicableCategories = PROGRESS_CATEGORIES.filter(
+          (pc) => pc.key !== "g_fasi" || hasGFasi
+        );
+
+        // Evaluate applicable categories
+        const categoryStatuses = applicableCategories.map((pc) => {
           let status: CrewStatus = "not_started";
           let count = 0;
           let detail = "";
