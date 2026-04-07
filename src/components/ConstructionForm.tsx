@@ -2994,13 +2994,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                       onChange={(e) => handleCategoryPhotoSelect(cat.key, e)}
                       className="hidden"
                     />
-                    {analyzing ? (
-                      <Button type="button" variant="outline" size="sm" className="h-7 text-[11px] gap-1 px-2" disabled>
-                        <BrainCircuit className="h-3 w-3 animate-spin" />
-                        AI...
-                      </Button>
-                    ) : (
-                      <div className="flex gap-1">
+                    <div className="flex gap-1">
                         <Button
                           type="button"
                           variant="outline"
