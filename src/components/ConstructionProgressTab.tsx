@@ -317,24 +317,42 @@ const ConstructionProgressTab = ({ assignments, isLoading }: Props) => {
         const hasWorks = worksCount > 0;
         const driveFileCount = driveData?.totalFiles || 0;
 
-        // Evaluate each crew category
-        const categoryStatuses = crews.map((crew) => {
-          const cat = categoryMap[crew.category_id];
-          if (!cat) return { crew, status: "not_started" as CrewStatus, photoStatus: null, hasMeasurements: false };
-          
-          const photoStatus = getCategoryPhotoStatus(cat.photo_categories || [], photoCounts);
-          const hasMeasurements = !cat.requires_measurements || (crew.measurements && Object.keys(crew.measurements).length > 0);
-          const hasRequiredWorks = !cat.requires_works || hasWorks;
+        // Build category statuses: use crew assignments if available, otherwise generate from work categories
+        const activeCats = (categories || []).filter((c: any) => c.active !== false);
+        
+        const categoryStatuses = crews.length > 0
+          ? crews.map((crew) => {
+              const cat = categoryMap[crew.category_id];
+              if (!cat) return { crew, status: "not_started" as CrewStatus, photoStatus: null, hasMeasurements: false, cat: null };
+              
+              const photoStatus = getCategoryPhotoStatus(cat.photo_categories || [], photoCounts);
+              const hasMeasurements = !cat.requires_measurements || (crew.measurements && Object.keys(crew.measurements).length > 0);
+              const hasRequiredWorks = !cat.requires_works || hasWorks;
 
-          let status: CrewStatus = "not_started";
-          if (photoStatus.hasAny && hasMeasurements && hasRequiredWorks) {
-            status = "completed";
-          } else if (photoStatus.hasAny || (crew.status === "saved")) {
-            status = "partial";
-          }
+              let status: CrewStatus = "not_started";
+              if (photoStatus.hasAny && hasMeasurements && hasRequiredWorks) {
+                status = "completed";
+              } else if (photoStatus.hasAny || (crew.status === "saved")) {
+                status = "partial";
+              }
 
-          return { crew, status, photoStatus, hasMeasurements, cat };
-        });
+              return { crew, status, photoStatus, hasMeasurements, cat };
+            })
+          : // No crew assignments — generate virtual statuses from work categories + photo_counts/works
+            activeCats.map((cat: any) => {
+              const photoStatus = getCategoryPhotoStatus(cat.photo_categories || [], photoCounts);
+              const hasMeasurements = !cat.requires_measurements; // no crew = no measurements data
+              const hasRequiredWorks = !cat.requires_works || hasWorks;
+
+              let status: CrewStatus = "not_started";
+              if (photoStatus.hasAny && hasMeasurements && hasRequiredWorks) {
+                status = "completed";
+              } else if (photoStatus.hasAny || hasRequiredWorks && cat.requires_works) {
+                status = "partial";
+              }
+
+              return { crew: { id: cat.id, category_id: cat.id, technician_id: null, status: null }, status, photoStatus, hasMeasurements, cat };
+            });
 
         const completedCount = categoryStatuses.filter((s) => s.status === "completed").length;
         const partialCount = categoryStatuses.filter((s) => s.status === "partial").length;
