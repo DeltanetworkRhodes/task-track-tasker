@@ -3136,7 +3136,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
             );
           })}
         </div>
-      </Card>
+      </Card>}
 
 
 
