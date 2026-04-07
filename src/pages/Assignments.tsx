@@ -81,8 +81,10 @@ const Assignments = () => {
 
   // Tab counts — only pending + cancelled in this page
   const pendingOnly = assignments.filter(a => a.status === "pending");
+  const constructionOnly = assignments.filter(a => a.status === "construction");
   const tabCounts = useMemo(() => ({
     active: pendingOnly.length,
+    construction: constructionOnly.length,
     unassigned: pendingOnly.filter(a => !(a as any).technicianId).length,
     cancelled: assignments.filter(a => a.status === "cancelled").length,
     all: pendingOnly.length + assignments.filter(a => a.status === "cancelled").length,
