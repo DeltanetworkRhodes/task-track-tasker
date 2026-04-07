@@ -179,6 +179,20 @@ const Assignments = () => {
           <Suspense fallback={<div className="p-12 text-center"><Skeleton className="h-[60vh] w-full rounded-xl" /></div>}>
             <AdminLiveMap />
           </Suspense>
+        ) : activeTab === "construction" ? (
+          <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
+            <div className="flex items-center gap-2 border-b border-border px-4 sm:px-5 py-3 sm:py-4">
+              <HardHat className="h-4 w-4 text-primary shrink-0" />
+              <h2 className="font-bold text-sm">Κατασκευές — Πρόοδος Συνεργείων</h2>
+              <span className="ml-auto text-[10px] sm:text-xs text-muted-foreground font-bold bg-muted px-2 py-0.5 rounded-full">
+                {constructionOnly.length}
+              </span>
+            </div>
+            <ConstructionProgressTab
+              assignments={assignments as any}
+              isLoading={!!isLoading}
+            />
+          </div>
         ) : (
           <>
             {/* Filters row */}
