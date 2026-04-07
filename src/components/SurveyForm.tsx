@@ -48,7 +48,7 @@ const SurveyForm = ({ assignments, prefillSrId, prefillArea, onComplete }: Props
   const { organizationId } = useOrganization();
   const queryClient = useQueryClient();
   const online = useOnlineStatus();
-  const { analyzePhoto, getResult, isAnalyzing, clearResults } = usePhotoAnalysis();
+  
   const [area, setArea] = useState(prefillArea || "");
   const [srId, setSrId] = useState(prefillSrId || "");
   const [comments, setComments] = useState("");
