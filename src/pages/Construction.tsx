@@ -5,6 +5,7 @@ import { useConstructions, useAssignments } from "@/hooks/useData";
 import { constructionStatusLabels } from "@/data/mockData";
 import { Wrench, TrendingUp, Receipt, DollarSign, Search, Filter, ExternalLink, ChevronDown, ChevronUp, Calendar, MapPin, Layers, Route, Trash2, Radio, CheckCircle2, AlertCircle } from "lucide-react";
 import AsBuiltExporter from "@/components/AsBuiltExporter";
+import CrewAssignmentPanel from "@/components/CrewAssignmentPanel";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
