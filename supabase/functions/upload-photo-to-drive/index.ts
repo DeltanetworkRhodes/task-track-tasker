@@ -241,9 +241,10 @@ Deno.serve(async (req) => {
     const accessToken = await getAccessToken(serviceAccountKey);
 
     // Step A: Find SR folder in Drive
+    const escapedSrId = sr_id.replace(/'/g, "\\'");
     const srFolders = await driveSearch(
       accessToken,
-      `name contains '${sr_id}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`
+      `name contains '${escapedSrId}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`
     );
 
     if (srFolders.length === 0) {
