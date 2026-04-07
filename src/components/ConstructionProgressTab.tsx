@@ -5,7 +5,7 @@ import { useOrganization } from "@/contexts/OrganizationContext";
 import { useWorkCategories } from "@/hooks/useCrewData";
 import { useProfiles } from "@/hooks/useData";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CheckCircle2, Clock, User, HardHat, MapPin, Camera, Timer, CalendarDays } from "lucide-react";
+import { CheckCircle2, Clock, User, HardHat, MapPin, Camera, Timer, CalendarDays, Circle } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { el } from "date-fns/locale";
 
@@ -30,6 +30,32 @@ function formatDuration(minutes: number): string {
   if (h === 0) return `${m}λ`;
   return `${h}ω ${m}λ`;
 }
+
+type CrewStatus = "not_started" | "in_progress" | "completed";
+
+function getCrewRealStatus(crew: any, photoCount: number): CrewStatus {
+  if (photoCount === 0) return "not_started";
+  if (crew.status === "saved" && photoCount > 0) return "completed";
+  return "in_progress";
+}
+
+const statusConfig: Record<CrewStatus, { icon: typeof CheckCircle2; classes: string; label: string }> = {
+  not_started: {
+    icon: Circle,
+    classes: "bg-muted/50 text-muted-foreground border-border",
+    label: "Δεν ξεκίνησε",
+  },
+  in_progress: {
+    icon: Clock,
+    classes: "bg-amber-500/10 text-amber-700 border-amber-500/20 dark:text-amber-400",
+    label: "Σε εξέλιξη",
+  },
+  completed: {
+    icon: CheckCircle2,
+    classes: "bg-green-500/10 text-green-700 border-green-500/20 dark:text-green-400",
+    label: "Ολοκληρώθηκε",
+  },
+};
 
 const ConstructionProgressTab = ({ assignments, isLoading }: Props) => {
   const { organizationId } = useOrganization();
@@ -86,7 +112,7 @@ const ConstructionProgressTab = ({ assignments, isLoading }: Props) => {
     },
   });
 
-  // Fetch assignment history for timeline (when it became "construction")
+  // Fetch assignment history for timeline
   const { data: historyEntries = [] } = useQuery({
     queryKey: ["construction-history", assignmentIds.join(",")],
     enabled: assignmentIds.length > 0,
@@ -178,8 +204,20 @@ const ConstructionProgressTab = ({ assignments, isLoading }: Props) => {
       {constructionAssignments.map((a) => {
         const crews = crewByAssignment[a.id] || [];
         const totalCategories = crews.length;
-        const savedCount = crews.filter((c) => c.status === "saved").length;
-        const progress = totalCategories > 0 ? Math.round((savedCount / totalCategories) * 100) : 0;
+
+        // Calculate real progress based on photos
+        const crewStatuses = crews.map((crew) => {
+          const photoCount = photosPerCrew[crew.id] || 0;
+          return getCrewRealStatus(crew, photoCount);
+        });
+        const completedCount = crewStatuses.filter((s) => s === "completed").length;
+        const inProgressCount = crewStatuses.filter((s) => s === "in_progress").length;
+        // Completed = 100%, in_progress = 50% weight for progress bar
+        const progressRaw = totalCategories > 0
+          ? ((completedCount * 100) + (inProgressCount * 50)) / totalCategories
+          : 0;
+        const progress = Math.round(progressRaw);
+
         const timeData = timePerAssignment[a.id];
         const startedAt = constructionStartMap[a.id];
 
@@ -212,20 +250,27 @@ const ConstructionProgressTab = ({ assignments, isLoading }: Props) => {
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 <div className="text-right">
-                  <span className={`text-xs font-bold ${progress === 100 ? "text-green-600" : "text-amber-600"}`}>
+                  <span className={`text-xs font-bold ${
+                    progress === 100 ? "text-green-600" : progress > 0 ? "text-amber-600" : "text-muted-foreground"
+                  }`}>
                     {progress}%
                   </span>
                   <p className="text-[10px] text-muted-foreground">
-                    {savedCount}/{totalCategories}
+                    {completedCount}✅ {inProgressCount > 0 ? `${inProgressCount}🔄` : ""}
                   </p>
                 </div>
-                <div className="w-16 h-2 rounded-full bg-muted overflow-hidden">
-                  <div
-                    className={`h-full rounded-full transition-all ${
-                      progress === 100 ? "bg-green-500" : "bg-amber-500"
-                    }`}
-                    style={{ width: `${progress}%` }}
-                  />
+                <div className="w-20 h-2.5 rounded-full bg-muted overflow-hidden">
+                  {/* Completed portion */}
+                  <div className="h-full flex">
+                    <div
+                      className="h-full bg-green-500 transition-all"
+                      style={{ width: totalCategories > 0 ? `${(completedCount / totalCategories) * 100}%` : "0%" }}
+                    />
+                    <div
+                      className="h-full bg-amber-400 transition-all"
+                      style={{ width: totalCategories > 0 ? `${(inProgressCount / totalCategories) * 100}%` : "0%" }}
+                    />
+                  </div>
                 </div>
               </div>
             </div>
@@ -256,26 +301,20 @@ const ConstructionProgressTab = ({ assignments, isLoading }: Props) => {
             {/* Category progress chips */}
             {crews.length > 0 && (
               <div className="flex flex-wrap gap-1.5">
-                {crews.map((crew) => {
-                  const isSaved = crew.status === "saved";
+                {crews.map((crew, idx) => {
+                  const photoCount = photosPerCrew[crew.id] || 0;
+                  const realStatus = crewStatuses[idx];
+                  const config = statusConfig[realStatus];
+                  const StatusIcon = config.icon;
                   const catName = categoryMap[crew.category_id] || "—";
                   const techName = profileMap[crew.technician_id] || "";
-                  const photoCount = photosPerCrew[crew.id] || 0;
                   return (
                     <div
                       key={crew.id}
-                      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-all ${
-                        isSaved
-                          ? "bg-green-500/10 text-green-700 border-green-500/20 dark:text-green-400"
-                          : "bg-amber-500/10 text-amber-700 border-amber-500/20 dark:text-amber-400"
-                      }`}
-                      title={techName ? `${catName} → ${techName}` : catName}
+                      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-all ${config.classes}`}
+                      title={`${catName}: ${config.label}${techName ? ` → ${techName}` : ""} (${photoCount} φωτο)`}
                     >
-                      {isSaved ? (
-                        <CheckCircle2 className="h-3 w-3" />
-                      ) : (
-                        <Clock className="h-3 w-3" />
-                      )}
+                      <StatusIcon className="h-3 w-3" />
                       <span className="max-w-[120px] truncate">{catName}</span>
                       {photoCount > 0 && (
                         <span className="inline-flex items-center gap-0.5 opacity-70">
