@@ -5,7 +5,7 @@ import { useOrganization } from "@/contexts/OrganizationContext";
 import { useWorkCategories } from "@/hooks/useCrewData";
 import { useProfiles } from "@/hooks/useData";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CheckCircle2, Clock, User, HardHat, MapPin, Camera, Timer, CalendarDays, Circle, Wrench, Ruler } from "lucide-react";
+import { CheckCircle2, Clock, User, HardHat, MapPin, Camera, Timer, CalendarDays, Circle, Wrench, Ruler, FolderOpen } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { el } from "date-fns/locale";
 
@@ -121,17 +121,54 @@ const ConstructionProgressTab = ({ assignments, isLoading }: Props) => {
     },
   });
 
-  // Fetch constructions with photo_counts from Drive
+  // Fetch constructions with photo_counts from DB
   const { data: constructions = [] } = useQuery({
     queryKey: ["constructions-progress", assignmentIds.join(",")],
     enabled: assignmentIds.length > 0,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("constructions")
-        .select("id, assignment_id, photo_counts")
+        .select("id, assignment_id, photo_counts, sr_id")
         .in("assignment_id", assignmentIds);
       if (error) throw error;
       return data as any[];
+    },
+  });
+
+  // Fetch REAL Drive data for each SR
+  const srIds = constructionAssignments.map((a) => a.srId);
+  const { data: driveDataMap = {} } = useQuery({
+    queryKey: ["drive-files-progress", srIds.join(",")],
+    enabled: srIds.length > 0,
+    staleTime: 5 * 60 * 1000, // cache 5 min to avoid too many calls
+    queryFn: async () => {
+      const result: Record<string, { subfolders: Record<string, { files: any[] }>; totalFiles: number }> = {};
+      // Fetch in parallel batches of 5
+      const batchSize = 5;
+      for (let i = 0; i < srIds.length; i += batchSize) {
+        const batch = srIds.slice(i, i + batchSize);
+        const results = await Promise.allSettled(
+          batch.map(async (srId) => {
+            const { data, error } = await supabase.functions.invoke("google-drive-files", {
+              body: { action: "sr_folder", sr_id: srId },
+            });
+            if (error) return { srId, found: false };
+            return { srId, ...data };
+          })
+        );
+        results.forEach((r) => {
+          if (r.status === "fulfilled" && r.value?.found) {
+            const d = r.value;
+            const subfolders = d.subfolders || {};
+            let totalFiles = (d.files || []).length;
+            Object.values(subfolders).forEach((sf: any) => {
+              totalFiles += (sf.files || []).length;
+            });
+            result[d.srId] = { subfolders, totalFiles };
+          }
+        });
+      }
+      return result;
     },
   });
 
@@ -258,9 +295,24 @@ const ConstructionProgressTab = ({ assignments, isLoading }: Props) => {
       {constructionAssignments.map((a) => {
         const crews = crewByAssignment[a.id] || [];
         const construction = constructionByAssignment[a.id];
-        const photoCounts: Record<string, number> = construction?.photo_counts || {};
+        const dbPhotoCounts: Record<string, number> = construction?.photo_counts || {};
+        const driveData = driveDataMap[a.srId];
+        
+        // Merge: use Drive real data if available, fallback to DB photo_counts
+        const photoCounts: Record<string, number> = { ...dbPhotoCounts };
+        if (driveData) {
+          // Override/supplement with real Drive subfolder file counts
+          Object.entries(driveData.subfolders).forEach(([folderName, sf]: [string, any]) => {
+            const fileCount = (sf.files || []).length;
+            if (fileCount > 0) {
+              photoCounts[folderName] = fileCount;
+            }
+          });
+        }
+        
         const worksCount = construction ? (worksPerConstruction[construction.id] || 0) : 0;
         const hasWorks = worksCount > 0;
+        const driveFileCount = driveData?.totalFiles || 0;
 
         // Evaluate each crew category
         const categoryStatuses = crews.map((crew) => {
@@ -369,6 +421,12 @@ const ConstructionProgressTab = ({ assignments, isLoading }: Props) => {
                 <Camera className="h-3 w-3" />
                 {totalPhotos} φωτο
               </span>
+              {driveFileCount > 0 && (
+                <span className="flex items-center gap-1 text-blue-600 dark:text-blue-400" title="Πραγματικά αρχεία στο Google Drive">
+                  <FolderOpen className="h-3 w-3" />
+                  {driveFileCount} Drive
+                </span>
+              )}
               <span className="flex items-center gap-1">
                 <Wrench className="h-3 w-3" />
                 {worksCount} εργασίες
