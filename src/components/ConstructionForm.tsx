@@ -3205,7 +3205,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
           )}
         </Button>
 
-        {isCrewMode && (
+        {isCrewMode && filterWorkPrefixes?.some(p => p === '1986') && (
           <>
             {!mandatoryPhotosValid && mandatoryPhotoKeys.size > 0 && (
               <Alert className="border-destructive/30 bg-destructive/5">
