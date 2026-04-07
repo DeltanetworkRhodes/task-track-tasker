@@ -2379,7 +2379,45 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                      .map(([pair, label]) => ({ pair: parseInt(pair, 10), label }))
                      .sort((a, b) => a.pair - b.pair);
 
-                     if (!hasCabLabel && !hasBcpLabel && !hasBepLabel && !hasMobLabel && !hasFbLabel) return null;
+                    // --- FB groups from BMO-FB paths (grouped by FLOOR, not FB name) ---
+                    const fbGroups: Record<string, { floor: string; ports: { mobPort: number; fbPortNum: number }[] }> = {};
+                    for (const p of bmoFbPaths) {
+                      const pathStr = p["OPTICAL PATH"] || "";
+                      const m = pathStr.match(/BMO\d+_(\d+)_FB\(([^)]+)\)\.(\d+)(?:_(\d+))?/i);
+                      if (m) {
+                        const mobPort = parseInt(m[1], 10);
+                        const floorId = normalizeFloorId(m[2]);
+                        const fbPortNum = m[4] ? parseInt(m[4], 10) : mobPort;
+                        if (!fbGroups[floorId]) fbGroups[floorId] = { floor: floorId, ports: [] };
+                        fbGroups[floorId].ports.push({ mobPort, fbPortNum });
+                      }
+                    }
+                   
+                   // --- BMO name ---
+                   let mobName = "";
+                   for (const p of [...bepBmoPaths, ...bmoFbPaths]) {
+                     const path = p["OPTICAL PATH"] || "";
+                     const mobMatch = path.match(/((?:MOB|BMO)\d+(?:\([^)]+\))?)/i);
+                     if (mobMatch && !mobName) { mobName = mobMatch[1]; break; }
+                   }
+                   
+                   // --- Splitter labels for cabinet ---
+                   const splitterLabelsList = splitterEntries
+                     .filter(s => s.sga)
+                     .map(s => {
+                       const sgaPort = s.sgaPort ? `.${s.sgaPort.padStart(2, "0")}` : "";
+                       return `${s.sga}${sgaPort}`;
+                     })
+                     .filter((v, i, arr) => arr.indexOf(v) === i);
+                   
+                   // --- Conditions ---
+                   const hasCabLabel = !!(cabName && address);
+                    const hasBcpLabel = hasBcpConnection && !!(cabName && fiberRange);
+                   const hasBepLabel = !!(bepName && (cabFiberNums.length > 0 || bepBmoPorts.length > 0));
+                   const hasMobLabel = !bepOnly && Object.keys(fbGroups).length > 0;
+                    const hasFbLabel = !bepOnly && Object.keys(fbGroups).length > 0;
+
+                      if (!hasCabLabel && !hasBcpLabel && !hasBepLabel && !hasMobLabel && !hasFbLabel) return null;
 
                    // Label card helper
                    const LabelCard = ({ color, icon, title, children }: { color: string; icon: string; title: string; children: React.ReactNode }) => (
