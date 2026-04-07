@@ -295,28 +295,24 @@ const ConstructionProgressTab = ({ assignments, isLoading }: Props) => {
       {constructionAssignments.map((a) => {
         const crews = crewByAssignment[a.id] || [];
         const construction = constructionByAssignment[a.id];
-        const photoCounts: Record<string, number> = construction?.photo_counts || {};
+        const dbPhotoCounts: Record<string, number> = construction?.photo_counts || {};
+        const driveData = driveDataMap[a.srId];
+        
+        // Merge: use Drive real data if available, fallback to DB photo_counts
+        const photoCounts: Record<string, number> = { ...dbPhotoCounts };
+        if (driveData) {
+          // Override/supplement with real Drive subfolder file counts
+          Object.entries(driveData.subfolders).forEach(([folderName, sf]: [string, any]) => {
+            const fileCount = (sf.files || []).length;
+            if (fileCount > 0) {
+              photoCounts[folderName] = fileCount;
+            }
+          });
+        }
+        
         const worksCount = construction ? (worksPerConstruction[construction.id] || 0) : 0;
         const hasWorks = worksCount > 0;
-
-        // Evaluate each crew category
-        const categoryStatuses = crews.map((crew) => {
-          const cat = categoryMap[crew.category_id];
-          if (!cat) return { crew, status: "not_started" as CrewStatus, photoStatus: null, hasMeasurements: false };
-          
-          const photoStatus = getCategoryPhotoStatus(cat.photo_categories || [], photoCounts);
-          const hasMeasurements = !cat.requires_measurements || (crew.measurements && Object.keys(crew.measurements).length > 0);
-          const hasRequiredWorks = !cat.requires_works || hasWorks;
-
-          let status: CrewStatus = "not_started";
-          if (photoStatus.hasAny && hasMeasurements && hasRequiredWorks) {
-            status = "completed";
-          } else if (photoStatus.hasAny || (crew.status === "saved")) {
-            status = "partial";
-          }
-
-          return { crew, status, photoStatus, hasMeasurements, cat };
-        });
+        const driveFileCount = driveData?.totalFiles || 0;
 
         const completedCount = categoryStatuses.filter((s) => s.status === "completed").length;
         const partialCount = categoryStatuses.filter((s) => s.status === "partial").length;
