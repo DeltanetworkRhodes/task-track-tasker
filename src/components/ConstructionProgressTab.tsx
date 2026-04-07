@@ -421,6 +421,12 @@ const ConstructionProgressTab = ({ assignments, isLoading }: Props) => {
                 <Camera className="h-3 w-3" />
                 {totalPhotos} φωτο
               </span>
+              {driveFileCount > 0 && (
+                <span className="flex items-center gap-1 text-blue-600 dark:text-blue-400" title="Πραγματικά αρχεία στο Google Drive">
+                  <FolderOpen className="h-3 w-3" />
+                  {driveFileCount} Drive
+                </span>
+              )}
               <span className="flex items-center gap-1">
                 <Wrench className="h-3 w-3" />
                 {worksCount} εργασίες
