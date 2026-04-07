@@ -1840,7 +1840,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
       </h2>
 
       {/* Technical Details */}
-      <Card className="p-4 space-y-3">
+      {!isCrewMode && <Card className="p-4 space-y-3">
         <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
           Τεχνικά Στοιχεία
         </Label>
@@ -1879,7 +1879,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
             <Input value={pendingNote} onChange={(e) => setPendingNote(e.target.value)} placeholder="π.χ. Β21 σωληνίσκος" className="text-sm mt-1" />
           </div>
         </div>
-      </Card>
+      </Card>}
 
       {/* GIS: Δομή Κτιρίου */}
       {gisData && Array.isArray(gisData.floor_details) && (gisData.floor_details as any[]).length > 0 && (
