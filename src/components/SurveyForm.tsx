@@ -5,7 +5,7 @@ import { useOrganization } from "@/contexts/OrganizationContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Camera, Upload, X, FileImage, CheckCircle, FileText, Loader2, WifiOff, ShieldCheck, ShieldAlert, BrainCircuit } from "lucide-react";
+import { Camera, Upload, X, FileImage, CheckCircle, FileText, Loader2, WifiOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -17,7 +17,7 @@ import { compressImages, formatFileSize } from "@/lib/imageCompression";
 import { applyWatermarkBatch, type WatermarkData } from "@/lib/watermark";
 import { enqueueSurvey, fileToOfflineFile, isOnline } from "@/lib/offlineQueue";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
-import { usePhotoAnalysis, type PhotoAnalysisResult } from "@/hooks/usePhotoAnalysis";
+
 
 interface Props {
   assignments?: any[];
@@ -48,7 +48,7 @@ const SurveyForm = ({ assignments, prefillSrId, prefillArea, onComplete }: Props
   const { organizationId } = useOrganization();
   const queryClient = useQueryClient();
   const online = useOnlineStatus();
-  const { analyzePhoto, getResult, isAnalyzing, clearResults } = usePhotoAnalysis();
+  
   const [area, setArea] = useState(prefillArea || "");
   const [srId, setSrId] = useState(prefillSrId || "");
   const [comments, setComments] = useState("");
@@ -112,14 +112,7 @@ const SurveyForm = ({ assignments, prefillSrId, prefillArea, onComplete }: Props
       const file = processedFiles[i];
       const preview = URL.createObjectURL(file);
 
-      // AI analysis only when online and for image files
-      if (isOnline() && file.type.startsWith("image/")) {
-        const result = await analyzePhoto(file, photoType, category, startIndex + i);
-        if (!result.isValid) {
-          URL.revokeObjectURL(preview);
-          continue; // Skip rejected photos
-        }
-      }
+
 
       accepted.push({ file, preview });
     }
@@ -474,7 +467,7 @@ const SurveyForm = ({ assignments, prefillSrId, prefillArea, onComplete }: Props
         capture
         isCompressing={compressing["building"]}
         compressionStats={compressionStats["building"]}
-        isAiAnalyzing={isAnalyzing("building")}
+        
       />
 
       {/* SCREENSHOTS */}
@@ -487,7 +480,7 @@ const SurveyForm = ({ assignments, prefillSrId, prefillArea, onComplete }: Props
         accept="image/*"
         isCompressing={compressing["screenshots"]}
         compressionStats={compressionStats["screenshots"]}
-        isAiAnalyzing={isAnalyzing("screenshots")}
+        
       />
 
       {/* ΔΕΛΤΙΟ ΑΥΤΟΨΙΑΣ PDF */}
@@ -578,7 +571,7 @@ interface FileUploadSectionProps {
   capture?: boolean;
   isCompressing?: boolean;
   compressionStats?: { original: number; compressed: number };
-  isAiAnalyzing?: boolean;
+  
 }
 
 const FileUploadSection = ({
@@ -592,7 +585,7 @@ const FileUploadSection = ({
   capture,
   isCompressing,
   compressionStats,
-  isAiAnalyzing,
+  
 }: FileUploadSectionProps) => {
   const savings = compressionStats
     ? Math.round((1 - compressionStats.compressed / compressionStats.original) * 100)
@@ -604,7 +597,7 @@ const FileUploadSection = ({
         {label} {required && <span className="text-destructive">*</span>}
       </Label>
       <p className="text-xs text-muted-foreground">
-        Ανεβάστε έως {MAX_FILES} αρχεία. Οι φωτογραφίες ελέγχονται αυτόματα από AI.
+        Ανεβάστε έως {MAX_FILES} αρχεία.
       </p>
 
       {/* Compression loading state */}
@@ -617,15 +610,7 @@ const FileUploadSection = ({
         </div>
       )}
 
-      {/* AI Analysis loading state */}
-      {isAiAnalyzing && !isCompressing && (
-        <div className="flex items-center gap-2 p-3 rounded-lg bg-primary/10 border border-primary/20 animate-pulse">
-          <BrainCircuit className="h-4 w-4 animate-spin text-primary" />
-          <span className="text-xs font-medium text-primary">
-            Το AI αναλύει τη φωτογραφία...
-          </span>
-        </div>
-      )}
+
 
       {/* Compression stats */}
       {compressionStats && !isCompressing && (
@@ -648,9 +633,6 @@ const FileUploadSection = ({
                 alt={f.file.name}
                 className="h-20 w-full object-cover rounded-lg border border-border"
               />
-              <div className="absolute top-0.5 left-0.5">
-                <ShieldCheck className="h-4 w-4 text-green-500 drop-shadow" />
-              </div>
               <button
                 type="button"
                 onClick={() => onRemove(i)}
@@ -663,7 +645,7 @@ const FileUploadSection = ({
         </div>
       )}
 
-      {files.length < MAX_FILES && !isCompressing && !isAiAnalyzing && (
+      {files.length < MAX_FILES && !isCompressing && (
         <div className="flex gap-2">
           <Button
             type="button"
