@@ -3184,12 +3184,10 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
           <>
             {!mandatoryPhotosValid && mandatoryPhotoKeys.size > 0 && (
               <Alert className="border-destructive/30 bg-destructive/5">
-                <ShieldAlert className="h-4 w-4 text-destructive" />
+                <AlertTriangle className="h-4 w-4 text-destructive" />
                 <AlertTitle className="text-xs font-semibold text-destructive">Υποχρεωτικές φωτογραφίες</AlertTitle>
                 <AlertDescription className="text-xs text-destructive/80">
-                  {missingMandatoryCategories.length > 0
-                    ? `Λείπουν φωτογραφίες: ${missingMandatoryCategories.join(", ")}`
-                    : "Υπάρχουν απορριφθείσες φωτογραφίες χωρίς override."}
+                  {`Λείπουν φωτογραφίες: ${missingMandatoryCategories.join(", ")}`}
                 </AlertDescription>
               </Alert>
             )}
