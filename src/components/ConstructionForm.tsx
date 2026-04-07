@@ -2686,7 +2686,10 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
           Διαδρομές
         </Label>
         <div className="space-y-2">
-          {routes.map((route, idx) => (
+          {routes.map((route, idx) => {
+            // In crew mode, only show INHOUSE route (index 3)
+            if (isCrewMode && idx !== 3) return null;
+            return (
             <div key={idx} className="border border-border rounded-lg p-3 space-y-2">
               <p className="text-xs font-medium text-foreground">{route.label}</p>
               <div className="grid grid-cols-2 gap-2">
