@@ -87,9 +87,8 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
   
   const { activeEntry, checkOut } = useTimeTracking(assignment.id);
 
-  // Override dialog state
-  const [overrideTarget, setOverrideTarget] = useState<{ category: string; index: number } | null>(null);
-  const [overrideReason, setOverrideReason] = useState("");
+
+
 
   // Form state
   const [sesId, setSesId] = useState("");
@@ -987,10 +986,6 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
       const existingCount = (categorizedPhotos[category] || []).length;
       const idx = existingCount + accepted.length;
 
-      if (isOnline()) {
-        await analyzeConstructionPhoto(file, category, idx);
-        // Always keep the photo — rejected ones can be overridden
-      }
 
       accepted.push(file);
       const preview = await new Promise<string>((resolve) => {
