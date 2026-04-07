@@ -3209,6 +3209,57 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
           )}
         </Button>
 
+        {/* Completion button for responsible technician (non-crew) */}
+        {!isCrewMode && (
+          <AlertDialog open={showCompleteConfirm} onOpenChange={setShowCompleteConfirm}>
+            <AlertDialogTrigger asChild>
+              <Button
+                disabled={submitting || completing}
+                variant="default"
+                className="w-full py-6 text-sm font-bold gap-2 bg-green-600 hover:bg-green-700 text-white"
+              >
+                {completing ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    {submitProgress || "Ολοκλήρωση..."}
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="h-4 w-4" />
+                    ✅ Ολοκλήρωση Κατασκευής
+                  </>
+                )}
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Ολοκλήρωση Κατασκευής</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Είστε σίγουροι ότι θέλετε να ολοκληρώσετε την κατασκευή για το SR <strong>{assignment.sr_id}</strong>;
+                  <br /><br />
+                  Θα δημιουργηθεί ο φάκελος πελάτη και θα σταλεί email ολοκλήρωσης.
+                  <br /><br />
+                  <strong>Αυτή η ενέργεια δεν αναιρείται.</strong>
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Ακύρωση</AlertDialogCancel>
+                <AlertDialogAction
+                  className="bg-green-600 hover:bg-green-700 text-white"
+                  onClick={() => {
+                    completingRef.current = true;
+                    setCompleting(true);
+                    handleSubmit();
+                  }}
+                >
+                  Ναι, Ολοκλήρωση
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
+
+        {/* Completion button for crew member with splicing (1986) */}
         {isCrewMode && filterWorkPrefixes?.some(p => p === '1986') && (
           <>
             {!mandatoryPhotosValid && mandatoryPhotoKeys.size > 0 && (
