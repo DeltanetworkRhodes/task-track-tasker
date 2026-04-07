@@ -2477,8 +2477,8 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                      </div>
                    );
 
-                   return (
-                     <div className="space-y-2 mt-3 pt-3 border-t border-border">
+                    return !isCrewMode ? (
+                      <div className="space-y-2 mt-3 pt-3 border-t border-border">
                        <div className="flex items-center gap-2">
                          <Badge variant="default" className="text-[10px]">🏷️ Labels</Badge>
                          <span className="text-[10px] text-muted-foreground">Αυτοκόλλητα — COSMOTE specs</span>
@@ -2667,7 +2667,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                           );
                         })()}
                      </div>
-                   );
+                    ) : null;
                  })()}
                 {/* Summary */}
                 <div className="text-[10px] text-muted-foreground mt-1 px-1">
