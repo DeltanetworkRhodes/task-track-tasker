@@ -97,10 +97,12 @@ async function findSubfolder(
   parentId: string,
   folderName: string
 ): Promise<string | null> {
+  // Escape single quotes for Drive API query syntax
+  const escapedName = folderName.replace(/'/g, "\\'");
   // Method 1: Search query
   const results = await driveSearch(
     accessToken,
-    `name = '${folderName}' and mimeType = 'application/vnd.google-apps.folder' and '${parentId}' in parents and trashed = false`
+    `name = '${escapedName}' and mimeType = 'application/vnd.google-apps.folder' and '${parentId}' in parents and trashed = false`
   );
   if (results.length > 0) return results[0].id;
 
