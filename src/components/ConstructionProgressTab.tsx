@@ -314,6 +314,25 @@ const ConstructionProgressTab = ({ assignments, isLoading }: Props) => {
         const hasWorks = worksCount > 0;
         const driveFileCount = driveData?.totalFiles || 0;
 
+        // Evaluate each crew category
+        const categoryStatuses = crews.map((crew) => {
+          const cat = categoryMap[crew.category_id];
+          if (!cat) return { crew, status: "not_started" as CrewStatus, photoStatus: null, hasMeasurements: false };
+          
+          const photoStatus = getCategoryPhotoStatus(cat.photo_categories || [], photoCounts);
+          const hasMeasurements = !cat.requires_measurements || (crew.measurements && Object.keys(crew.measurements).length > 0);
+          const hasRequiredWorks = !cat.requires_works || hasWorks;
+
+          let status: CrewStatus = "not_started";
+          if (photoStatus.hasAny && hasMeasurements && hasRequiredWorks) {
+            status = "completed";
+          } else if (photoStatus.hasAny || (crew.status === "saved")) {
+            status = "partial";
+          }
+
+          return { crew, status, photoStatus, hasMeasurements, cat };
+        });
+
         const completedCount = categoryStatuses.filter((s) => s.status === "completed").length;
         const partialCount = categoryStatuses.filter((s) => s.status === "partial").length;
         const totalCategories = categoryStatuses.length;
