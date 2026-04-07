@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { LogIn, UserPlus, ArrowLeft, Globe, Mail, Phone, MapPin, Play } from "lucide-react";
+import { LogIn, UserPlus, ArrowLeft, Globe, Mail, Play } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Navigate, useNavigate } from "react-router-dom";
 import { useDemo } from "@/contexts/DemoContext";
+import { lovable } from "@/integrations/lovable/index";
 import deltaLogoIcon from "@/assets/delta-logo-icon.png";
 
 const LoginPage = () => {
