@@ -602,7 +602,13 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
                   return;
                 }
               }
-              setShowCrewPanel(true);
+              // Responsible technician gets full form, crew members get filtered
+              const isResponsible = assignment.technician_id === user?.id;
+              if (isResponsible) {
+                setShowConstructionForm(true);
+              } else {
+                setShowCrewPanel(true);
+              }
             }}>
               <HardHat className="h-4 w-4" />
               Έναρξη Κατασκευής
