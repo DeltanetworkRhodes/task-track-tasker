@@ -298,7 +298,6 @@ const ConstructionProgressTab = ({ assignments, isLoading }: Props) => {
   return (
     <div className="divide-y divide-border">
       {constructionAssignments.map((a) => {
-        const crews = crewByAssignment[a.id] || [];
         const construction = constructionByAssignment[a.id];
         const dbPhotoCounts: Record<string, number> = construction?.photo_counts || {};
         const driveData = driveDataMap[a.srId];
@@ -306,7 +305,6 @@ const ConstructionProgressTab = ({ assignments, isLoading }: Props) => {
         // Merge: use Drive real data if available, fallback to DB photo_counts
         const photoCounts: Record<string, number> = { ...dbPhotoCounts };
         if (driveData) {
-          // Override/supplement with real Drive subfolder file counts
           Object.entries(driveData.subfolders).forEach(([folderName, sf]: [string, any]) => {
             const fileCount = (sf.files || []).length;
             if (fileCount > 0) {
@@ -315,46 +313,52 @@ const ConstructionProgressTab = ({ assignments, isLoading }: Props) => {
           });
         }
         
-        const worksCount = construction ? (worksPerConstruction[construction.id] || 0) : 0;
-        const hasWorks = worksCount > 0;
+        const worksInfo = construction ? (worksPerConstruction[construction.id] || { count: 0, codes: [] }) : { count: 0, codes: [] };
         const driveFileCount = driveData?.totalFiles || 0;
 
-        // Build category statuses: use crew assignments if available, otherwise generate from work categories
-        const activeCats = (categories || []).filter((c: any) => c.active !== false);
-        
-        const categoryStatuses = crews.length > 0
-          ? crews.map((crew) => {
-              const cat = categoryMap[crew.category_id];
-              if (!cat) return { crew, status: "not_started" as CrewStatus, photoStatus: null, hasMeasurements: false, cat: null };
-              
-              const photoStatus = getCategoryPhotoStatus(cat.photo_categories || [], photoCounts);
-              const hasMeasurements = !cat.requires_measurements || (crew.measurements && Object.keys(crew.measurements).length > 0);
-              const hasRequiredWorks = !cat.requires_works || hasWorks;
+        // Fetch crew measurements for OTDR
+        const crews = crewByAssignment[a.id] || [];
+        const hasOtdrMeasurements = crews.some((c) => {
+          const cat = categoryMap[c.category_id];
+          return cat?.requires_measurements && c.measurements && Object.keys(c.measurements).length > 0;
+        });
 
-              let status: CrewStatus = "not_started";
-              if (photoStatus.hasAny && hasMeasurements && hasRequiredWorks) {
-                status = "completed";
-              } else if (photoStatus.hasAny || (crew.status === "saved")) {
-                status = "partial";
-              }
+        // Evaluate fixed 8 categories
+        const categoryStatuses = PROGRESS_CATEGORIES.map((pc) => {
+          let status: CrewStatus = "not_started";
+          let count = 0;
+          let detail = "";
 
-              return { crew, status, photoStatus, hasMeasurements, cat };
-            })
-          : // No crew assignments — generate virtual statuses from work categories + photo_counts/works
-            activeCats.map((cat: any) => {
-              const photoStatus = getCategoryPhotoStatus(cat.photo_categories || [], photoCounts);
-              const hasMeasurements = !cat.requires_measurements; // no crew = no measurements data
-              const hasRequiredWorks = !cat.requires_works || hasWorks;
+          if (pc.type === "photos") {
+            count = countPhotosForCategory(pc.driveFolders, photoCounts);
+            if (count > 0) status = "completed";
+            detail = count > 0 ? `${count} φωτο` : "";
+          } else if (pc.type === "works") {
+            // Emfysisi: check if work codes starting with 1980 exist
+            const matchingWorks = worksInfo.codes.filter((code) =>
+              (pc as any).workCodes?.some((wc: string) => code.startsWith(wc))
+            );
+            count = matchingWorks.length;
+            if (count > 0) status = "completed";
+            detail = count > 0 ? `${count} εργασίες` : "";
+          } else if (pc.type === "measurements") {
+            // OTDR: check photos in Drive + measurements
+            const otdrPhotos = countPhotosForCategory(pc.driveFolders, photoCounts);
+            const hasMeasurements = hasOtdrMeasurements;
+            count = otdrPhotos;
+            if (otdrPhotos > 0 && hasMeasurements) {
+              status = "completed";
+            } else if (otdrPhotos > 0 || hasMeasurements) {
+              status = "partial";
+            }
+            const parts = [];
+            if (otdrPhotos > 0) parts.push(`${otdrPhotos} φωτο`);
+            if (hasMeasurements) parts.push("μετρήσεις ✅");
+            detail = parts.join(", ");
+          }
 
-              let status: CrewStatus = "not_started";
-              if (photoStatus.hasAny && hasMeasurements && hasRequiredWorks) {
-                status = "completed";
-              } else if (photoStatus.hasAny || (hasRequiredWorks && cat.requires_works)) {
-                status = "partial";
-              }
-
-              return { crew: { id: cat.id, category_id: cat.id, technician_id: null, status: null }, status, photoStatus, hasMeasurements, cat };
-            });
+          return { ...pc, status, count, detail };
+        });
 
         const completedCount = categoryStatuses.filter((s) => s.status === "completed").length;
         const partialCount = categoryStatuses.filter((s) => s.status === "partial").length;
@@ -452,68 +456,34 @@ const ConstructionProgressTab = ({ assignments, isLoading }: Props) => {
               )}
               <span className="flex items-center gap-1">
                 <Wrench className="h-3 w-3" />
-                {worksCount} εργασίες
+                {worksInfo.count} εργασίες
               </span>
             </div>
 
             {/* Category progress chips */}
-            {categoryStatuses.length > 0 && (
-              <div className="flex flex-wrap gap-1.5">
-                {categoryStatuses.map(({ crew, status, photoStatus, hasMeasurements, cat }) => {
-                  const config = statusConfig[status];
-                  const StatusIcon = config.icon;
-                  const catName = cat?.name || "—";
-                  const techName = profileMap[crew.technician_id] || "";
-                  const photoCount = photoStatus?.photoCount || 0;
-                  const needsMeasurements = cat?.requires_measurements;
-                  const needsWorks = cat?.requires_works;
+            <div className="flex flex-wrap gap-1.5">
+              {categoryStatuses.map((cs) => {
+                const config = statusConfig[cs.status];
+                const StatusIcon = config.icon;
 
-                  // Build tooltip
-                  const tooltipParts = [`${catName}: ${config.label}`];
-                  if (photoStatus) {
-                    tooltipParts.push(`Φωτο: ${photoCount} (${photoStatus.matchedCount}/${photoStatus.totalExpected} κατηγορίες)`);
-                  }
-                  if (needsMeasurements) {
-                    tooltipParts.push(`Μετρήσεις: ${hasMeasurements ? "✅" : "❌"}`);
-                  }
-                  if (needsWorks) {
-                    tooltipParts.push(`Εργασίες: ${hasWorks ? "✅" : "❌"}`);
-                  }
-                  if (techName) tooltipParts.push(`→ ${techName}`);
-
-                  return (
-                    <div
-                      key={crew.id}
-                      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-all ${config.classes}`}
-                      title={tooltipParts.join("\n")}
-                    >
-                      <StatusIcon className="h-3 w-3" />
-                      <span className="max-w-[120px] truncate">{catName}</span>
-                      {photoCount > 0 && (
-                        <span className="inline-flex items-center gap-0.5 opacity-70">
-                          <Camera className="h-2.5 w-2.5" />
-                          {photoCount}
-                        </span>
-                      )}
-                      {needsMeasurements && (
-                        <Ruler className={`h-2.5 w-2.5 ${hasMeasurements ? "text-green-600" : "text-destructive opacity-60"}`} />
-                      )}
-                      {techName && (
-                        <span className="text-[10px] opacity-60 max-w-[80px] truncate">
-                          ({techName.split(" ")[0]})
-                        </span>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
-            {categoryStatuses.length === 0 && (
-              <p className="text-xs text-muted-foreground/60 italic">
-                Δεν υπάρχουν αναθέσεις συνεργείου
-              </p>
-            )}
+                return (
+                  <div
+                    key={cs.key}
+                    className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-all ${config.classes}`}
+                    title={cs.detail || cs.label}
+                  >
+                    <span>{cs.icon}</span>
+                    <span className="max-w-[100px] truncate">{cs.label}</span>
+                    {cs.count > 0 && (
+                      <span className="opacity-70 font-normal">
+                        {cs.count}
+                      </span>
+                    )}
+                    {cs.status === "completed" && <StatusIcon className="h-3 w-3" />}
+                  </div>
+                );
+              })}
+            </div>
           </div>
         );
       })}
