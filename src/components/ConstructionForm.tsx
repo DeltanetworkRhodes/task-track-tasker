@@ -1925,7 +1925,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
       )}
 
       {/* GIS: Οδηγίες Κόλλησης ανά Όροφο */}
-      {gisData && Array.isArray(gisData.optical_paths) && (gisData.optical_paths as any[]).length > 0 && (
+      {!isCrewMode && gisData && Array.isArray(gisData.optical_paths) && (gisData.optical_paths as any[]).length > 0 && (
         <Card className="p-4 space-y-3 border-accent/30 bg-accent/5">
           <Label className="text-xs font-bold uppercase tracking-wider text-accent-foreground flex items-center gap-1.5">
             <Building2 className="h-3.5 w-3.5" /> Οδηγίες Κόλλησης — Ανά Όροφο
