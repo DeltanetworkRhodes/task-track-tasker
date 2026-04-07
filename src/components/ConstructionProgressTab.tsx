@@ -347,7 +347,7 @@ const ConstructionProgressTab = ({ assignments, isLoading }: Props) => {
               let status: CrewStatus = "not_started";
               if (photoStatus.hasAny && hasMeasurements && hasRequiredWorks) {
                 status = "completed";
-              } else if (photoStatus.hasAny || hasRequiredWorks && cat.requires_works) {
+              } else if (photoStatus.hasAny || (hasRequiredWorks && cat.requires_works)) {
                 status = "partial";
               }
 
