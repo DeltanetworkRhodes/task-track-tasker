@@ -602,7 +602,13 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
                   return;
                 }
               }
-              setShowCrewPanel(true);
+              // Responsible technician gets full form, crew members get filtered
+              const isResponsible = assignment.technician_id === user?.id;
+              if (isResponsible) {
+                setShowConstructionForm(true);
+              } else {
+                setShowCrewPanel(true);
+              }
             }}>
               <HardHat className="h-4 w-4" />
               Έναρξη Κατασκευής
@@ -626,10 +632,17 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
           <TimeTracker assignmentId={assignment.id} srId={assignment.sr_id} />
           <Button
             className={btnClass}
-            onClick={() => setShowCrewPanel(true)}
+            onClick={() => {
+              const isResponsible = assignment.technician_id === user?.id;
+              if (isResponsible) {
+                setShowConstructionForm(true);
+              } else {
+                setShowCrewPanel(true);
+              }
+            }}
           >
-            <Users className="h-4 w-4" />
-            Εργασίες Συνεργείου
+            {assignment.technician_id === user?.id ? <HardHat className="h-4 w-4" /> : <Users className="h-4 w-4" />}
+            {assignment.technician_id === user?.id ? "Κατασκευή" : "Εργασίες Συνεργείου"}
           </Button>
           <GisUploadCard
             assignment={assignment}
