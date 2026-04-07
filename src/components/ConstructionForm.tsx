@@ -2528,15 +2528,12 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                                    `ΣΩΛΗΝΙΣΚΟΣ: ${cabTube || cabName}`,
                                    `ΟΡΙΑ: ${fiberRange}`,
                                  ]} />
-                                  {/* Individual A/B floor labels */}
+                                  {/* Individual A/B paired floor labels */}
                                   {(() => {
                                     const individualLabels: string[] = [];
-                                    colA.forEach((item) => {
-                                      individualLabels.push(`A${item.port} - ${floorShort(item.floor)}`);
-                                    });
-                                    colB.forEach((item) => {
-                                      individualLabels.push(`B${item.port} - ${floorShort(item.floor)}`);
-                                    });
+                                    for (const item of bepDoorPairs) {
+                                      individualLabels.push(`A${item.pair} B${item.pair} - ${item.label}`);
+                                    }
                                     return individualLabels.length > 0 ? (
                                       <div className="space-y-1 mt-1">
                                         {individualLabels.map((lbl, i) => (
