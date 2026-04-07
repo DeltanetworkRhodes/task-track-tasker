@@ -862,25 +862,36 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
     const groups: Record<string, typeof workPricing> = {};
     const uncategorized: typeof workPricing = [];
     
+    // In crew mode, filter to only allowed prefixes
+    const allowedPrefixes = filterWorkPrefixes && filterWorkPrefixes.length > 0 ? filterWorkPrefixes : null;
+    
     for (const w of workPricing) {
       const cat = WORK_CATEGORIES.find((c) => w.code.startsWith(c.prefix));
       if (cat) {
+        // Skip categories not in allowed prefixes (crew mode)
+        if (allowedPrefixes && !allowedPrefixes.some((p) => w.code.startsWith(p))) continue;
         if (!groups[cat.prefix]) groups[cat.prefix] = [];
         groups[cat.prefix].push(w);
       } else {
-        uncategorized.push(w);
+        if (!allowedPrefixes) uncategorized.push(w);
       }
     }
     if (uncategorized.length > 0) groups["other"] = uncategorized;
     return groups;
-  }, [workPricing]);
+  }, [workPricing, filterWorkPrefixes]);
 
   // Group materials by category
   const materialsByCategory = useMemo(() => {
     if (!materials) return {};
     const groups: Record<string, Record<string, typeof materials>> = { OTE: {}, DELTANETWORK: {} };
     
+    // In crew mode, filter to only allowed material codes
+    const allowedCodes = filterMaterialCodes && filterMaterialCodes.length > 0 ? new Set(filterMaterialCodes) : null;
+    
     for (const m of materials) {
+      // Skip materials not in allowed codes (crew mode)
+      if (allowedCodes && !allowedCodes.has(m.code)) continue;
+      
       const source = m.source as "OTE" | "DELTANETWORK";
       if (!groups[source]) groups[source] = {};
       
@@ -890,7 +901,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
       groups[source][catLabel].push(m);
     }
     return groups;
-  }, [materials]);
+  }, [materials, filterMaterialCodes]);
 
   // Toggle category
   const toggleWorkCategory = (prefix: string) => {
