@@ -5,6 +5,7 @@ import { useConstructions, useAssignments } from "@/hooks/useData";
 import { constructionStatusLabels } from "@/data/mockData";
 import { Wrench, TrendingUp, Receipt, DollarSign, Search, Filter, ExternalLink, ChevronDown, ChevronUp, Calendar, MapPin, Layers, Route, Trash2, Radio, CheckCircle2, AlertCircle } from "lucide-react";
 import AsBuiltExporter from "@/components/AsBuiltExporter";
+import CrewAssignmentPanel from "@/components/CrewAssignmentPanel";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
@@ -790,6 +791,18 @@ const ConstructionPage = () => {
                       <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Σημείωση Αναμονής</h3>
                       <p className="text-muted-foreground">{c.pendingNote}</p>
                     </Card>
+                  )}
+
+                  {/* Crew Assignment */}
+                  {assignment && (
+                    <div className="pt-2 border-t border-border/30">
+                      <CrewAssignmentPanel assignment={{
+                        id: assignment.id,
+                        technician_id: assignment.technician_id,
+                        sr_id: assignment.sr_id,
+                        area: assignment.area,
+                      }} />
+                    </div>
                   )}
 
                   {/* Date */}
