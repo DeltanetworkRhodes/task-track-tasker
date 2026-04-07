@@ -5,7 +5,7 @@ import { useOrganization } from "@/contexts/OrganizationContext";
 import { useWorkCategories } from "@/hooks/useCrewData";
 import { useProfiles } from "@/hooks/useData";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CheckCircle2, Clock, User, HardHat, MapPin, Camera, Timer, CalendarDays, Circle, Wrench, Ruler, FolderOpen } from "lucide-react";
+import { CheckCircle2, Clock, User, HardHat, MapPin, Camera, Timer, CalendarDays, Circle, Wrench, FolderOpen } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { el } from "date-fns/locale";
 
@@ -31,51 +31,50 @@ function formatDuration(minutes: number): string {
   return `${h}ω ${m}λ`;
 }
 
+// === Fixed 7 progress categories ===
+const PROGRESS_CATEGORIES = [
+  { key: "skama", label: "Σκάμα", icon: "⛏️", driveFolders: ["ΣΚΑΜΑ", "ΣΚΑΜΜΑ"], type: "photos" },
+  { key: "odefsi", label: "Όδευση", icon: "🛤️", driveFolders: ["ΟΔΕΥΣΗ", "ΟΔΕΥΣΕΙΣ"], type: "photos" },
+  { key: "bep", label: "BEP", icon: "🔌", driveFolders: ["BEP"], type: "photos" },
+  { key: "bmo", label: "BMO", icon: "📡", driveFolders: ["BMO"], type: "photos" },
+  { key: "fb", label: "Floor Box", icon: "📋", driveFolders: ["FB", "FLOOR BOX", "FLOORBOX"], type: "photos" },
+  { key: "g_fasi", label: "Γ' Φάση", icon: "👤", driveFolders: ["Γ_ΦΑΣΗ", "Γ ΦΑΣΗ", "ΤΕΛΙΚΗ"], type: "photos" },
+  { key: "emfysisi", label: "Εμφύσηση", icon: "💨", driveFolders: [], type: "works", workCodes: ["1980"] },
+  { key: "otdr", label: "OTDR", icon: "📏", driveFolders: ["OTDR", "ΚΟΛΛΗΣΗ"], type: "measurements" },
+] as const;
+
 // Normalize: strip accents, uppercase, remove underscores
 function normalizeName(name: string): string {
   return name
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "") // strip accents (ά→α, ό→ο etc)
+    .replace(/[\u0300-\u036f]/g, "")
     .toUpperCase()
     .replace(/_/g, " ")
-    .replace(/ΜΜ/g, "Μ") // ΣΚΑΜΜΑ -> ΣΚΑΜΑ
-    .replace(/['']/g, "") // remove apostrophes
+    .replace(/ΜΜ/g, "Μ")
+    .replace(/[''`]/g, "")
     .trim();
 }
 
-function driveKeyMatchesCategory(driveKey: string, categoryPhotoCat: string): boolean {
-  const dk = normalizeName(driveKey);
-  const cp = normalizeName(categoryPhotoCat);
-  // Exact match or partial contains
-  return dk === cp || dk.includes(cp) || cp.includes(dk);
+function folderMatchesAny(folderName: string, targets: readonly string[]): boolean {
+  const nf = normalizeName(folderName);
+  return targets.some((t) => {
+    const nt = normalizeName(t);
+    return nf === nt || nf.includes(nt) || nt.includes(nf);
+  });
 }
 
-// Check how many of a category's expected photo folders have actual photos in Drive
-function getCategoryPhotoStatus(
-  categoryPhotoCategories: string[],
+// Count photos in Drive/DB for a set of folder name targets
+function countPhotosForCategory(
+  targets: readonly string[],
   photoCounts: Record<string, number>
-): { hasAny: boolean; matchedCount: number; totalExpected: number; photoCount: number } {
-  if (!categoryPhotoCategories || categoryPhotoCategories.length === 0) {
-    return { hasAny: false, matchedCount: 0, totalExpected: 0, photoCount: 0 };
-  }
-  let matchedCount = 0;
-  let photoCount = 0;
-  const driveKeys = Object.keys(photoCounts);
-
-  for (const expectedCat of categoryPhotoCategories) {
-    const match = driveKeys.find((dk) => driveKeyMatchesCategory(dk, expectedCat));
-    if (match && photoCounts[match] > 0) {
-      matchedCount++;
-      photoCount += photoCounts[match];
+): number {
+  let total = 0;
+  for (const [key, count] of Object.entries(photoCounts)) {
+    if (folderMatchesAny(key, targets) && count > 0) {
+      total += count;
     }
   }
-
-  return {
-    hasAny: matchedCount > 0,
-    matchedCount,
-    totalExpected: categoryPhotoCategories.length,
-    photoCount,
-  };
+  return total;
 }
 
 type CrewStatus = "not_started" | "partial" | "completed";
@@ -84,7 +83,7 @@ const statusConfig: Record<CrewStatus, { icon: typeof CheckCircle2; classes: str
   not_started: {
     icon: Circle,
     classes: "bg-muted/50 text-muted-foreground border-border",
-    label: "Δεν ξεκίνησε",
+    label: "—",
   },
   partial: {
     icon: Clock,
@@ -94,7 +93,7 @@ const statusConfig: Record<CrewStatus, { icon: typeof CheckCircle2; classes: str
   completed: {
     icon: CheckCircle2,
     classes: "bg-green-500/10 text-green-700 border-green-500/20 dark:text-green-400",
-    label: "Ολοκληρώθηκε",
+    label: "✅",
   },
 };
 
@@ -175,15 +174,15 @@ const ConstructionProgressTab = ({ assignments, isLoading }: Props) => {
     },
   });
 
-  // Fetch construction works counts
+  // Fetch construction works with pricing codes
   const constructionIds = constructions.map((c: any) => c.id);
   const { data: worksData = [] } = useQuery({
-    queryKey: ["construction-works-counts", constructionIds.join(",")],
+    queryKey: ["construction-works-detail", constructionIds.join(",")],
     enabled: constructionIds.length > 0,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("construction_works")
-        .select("construction_id")
+        .select("construction_id, work_pricing_id, work_pricing:work_pricing_id(code)")
         .in("construction_id", constructionIds);
       if (error) throw error;
       return data as any[];
@@ -237,9 +236,12 @@ const ConstructionProgressTab = ({ assignments, isLoading }: Props) => {
   }, [constructions]);
 
   const worksPerConstruction = useMemo(() => {
-    const map: Record<string, number> = {};
+    const map: Record<string, { count: number; codes: string[] }> = {};
     (worksData as any[]).forEach((w) => {
-      map[w.construction_id] = (map[w.construction_id] || 0) + 1;
+      if (!map[w.construction_id]) map[w.construction_id] = { count: 0, codes: [] };
+      map[w.construction_id].count++;
+      const code = w.work_pricing?.code;
+      if (code) map[w.construction_id].codes.push(code);
     });
     return map;
   }, [worksData]);
@@ -296,7 +298,6 @@ const ConstructionProgressTab = ({ assignments, isLoading }: Props) => {
   return (
     <div className="divide-y divide-border">
       {constructionAssignments.map((a) => {
-        const crews = crewByAssignment[a.id] || [];
         const construction = constructionByAssignment[a.id];
         const dbPhotoCounts: Record<string, number> = construction?.photo_counts || {};
         const driveData = driveDataMap[a.srId];
@@ -304,7 +305,6 @@ const ConstructionProgressTab = ({ assignments, isLoading }: Props) => {
         // Merge: use Drive real data if available, fallback to DB photo_counts
         const photoCounts: Record<string, number> = { ...dbPhotoCounts };
         if (driveData) {
-          // Override/supplement with real Drive subfolder file counts
           Object.entries(driveData.subfolders).forEach(([folderName, sf]: [string, any]) => {
             const fileCount = (sf.files || []).length;
             if (fileCount > 0) {
@@ -313,46 +313,52 @@ const ConstructionProgressTab = ({ assignments, isLoading }: Props) => {
           });
         }
         
-        const worksCount = construction ? (worksPerConstruction[construction.id] || 0) : 0;
-        const hasWorks = worksCount > 0;
+        const worksInfo = construction ? (worksPerConstruction[construction.id] || { count: 0, codes: [] }) : { count: 0, codes: [] };
         const driveFileCount = driveData?.totalFiles || 0;
 
-        // Build category statuses: use crew assignments if available, otherwise generate from work categories
-        const activeCats = (categories || []).filter((c: any) => c.active !== false);
-        
-        const categoryStatuses = crews.length > 0
-          ? crews.map((crew) => {
-              const cat = categoryMap[crew.category_id];
-              if (!cat) return { crew, status: "not_started" as CrewStatus, photoStatus: null, hasMeasurements: false, cat: null };
-              
-              const photoStatus = getCategoryPhotoStatus(cat.photo_categories || [], photoCounts);
-              const hasMeasurements = !cat.requires_measurements || (crew.measurements && Object.keys(crew.measurements).length > 0);
-              const hasRequiredWorks = !cat.requires_works || hasWorks;
+        // Fetch crew measurements for OTDR
+        const crews = crewByAssignment[a.id] || [];
+        const hasOtdrMeasurements = crews.some((c) => {
+          const cat = categoryMap[c.category_id];
+          return cat?.requires_measurements && c.measurements && Object.keys(c.measurements).length > 0;
+        });
 
-              let status: CrewStatus = "not_started";
-              if (photoStatus.hasAny && hasMeasurements && hasRequiredWorks) {
-                status = "completed";
-              } else if (photoStatus.hasAny || (crew.status === "saved")) {
-                status = "partial";
-              }
+        // Evaluate fixed 8 categories
+        const categoryStatuses = PROGRESS_CATEGORIES.map((pc) => {
+          let status: CrewStatus = "not_started";
+          let count = 0;
+          let detail = "";
 
-              return { crew, status, photoStatus, hasMeasurements, cat };
-            })
-          : // No crew assignments — generate virtual statuses from work categories + photo_counts/works
-            activeCats.map((cat: any) => {
-              const photoStatus = getCategoryPhotoStatus(cat.photo_categories || [], photoCounts);
-              const hasMeasurements = !cat.requires_measurements; // no crew = no measurements data
-              const hasRequiredWorks = !cat.requires_works || hasWorks;
+          if (pc.type === "photos") {
+            count = countPhotosForCategory(pc.driveFolders, photoCounts);
+            if (count > 0) status = "completed";
+            detail = count > 0 ? `${count} φωτο` : "";
+          } else if (pc.type === "works") {
+            // Emfysisi: check if work codes starting with 1980 exist
+            const matchingWorks = worksInfo.codes.filter((code) =>
+              (pc as any).workCodes?.some((wc: string) => code.startsWith(wc))
+            );
+            count = matchingWorks.length;
+            if (count > 0) status = "completed";
+            detail = count > 0 ? `${count} εργασίες` : "";
+          } else if (pc.type === "measurements") {
+            // OTDR: check photos in Drive + measurements
+            const otdrPhotos = countPhotosForCategory(pc.driveFolders, photoCounts);
+            const hasMeasurements = hasOtdrMeasurements;
+            count = otdrPhotos;
+            if (otdrPhotos > 0 && hasMeasurements) {
+              status = "completed";
+            } else if (otdrPhotos > 0 || hasMeasurements) {
+              status = "partial";
+            }
+            const parts = [];
+            if (otdrPhotos > 0) parts.push(`${otdrPhotos} φωτο`);
+            if (hasMeasurements) parts.push("μετρήσεις ✅");
+            detail = parts.join(", ");
+          }
 
-              let status: CrewStatus = "not_started";
-              if (photoStatus.hasAny && hasMeasurements && hasRequiredWorks) {
-                status = "completed";
-              } else if (photoStatus.hasAny || (hasRequiredWorks && cat.requires_works)) {
-                status = "partial";
-              }
-
-              return { crew: { id: cat.id, category_id: cat.id, technician_id: null, status: null }, status, photoStatus, hasMeasurements, cat };
-            });
+          return { ...pc, status, count, detail };
+        });
 
         const completedCount = categoryStatuses.filter((s) => s.status === "completed").length;
         const partialCount = categoryStatuses.filter((s) => s.status === "partial").length;
@@ -450,68 +456,34 @@ const ConstructionProgressTab = ({ assignments, isLoading }: Props) => {
               )}
               <span className="flex items-center gap-1">
                 <Wrench className="h-3 w-3" />
-                {worksCount} εργασίες
+                {worksInfo.count} εργασίες
               </span>
             </div>
 
             {/* Category progress chips */}
-            {categoryStatuses.length > 0 && (
-              <div className="flex flex-wrap gap-1.5">
-                {categoryStatuses.map(({ crew, status, photoStatus, hasMeasurements, cat }) => {
-                  const config = statusConfig[status];
-                  const StatusIcon = config.icon;
-                  const catName = cat?.name || "—";
-                  const techName = profileMap[crew.technician_id] || "";
-                  const photoCount = photoStatus?.photoCount || 0;
-                  const needsMeasurements = cat?.requires_measurements;
-                  const needsWorks = cat?.requires_works;
+            <div className="flex flex-wrap gap-1.5">
+              {categoryStatuses.map((cs) => {
+                const config = statusConfig[cs.status];
+                const StatusIcon = config.icon;
 
-                  // Build tooltip
-                  const tooltipParts = [`${catName}: ${config.label}`];
-                  if (photoStatus) {
-                    tooltipParts.push(`Φωτο: ${photoCount} (${photoStatus.matchedCount}/${photoStatus.totalExpected} κατηγορίες)`);
-                  }
-                  if (needsMeasurements) {
-                    tooltipParts.push(`Μετρήσεις: ${hasMeasurements ? "✅" : "❌"}`);
-                  }
-                  if (needsWorks) {
-                    tooltipParts.push(`Εργασίες: ${hasWorks ? "✅" : "❌"}`);
-                  }
-                  if (techName) tooltipParts.push(`→ ${techName}`);
-
-                  return (
-                    <div
-                      key={crew.id}
-                      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-all ${config.classes}`}
-                      title={tooltipParts.join("\n")}
-                    >
-                      <StatusIcon className="h-3 w-3" />
-                      <span className="max-w-[120px] truncate">{catName}</span>
-                      {photoCount > 0 && (
-                        <span className="inline-flex items-center gap-0.5 opacity-70">
-                          <Camera className="h-2.5 w-2.5" />
-                          {photoCount}
-                        </span>
-                      )}
-                      {needsMeasurements && (
-                        <Ruler className={`h-2.5 w-2.5 ${hasMeasurements ? "text-green-600" : "text-destructive opacity-60"}`} />
-                      )}
-                      {techName && (
-                        <span className="text-[10px] opacity-60 max-w-[80px] truncate">
-                          ({techName.split(" ")[0]})
-                        </span>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
-            {categoryStatuses.length === 0 && (
-              <p className="text-xs text-muted-foreground/60 italic">
-                Δεν υπάρχουν αναθέσεις συνεργείου
-              </p>
-            )}
+                return (
+                  <div
+                    key={cs.key}
+                    className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-all ${config.classes}`}
+                    title={cs.detail || cs.label}
+                  >
+                    <span>{cs.icon}</span>
+                    <span className="max-w-[100px] truncate">{cs.label}</span>
+                    {cs.count > 0 && (
+                      <span className="opacity-70 font-normal">
+                        {cs.count}
+                      </span>
+                    )}
+                    {cs.status === "completed" && <StatusIcon className="h-3 w-3" />}
+                  </div>
+                );
+              })}
+            </div>
           </div>
         );
       })}
