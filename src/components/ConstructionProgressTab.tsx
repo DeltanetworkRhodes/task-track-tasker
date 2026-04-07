@@ -5,7 +5,7 @@ import { useOrganization } from "@/contexts/OrganizationContext";
 import { useWorkCategories } from "@/hooks/useCrewData";
 import { useProfiles } from "@/hooks/useData";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CheckCircle2, Clock, User, HardHat, MapPin, Camera, Timer, CalendarDays, Circle, Wrench, Ruler, FolderOpen } from "lucide-react";
+import { CheckCircle2, Clock, User, HardHat, MapPin, Camera, Timer, CalendarDays, Circle, Wrench, FolderOpen } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { el } from "date-fns/locale";
 
