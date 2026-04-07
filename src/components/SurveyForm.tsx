@@ -597,7 +597,7 @@ const FileUploadSection = ({
         {label} {required && <span className="text-destructive">*</span>}
       </Label>
       <p className="text-xs text-muted-foreground">
-        Ανεβάστε έως {MAX_FILES} αρχεία. Οι φωτογραφίες ελέγχονται αυτόματα από AI.
+        Ανεβάστε έως {MAX_FILES} αρχεία.
       </p>
 
       {/* Compression loading state */}
@@ -610,15 +610,7 @@ const FileUploadSection = ({
         </div>
       )}
 
-      {/* AI Analysis loading state */}
-      {isAiAnalyzing && !isCompressing && (
-        <div className="flex items-center gap-2 p-3 rounded-lg bg-primary/10 border border-primary/20 animate-pulse">
-          <BrainCircuit className="h-4 w-4 animate-spin text-primary" />
-          <span className="text-xs font-medium text-primary">
-            Το AI αναλύει τη φωτογραφία...
-          </span>
-        </div>
-      )}
+
 
       {/* Compression stats */}
       {compressionStats && !isCompressing && (
@@ -641,9 +633,6 @@ const FileUploadSection = ({
                 alt={f.file.name}
                 className="h-20 w-full object-cover rounded-lg border border-border"
               />
-              <div className="absolute top-0.5 left-0.5">
-                <ShieldCheck className="h-4 w-4 text-green-500 drop-shadow" />
-              </div>
               <button
                 type="button"
                 onClick={() => onRemove(i)}
@@ -656,7 +645,7 @@ const FileUploadSection = ({
         </div>
       )}
 
-      {files.length < MAX_FILES && !isCompressing && !isAiAnalyzing && (
+      {files.length < MAX_FILES && !isCompressing && (
         <div className="flex gap-2">
           <Button
             type="button"
