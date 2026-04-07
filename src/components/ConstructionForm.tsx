@@ -1879,7 +1879,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
             <Input value={pendingNote} onChange={(e) => setPendingNote(e.target.value)} placeholder="π.χ. Β21 σωληνίσκος" className="text-sm mt-1" />
           </div>
         </div>
-      </Card>
+      </Card>}
 
       {/* GIS: Δομή Κτιρίου */}
       {gisData && Array.isArray(gisData.floor_details) && (gisData.floor_details as any[]).length > 0 && (
