@@ -2667,7 +2667,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                           );
                         })()}
                      </div>
-                   );
+                    ) : null;
                  })()}
                 {/* Summary */}
                 <div className="text-[10px] text-muted-foreground mt-1 px-1">
