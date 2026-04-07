@@ -2,9 +2,10 @@ import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/contexts/OrganizationContext";
+import { useWorkCategories } from "@/hooks/useCrewData";
 import { useProfiles } from "@/hooks/useData";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CheckCircle2, Clock, User, HardHat, MapPin, Camera, Timer, CalendarDays, Circle, Wrench, FolderOpen } from "lucide-react";
+import { CheckCircle2, Clock, User, HardHat, MapPin, Camera, Timer, CalendarDays, Circle, Wrench, Ruler } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { el } from "date-fns/locale";
 
@@ -30,46 +31,73 @@ function formatDuration(minutes: number): string {
   return `${h}ω ${m}λ`;
 }
 
-// Known Drive photo categories and their display names
-const PHOTO_CATEGORY_LABELS: Record<string, string> = {
-  "ΣΚΑΜΑ": "Σκάμμα",
-  "ΟΔΕΥΣΗ": "Οδεύσεις",
-  "ΚΑΜΠΙΝΑ": "Καμπίνα",
-  "BEP": "BEP",
-  "BMO": "BMO",
-  "BCP": "BCP",
-  "FB": "FB",
-  "Γ_ΦΑΣΗ": "Γ' Φάση",
-  "ΕΜΦΥΣΗΣΗ": "Εμφύσηση",
-};
+// Normalize Drive folder name for matching with category photo_categories
+// e.g. "ΣΚΑΜΑ" (Drive) should match "ΣΚΑΜΜΑ" (category), "Γ_ΦΑΣΗ" -> "Γ ΦΑΣΗ"
+function normalizeName(name: string): string {
+  return name
+    .toUpperCase()
+    .replace(/_/g, " ")
+    .replace(/ΜΜ/g, "Μ") // ΣΚΑΜΜΑ -> ΣΚΑΜΑ
+    .trim();
+}
 
-type ProgressLevel = "none" | "photos_only" | "works_only" | "complete";
+function driveKeyMatchesCategory(driveKey: string, categoryPhotoCat: string): boolean {
+  const dk = normalizeName(driveKey);
+  const cp = normalizeName(categoryPhotoCat);
+  return dk === cp || dk.includes(cp) || cp.includes(dk);
+}
 
-const progressConfig: Record<ProgressLevel, { icon: typeof CheckCircle2; classes: string; label: string }> = {
-  none: {
+// Check how many of a category's expected photo folders have actual photos in Drive
+function getCategoryPhotoStatus(
+  categoryPhotoCategories: string[],
+  photoCounts: Record<string, number>
+): { hasAny: boolean; matchedCount: number; totalExpected: number; photoCount: number } {
+  if (!categoryPhotoCategories || categoryPhotoCategories.length === 0) {
+    return { hasAny: false, matchedCount: 0, totalExpected: 0, photoCount: 0 };
+  }
+  let matchedCount = 0;
+  let photoCount = 0;
+  const driveKeys = Object.keys(photoCounts);
+
+  for (const expectedCat of categoryPhotoCategories) {
+    const match = driveKeys.find((dk) => driveKeyMatchesCategory(dk, expectedCat));
+    if (match && photoCounts[match] > 0) {
+      matchedCount++;
+      photoCount += photoCounts[match];
+    }
+  }
+
+  return {
+    hasAny: matchedCount > 0,
+    matchedCount,
+    totalExpected: categoryPhotoCategories.length,
+    photoCount,
+  };
+}
+
+type CrewStatus = "not_started" | "partial" | "completed";
+
+const statusConfig: Record<CrewStatus, { icon: typeof CheckCircle2; classes: string; label: string }> = {
+  not_started: {
     icon: Circle,
     classes: "bg-muted/50 text-muted-foreground border-border",
-    label: "Κενό",
+    label: "Δεν ξεκίνησε",
   },
-  photos_only: {
-    icon: Camera,
-    classes: "bg-blue-500/10 text-blue-700 border-blue-500/20 dark:text-blue-400",
-    label: "Μόνο φωτό",
-  },
-  works_only: {
-    icon: Wrench,
+  partial: {
+    icon: Clock,
     classes: "bg-amber-500/10 text-amber-700 border-amber-500/20 dark:text-amber-400",
-    label: "Μόνο εργασίες",
+    label: "Ελλιπές",
   },
-  complete: {
+  completed: {
     icon: CheckCircle2,
     classes: "bg-green-500/10 text-green-700 border-green-500/20 dark:text-green-400",
-    label: "Πλήρες",
+    label: "Ολοκληρώθηκε",
   },
 };
 
 const ConstructionProgressTab = ({ assignments, isLoading }: Props) => {
   const { organizationId } = useOrganization();
+  const { data: categories = [] } = useWorkCategories();
   const { data: profiles = [] } = useProfiles();
 
   const constructionAssignments = useMemo(
@@ -79,14 +107,28 @@ const ConstructionProgressTab = ({ assignments, isLoading }: Props) => {
 
   const assignmentIds = constructionAssignments.map((a) => a.id);
 
-  // Fetch constructions with photo_counts and works
+  // Fetch crew assignments (per category per SR)
+  const { data: crewAssignments = [] } = useQuery({
+    queryKey: ["crew-progress-all", assignmentIds.join(",")],
+    enabled: assignmentIds.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("sr_crew_assignments" as any)
+        .select("*")
+        .in("assignment_id", assignmentIds);
+      if (error) throw error;
+      return data as any[];
+    },
+  });
+
+  // Fetch constructions with photo_counts from Drive
   const { data: constructions = [] } = useQuery({
     queryKey: ["constructions-progress", assignmentIds.join(",")],
     enabled: assignmentIds.length > 0,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("constructions")
-        .select("id, assignment_id, sr_id, photo_counts, status")
+        .select("id, assignment_id, photo_counts")
         .in("assignment_id", assignmentIds);
       if (error) throw error;
       return data as any[];
@@ -139,11 +181,18 @@ const ConstructionProgressTab = ({ assignments, isLoading }: Props) => {
   });
 
   // Group data
+  const crewByAssignment = useMemo(() => {
+    const map: Record<string, any[]> = {};
+    crewAssignments.forEach((ca) => {
+      if (!map[ca.assignment_id]) map[ca.assignment_id] = [];
+      map[ca.assignment_id].push(ca);
+    });
+    return map;
+  }, [crewAssignments]);
+
   const constructionByAssignment = useMemo(() => {
     const map: Record<string, any> = {};
-    constructions.forEach((c: any) => {
-      map[c.assignment_id] = c;
-    });
+    constructions.forEach((c: any) => { map[c.assignment_id] = c; });
     return map;
   }, [constructions]);
 
@@ -175,11 +224,15 @@ const ConstructionProgressTab = ({ assignments, isLoading }: Props) => {
 
   const profileMap = useMemo(() => {
     const m: Record<string, string> = {};
-    (profiles || []).forEach((p: any) => {
-      m[p.user_id] = p.full_name;
-    });
+    (profiles || []).forEach((p: any) => { m[p.user_id] = p.full_name; });
     return m;
   }, [profiles]);
+
+  const categoryMap = useMemo(() => {
+    const m: Record<string, any> = {};
+    (categories || []).forEach((c: any) => { m[c.id] = c; });
+    return m;
+  }, [categories]);
 
   if (isLoading) {
     return (
@@ -203,26 +256,43 @@ const ConstructionProgressTab = ({ assignments, isLoading }: Props) => {
   return (
     <div className="divide-y divide-border">
       {constructionAssignments.map((a) => {
+        const crews = crewByAssignment[a.id] || [];
         const construction = constructionByAssignment[a.id];
         const photoCounts: Record<string, number> = construction?.photo_counts || {};
-        const photoCategories = Object.entries(photoCounts).filter(([, count]) => (count as number) > 0);
-        const totalPhotos = photoCategories.reduce((sum, [, count]) => sum + (count as number), 0);
         const worksCount = construction ? (worksPerConstruction[construction.id] || 0) : 0;
-
-        const hasPhotos = totalPhotos > 0;
         const hasWorks = worksCount > 0;
 
-        let progressLevel: ProgressLevel = "none";
-        if (hasPhotos && hasWorks) progressLevel = "complete";
-        else if (hasPhotos) progressLevel = "photos_only";
-        else if (hasWorks) progressLevel = "works_only";
+        // Evaluate each crew category
+        const categoryStatuses = crews.map((crew) => {
+          const cat = categoryMap[crew.category_id];
+          if (!cat) return { crew, status: "not_started" as CrewStatus, photoStatus: null, hasMeasurements: false };
+          
+          const photoStatus = getCategoryPhotoStatus(cat.photo_categories || [], photoCounts);
+          const hasMeasurements = !cat.requires_measurements || (crew.measurements && Object.keys(crew.measurements).length > 0);
+          const hasRequiredWorks = !cat.requires_works || hasWorks;
 
-        // Progress: photos = 50%, works = 50%
-        const progress = (hasPhotos ? 50 : 0) + (hasWorks ? 50 : 0);
+          let status: CrewStatus = "not_started";
+          if (photoStatus.hasAny && hasMeasurements && hasRequiredWorks) {
+            status = "completed";
+          } else if (photoStatus.hasAny || (crew.status === "saved")) {
+            status = "partial";
+          }
+
+          return { crew, status, photoStatus, hasMeasurements, cat };
+        });
+
+        const completedCount = categoryStatuses.filter((s) => s.status === "completed").length;
+        const partialCount = categoryStatuses.filter((s) => s.status === "partial").length;
+        const totalCategories = categoryStatuses.length;
+
+        const progressRaw = totalCategories > 0
+          ? ((completedCount * 100) + (partialCount * 50)) / totalCategories
+          : 0;
+        const progress = Math.round(progressRaw);
 
         const timeData = timePerAssignment[a.id];
         const startedAt = constructionStartMap[a.id];
-        const pConfig = progressConfig[progressLevel];
+        const totalPhotos = Object.values(photoCounts).reduce((sum, c) => sum + (c || 0), 0);
 
         return (
           <div key={a.id} className="p-4 sm:p-5 hover:bg-muted/30 transition-colors">
@@ -240,9 +310,7 @@ const ConstructionProgressTab = ({ assignments, isLoading }: Props) => {
                     <MapPin className="h-3 w-3" />
                     {a.area}
                   </span>
-                  {a.address && (
-                    <span className="truncate max-w-[200px]">{a.address}</span>
-                  )}
+                  {a.address && <span className="truncate max-w-[200px]">{a.address}</span>}
                   {a.technicianId && (
                     <span className="flex items-center gap-1">
                       <User className="h-3 w-3" />
@@ -258,12 +326,19 @@ const ConstructionProgressTab = ({ assignments, isLoading }: Props) => {
                   }`}>
                     {progress}%
                   </span>
+                  <p className="text-[10px] text-muted-foreground">
+                    {completedCount}/{totalCategories}
+                  </p>
                 </div>
                 <div className="w-20 h-2.5 rounded-full bg-muted overflow-hidden">
                   <div className="h-full flex">
                     <div
                       className="h-full bg-green-500 transition-all"
-                      style={{ width: `${progress}%` }}
+                      style={{ width: totalCategories > 0 ? `${(completedCount / totalCategories) * 100}%` : "0%" }}
+                    />
+                    <div
+                      className="h-full bg-amber-400 transition-all"
+                      style={{ width: totalCategories > 0 ? `${(partialCount / totalCategories) * 100}%` : "0%" }}
                     />
                   </div>
                 </div>
@@ -275,7 +350,6 @@ const ConstructionProgressTab = ({ assignments, isLoading }: Props) => {
               {startedAt && (
                 <span className="flex items-center gap-1" title={new Date(startedAt).toLocaleString("el-GR")}>
                   <CalendarDays className="h-3 w-3" />
-                  Έναρξη{" "}
                   {formatDistanceToNow(new Date(startedAt), { addSuffix: true, locale: el })}
                 </span>
               )}
@@ -291,44 +365,74 @@ const ConstructionProgressTab = ({ assignments, isLoading }: Props) => {
                   )}
                 </span>
               )}
-              <span className={`flex items-center gap-1 ${hasPhotos ? "text-foreground font-medium" : ""}`}>
+              <span className="flex items-center gap-1">
                 <Camera className="h-3 w-3" />
                 {totalPhotos} φωτο
               </span>
-              <span className={`flex items-center gap-1 ${hasWorks ? "text-foreground font-medium" : ""}`}>
+              <span className="flex items-center gap-1">
                 <Wrench className="h-3 w-3" />
                 {worksCount} εργασίες
               </span>
             </div>
 
-            {/* Photo categories from Drive */}
-            {photoCategories.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 mb-1.5">
-                {photoCategories.map(([cat, count]) => (
-                  <div
-                    key={cat}
-                    className="inline-flex items-center gap-1 rounded-full border border-blue-500/20 bg-blue-500/10 px-2.5 py-1 text-[11px] font-medium text-blue-700 dark:text-blue-400"
-                  >
-                    <FolderOpen className="h-3 w-3" />
-                    <span>{PHOTO_CATEGORY_LABELS[cat] || cat}</span>
-                    <span className="opacity-70">{count as number}</span>
-                  </div>
-                ))}
+            {/* Category progress chips */}
+            {categoryStatuses.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {categoryStatuses.map(({ crew, status, photoStatus, hasMeasurements, cat }) => {
+                  const config = statusConfig[status];
+                  const StatusIcon = config.icon;
+                  const catName = cat?.name || "—";
+                  const techName = profileMap[crew.technician_id] || "";
+                  const photoCount = photoStatus?.photoCount || 0;
+                  const needsMeasurements = cat?.requires_measurements;
+                  const needsWorks = cat?.requires_works;
+
+                  // Build tooltip
+                  const tooltipParts = [`${catName}: ${config.label}`];
+                  if (photoStatus) {
+                    tooltipParts.push(`Φωτο: ${photoCount} (${photoStatus.matchedCount}/${photoStatus.totalExpected} κατηγορίες)`);
+                  }
+                  if (needsMeasurements) {
+                    tooltipParts.push(`Μετρήσεις: ${hasMeasurements ? "✅" : "❌"}`);
+                  }
+                  if (needsWorks) {
+                    tooltipParts.push(`Εργασίες: ${hasWorks ? "✅" : "❌"}`);
+                  }
+                  if (techName) tooltipParts.push(`→ ${techName}`);
+
+                  return (
+                    <div
+                      key={crew.id}
+                      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-all ${config.classes}`}
+                      title={tooltipParts.join("\n")}
+                    >
+                      <StatusIcon className="h-3 w-3" />
+                      <span className="max-w-[120px] truncate">{catName}</span>
+                      {photoCount > 0 && (
+                        <span className="inline-flex items-center gap-0.5 opacity-70">
+                          <Camera className="h-2.5 w-2.5" />
+                          {photoCount}
+                        </span>
+                      )}
+                      {needsMeasurements && (
+                        <Ruler className={`h-2.5 w-2.5 ${hasMeasurements ? "text-green-600" : "text-destructive opacity-60"}`} />
+                      )}
+                      {techName && (
+                        <span className="text-[10px] opacity-60 max-w-[80px] truncate">
+                          ({techName.split(" ")[0]})
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             )}
 
-            {/* Overall status chip */}
-            <div className="flex items-center gap-1.5 mt-1">
-              <div className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium ${pConfig.classes}`}>
-                <pConfig.icon className="h-3 w-3" />
-                <span>{pConfig.label}</span>
-              </div>
-              {!hasPhotos && !hasWorks && (
-                <span className="text-[11px] text-muted-foreground/60 italic">
-                  Δεν υπάρχουν δεδομένα ακόμα
-                </span>
-              )}
-            </div>
+            {categoryStatuses.length === 0 && (
+              <p className="text-xs text-muted-foreground/60 italic">
+                Δεν υπάρχουν αναθέσεις συνεργείου
+              </p>
+            )}
           </div>
         );
       })}
