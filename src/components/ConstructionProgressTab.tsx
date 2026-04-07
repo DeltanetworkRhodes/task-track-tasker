@@ -121,17 +121,54 @@ const ConstructionProgressTab = ({ assignments, isLoading }: Props) => {
     },
   });
 
-  // Fetch constructions with photo_counts from Drive
+  // Fetch constructions with photo_counts from DB
   const { data: constructions = [] } = useQuery({
     queryKey: ["constructions-progress", assignmentIds.join(",")],
     enabled: assignmentIds.length > 0,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("constructions")
-        .select("id, assignment_id, photo_counts")
+        .select("id, assignment_id, photo_counts, sr_id")
         .in("assignment_id", assignmentIds);
       if (error) throw error;
       return data as any[];
+    },
+  });
+
+  // Fetch REAL Drive data for each SR
+  const srIds = constructionAssignments.map((a) => a.srId);
+  const { data: driveDataMap = {} } = useQuery({
+    queryKey: ["drive-files-progress", srIds.join(",")],
+    enabled: srIds.length > 0,
+    staleTime: 5 * 60 * 1000, // cache 5 min to avoid too many calls
+    queryFn: async () => {
+      const result: Record<string, { subfolders: Record<string, { files: any[] }>; totalFiles: number }> = {};
+      // Fetch in parallel batches of 5
+      const batchSize = 5;
+      for (let i = 0; i < srIds.length; i += batchSize) {
+        const batch = srIds.slice(i, i + batchSize);
+        const results = await Promise.allSettled(
+          batch.map(async (srId) => {
+            const { data, error } = await supabase.functions.invoke("google-drive-files", {
+              body: { action: "sr_folder", sr_id: srId },
+            });
+            if (error) return { srId, found: false };
+            return { srId, ...data };
+          })
+        );
+        results.forEach((r) => {
+          if (r.status === "fulfilled" && r.value?.found) {
+            const d = r.value;
+            const subfolders = d.subfolders || {};
+            let totalFiles = (d.files || []).length;
+            Object.values(subfolders).forEach((sf: any) => {
+              totalFiles += (sf.files || []).length;
+            });
+            result[d.srId] = { subfolders, totalFiles };
+          }
+        });
+      }
+      return result;
     },
   });
 
