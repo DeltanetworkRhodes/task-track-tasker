@@ -24,17 +24,37 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
 
-      // Audit log: track login events
+      // For OAuth sign-ins, check if user was pre-created (has organization_id)
       if (_event === 'SIGNED_IN' && session?.user) {
+        const provider = session.user.app_metadata?.provider;
+        if (provider && provider !== 'email') {
+          // Check if user has a profile with organization_id
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("organization_id")
+            .eq("user_id", session.user.id)
+            .maybeSingle();
+
+          if (!profile?.organization_id) {
+            // User was not pre-created by admin — sign them out
+            await supabase.auth.signOut();
+            setUser(null);
+            setSession(null);
+            window.__oauthRejected = true;
+            return;
+          }
+        }
+
+        // Audit log: track login events
         supabase.from("audit_logs").insert({
           user_id: session.user.id,
           action: "login",
-          details: { method: "session" },
+          details: { method: provider || "email" },
           user_agent: navigator.userAgent,
           page_url: window.location.pathname,
         }).then(() => {});
