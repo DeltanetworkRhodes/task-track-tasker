@@ -1021,17 +1021,10 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
     for (const key of mandatoryPhotoKeys) {
       const newCount = (categorizedPhotos[key] || []).length;
       const existingCount = existingPhotoCounts[key] || 0;
-      if (newCount + existingCount === 0) return false; // no photos at all
-      // Check new photos for unresolved rejections
-      for (let i = 0; i < newCount; i++) {
-        const result = getConstructionResult(key, i);
-        if (result && !result.skipped && !result.overriddenBy && (!result.isApproved || result.qualityScore < 7)) {
-          return false; // has rejected photo without override
-        }
-      }
+      if (newCount + existingCount === 0) return false;
     }
     return true;
-  }, [mandatoryPhotoKeys, categorizedPhotos, existingPhotoCounts, getConstructionResult]);
+  }, [mandatoryPhotoKeys, categorizedPhotos, existingPhotoCounts]);
 
   const missingMandatoryCategories = useMemo(() => {
     const missing: string[] = [];
