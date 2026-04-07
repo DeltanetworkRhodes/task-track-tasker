@@ -5,7 +5,7 @@ import { useOrganization } from "@/contexts/OrganizationContext";
 import { useWorkCategories } from "@/hooks/useCrewData";
 import { useProfiles } from "@/hooks/useData";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CheckCircle2, Clock, User, HardHat, MapPin, Camera, Timer, CalendarDays, Circle } from "lucide-react";
+import { CheckCircle2, Clock, User, HardHat, MapPin, Camera, Timer, CalendarDays, Circle, Wrench } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { el } from "date-fns/locale";
 
@@ -33,9 +33,10 @@ function formatDuration(minutes: number): string {
 
 type CrewStatus = "not_started" | "in_progress" | "completed";
 
-function getCrewRealStatus(crew: any, photoCount: number): CrewStatus {
-  if (photoCount === 0) return "not_started";
-  if (crew.status === "saved" && photoCount > 0) return "completed";
+function getCrewRealStatus(crew: any, photoCount: number, hasWorks: boolean): CrewStatus {
+  const hasPhotos = photoCount > 0;
+  if (!hasPhotos && !hasWorks) return "not_started";
+  if (hasPhotos && hasWorks) return "completed";
   return "in_progress";
 }
 
@@ -98,6 +99,36 @@ const ConstructionProgressTab = ({ assignments, isLoading }: Props) => {
     },
   });
 
+  // Fetch construction works counts per assignment
+  const { data: constructionWorks = [] } = useQuery({
+    queryKey: ["construction-works-progress", assignmentIds.join(",")],
+    enabled: assignmentIds.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("construction_works" as any)
+        .select("construction_id")
+        .in("construction_id", assignmentIds.length > 0 ? assignmentIds : ["__none__"]);
+      // construction_works links via construction_id -> constructions -> assignment_id
+      // We need to go through constructions table
+      const { data: constructions, error: cErr } = await supabase
+        .from("constructions" as any)
+        .select("id, assignment_id")
+        .in("assignment_id", assignmentIds);
+      if (cErr) throw cErr;
+      const constructionIds = (constructions as any[]).map((c) => c.id);
+      if (constructionIds.length === 0) return [];
+      const { data: works, error: wErr } = await supabase
+        .from("construction_works" as any)
+        .select("construction_id")
+        .in("construction_id", constructionIds);
+      if (wErr) throw wErr;
+      // Map construction_id back to assignment_id
+      const cMap: Record<string, string> = {};
+      (constructions as any[]).forEach((c) => { cMap[c.id] = c.assignment_id; });
+      return (works as any[]).map((w) => ({ ...w, assignment_id: cMap[w.construction_id] }));
+    },
+  });
+
   // Fetch time entries
   const { data: timeEntries = [] } = useQuery({
     queryKey: ["time-entries-construction", assignmentIds.join(",")],
@@ -145,6 +176,16 @@ const ConstructionProgressTab = ({ assignments, isLoading }: Props) => {
     });
     return map;
   }, [crewPhotos]);
+
+  const worksPerAssignment = useMemo(() => {
+    const map: Record<string, number> = {};
+    (constructionWorks as any[]).forEach((w) => {
+      if (w.assignment_id) {
+        map[w.assignment_id] = (map[w.assignment_id] || 0) + 1;
+      }
+    });
+    return map;
+  }, [constructionWorks]);
 
   const timePerAssignment = useMemo(() => {
     const map: Record<string, { total: number; active: number }> = {};
@@ -204,15 +245,15 @@ const ConstructionProgressTab = ({ assignments, isLoading }: Props) => {
       {constructionAssignments.map((a) => {
         const crews = crewByAssignment[a.id] || [];
         const totalCategories = crews.length;
+        const hasWorksForAssignment = (worksPerAssignment[a.id] || 0) > 0;
 
-        // Calculate real progress based on photos
+        // Calculate real progress based on photos + works
         const crewStatuses = crews.map((crew) => {
           const photoCount = photosPerCrew[crew.id] || 0;
-          return getCrewRealStatus(crew, photoCount);
+          return getCrewRealStatus(crew, photoCount, hasWorksForAssignment);
         });
         const completedCount = crewStatuses.filter((s) => s === "completed").length;
         const inProgressCount = crewStatuses.filter((s) => s === "in_progress").length;
-        // Completed = 100%, in_progress = 50% weight for progress bar
         const progressRaw = totalCategories > 0
           ? ((completedCount * 100) + (inProgressCount * 50)) / totalCategories
           : 0;
@@ -220,6 +261,8 @@ const ConstructionProgressTab = ({ assignments, isLoading }: Props) => {
 
         const timeData = timePerAssignment[a.id];
         const startedAt = constructionStartMap[a.id];
+        const worksCount = worksPerAssignment[a.id] || 0;
+        const totalPhotos = crews.reduce((sum, crew) => sum + (photosPerCrew[crew.id] || 0), 0);
 
         return (
           <div key={a.id} className="p-4 sm:p-5 hover:bg-muted/30 transition-colors">
@@ -260,7 +303,6 @@ const ConstructionProgressTab = ({ assignments, isLoading }: Props) => {
                   </p>
                 </div>
                 <div className="w-20 h-2.5 rounded-full bg-muted overflow-hidden">
-                  {/* Completed portion */}
                   <div className="h-full flex">
                     <div
                       className="h-full bg-green-500 transition-all"
@@ -275,7 +317,7 @@ const ConstructionProgressTab = ({ assignments, isLoading }: Props) => {
               </div>
             </div>
 
-            {/* Timeline & Time tracking row */}
+            {/* Stats row: timeline, time, photos, works */}
             <div className="flex items-center gap-4 mb-2.5 text-[11px] text-muted-foreground flex-wrap">
               {startedAt && (
                 <span className="flex items-center gap-1" title={new Date(startedAt).toLocaleString("el-GR")}>
@@ -296,6 +338,14 @@ const ConstructionProgressTab = ({ assignments, isLoading }: Props) => {
                   )}
                 </span>
               )}
+              <span className="flex items-center gap-1">
+                <Camera className="h-3 w-3" />
+                {totalPhotos} φωτο
+              </span>
+              <span className="flex items-center gap-1">
+                <Wrench className="h-3 w-3" />
+                {worksCount} εργασίες
+              </span>
             </div>
 
             {/* Category progress chips */}
