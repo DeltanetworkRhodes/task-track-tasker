@@ -1670,34 +1670,40 @@ export type Database = {
           active: boolean | null
           can_close_sr: boolean | null
           id: string
+          material_codes: string[] | null
           name: string
           organization_id: string
           photo_categories: string[] | null
           requires_measurements: boolean | null
           requires_works: boolean | null
           sort_order: number
+          work_prefixes: string[] | null
         }
         Insert: {
           active?: boolean | null
           can_close_sr?: boolean | null
           id?: string
+          material_codes?: string[] | null
           name: string
           organization_id: string
           photo_categories?: string[] | null
           requires_measurements?: boolean | null
           requires_works?: boolean | null
           sort_order?: number
+          work_prefixes?: string[] | null
         }
         Update: {
           active?: boolean | null
           can_close_sr?: boolean | null
           id?: string
+          material_codes?: string[] | null
           name?: string
           organization_id?: string
           photo_categories?: string[] | null
           requires_measurements?: boolean | null
           requires_works?: boolean | null
           sort_order?: number
+          work_prefixes?: string[] | null
         }
         Relationships: [
           {
