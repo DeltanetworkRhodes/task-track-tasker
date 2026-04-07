@@ -59,7 +59,9 @@ function folderMatchesAny(folderName: string, targets: readonly string[]): boole
   const nf = normalizeName(folderName);
   return targets.some((t) => {
     const nt = normalizeName(t);
-    return nf === nt || nf.includes(nt) || nt.includes(nf);
+    // Exact match or folder starts with the target (e.g. "ΣΚΑΜΑ 1" matches "ΣΚΑΜΑ")
+    // But NOT substring match to avoid "ΟΔΕΥΣΗ_ΟΤΟ" matching "ΟΔΕΥΣΗ"
+    return nf === nt || nf.startsWith(nt + " ") || nf.startsWith(nt + "_");
   });
 }
 
