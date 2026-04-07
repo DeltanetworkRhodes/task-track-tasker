@@ -2,6 +2,11 @@ import { createContext, useContext, useEffect, useState, ReactNode } from "react
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
+declare global {
+  interface Window {
+    __oauthRejected?: boolean;
+  }
+}
 interface AuthContextType {
   user: User | null;
   session: Session | null;
