@@ -1543,10 +1543,12 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
       return;
     }
 
-    // ═══════ ONLINE BRANCH (unchanged) ═══════
+    // ═══════ ONLINE BRANCH ═══════
     setSubmitting(true);
     try {
       setSubmitProgress("Καταχώρηση κατασκευής...");
+
+      const isCompleting = completingRef.current;
 
       const routesData = routes
         .filter((r) => r.koi || r.fyraKoi)
@@ -1580,7 +1582,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
         floors: parseInt(floors) || 0,
         revenue: totalRevenue,
         material_cost: totalMaterialCost,
-        status: "completed",
+        status: isCompleting ? "completed" : "in_progress",
         routing_type: routingType.trim() || null,
         pending_note: pendingNote.trim() || null,
         routes: routesData.length > 0 ? routesData : null,
@@ -1730,81 +1732,95 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
         }
       }
 
-      // Calculate payment amount from construction works
-      const paymentAmount = workItems.reduce((sum, w) => sum + (w.quantity * w.unit_price), 0);
+      // Only run completion flow (docs, email, status change) when completing
+      if (isCompleting) {
+        // Calculate payment amount from construction works
+        const paymentAmount = workItems.reduce((sum, w) => sum + (w.quantity * w.unit_price), 0);
 
-      const { error: assignError } = await supabase
-        .from("assignments")
-        .update({ 
-          status: "submitted", 
-          cab: cab.trim(),
-          payment_amount: paymentAmount,
-          submitted_at: new Date().toISOString(),
-        } as any)
-        .eq("id", assignment.id);
-      if (assignError) console.error("Assignment update error:", assignError);
+        const { error: assignError } = await supabase
+          .from("assignments")
+          .update({ 
+            status: "submitted", 
+            cab: cab.trim(),
+            payment_amount: paymentAmount,
+            submitted_at: new Date().toISOString(),
+          } as any)
+          .eq("id", assignment.id);
+        if (assignError) console.error("Assignment update error:", assignError);
 
-      setSubmitProgress("Δημιουργία εγγράφων & upload στο Drive...");
-      let docsResult: any = null;
-      try {
-        const { data, error: docsErr } = await supabase.functions.invoke(
-          "generate-construction-docs",
-          { body: { construction_id: constructionId, photo_paths: photoPaths, otdr_paths: otdrPaths } }
-        );
-        docsResult = data;
-        if (docsErr) {
-          console.error("Docs generation error:", docsErr);
-          toast.error("Τα έγγραφα δεν δημιουργήθηκαν, αλλά η κατασκευή καταχωρήθηκε");
-        } else if (docsResult?.drive_uploaded) {
-          toast.success(`Αρχεία ανέβηκαν στο Drive (${docsResult.files?.length || 0} αρχεία)`);
-        }
-      } catch (docsErr: any) {
-        console.error("Docs error:", docsErr);
-      }
+        // Move SR folder to "ΠΑΡΑΔΩΤΕΑ" in Drive (fire-and-forget)
+        supabase.functions.invoke("move-sr-folder", {
+          body: { sr_id: assignment.sr_id, target_folder: "ΠΑΡΑΔΩΤΕΑ", organization_id: assignment.organization_id },
+        }).catch(console.error);
 
-      // Send completion email with ZIP (spreadsheet + photos)
-      setSubmitProgress("Αποστολή email ολοκλήρωσης...");
-      try {
-        const spreadsheetFile = docsResult?.files?.find((f: any) => f.type === "spreadsheet");
-        const { error: emailErr } = await supabase.functions.invoke(
-          "send-completion-email",
-          {
-            body: {
-              construction_id: constructionId,
-              sr_id: assignment.sr_id,
-              area: assignment.area,
-              customer_name: assignment.customer_name,
-              address: assignment.address,
-              cab: cab.trim(),
-              spreadsheet_id: spreadsheetFile?.id || null,
-              photo_paths: photoPaths,
-              otdr_paths: otdrPaths,
-              drive_folder_url: docsResult?.sr_folder?.url || assignment.drive_folder_url,
-            },
+        setSubmitProgress("Δημιουργία εγγράφων & upload στο Drive...");
+        let docsResult: any = null;
+        try {
+          const { data, error: docsErr } = await supabase.functions.invoke(
+            "generate-construction-docs",
+            { body: { construction_id: constructionId, photo_paths: photoPaths, otdr_paths: otdrPaths } }
+          );
+          docsResult = data;
+          if (docsErr) {
+            console.error("Docs generation error:", docsErr);
+            toast.error("Τα έγγραφα δεν δημιουργήθηκαν, αλλά η κατασκευή καταχωρήθηκε");
+          } else if (docsResult?.drive_uploaded) {
+            toast.success(`Αρχεία ανέβηκαν στο Drive (${docsResult.files?.length || 0} αρχεία)`);
           }
-        );
-        if (emailErr) {
-          console.error("Completion email error:", emailErr);
-        } else {
-          toast.success("Email ολοκλήρωσης εστάλη");
+        } catch (docsErr: any) {
+          console.error("Docs error:", docsErr);
         }
-      } catch (emailErr: any) {
-        console.error("Completion email error:", emailErr);
+
+        // Send completion email with ZIP (spreadsheet + photos)
+        setSubmitProgress("Αποστολή email ολοκλήρωσης...");
+        try {
+          const spreadsheetFile = docsResult?.files?.find((f: any) => f.type === "spreadsheet");
+          const { error: emailErr } = await supabase.functions.invoke(
+            "send-completion-email",
+            {
+              body: {
+                construction_id: constructionId,
+                sr_id: assignment.sr_id,
+                area: assignment.area,
+                customer_name: assignment.customer_name,
+                address: assignment.address,
+                cab: cab.trim(),
+                spreadsheet_id: spreadsheetFile?.id || null,
+                photo_paths: photoPaths,
+                otdr_paths: otdrPaths,
+                drive_folder_url: docsResult?.sr_folder?.url || assignment.drive_folder_url,
+              },
+            }
+          );
+          if (emailErr) {
+            console.error("Completion email error:", emailErr);
+          } else {
+            toast.success("Email ολοκλήρωσης εστάλη");
+          }
+        } catch (emailErr: any) {
+          console.error("Completion email error:", emailErr);
+        }
+
+        toast.success("🎉 Η κατασκευή ολοκληρώθηκε!");
+      } else {
+        // Just saving
+        toast.success("✅ Αποθηκεύτηκε επιτυχώς!");
       }
 
-      toast.success("Η κατασκευή καταχωρήθηκε επιτυχώς!");
       setSubmitted(true);
       queryClient.invalidateQueries({ queryKey: ["technician-assignments"] });
       queryClient.invalidateQueries({ queryKey: ["constructions"] });
       queryClient.invalidateQueries({ queryKey: ["existing_construction", assignment.id] });
       queryClient.invalidateQueries({ queryKey: ["existing_construction_works"] });
       queryClient.invalidateQueries({ queryKey: ["existing_construction_materials"] });
-      setTimeout(() => onComplete(), 2000);
+      setTimeout(() => onComplete(), isCompleting ? 2000 : 1500);
     } catch (err: any) {
       console.error(err);
       toast.error("Σφάλμα: " + (err.message || "Δοκιμάστε ξανά"));
     } finally {
       setSubmitting(false);
+      setCompleting(false);
+      completingRef.current = false;
       setSubmitProgress("");
     }
   };
@@ -3204,11 +3220,62 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
           ) : (
             <>
               <Save className="h-4 w-4" />
-              {isCrewMode ? "💾 Αποθήκευση Εργασιών" : "Υποβολή Κατασκευής"}
+              {isCrewMode ? "💾 Αποθήκευση Εργασιών" : "💾 Αποθήκευση Κατασκευής"}
             </>
           )}
         </Button>
 
+        {/* Completion button for responsible technician (non-crew) */}
+        {!isCrewMode && (
+          <AlertDialog open={showCompleteConfirm} onOpenChange={setShowCompleteConfirm}>
+            <AlertDialogTrigger asChild>
+              <Button
+                disabled={submitting || completing}
+                variant="default"
+                className="w-full py-6 text-sm font-bold gap-2 bg-green-600 hover:bg-green-700 text-white"
+              >
+                {completing ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    {submitProgress || "Ολοκλήρωση..."}
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="h-4 w-4" />
+                    ✅ Ολοκλήρωση Κατασκευής
+                  </>
+                )}
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Ολοκλήρωση Κατασκευής</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Είστε σίγουροι ότι θέλετε να ολοκληρώσετε την κατασκευή για το SR <strong>{assignment.sr_id}</strong>;
+                  <br /><br />
+                  Θα δημιουργηθεί ο φάκελος πελάτη και θα σταλεί email ολοκλήρωσης.
+                  <br /><br />
+                  <strong>Αυτή η ενέργεια δεν αναιρείται.</strong>
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Ακύρωση</AlertDialogCancel>
+                <AlertDialogAction
+                  className="bg-green-600 hover:bg-green-700 text-white"
+                  onClick={() => {
+                    completingRef.current = true;
+                    setCompleting(true);
+                    handleSubmit();
+                  }}
+                >
+                  Ναι, Ολοκλήρωση
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
+
+        {/* Completion button for crew member with splicing (1986) */}
         {isCrewMode && filterWorkPrefixes?.some(p => p === '1986') && (
           <>
             {!mandatoryPhotosValid && mandatoryPhotoKeys.size > 0 && (
