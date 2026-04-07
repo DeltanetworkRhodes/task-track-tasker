@@ -97,10 +97,12 @@ async function findSubfolder(
   parentId: string,
   folderName: string
 ): Promise<string | null> {
+  // Escape single quotes for Drive API query syntax
+  const escapedName = folderName.replace(/'/g, "\\'");
   // Method 1: Search query
   const results = await driveSearch(
     accessToken,
-    `name = '${folderName}' and mimeType = 'application/vnd.google-apps.folder' and '${parentId}' in parents and trashed = false`
+    `name = '${escapedName}' and mimeType = 'application/vnd.google-apps.folder' and '${parentId}' in parents and trashed = false`
   );
   if (results.length > 0) return results[0].id;
 
@@ -239,9 +241,10 @@ Deno.serve(async (req) => {
     const accessToken = await getAccessToken(serviceAccountKey);
 
     // Step A: Find SR folder in Drive
+    const escapedSrId = sr_id.replace(/'/g, "\\'");
     const srFolders = await driveSearch(
       accessToken,
-      `name contains '${sr_id}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`
+      `name contains '${escapedSrId}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`
     );
 
     if (srFolders.length === 0) {
