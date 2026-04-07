@@ -21,6 +21,14 @@ const LoginPage = () => {
   const [forgotSent, setForgotSent] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
 
+  // Check if OAuth was rejected
+  useEffect(() => {
+    if (window.__oauthRejected) {
+      setError("Δεν έχετε εξουσιοδότηση. Επικοινωνήστε με τον διαχειριστή.");
+      window.__oauthRejected = false;
+    }
+  }, []);
+
   if (authLoading) return <div className="flex min-h-screen items-center justify-center bg-background"><div className="text-muted-foreground">Φόρτωση...</div></div>;
   if (user) return <Navigate to="/" replace />;
 
