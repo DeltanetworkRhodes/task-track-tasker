@@ -236,9 +236,12 @@ const ConstructionProgressTab = ({ assignments, isLoading }: Props) => {
   }, [constructions]);
 
   const worksPerConstruction = useMemo(() => {
-    const map: Record<string, number> = {};
+    const map: Record<string, { count: number; codes: string[] }> = {};
     (worksData as any[]).forEach((w) => {
-      map[w.construction_id] = (map[w.construction_id] || 0) + 1;
+      if (!map[w.construction_id]) map[w.construction_id] = { count: 0, codes: [] };
+      map[w.construction_id].count++;
+      const code = w.work_pricing?.code;
+      if (code) map[w.construction_id].codes.push(code);
     });
     return map;
   }, [worksData]);
