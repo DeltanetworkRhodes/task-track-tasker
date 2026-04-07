@@ -921,6 +921,8 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
                 assignment={selectedAssignment}
                 isCrewMode
                 filterPhotoCatKeys={crewPhotoCatKeys.length > 0 ? crewPhotoCatKeys : undefined}
+                filterWorkPrefixes={crewWorkPrefixes.length > 0 ? crewWorkPrefixes : undefined}
+                filterMaterialCodes={crewMaterialCodes.length > 0 ? crewMaterialCodes : undefined}
                 crewAssignmentIds={crewAssignmentIds.length > 0 ? crewAssignmentIds : undefined}
                 onComplete={() => {
                   setShowCrewPanel(false);
