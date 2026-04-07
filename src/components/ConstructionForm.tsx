@@ -1840,7 +1840,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
       </h2>
 
       {/* Technical Details */}
-      <Card className="p-4 space-y-3">
+      {!isCrewMode && <Card className="p-4 space-y-3">
         <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
           Τεχνικά Στοιχεία
         </Label>
