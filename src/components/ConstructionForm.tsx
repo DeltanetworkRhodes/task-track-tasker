@@ -3016,67 +3016,19 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                           <Camera className="h-3 w-3" />
                         </Button>
                       </div>
-                    )}
                   </div>
                 </div>
-
-                {/* AI analyzing indicator */}
-                {analyzing && (
-                  <div className="flex items-center gap-2 p-2 rounded-lg bg-primary/10 border border-primary/20 animate-pulse">
-                    <BrainCircuit className="h-4 w-4 animate-spin text-primary" />
-                    <span className="text-xs font-medium text-primary">
-                      Το AI ελέγχει τις προδιαγραφές ΟΤΕ Β' Φάσης...
-                    </span>
-                  </div>
-                )}
                 
                 {catPreviews.length > 0 && (
                   <div className="grid grid-cols-4 gap-1.5">
                     {catPreviews.map((preview, i) => {
-                      const result = getConstructionResult(cat.key, i);
-                      const isRejected = result && !result.skipped && !result.overriddenBy && (!result.isApproved || result.qualityScore < 7);
-                      const isOverridden = result && !!result.overriddenBy;
                       return (
                         <div key={i} className="relative group">
                           <img
                             src={preview}
                             alt={`${cat.label} ${i + 1}`}
-                            className={`w-full h-16 object-cover rounded border ${isRejected ? "border-destructive ring-1 ring-destructive/40" : "border-border"}`}
+                            className="w-full h-16 object-cover rounded border border-border"
                           />
-                          {/* AI approval badge */}
-                          {result && !result.skipped && !isRejected && !isOverridden && (
-                            <div className="absolute top-0.5 left-0.5" title={`Score: ${result.qualityScore}/10`}>
-                              <ShieldCheck className="h-4 w-4 text-green-500 drop-shadow" />
-                            </div>
-                          )}
-                          {/* Rejection badge + override button */}
-                          {isRejected && (
-                            <div className="absolute top-0.5 left-0.5 flex items-center gap-0.5">
-                              <ShieldAlert className="h-4 w-4 text-destructive drop-shadow" />
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                className="h-5 text-[8px] px-1 py-0 border-amber-500/50 text-amber-700 hover:bg-amber-500/10 bg-background/80"
-                                onClick={() => { setOverrideTarget({ category: cat.key, index: i }); setOverrideReason(""); }}
-                              >
-                                Override ⚠️
-                              </Button>
-                            </div>
-                          )}
-                          {/* Override badge */}
-                          {isOverridden && (
-                            <div className="absolute top-0.5 left-0.5" title={result.overriddenBy}>
-                              <Badge className="text-[7px] h-4 px-1 bg-amber-500 text-amber-950 hover:bg-amber-500">
-                                OVERRIDE
-                              </Badge>
-                            </div>
-                          )}
-                          {result && !result.skipped && result.qualityScore && (
-                            <div className="absolute bottom-0.5 left-0.5 bg-black/60 text-white text-[9px] px-1 rounded">
-                              {result.qualityScore}/10
-                            </div>
-                          )}
                           <button
                             type="button"
                             onClick={() => removeCategoryPhoto(cat.key, i)}
