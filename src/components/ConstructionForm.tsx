@@ -2596,7 +2596,9 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                                      const individualLabels: string[] = [];
                                      for (const item of bepDoorPairs) {
                                        const [l1, l2] = item.letters;
-                                       individualLabels.push(`${l1}${item.position} ${l2}${item.position} - ${item.label}`);
+                                       // Each fiber is a separate label: A = active, B = spare (same position/floor)
+                                       individualLabels.push(`${l1}${item.position} - ${item.label}`);
+                                       individualLabels.push(`${l2}${item.position} - ${item.label}`);
                                      }
                                      return individualLabels.length > 0 ? (
                                        <div className="space-y-1 mt-1">
