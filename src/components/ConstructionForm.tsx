@@ -2444,8 +2444,13 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                         const apts = fd.apartments != null ? fd.apartments : 1;
                         if (apts === 0) continue;
                         for (let a = 0; a < apts; a++) {
+                          if (pos > MAX_POSITIONS_PER_ROW) break;
                           bepDoorPairs.push({ letters, position: pos++, label: floorShort(fd.floor) });
                         }
+                      }
+                      // Fill remaining positions up to 7 with ΕΦΕΔ
+                      while (pos <= MAX_POSITIONS_PER_ROW) {
+                        bepDoorPairs.push({ letters, position: pos++, label: "ΕΦΕΔ" });
                       }
                     }
 
