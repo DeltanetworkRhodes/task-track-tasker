@@ -2414,16 +2414,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                         if (pos > MAX_POSITIONS_PER_ROW) break;
                         bepDoorPairs.push({ letters: letters as [string,string], position: pos++, label: floorShort(entry.floor) });
                       }
-                      // Spare for this splitter
-                      const spareForSb = spareEntries.filter(e => e.sbNum === sbNum).sort((a,b) => a.sbPort - b.sbPort);
-                      for (const entry of spareForSb) {
-                        if (pos > MAX_POSITIONS_PER_ROW) break;
-                        bepDoorPairs.push({ letters: letters as [string,string], position: pos++, label: "ΕΦΕΔ" });
-                      }
-                      // Fill remaining positions up to 7 with ΕΦΕΔ
-                      while (pos <= MAX_POSITIONS_PER_ROW) {
-                        bepDoorPairs.push({ letters: letters as [string,string], position: pos++, label: "ΕΦΕΔ" });
-                      }
+                      // No spare/ΕΦΕΔ labels needed
                     }
 
                     // 5. Fallback: if no pair data from paths, use floor_details
@@ -2448,10 +2439,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                           bepDoorPairs.push({ letters, position: pos++, label: floorShort(fd.floor) });
                         }
                       }
-                      // Fill remaining positions up to 7 with ΕΦΕΔ
-                      while (pos <= MAX_POSITIONS_PER_ROW) {
-                        bepDoorPairs.push({ letters, position: pos++, label: "ΕΦΕΔ" });
-                      }
+                      // No spare/ΕΦΕΔ labels needed
                     }
 
                     // --- FB groups from BMO-FB paths (grouped by FLOOR, not FB name) ---
