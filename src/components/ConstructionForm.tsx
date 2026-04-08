@@ -2342,73 +2342,89 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                     // BCP exists if found in paths or GIS metadata
                     const hasBcpConnection = hasBcp || !!(gisData?.nearby_bcp || gisData?.new_bcp || gisData?.associated_bcp);
                    
-                   // --- BEP fiber pair mapping for BEP door label ---
-                   // Each pair (e.g. 01a/01b) maps to: ΟΡΙΑ (CAB-BEP), floor (BEP-BMO), or ΕΦΕΔ (spare BEP)
-                   const bepPairMap: Record<number, string> = {}; // pair number → label
+                    // --- BEP door label: one line per SB port ---
+                    // Each SB splitter port maps to one BMO port → one floor
+                    const bepPairMap: Record<number, string> = {}; // sequential pair → label
 
-                   // 1. CAB-BEP pairs → ΟΡΙΑ
-                   for (const p of cabBepPaths) {
-                     const pathStr = p["OPTICAL PATH"] || "";
-                     const m = pathStr.match(/_BEP\d+(?:\([^)]+\))?_(\d+)[a-z]/i);
-                     if (m) bepPairMap[parseInt(m[1], 10)] = "ΟΡΙΑ";
-                   }
+                    // 1. CAB-BEP fibers → ΟΡΙΑ (pair 1 for the feed)
+                    const cabBepFiberPairs = new Set<number>();
+                    for (const p of cabBepPaths) {
+                      const pathStr = p["OPTICAL PATH"] || "";
+                      const m = pathStr.match(/_BEP\d+(?:\([^)]+\))?_(\d+)[a-z]/i);
+                      if (m) cabBepFiberPairs.add(parseInt(m[1], 10));
+                    }
+                    // Reserve pair 1 for ΟΡΙΑ if we have CAB-BEP fibers
+                    let nextPair = 1;
+                    if (cabBepFiberPairs.size > 0) {
+                      bepPairMap[nextPair++] = "ΟΡΙΑ";
+                    }
 
-                   // 2. BEP-BMO pairs → floor (via BMO port → bmoPortToFloor)
-                   // Handle SB splitter notation: BEP01_SB01(1:8).01_03a_BMO01_1
-                   const bepToBmo: Record<number, number> = {};
-                   for (const p of bepBmoPaths) {
-                     const pathStr = p["OPTICAL PATH"] || "";
-                     // Extract fiber pair number (before a/b) and BMO port
-                     const m = pathStr.match(/_(\d+)[a-z]_BMO\d+_(\d+)/i);
-                     if (m) {
-                       const pairNum = parseInt(m[1], 10);
-                       const bmoPort = parseInt(m[2], 10);
-                       bepToBmo[pairNum] = bmoPort;
-                       const floor = bmoPortToFloor[bmoPort];
-                       if (floor) bepPairMap[pairNum] = floorShort(floor);
-                     }
-                   }
+                    // 2. BEP-BMO: extract SB splitter number + port → BMO port → floor
+                    // Path format: BEP01(c19)_SB01(1:8).01_02a_BMO01_1
+                    const sbPortEntries: { sbNum: number; sbPort: number; floor: string }[] = [];
+                    for (const p of bepBmoPaths) {
+                      const pathStr = p["OPTICAL PATH"] || "";
+                      const m = pathStr.match(/SB(\d+)\([\d:]+\)\.(\d+)_\d+[a-z]_BMO\d+_(\d+)/i);
+                      if (m) {
+                        const sbNum = parseInt(m[1], 10);
+                        const sbPort = parseInt(m[2], 10);
+                        const bmoPort = parseInt(m[3], 10);
+                        const floor = bmoPortToFloor[bmoPort];
+                        if (floor) {
+                          sbPortEntries.push({ sbNum, sbPort, floor });
+                        }
+                      }
+                    }
+                    // Sort by SB number then port
+                    sbPortEntries.sort((a, b) => a.sbNum - b.sbNum || a.sbPort - b.sbPort);
+                    for (const entry of sbPortEntries) {
+                      bepPairMap[nextPair++] = floorShort(entry.floor);
+                    }
 
-                   // 3. BEP spare paths → ΕΦΕΔ
-                   for (const p of bepPaths) {
-                     const pathStr = p["OPTICAL PATH"] || "";
-                     const m = pathStr.match(/_(\d+)[a-z]$/i);
-                     if (m) {
-                       const pairNum = parseInt(m[1], 10);
-                       if (!bepPairMap[pairNum]) bepPairMap[pairNum] = "ΕΦΕΔ";
-                     }
-                   }
+                    // 3. BEP spare paths → ΕΦΕΔ (SB ports without BMO connection)
+                    const spareEntries: { sbNum: number; sbPort: number }[] = [];
+                    for (const p of bepPaths) {
+                      const pathStr = p["OPTICAL PATH"] || "";
+                      // Spare: BEP01(c19)_SB02(1:8).02_04b (no BMO)
+                      const m = pathStr.match(/SB(\d+)\([\d:]+\)\.(\d+)_\d+[a-z]$/i);
+                      if (m) {
+                        spareEntries.push({ sbNum: parseInt(m[1], 10), sbPort: parseInt(m[2], 10) });
+                      }
+                    }
+                    spareEntries.sort((a, b) => a.sbNum - b.sbNum || a.sbPort - b.sbPort);
+                    for (const entry of spareEntries) {
+                      bepPairMap[nextPair++] = "ΕΦΕΔ";
+                    }
 
-                   // 4. Fallback: if no pair data from paths, use floor_details
-                   if (Object.keys(bepPairMap).length === 0 && floorDetailsArr.length > 0) {
-                     let pairCounter = 1;
-                     // First, count CAB-BEP fibers to reserve ΟΡΙΑ pairs
-                     const cabFiberPairCount = Math.ceil(cabFiberNums.length / 2);
-                     for (let i = 0; i < cabFiberPairCount; i++) {
-                       bepPairMap[pairCounter++] = "ΟΡΙΑ";
-                     }
-                     const sortedFD = [...floorDetailsArr].sort((a, b) => {
-                       const order = (f: string) => {
-                         if (f === "ΥΠ" || f.startsWith("-")) return -100 + (parseInt(f.replace("-", ""), 10) || 0);
-                         if (f === "ΗΜ" || f === "ΗΜΙ") return -1;
-                         if (f === "ΙΣ" || f === "ΙΣΟ" || f === "0" || f === "00") return 0;
-                         return parseInt(f.replace("+", ""), 10) || 0;
-                       };
-                       return order(a.floor) - order(b.floor);
-                     });
-                     for (const fd of sortedFD) {
-                       const apts = fd.apartments != null ? fd.apartments : 1;
-                       if (apts === 0) continue; // Skip floors with 0 apartments
-                       for (let a = 0; a < apts; a++) {
-                         bepPairMap[pairCounter++] = floorShort(fd.floor);
-                       }
-                     }
-                   }
+                    // 4. Fallback: if no pair data from paths, use floor_details
+                    if (Object.keys(bepPairMap).length === 0 && floorDetailsArr.length > 0) {
+                      let pairCounter = 1;
+                      const cabFiberPairCount = Math.ceil(cabFiberNums.length / 2);
+                      for (let i = 0; i < cabFiberPairCount; i++) {
+                        bepPairMap[pairCounter++] = "ΟΡΙΑ";
+                      }
+                      const sortedFD = [...floorDetailsArr].sort((a, b) => {
+                        const order = (f: string) => {
+                          if (f === "ΥΠ" || f.startsWith("-")) return -100 + (parseInt(f.replace("-", ""), 10) || 0);
+                          if (f === "ΗΜ" || f === "ΗΜΙ") return -1;
+                          if (f === "ΙΣ" || f === "ΙΣΟ" || f === "0" || f === "00") return 0;
+                          return parseInt(f.replace("+", ""), 10) || 0;
+                        };
+                        return order(a.floor) - order(b.floor);
+                      });
+                      for (const fd of sortedFD) {
+                        const apts = fd.apartments != null ? fd.apartments : 1;
+                        if (apts === 0) continue;
+                        for (let a = 0; a < apts; a++) {
+                          bepPairMap[pairCounter++] = floorShort(fd.floor);
+                        }
+                      }
+                    }
 
-                   // Build sorted pair list for BEP door
-                   const bepDoorPairs = Object.entries(bepPairMap)
-                     .map(([pair, label]) => ({ pair: parseInt(pair, 10), label }))
-                     .sort((a, b) => a.pair - b.pair);
+                    // Build sorted pair list for BEP door
+                    const bepDoorPairs = Object.entries(bepPairMap)
+                      .map(([pair, label]) => ({ pair: parseInt(pair, 10), label }))
+                      .sort((a, b) => a.pair - b.pair);
 
                     // --- FB groups from BMO-FB paths (grouped by FLOOR, not FB name) ---
                     const fbGroups: Record<string, { floor: string; ports: { mobPort: number; fbPortNum: number }[] }> = {};
