@@ -2401,6 +2401,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                     // bepDoorPairs: { letters: [string,string], position: number, label: string }[]
                     const bepDoorPairs: { letters: [string,string]; position: number; label: string }[] = [];
 
+                    const MAX_POSITIONS_PER_ROW = 7;
                     for (let si = 0; si < splitterNums.length; si++) {
                       const sbNum = splitterNums[si];
                       const letters = splitterLetterPairs[si] || [`${String.fromCharCode(65+si*2)}`,`${String.fromCharCode(66+si*2)}`];
@@ -2410,11 +2411,17 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                       const activeForSb = sbPortEntries.filter(e => e.sbNum === sbNum).sort((a,b) => a.sbPort - b.sbPort);
                       let pos = 2;
                       for (const entry of activeForSb) {
+                        if (pos > MAX_POSITIONS_PER_ROW) break;
                         bepDoorPairs.push({ letters: letters as [string,string], position: pos++, label: floorShort(entry.floor) });
                       }
                       // Spare for this splitter
                       const spareForSb = spareEntries.filter(e => e.sbNum === sbNum).sort((a,b) => a.sbPort - b.sbPort);
                       for (const entry of spareForSb) {
+                        if (pos > MAX_POSITIONS_PER_ROW) break;
+                        bepDoorPairs.push({ letters: letters as [string,string], position: pos++, label: "ΕΦΕΔ" });
+                      }
+                      // Fill remaining positions up to 7 with ΕΦΕΔ
+                      while (pos <= MAX_POSITIONS_PER_ROW) {
                         bepDoorPairs.push({ letters: letters as [string,string], position: pos++, label: "ΕΦΕΔ" });
                       }
                     }
@@ -2437,8 +2444,13 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                         const apts = fd.apartments != null ? fd.apartments : 1;
                         if (apts === 0) continue;
                         for (let a = 0; a < apts; a++) {
+                          if (pos > MAX_POSITIONS_PER_ROW) break;
                           bepDoorPairs.push({ letters, position: pos++, label: floorShort(fd.floor) });
                         }
+                      }
+                      // Fill remaining positions up to 7 with ΕΦΕΔ
+                      while (pos <= MAX_POSITIONS_PER_ROW) {
+                        bepDoorPairs.push({ letters, position: pos++, label: "ΕΦΕΔ" });
                       }
                     }
 
