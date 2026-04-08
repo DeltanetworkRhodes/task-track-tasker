@@ -2591,36 +2591,27 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                                    `ΣΩΛΗΝΙΣΚΟΣ: ${cabTube || cabName}`,
                                    `ΟΡΙΑ: ${fiberRange}`,
                                  ]} />
-                                  {/* Individual A/B paired floor labels */}
-                                  {(() => {
-                                    const individualLabels: string[] = [];
-                                    for (const item of bepDoorPairs) {
-                                      if (item.label === "ΟΡΙΑ") {
-                                        // All splitter feeds on one line: A1 B1 for 1 splitter, A1 B1 C1 D1 for 2, etc.
-                                        const fiberLetters = ["A", "B", "C", "D", "E", "F"];
-                                        const parts: string[] = [];
-                                        for (let s = 0; s < Math.max(splitterCount, 1) * 2; s++) {
-                                          parts.push(`${fiberLetters[s] || String.fromCharCode(65 + s)}${item.pair}`);
-                                        }
-                                        individualLabels.push(`${parts.join(" ")} - ΟΡΙΑ`);
-                                      } else {
-                                        individualLabels.push(`A${item.pair} B${item.pair} - ${item.label}`);
-                                      }
-                                    }
-                                    return individualLabels.length > 0 ? (
-                                      <div className="space-y-1 mt-1">
-                                        {individualLabels.map((lbl, i) => (
-                                          <div key={i} className="relative group font-mono text-[11px] font-semibold bg-muted/50 rounded-md px-3 py-1.5 border border-border">
-                                            {lbl}
-                                            <button type="button" onClick={() => { navigator.clipboard.writeText(lbl); toast.success("Copied!"); }}
-                                              className="absolute right-1 top-1 opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded hover:bg-muted">
-                                              <Copy className="h-3 w-3 text-muted-foreground" />
-                                            </button>
-                                          </div>
-                                        ))}
-                                      </div>
-                                    ) : null;
-                                  })()}
+                                   {/* Individual per-splitter floor labels */}
+                                   {(() => {
+                                     const individualLabels: string[] = [];
+                                     for (const item of bepDoorPairs) {
+                                       const [l1, l2] = item.letters;
+                                       individualLabels.push(`${l1}${item.position} ${l2}${item.position} - ${item.label}`);
+                                     }
+                                     return individualLabels.length > 0 ? (
+                                       <div className="space-y-1 mt-1">
+                                         {individualLabels.map((lbl, i) => (
+                                           <div key={i} className="relative group font-mono text-[11px] font-semibold bg-muted/50 rounded-md px-3 py-1.5 border border-border">
+                                             {lbl}
+                                             <button type="button" onClick={() => { navigator.clipboard.writeText(lbl); toast.success("Copied!"); }}
+                                               className="absolute right-1 top-1 opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded hover:bg-muted">
+                                               <Copy className="h-3 w-3 text-muted-foreground" />
+                                             </button>
+                                           </div>
+                                         ))}
+                                       </div>
+                                     ) : null;
+                                   })()}
                                </LabelBox>
                          </LabelCard>
                        )}
