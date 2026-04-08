@@ -2361,9 +2361,8 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                     }
                     const splitterCount = Math.max(sbSplitterNames.size, cabBepPaths.length > 0 ? 1 : 0);
                     let nextPair = 1;
-                    for (let i = 0; i < splitterCount; i++) {
-                      bepPairMap[nextPair++] = "ΟΡΙΑ";
-                    }
+                    // ΟΡΙΑ is always ONE door position (pair 1) regardless of splitter count
+                    bepPairMap[nextPair++] = "ΟΡΙΑ";
 
                     // 2. BEP-BMO: extract SB splitter number + port → BMO port → floor
                     // Path format: BEP01(c19)_SB01(1:8).01_02a_BMO01_1
@@ -2585,7 +2584,17 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                                   {(() => {
                                     const individualLabels: string[] = [];
                                     for (const item of bepDoorPairs) {
-                                      individualLabels.push(`A${item.pair} B${item.pair} - ${item.label}`);
+                                      if (item.label === "ΟΡΙΑ") {
+                                        // All splitter feeds on one line: A1 B1 for 1 splitter, A1 B1 C1 D1 for 2, etc.
+                                        const fiberLetters = ["A", "B", "C", "D", "E", "F"];
+                                        const parts: string[] = [];
+                                        for (let s = 0; s < Math.max(splitterCount, 1) * 2; s++) {
+                                          parts.push(`${fiberLetters[s] || String.fromCharCode(65 + s)}${item.pair}`);
+                                        }
+                                        individualLabels.push(`${parts.join(" ")} - ΟΡΙΑ`);
+                                      } else {
+                                        individualLabels.push(`A${item.pair} B${item.pair} - ${item.label}`);
+                                      }
                                     }
                                     return individualLabels.length > 0 ? (
                                       <div className="space-y-1 mt-1">
