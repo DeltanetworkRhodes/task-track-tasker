@@ -2342,30 +2342,25 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                     // BCP exists if found in paths or GIS metadata
                     const hasBcpConnection = hasBcp || !!(gisData?.nearby_bcp || gisData?.new_bcp || gisData?.associated_bcp);
                    
-                    // --- BEP door label: one line per SB port ---
-                    // Each SB splitter port maps to one BMO port → one floor
-                    const bepPairMap: Record<number, string> = {}; // sequential pair → label
+                    // --- BEP door label: per-splitter rows ---
+                    // Large BEP: Splitter 1 → rows A/B, Splitter 2 → rows C/D
+                    // Each splitter has position 1 = ΟΡΙΑ, then floors, then ΕΦΕΔ
 
-                    // 1. Count SB splitters → one ΟΡΙΑ pair per splitter
+                    // 1. Count SB splitters
                     const sbSplitterNames = new Set<string>();
                     for (const p of bepBmoPaths) {
                       const pathStr = p["OPTICAL PATH"] || "";
                       const m = pathStr.match(/_(SB\d+)\(/i);
                       if (m) sbSplitterNames.add(m[1]);
                     }
-                    // Also check spare BEP paths for additional splitters
                     for (const p of bepPaths) {
                       const pathStr = p["OPTICAL PATH"] || "";
                       const m = pathStr.match(/_(SB\d+)\(/i);
                       if (m) sbSplitterNames.add(m[1]);
                     }
                     const splitterCount = Math.max(sbSplitterNames.size, cabBepPaths.length > 0 ? 1 : 0);
-                    let nextPair = 1;
-                    // ΟΡΙΑ is always ONE door position (pair 1) regardless of splitter count
-                    bepPairMap[nextPair++] = "ΟΡΙΑ";
 
-                    // 2. BEP-BMO: extract SB splitter number + port → BMO port → floor
-                    // Path format: BEP01(c19)_SB01(1:8).01_02a_BMO01_1
+                    // 2. Group active ports by splitter number
                     const sbPortEntries: { sbNum: number; sbPort: number; floor: string }[] = [];
                     for (const p of bepBmoPaths) {
                       const pathStr = p["OPTICAL PATH"] || "";
@@ -2380,34 +2375,55 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                         }
                       }
                     }
-                    // Sort by SB number then port
-                    sbPortEntries.sort((a, b) => a.sbNum - b.sbNum || a.sbPort - b.sbPort);
-                    for (const entry of sbPortEntries) {
-                      bepPairMap[nextPair++] = floorShort(entry.floor);
-                    }
 
-                    // 3. BEP spare paths → ΕΦΕΔ (SB ports without BMO connection)
+                    // 3. Group spare ports by splitter number
                     const spareEntries: { sbNum: number; sbPort: number }[] = [];
                     for (const p of bepPaths) {
                       const pathStr = p["OPTICAL PATH"] || "";
-                      // Spare: BEP01(c19)_SB02(1:8).02_04b (no BMO)
                       const m = pathStr.match(/SB(\d+)\([\d:]+\)\.(\d+)_\d+[a-z]$/i);
                       if (m) {
                         spareEntries.push({ sbNum: parseInt(m[1], 10), sbPort: parseInt(m[2], 10) });
                       }
                     }
-                    spareEntries.sort((a, b) => a.sbNum - b.sbNum || a.sbPort - b.sbPort);
-                    for (const entry of spareEntries) {
-                      bepPairMap[nextPair++] = "ΕΦΕΔ";
+
+                    // 4. Build per-splitter data structure
+                    // Each splitter gets letter pair: SB01→A/B, SB02→C/D, SB03→E/F...
+                    const splitterLetterPairs: [string, string][] = [["A","B"],["C","D"],["E","F"],["G","H"]];
+                    const splitterNums = Array.from(new Set([
+                      ...sbPortEntries.map(e => e.sbNum),
+                      ...spareEntries.map(e => e.sbNum)
+                    ])).sort((a, b) => a - b);
+                    // Ensure at least one splitter
+                    if (splitterNums.length === 0 && splitterCount > 0) {
+                      for (let i = 1; i <= splitterCount; i++) splitterNums.push(i);
                     }
 
-                    // 4. Fallback: if no pair data from paths, use floor_details
-                    if (Object.keys(bepPairMap).length === 0 && floorDetailsArr.length > 0) {
-                      let pairCounter = 1;
-                      const cabFiberPairCount = Math.ceil(cabFiberNums.length / 2);
-                      for (let i = 0; i < cabFiberPairCount; i++) {
-                        bepPairMap[pairCounter++] = "ΟΡΙΑ";
+                    // bepDoorPairs: { letters: [string,string], position: number, label: string }[]
+                    const bepDoorPairs: { letters: [string,string]; position: number; label: string }[] = [];
+
+                    for (let si = 0; si < splitterNums.length; si++) {
+                      const sbNum = splitterNums[si];
+                      const letters = splitterLetterPairs[si] || [`${String.fromCharCode(65+si*2)}`,`${String.fromCharCode(66+si*2)}`];
+                      // Position 1 = ΟΡΙΑ
+                      bepDoorPairs.push({ letters: letters as [string,string], position: 1, label: "ΟΡΙΑ" });
+                      // Active floors for this splitter
+                      const activeForSb = sbPortEntries.filter(e => e.sbNum === sbNum).sort((a,b) => a.sbPort - b.sbPort);
+                      let pos = 2;
+                      for (const entry of activeForSb) {
+                        bepDoorPairs.push({ letters: letters as [string,string], position: pos++, label: floorShort(entry.floor) });
                       }
+                      // Spare for this splitter
+                      const spareForSb = spareEntries.filter(e => e.sbNum === sbNum).sort((a,b) => a.sbPort - b.sbPort);
+                      for (const entry of spareForSb) {
+                        bepDoorPairs.push({ letters: letters as [string,string], position: pos++, label: "ΕΦΕΔ" });
+                      }
+                    }
+
+                    // 5. Fallback: if no pair data from paths, use floor_details
+                    if (bepDoorPairs.length === 0 && floorDetailsArr.length > 0) {
+                      const letters: [string,string] = ["A","B"];
+                      bepDoorPairs.push({ letters, position: 1, label: "ΟΡΙΑ" });
+                      let pos = 2;
                       const sortedFD = [...floorDetailsArr].sort((a, b) => {
                         const order = (f: string) => {
                           if (f === "ΥΠ" || f.startsWith("-")) return -100 + (parseInt(f.replace("-", ""), 10) || 0);
@@ -2421,15 +2437,10 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                         const apts = fd.apartments != null ? fd.apartments : 1;
                         if (apts === 0) continue;
                         for (let a = 0; a < apts; a++) {
-                          bepPairMap[pairCounter++] = floorShort(fd.floor);
+                          bepDoorPairs.push({ letters, position: pos++, label: floorShort(fd.floor) });
                         }
                       }
                     }
-
-                    // Build sorted pair list for BEP door
-                    const bepDoorPairs = Object.entries(bepPairMap)
-                      .map(([pair, label]) => ({ pair: parseInt(pair, 10), label }))
-                      .sort((a, b) => a.pair - b.pair);
 
                     // --- FB groups from BMO-FB paths (grouped by FLOOR, not FB name) ---
                     const fbGroups: Record<string, { floor: string; ports: { mobPort: number; fbPortNum: number }[] }> = {};
