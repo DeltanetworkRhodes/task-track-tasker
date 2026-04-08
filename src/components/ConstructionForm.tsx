@@ -2346,16 +2346,22 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                     // Each SB splitter port maps to one BMO port → one floor
                     const bepPairMap: Record<number, string> = {}; // sequential pair → label
 
-                    // 1. CAB-BEP fibers → ΟΡΙΑ (pair 1 for the feed)
-                    const cabBepFiberPairs = new Set<number>();
-                    for (const p of cabBepPaths) {
+                    // 1. Count SB splitters → one ΟΡΙΑ pair per splitter
+                    const sbSplitterNames = new Set<string>();
+                    for (const p of bepBmoPaths) {
                       const pathStr = p["OPTICAL PATH"] || "";
-                      const m = pathStr.match(/_BEP\d+(?:\([^)]+\))?_(\d+)[a-z]/i);
-                      if (m) cabBepFiberPairs.add(parseInt(m[1], 10));
+                      const m = pathStr.match(/_(SB\d+)\(/i);
+                      if (m) sbSplitterNames.add(m[1]);
                     }
-                    // Reserve pair 1 for ΟΡΙΑ if we have CAB-BEP fibers
+                    // Also check spare BEP paths for additional splitters
+                    for (const p of bepPaths) {
+                      const pathStr = p["OPTICAL PATH"] || "";
+                      const m = pathStr.match(/_(SB\d+)\(/i);
+                      if (m) sbSplitterNames.add(m[1]);
+                    }
+                    const splitterCount = Math.max(sbSplitterNames.size, cabBepPaths.length > 0 ? 1 : 0);
                     let nextPair = 1;
-                    if (cabBepFiberPairs.size > 0) {
+                    for (let i = 0; i < splitterCount; i++) {
                       bepPairMap[nextPair++] = "ΟΡΙΑ";
                     }
 
