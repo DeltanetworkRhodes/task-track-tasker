@@ -187,7 +187,8 @@ export async function generateConstructionZip(
   srId: string,
   address: string,
   constructionId: string,
-  asBuiltBlob?: Blob | ArrayBuffer | null
+  asBuiltBlob?: Blob | ArrayBuffer | null,
+  apologismosBlob?: Blob | ArrayBuffer | null
 ): Promise<ZipExportResult> {
   const warnings: string[] = [];
   const zip = new JSZip();
@@ -277,18 +278,28 @@ export async function generateConstructionZip(
     warnings.push("Δεν βρέθηκε φάκελος SR στο Google Drive");
   }
 
-  // 5. Add AS-BUILD Excel if provided (with official sheet name)
+  // 5. Add AS-BUILD Excel if provided
+  const cleanAddr = (address || "UNKNOWN")
+    .toUpperCase()
+    .replace(/[^\p{L}\p{N}\s]/gu, "")
+    .replace(/\s+/g, "_")
+    .substring(0, 50);
+
   if (asBuiltBlob) {
-    const cleanAddr = (address || "UNKNOWN")
-      .toUpperCase()
-      .replace(/[^\p{L}\p{N}\s]/gu, "")
-      .replace(/\s+/g, "_")
-      .substring(0, 50);
-    const asBuiltName = `ΦΥΛΛΟ_ΑΠΟΛΟΓΙΣΜΟΥ_ΕΡΓΑΣΙΩΝ_FTTH_Β_ΦΑΣΗ_SR-${srId}_${cleanAddr}.xlsx`;
-    zip.file(`${rootName}/ΦΥΛΛΟ ΑΠΟΛΟΓΙΣΜΟΥ ΕΡΓΑΣΙΩΝ/${asBuiltName}`, asBuiltBlob as any);
+    const asBuiltName = `AS-BUILD_SR-${srId}_${cleanAddr}.xlsx`;
+    zip.file(`${rootName}/AS-BUILD/${asBuiltName}`, asBuiltBlob as any);
     console.log(`[ZIP] AS-BUILD added: ${asBuiltName}`);
   } else {
     console.warn("[ZIP] No AS-BUILD blob provided");
+  }
+
+  // 5b. Add ΦΥΛΛΟ ΑΠΟΛΟΓΙΣΜΟΥ ΕΡΓΑΣΙΩΝ Excel if provided (separate file)
+  if (apologismosBlob) {
+    const apologismosName = `ΦΥΛΛΟ_ΑΠΟΛΟΓΙΣΜΟΥ_ΕΡΓΑΣΙΩΝ_FTTH_Β_ΦΑΣΗ_SR-${srId}_${cleanAddr}.xlsx`;
+    zip.file(`${rootName}/ΦΥΛΛΟ ΑΠΟΛΟΓΙΣΜΟΥ ΕΡΓΑΣΙΩΝ/${apologismosName}`, apologismosBlob as any);
+    console.log(`[ZIP] Apologismos added: ${apologismosName}`);
+  } else {
+    console.warn("[ZIP] No Apologismos blob provided");
   }
 
   // 5. Add README.txt
