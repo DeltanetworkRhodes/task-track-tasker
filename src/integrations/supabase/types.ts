@@ -517,6 +517,7 @@ export type Database = {
       constructions: {
         Row: {
           ak: string | null
+          asbuilt_section6: Json | null
           assignment_id: string | null
           ball_marker_bep: number | null
           cab: string | null
@@ -525,6 +526,8 @@ export type Database = {
           floors: number | null
           google_sheet_row_id: number | null
           id: string
+          koi_type_cab_bcp: string | null
+          koi_type_cab_bep: string | null
           material_cost: number
           ms_count: number | null
           organization_id: string | null
@@ -543,6 +546,7 @@ export type Database = {
         }
         Insert: {
           ak?: string | null
+          asbuilt_section6?: Json | null
           assignment_id?: string | null
           ball_marker_bep?: number | null
           cab?: string | null
@@ -551,6 +555,8 @@ export type Database = {
           floors?: number | null
           google_sheet_row_id?: number | null
           id?: string
+          koi_type_cab_bcp?: string | null
+          koi_type_cab_bep?: string | null
           material_cost?: number
           ms_count?: number | null
           organization_id?: string | null
@@ -569,6 +575,7 @@ export type Database = {
         }
         Update: {
           ak?: string | null
+          asbuilt_section6?: Json | null
           assignment_id?: string | null
           ball_marker_bep?: number | null
           cab?: string | null
@@ -577,6 +584,8 @@ export type Database = {
           floors?: number | null
           google_sheet_row_id?: number | null
           id?: string
+          koi_type_cab_bcp?: string | null
+          koi_type_cab_bep?: string | null
           material_cost?: number
           ms_count?: number | null
           organization_id?: string | null

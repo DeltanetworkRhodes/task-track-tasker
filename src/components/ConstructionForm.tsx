@@ -102,6 +102,30 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
   const [routingType, setRoutingType] = useState("");
   const [pendingNote, setPendingNote] = useState("");
 
+  // ── AS-BUILD extra fields ──
+  const [koiTypeCabBep, setKoiTypeCabBep] = useState("4' μ cable");
+  const [koiTypeCabBcp, setKoiTypeCabBcp] = useState("4' μ cable");
+  const [verticalInfra, setVerticalInfra] = useState("ΙΣ");
+  const [floorMeters, setFloorMeters] = useState<{ floor: string; meters: string; pipe_type: string }[]>([]);
+  const [section6, setSection6] = useState<Record<string, string>>({
+    eisagogi_type: "",
+    bmo_bep_distance: "",
+    ball_marker_bep: "",
+    ms_skamma: "",
+    eskalit_ms: "",
+    eskalit_nea_solienosi: "",
+    eskalit_solienosi_eisagogis: "",
+    eskalit_bep: "",
+    eskalit_b1_bep: "",
+    bcp_eidos: "",
+    bcp_ball_marker: "",
+    bcp_ms: "",
+    bcp_bep_ypogeia: "",
+    bcp_bep_enaeria: "",
+  });
+  const [asbuiltCardOpen, setAsbuiltCardOpen] = useState(false);
+  const [floorMetersCardOpen, setFloorMetersCardOpen] = useState(false);
+
   // Routes (ΔΙΑΔΡΟΜΕΣ)
   const [routes, setRoutes] = useState([
     { label: "FTTH ΥΠΟΓ ΔΔ (Cabin to BEP)", koi: "", fyraKoi: "" },
@@ -362,6 +386,23 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
       );
     }
 
+    // AS-BUILD extra fields
+    setKoiTypeCabBep((existingConstruction as any).koi_type_cab_bep || "4' μ cable");
+    setKoiTypeCabBcp((existingConstruction as any).koi_type_cab_bcp || "4' μ cable");
+    setVerticalInfra((existingConstruction as any).vertical_infra || "ΙΣ");
+    const savedFloorMeters = (existingConstruction as any).floor_meters;
+    if (Array.isArray(savedFloorMeters) && savedFloorMeters.length > 0) {
+      setFloorMeters(savedFloorMeters.map((fm: any) => ({
+        floor: fm.floor || "",
+        meters: String(fm.meters ?? ""),
+        pipe_type: fm.pipe_type || "2\"",
+      })));
+    }
+    const savedSection6 = (existingConstruction as any).asbuilt_section6;
+    if (savedSection6 && typeof savedSection6 === "object") {
+      setSection6(prev => ({ ...prev, ...savedSection6 }));
+    }
+
     // Prevent GIS defaults from overriding persisted values
     setGisFieldsFilled(true);
     setGisAutoFilled(true);
@@ -585,7 +626,17 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
     },
   });
 
-
+  // Auto-populate floorMeters from gisData.floor_details (if not already loaded)
+  useEffect(() => {
+    if (!gisData || floorMeters.length > 0) return;
+    const fd = (gisData as any).floor_details;
+    if (!Array.isArray(fd) || fd.length === 0) return;
+    setFloorMeters(fd.map((f: any) => ({
+      floor: f["ΟΡΟΦΟΣ"] || f.floor || "",
+      meters: String(f["ΜΕΤΡΑ"] ?? f.meters ?? ""),
+      pipe_type: f["ΕΙΔΟΣ"] || f.pipe_type || "2\"",
+    })));
+  }, [gisData, floorMeters.length]);
 
   const [gisAutoFilled, setGisAutoFilled] = useState(false);
   useEffect(() => {
@@ -1176,6 +1227,11 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
           routes: routesData.length > 0 ? routesData : null,
           organization_id: organizationId,
           photo_counts: mergedPhotoCounts,
+          koi_type_cab_bep: koiTypeCabBep,
+          koi_type_cab_bcp: koiTypeCabBcp,
+          vertical_infra: verticalInfra,
+          floor_meters: floorMeters,
+          asbuilt_section6: section6,
         } as any;
 
 
