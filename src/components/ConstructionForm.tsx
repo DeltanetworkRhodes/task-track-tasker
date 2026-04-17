@@ -436,8 +436,10 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
           fo_type: foType,
         };
       }));
-      setFloorMetersInitialized(true);
     }
+    // Always mark as initialized after loading existing construction,
+    // so GIS auto-populate never overwrites user edits on re-renders.
+    setFloorMetersInitialized(true);
     const savedSection6 = (existingConstruction as any).asbuilt_section6;
     if (savedSection6 && typeof savedSection6 === "object") {
       setSection6(prev => ({ ...prev, ...savedSection6 }));
