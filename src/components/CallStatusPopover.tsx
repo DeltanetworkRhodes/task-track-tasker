@@ -110,9 +110,11 @@ const CallStatusPopover = ({ assignment, children }: CallStatusPopoverProps) => 
       if (error) throw error;
 
       // Sync appointment to calendar (appointments table)
+      let appointmentIdForGoogleSync: string | null = null;
+      let googleSyncAction: "create" | "update" | "delete" | null = null;
+
       if (selectedStatus === "scheduled" && appointmentDate) {
         const apptAt = new Date(appointmentDate).toISOString();
-        // Check if there's already an appointment for this SR matching the previous date
         const { data: existing } = await supabase
           .from("appointments")
           .select("id")
@@ -130,25 +132,60 @@ const CallStatusPopover = ({ assignment, children }: CallStatusPopoverProps) => 
               description: notes || `Ραντεβού με πελάτη (${CALL_STATUS.scheduled.label})`,
             })
             .eq("id", existing.id);
+          appointmentIdForGoogleSync = existing.id;
+          googleSyncAction = "update";
         } else {
-          await supabase.from("appointments").insert({
+          const { data: inserted } = await supabase.from("appointments").insert({
             sr_id: srId,
             appointment_at: apptAt,
             duration_minutes: 30,
             customer_name: customerName || null,
             description: notes || `Ραντεβού με πελάτη (${CALL_STATUS.scheduled.label})`,
             organization_id: organizationId || null,
-          });
+          }).select("id").single();
+          appointmentIdForGoogleSync = inserted?.id ?? null;
+          googleSyncAction = "create";
         }
         queryClient.invalidateQueries({ queryKey: ["appointments-calendar"] });
       } else if (selectedStatus !== "scheduled" && currentStatus === "scheduled") {
-        // Status changed away from scheduled — remove the appointment
+        const { data: existing } = await supabase
+          .from("appointments")
+          .select("id")
+          .eq("sr_id", srId)
+          .eq("organization_id", organizationId || "")
+          .maybeSingle();
+        if (existing?.id) {
+          // Sync delete BEFORE removing the row so the function can read google_event_id
+          try {
+            await supabase.functions.invoke("google-calendar-sync-event", {
+              body: { action: "delete", appointment_id: existing.id },
+            });
+          } catch (e) {
+            console.warn("Google Calendar delete sync failed:", e);
+          }
+        }
         await supabase
           .from("appointments")
           .delete()
           .eq("sr_id", srId)
           .eq("organization_id", organizationId || "");
         queryClient.invalidateQueries({ queryKey: ["appointments-calendar"] });
+      }
+
+      // Fire-and-forget Google Calendar sync (only if user has connected)
+      if (appointmentIdForGoogleSync && googleSyncAction) {
+        try {
+          const { data: syncResult } = await supabase.functions.invoke("google-calendar-sync-event", {
+            body: { action: googleSyncAction, appointment_id: appointmentIdForGoogleSync },
+          });
+          if (syncResult?.error === "no_calendar_connection") {
+            // silently skip - user hasn't connected Google Calendar yet
+          } else if (syncResult?.ok) {
+            toast.success("Συγχρονίστηκε με Google Calendar");
+          }
+        } catch (e) {
+          console.warn("Google Calendar sync failed:", e);
+        }
       }
 
       // Auto-save call notes as SR comment
