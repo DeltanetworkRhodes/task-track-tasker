@@ -426,12 +426,16 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
     setVerticalInfraType((existingConstruction as any).vertical_infra_type || "");
     const savedFloorMeters = (existingConstruction as any).floor_meters;
     if (Array.isArray(savedFloorMeters) && savedFloorMeters.length > 0) {
-      setFloorMeters(savedFloorMeters.map((fm: any) => ({
-        floor: fm.floor || "",
-        meters: String(fm.meters ?? ""),
-        pipe_type: fm.pipe_type || "2\"",
-        fo_type: fm.fo_type || "4FO",
-      })));
+      setFloorMeters(savedFloorMeters.map((fm: any) => {
+        const foType = fm.fo_type || "4FO";
+        const derivedPipe = foType === "12FO" ? '4"' : '2"';
+        return {
+          floor: fm.floor || "",
+          meters: String(fm.meters ?? ""),
+          pipe_type: fm.pipe_type || derivedPipe,
+          fo_type: foType,
+        };
+      }));
       setFloorMetersAutoFilled(true);
     }
     const savedSection6 = (existingConstruction as any).asbuilt_section6;
@@ -669,12 +673,16 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
     if (!gisData || floorMetersAutoFilled) return;
     const fd = (gisData as any).floor_details;
     if (!Array.isArray(fd) || fd.length === 0) return;
-    setFloorMeters(fd.map((f: any) => ({
-      floor: f["ΟΡΟΦΟΣ"] || f.floor || "",
-      meters: String(f["ΜΕΤΡΑ"] ?? f.meters ?? ""),
-      pipe_type: f["ΕΙΔΟΣ"] || f.pipe_type || "2\"",
-      fo_type: f.fo_type || "4FO",
-    })));
+    setFloorMeters(fd.map((f: any) => {
+      const foType = f.fo_type || "4FO";
+      const derivedPipe = foType === "12FO" ? '4"' : '2"';
+      return {
+        floor: f["ΟΡΟΦΟΣ"] || f.floor || "",
+        meters: String(f["ΜΕΤΡΑ"] ?? f.meters ?? ""),
+        pipe_type: f["ΕΙΔΟΣ"] || f.pipe_type || derivedPipe,
+        fo_type: foType,
+      };
+    }));
     setFloorMetersAutoFilled(true);
   }, [gisData, floorMetersAutoFilled]);
 
@@ -3195,14 +3203,13 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                 {inhouse4FoMeters > 0 && ` · 4FO: ${inhouse4FoMeters}μ`}
                 {inhouse12FoMeters > 0 && ` · 12FO: ${inhouse12FoMeters}μ`}
               </p>
-              <div className="grid grid-cols-[80px_1fr_90px_90px] gap-2 text-[10px] uppercase tracking-wider text-muted-foreground px-2">
+              <div className="grid grid-cols-[80px_1fr_110px] gap-2 text-[10px] uppercase tracking-wider text-muted-foreground px-2">
                 <span>Όροφος</span>
                 <span>Μέτρα (BMO→FB)</span>
-                <span>Σωλήνας</span>
                 <span>Τύπος Ίνας</span>
               </div>
               {floorMeters.map((fm, idx) => (
-                <div key={idx} className="grid grid-cols-[80px_1fr_90px_90px] gap-2 items-center">
+                <div key={idx} className="grid grid-cols-[80px_1fr_110px] gap-2 items-center">
                   <Input
                     value={fm.floor}
                     onChange={(e) =>
@@ -3226,25 +3233,17 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                     className="h-8 text-sm"
                   />
                   <select
-                    value={fm.pipe_type}
-                    onChange={(e) =>
-                      setFloorMeters((prev) =>
-                        prev.map((p, i) => (i === idx ? { ...p, pipe_type: e.target.value } : p))
-                      )
-                    }
-                    className="h-8 text-sm border border-border rounded-md px-2 bg-background text-foreground"
-                  >
-                    <option value='2"'>2"</option>
-                    <option value='4"'>4"</option>
-                    <option value='12"'>12"</option>
-                  </select>
-                  <select
                     value={fm.fo_type || "4FO"}
-                    onChange={(e) =>
+                    onChange={(e) => {
+                      const newFoType = e.target.value;
+                      // Auto-derive pipe_type από fo_type: 4FO → 2", 12FO → 4"
+                      const derivedPipe = newFoType === "12FO" ? '4"' : '2"';
                       setFloorMeters((prev) =>
-                        prev.map((p, i) => (i === idx ? { ...p, fo_type: e.target.value } : p))
-                      )
-                    }
+                        prev.map((p, i) =>
+                          i === idx ? { ...p, fo_type: newFoType, pipe_type: derivedPipe } : p
+                        )
+                      );
+                    }}
                     className="h-8 text-sm border border-border rounded-md px-2 bg-background text-foreground"
                   >
                     <option value="4FO">4 FO</option>
