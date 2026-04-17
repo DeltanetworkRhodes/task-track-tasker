@@ -733,8 +733,8 @@ function fillEpimetrisiSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
 
   // ── 4. BEP-ΟΡΟΦΟΙ ── Rows 25-39
   // C22/D22 vertical infrastructure
-  ws.getCell("C22").value = d.verticalInfra === "ΙΣ" ? "ΙΣ" : "";
-  ws.getCell("D22").value = d.verticalInfra === "ΚΑΓΚΕΛΟ" ? "ΚΑΓΚΕΛΟ" : "";
+  ws.getCell("C22").value = d.bepPlacementFloor || "ΙΣ";
+  ws.getCell("D22").value = d.verticalInfraType || "";
 
   for (let r = 25; r <= 39; r++) {
     for (let c = 2; c <= 17; c++) {
