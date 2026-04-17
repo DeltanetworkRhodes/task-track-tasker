@@ -126,6 +126,8 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
     bcp_bep_ypogeia: "",
     bcp_bep_enaeria: "",
   });
+  const [ballMarkerBep, setBallMarkerBep] = useState("");
+  const [ballMarkerBcp, setBallMarkerBcp] = useState("");
   const [asbuiltCardOpen, setAsbuiltCardOpen] = useState(false);
   const [floorMetersCardOpen, setFloorMetersCardOpen] = useState(false);
 
