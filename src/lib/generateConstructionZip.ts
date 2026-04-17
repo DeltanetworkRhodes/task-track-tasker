@@ -117,6 +117,63 @@ async function listConstructionFiles(prefix: string): Promise<StorageFileInfo[]>
 }
 
 /* ────────────────────────────────────────────
+   Google Drive download via edge function
+   ──────────────────────────────────────────── */
+
+interface DriveFileInfo {
+  id: string;
+  name: string;
+  mimeType?: string;
+}
+
+async function downloadDriveFileAsArrayBuffer(fileId: string): Promise<ArrayBuffer | null> {
+  try {
+    const { data, error } = await supabase.functions.invoke("google-drive-files", {
+      body: { action: "download", file_id: fileId },
+    });
+    if (error || !data?.public_url) return null;
+    const resp = await fetch(data.public_url);
+    if (!resp.ok) return null;
+    return await resp.arrayBuffer();
+  } catch {
+    return null;
+  }
+}
+
+async function fetchDriveFiles(srId: string): Promise<{
+  found: boolean;
+  rootFiles: DriveFileInfo[];
+  subfolders: Record<string, DriveFileInfo[]>;
+}> {
+  try {
+    const { data, error } = await supabase.functions.invoke("google-drive-files", {
+      body: { action: "sr_folder", sr_id: srId },
+    });
+    if (error || !data?.found) {
+      return { found: false, rootFiles: [], subfolders: {} };
+    }
+    const subfolders: Record<string, DriveFileInfo[]> = {};
+    for (const [folderName, folderData] of Object.entries(data.subfolders || {})) {
+      const fd = folderData as any;
+      // Skip nested folders, only files
+      subfolders[folderName] = (fd.files || []).filter(
+        (f: any) => f.mimeType !== "application/vnd.google-apps.folder"
+      );
+    }
+    return {
+      found: true,
+      rootFiles: (data.files || []).filter(
+        (f: any) => f.mimeType !== "application/vnd.google-apps.folder"
+      ),
+      subfolders,
+    };
+  } catch (err) {
+    console.warn("Drive fetch failed:", err);
+    return { found: false, rootFiles: [], subfolders: {} };
+  }
+}
+
+/* ────────────────────────────────────────────
    Main ZIP generator
    ──────────────────────────────────────────── */
 
@@ -130,7 +187,7 @@ export async function generateConstructionZip(
   srId: string,
   address: string,
   constructionId: string,
-  asBuiltBlob?: Blob | null
+  asBuiltBlob?: Blob | ArrayBuffer | null
 ): Promise<ZipExportResult> {
   const warnings: string[] = [];
   const zip = new JSZip();
@@ -190,9 +247,39 @@ export async function generateConstructionZip(
     }
   }
 
-  // 4. Add AS-BUILD Excel if provided
+  // 4. Download files from Google Drive (full SR folder)
+  let driveCount = 0;
+  const drive = await fetchDriveFiles(srId);
+  if (drive.found) {
+    // Root-level files
+    for (const f of drive.rootFiles) {
+      const buf = await downloadDriveFileAsArrayBuffer(f.id);
+      if (buf) {
+        zip.file(`${rootName}/Drive/${f.name}`, buf);
+        driveCount++;
+      } else {
+        warnings.push(`Drive: αποτυχία λήψης ${f.name}`);
+      }
+    }
+    // Subfolder files (ΕΓΓΡΑΦΑ, ΠΡΟΜΕΛΕΤΗ, etc.)
+    for (const [folderName, files] of Object.entries(drive.subfolders)) {
+      for (const f of files) {
+        const buf = await downloadDriveFileAsArrayBuffer(f.id);
+        if (buf) {
+          zip.file(`${rootName}/Drive/${folderName}/${f.name}`, buf);
+          driveCount++;
+        } else {
+          warnings.push(`Drive: αποτυχία λήψης ${folderName}/${f.name}`);
+        }
+      }
+    }
+  } else {
+    warnings.push("Δεν βρέθηκε φάκελος SR στο Google Drive");
+  }
+
+  // 5. Add AS-BUILD Excel if provided
   if (asBuiltBlob) {
-    zip.file(`${rootName}/AS-BUILD/SR-${srId}_AS-BUILD.xlsx`, asBuiltBlob);
+    zip.file(`${rootName}/AS-BUILD/SR-${srId}_AS-BUILD.xlsx`, asBuiltBlob as any);
   }
 
   // 5. Add README.txt
@@ -204,7 +291,9 @@ export async function generateConstructionZip(
       day: "2-digit", month: "2-digit", year: "numeric",
       hour: "2-digit", minute: "2-digit",
     })}`,
-    `Σύνολο Φωτογραφιών: ${photoCount}`,
+    `Σύνολο Φωτογραφιών (Storage): ${photoCount}`,
+    `Σύνολο Αρχείων Drive: ${driveCount}`,
+    `AS-BUILD Excel: ${asBuiltBlob ? "Ναι" : "Όχι"}`,
     `Παράχθηκε από: deltanetwork.app`,
   ].join("\n");
   zip.file(`${rootName}/README.txt`, readmeContent);
@@ -225,7 +314,7 @@ export async function generateConstructionZip(
 
   return {
     success: true,
-    fileCount: photoCount + (asBuiltBlob ? 1 : 0),
+    fileCount: photoCount + driveCount + (asBuiltBlob ? 1 : 0),
     warnings,
   };
 }

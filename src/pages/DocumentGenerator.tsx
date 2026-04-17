@@ -100,19 +100,37 @@ const DocumentGenerator = () => {
 
     setZippingId(srId);
     try {
+      // 1. Generate AS-BUILD Excel buffer (in memory)
+      let asBuiltBuffer: ArrayBuffer | null = null;
+      try {
+        toast.info("Δημιουργία AS-BUILD Excel...");
+        const asBuiltResult = await generateAsBuilt(srId);
+        if (asBuiltResult.buffer) {
+          asBuiltBuffer = asBuiltResult.buffer;
+        }
+      } catch (asBuiltErr: any) {
+        console.warn("AS-BUILD generation failed:", asBuiltErr);
+        toast.warning("Το AS-BUILD δεν δημιουργήθηκε, συνεχίζω με τα υπόλοιπα");
+      }
+
+      // 2. Build ZIP (Storage + Drive + AS-BUILD)
+      toast.info("Λήψη φωτογραφιών από Google Drive...");
       const result = await generateConstructionZip(
         srId,
         (assignment as any).address || "",
         (construction as any).id,
-        null
+        asBuiltBuffer
       );
 
       if (result.warnings.length > 0) {
-        result.warnings.forEach(w => toast.warning(w));
+        result.warnings.slice(0, 3).forEach(w => toast.warning(w));
+        if (result.warnings.length > 3) {
+          toast.warning(`...και ${result.warnings.length - 3} ακόμη προειδοποιήσεις`);
+        }
       }
 
       if (result.fileCount > 0) {
-        toast.success(`ZIP εξήχθη με ${result.fileCount} αρχεία`);
+        toast.success(`ZIP εξήχθη με ${result.fileCount} αρχεία (Φωτογραφίες + AS-BUILD)`);
       } else {
         toast.warning("Το ZIP δημιουργήθηκε αλλά δεν περιέχει αρχεία");
       }
