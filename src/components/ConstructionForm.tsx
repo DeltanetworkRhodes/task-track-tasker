@@ -452,7 +452,31 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
     setGisAutoFilled(true);
   }, [existingMaterials, existingMaterialsLoaded]);
 
+  // Photo handling per category with AI QA
+  const handleCategoryPhotoSelect = async (category: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+    const ref = fileInputRefs.current[category];
+    if (ref) ref.value = "";
 
+    // Compress all photos in parallel
+    const compressed = await Promise.all(files.map((f) => compressImage(f)));
+
+    // Apply watermark
+    const wmData: WatermarkData = {
+      srId: assignment?.sr_id || "—",
+      address: assignment?.address || undefined,
+      latitude: assignment?.latitude,
+      longitude: assignment?.longitude,
+      datetime: new Date(),
+    };
+    const watermarked = await Promise.all(compressed.map((f) => applyWatermark(f, wmData)));
+
+    const accepted: File[] = [];
+    const acceptedPreviews: string[] = [];
+
+    for (let i = 0; i < watermarked.length; i++) {
+      const file = watermarked[i];
       accepted.push(file);
       const preview = await new Promise<string>((resolve) => {
         const reader = new FileReader();
