@@ -1213,7 +1213,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
 
         let constructionId: string;
 
-        const routesData = routes
+        const routesData = effectiveRoutes
           .filter((r) => r.koi || r.fyraKoi)
           .map((r) => ({ label: r.label, koi: parseFloat(r.koi) || 0, fyra_koi: parseFloat(r.fyraKoi) || 0 }));
 
