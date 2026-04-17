@@ -154,6 +154,7 @@ const DemoDocumentsPanel = () => {
                       cabId: getDemoAsBuiltData(selectedSr.srId).cabId,
                       trenchLengthM: getDemoAsBuiltData(selectedSr.srId).trenchLengthM,
                       distanceFromCabinet: getDemoAsBuiltData(selectedSr.srId).distanceFromCabinet,
+                      koiCabBepLength: getDemoAsBuiltData(selectedSr.srId).koiCabBepLength || 0,
                       address: selectedSr.address,
                       buildingId: getDemoAsBuiltData(selectedSr.srId).buildingId,
                     })}
