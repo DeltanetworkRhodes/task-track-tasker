@@ -16,6 +16,8 @@ interface SketchInput {
   cabId: string;
   trenchLengthM: number;
   distanceFromCabinet?: number;
+  /** Μήκος καλωδίου από CAB → first box (BEP/BCP) — προέρχεται από F13 του AS-BUILD ("2 ΚΟΙ CAB first box"). Έχει προτεραιότητα για την ένδειξη απόστασης στο σκαρίφημα. */
+  koiCabBepLength?: number;
   address: string;
   buildingId: string;
   bepType?: string;
