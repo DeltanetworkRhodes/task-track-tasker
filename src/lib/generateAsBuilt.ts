@@ -433,6 +433,8 @@ async function fetchAsBuiltData(srId: string): Promise<AsBuiltData> {
     exportDate: new Date().toLocaleDateString("el-GR"),
     additionalBcpConnections,
     verticalInfra: (construction as any)?.vertical_infra || "ΙΣ",
+    bepPlacementFloor: (construction as any)?.bep_placement_floor || "ΙΣ",
+    verticalInfraType: (construction as any)?.vertical_infra_type || "",
     ballMarkerBep: (construction as any)?.ball_marker_bep ?? "",
     msCount: (construction as any)?.ms_count ?? "",
     otdrPositions: ((construction as any)?.otdr_positions as any[]) || [],
