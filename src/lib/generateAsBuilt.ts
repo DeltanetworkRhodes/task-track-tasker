@@ -340,6 +340,9 @@ async function fetchAsBuiltData(srId: string): Promise<AsBuiltData> {
       (Array.isArray((construction as any)?.routes) && (construction as any).routes[1]?.koi) || 0
     ),
     s6: (construction as any)?.asbuilt_section6 || {},
+    bepPhotoUrl,
+    bmoPhotoUrl,
+    bcpPhotoUrl,
   };
 }
 
