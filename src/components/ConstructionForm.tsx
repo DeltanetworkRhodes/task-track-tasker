@@ -971,9 +971,25 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
       };
       upsertMicro(microSmall, meters);
       upsertMicro(microLarge, meters);
+
+      // Ενδεικτικό πλέγμα σήμανσης 20cm = Μ/Σ Σκάμμα μέτρα
+      const skammaMeters = parseFloat(
+        ballMarkerBep ? (section6?.ms_skamma || "0") : "0"
+      );
+      const plegma = materials.find((m: any) => {
+        const upper = (m.name || "").toUpperCase();
+        return (
+          m.code === "14023051" ||
+          (upper.includes("ΠΛΕΓΜΑ") && upper.includes("ΣΗΜΑΝΣΗΣ")) ||
+          upper.includes("PLEGMA") ||
+          (upper.includes("ΕΝΔΕΙΚΤΙΚΟ") && upper.includes("ΠΛΕΓΜΑ"))
+        );
+      });
+      upsertMicro(plegma, skammaMeters);
+
       return updated;
     });
-  }, [ballMarkerBep, ballMarkerBcp, materials, gisData]);
+  }, [ballMarkerBep, ballMarkerBcp, materials, gisData, section6]);
 
   // Auto-fill basic fields from GIS data
   const [gisFieldsFilled, setGisFieldsFilled] = useState(false);
