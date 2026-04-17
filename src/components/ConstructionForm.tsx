@@ -833,18 +833,6 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
       );
     }
 
-    // 9. 4 FO outdoor cable — από FTTH ΥΠΟΓ ΔΔ (Cabin to BEP)
-    const cabToBepKoi = parseFloat(routes[0]?.koi || "0");
-    if (cabToBepKoi > 0) {
-      addMaterial(
-        (m) =>
-          m.code === "14027440" ||
-          nameMatches(m.name, "4 FO", "outdoor") ||
-          nameMatches(m.name, "4 FO", "induct"),
-        cabToBepKoi
-      );
-    }
-
     // 10. Microduct — από Ball Marker απόσταση
     // Παίρνουμε τιμή από section6 state (Οριζοντογραφία AS-BUILD)
     const hasBcp = !!(
@@ -1003,6 +991,44 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
       return updated;
     });
   }, [ballMarkerBep, ballMarkerBcp, materials, gisData, section6]);
+
+  // Trigger: 4 FO outdoor — routes[0].koi
+  const cabToBepKoiStr = routes[0]?.koi || "0";
+  useEffect(() => {
+    if (!materials) return;
+    const cabToBepKoi = parseFloat(cabToBepKoiStr);
+    const foOutdoor = materials.find((m: any) => {
+      const n = (m.name || "").toLowerCase();
+      return (
+        m.code === "14027440" ||
+        (n.includes("4 fo") && n.includes("outdoor")) ||
+        (n.includes("4 fo") && n.includes("induct"))
+      );
+    });
+    if (!foOutdoor) return;
+    setMaterialItems(prev => {
+      const updated = [...prev];
+      const idx = updated.findIndex(m => m.material_id === foOutdoor.id);
+      if (cabToBepKoi <= 0) {
+        if (idx >= 0) updated.splice(idx, 1);
+        return updated;
+      }
+      if (idx >= 0) {
+        updated[idx] = { ...updated[idx], quantity: cabToBepKoi };
+      } else {
+        updated.push({
+          material_id: foOutdoor.id,
+          code: foOutdoor.code,
+          name: foOutdoor.name,
+          unit: foOutdoor.unit,
+          price: foOutdoor.price,
+          source: foOutdoor.source,
+          quantity: cabToBepKoi,
+        });
+      }
+      return updated;
+    });
+  }, [cabToBepKoiStr, materials]);
 
   // Auto-fill basic fields from GIS data
   const [gisFieldsFilled, setGisFieldsFilled] = useState(false);
