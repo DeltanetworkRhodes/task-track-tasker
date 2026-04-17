@@ -833,7 +833,19 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
       );
     }
 
-    // 9. Microduct — από Ball Marker απόσταση
+    // 9. 4 FO outdoor cable — από FTTH ΥΠΟΓ ΔΔ (Cabin to BEP)
+    const cabToBepKoi = parseFloat(routes[0]?.koi || "0");
+    if (cabToBepKoi > 0) {
+      addMaterial(
+        (m) =>
+          m.code === "14027440" ||
+          nameMatches(m.name, "4 FO", "outdoor") ||
+          nameMatches(m.name, "4 FO", "induct"),
+        cabToBepKoi
+      );
+    }
+
+    // 10. Microduct — από Ball Marker απόσταση
     // Παίρνουμε τιμή από section6 state (Οριζοντογραφία AS-BUILD)
     const hasBcp = !!(
       gisData.new_bcp ||
@@ -863,7 +875,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
     }
 
     return autoItems;
-  }, [gisData, materials, section6]);
+  }, [gisData, materials, section6, routes]);
 
   // Manual trigger (button) — επαναφορτώνει υλικά από GIS αντικαθιστώντας υπάρχοντα
   const handleManualGisRefill = useCallback(() => {
@@ -919,6 +931,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
     materialItems.length,
     computeGisMaterials,
     section6,
+    routes,
   ]);
 
   // Microduct trigger — προσθέτει/ενημερώνει/αφαιρεί τα 2 Microducts
