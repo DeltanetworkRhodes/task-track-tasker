@@ -715,14 +715,23 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
     // 2. BMO - match size from bmo_type (e.g. "SMALL/16/RAYCAP")
     if (gisData.bmo_type) {
       const bmoSize = gisData.bmo_type.toUpperCase();
+      const optPaths = (gisData.optical_paths as any[]) || [];
+      const bmoIds = new Set<string>();
+      optPaths.forEach((p: any) => {
+        const path = p.path || p["OPTICAL PATH"] || "";
+        const m = path.match(/BMO(\d+)_/);
+        if (m) bmoIds.add(m[1]);
+      });
+      const bmoCount = bmoIds.size > 0 ? bmoIds.size : 1;
+
       if (bmoSize.includes("SMALL")) {
-        addMaterial((m) => nameMatches(m.name, "SMALL", "BMO"), 1);
+        addMaterial((m) => nameMatches(m.name, "SMALL", "BMO"), bmoCount);
       } else if (bmoSize.includes("MEDIUM")) {
-        addMaterial((m) => nameMatches(m.name, "MEDIUM", "BMO"), 1);
+        addMaterial((m) => nameMatches(m.name, "MEDIUM", "BMO"), bmoCount);
       } else if (bmoSize.includes("X-LARGE") || bmoSize.includes("XLARGE")) {
-        addMaterial((m) => nameMatches(m.name, "X-LARGE", "BMO") || nameMatches(m.name, "XLARGE", "BMO"), 1);
+        addMaterial((m) => nameMatches(m.name, "X-LARGE", "BMO") || nameMatches(m.name, "XLARGE", "BMO"), bmoCount);
       } else if (bmoSize.includes("LARGE")) {
-        addMaterial((m) => nameMatches(m.name, "LARGE", "BMO") && !nameMatches(m.name, "X-LARGE") && !nameMatches(m.name, "XLARGE"), 1);
+        addMaterial((m) => nameMatches(m.name, "LARGE", "BMO") && !nameMatches(m.name, "X-LARGE") && !nameMatches(m.name, "XLARGE"), bmoCount);
       }
     }
 
@@ -799,20 +808,6 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
       }
     }
 
-    // 4. Splitter from bep_template (e.g. "BEP 1SP 1:8(01..12)")
-    if (gisData.bep_template) {
-      const tmpl = gisData.bep_template.toUpperCase();
-      if (tmpl.includes("1:8")) {
-        addMaterial((m) => nameMatches(m.name, "SPLITTER") && m.name.includes("1:8"), 1);
-      } else if (tmpl.includes("1:4")) {
-        addMaterial((m) => nameMatches(m.name, "SPLITTER") && m.name.includes("1:4"), 1);
-      } else if (tmpl.includes("1:2")) {
-        addMaterial((m) => nameMatches(m.name, "SPLITTER") && m.name.includes("1:2"), 1);
-      } else if (tmpl.includes("1:16")) {
-        addMaterial((m) => nameMatches(m.name, "SPLITTER") && m.name.includes("1:16"), 1);
-      }
-    }
-
     // 5. BCP from GIS (nearby_bcp, new_bcp, associated_bcp)
     if (gisData.nearby_bcp || gisData.new_bcp) {
       addMaterial((m) => nameMatches(m.name, "BCP"), 1);
@@ -821,6 +816,31 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
     // 6. Nanotronix / Smart readiness
     if (gisData.nanotronix) {
       addMaterial((m) => nameMatches(m.name, "NANOTRONIX") || nameMatches(m.name, "NANO"), 1);
+    }
+
+    // 7. Pigtail — BEP-BMO active paths
+    const allOptPaths = (gisData.optical_paths as any[]) || [];
+    const bepBmoCount = allOptPaths.filter(
+      (p: any) => (p.type || p["OPTICAL PATH TYPE"] || "").toUpperCase() === "BEP-BMO"
+    ).length;
+    if (bepBmoCount > 0) {
+      addMaterial(
+        (m) => nameMatches(m.name, "PIGTAIL") && m.name.includes("1,5"),
+        bepBmoCount
+      );
+    }
+
+    // 8. Patchcord — BMO-FB paths
+    const bmoFbCount = allOptPaths.filter(
+      (p: any) => (p.type || p["OPTICAL PATH TYPE"] || "").toUpperCase() === "BMO-FB"
+    ).length;
+    if (bmoFbCount > 0) {
+      addMaterial(
+        (m) =>
+          nameMatches(m.name, "PATCHCORD") ||
+          (nameMatches(m.name, "PATCH") && nameMatches(m.name, "CORD")),
+        bmoFbCount
+      );
     }
 
     if (autoItems.length > 0) {
