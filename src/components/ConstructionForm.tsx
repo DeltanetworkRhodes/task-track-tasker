@@ -808,28 +808,28 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
       addMaterial((m) => nameMatches(m.name, "NANOTRONIX") || nameMatches(m.name, "NANO"), 1);
     }
 
-    // 7. Pigtail — BEP-BMO active paths
+    // 7. Pigtail — BMO-FB paths + 4 καμπίνα
     const allOptPaths = (gisData.optical_paths as any[]) || [];
-    const bepBmoCount = allOptPaths.filter(
-      (p: any) => (p.type || p["OPTICAL PATH TYPE"] || "").toUpperCase() === "BEP-BMO"
-    ).length;
-    if (bepBmoCount > 0) {
-      addMaterial(
-        (m) => nameMatches(m.name, "PIGTAIL") && m.name.includes("1,5"),
-        bepBmoCount
-      );
-    }
-
-    // 8. Patchcord — BMO-FB paths
     const bmoFbCount = allOptPaths.filter(
       (p: any) => (p.type || p["OPTICAL PATH TYPE"] || "").toUpperCase() === "BMO-FB"
     ).length;
     if (bmoFbCount > 0) {
       addMaterial(
+        (m) => nameMatches(m.name, "PIGTAIL") && m.name.includes("1,5"),
+        bmoFbCount + 4
+      );
+    }
+
+    // 8. Patchcord — BEP-BMO ενεργές πόρτες
+    const bepBmoCount = allOptPaths.filter(
+      (p: any) => (p.type || p["OPTICAL PATH TYPE"] || "").toUpperCase() === "BEP-BMO"
+    ).length;
+    if (bepBmoCount > 0) {
+      addMaterial(
         (m) =>
           nameMatches(m.name, "PATCHCORD") ||
           (nameMatches(m.name, "PATCH") && nameMatches(m.name, "CORD")),
-        bmoFbCount
+        bepBmoCount
       );
     }
 
