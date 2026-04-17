@@ -9,7 +9,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useTimeTracking } from "@/hooks/useTimeTracking";
-import { Trash2, Loader2, CheckCircle, HardHat, Package, Wrench, Camera, X, ChevronDown, ChevronRight, Plus, Minus, MapPin, Route, AlertTriangle, Save, GitMerge, Building2, Copy, LogOut } from "lucide-react";
+import { Trash2, Loader2, CheckCircle, HardHat, Package, Wrench, Camera, X, ChevronDown, ChevronRight, Plus, Minus, MapPin, Route, AlertTriangle, Save, GitMerge, Building2, Copy, LogOut, RefreshCw } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -658,15 +658,11 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
   }, [gisData, floorMetersAutoFilled]);
 
   const [gisAutoFilled, setGisAutoFilled] = useState(false);
-  useEffect(() => {
-    const hasExistingConstruction = !!existingConstruction;
-    const hasExistingSavedMaterials = (existingMaterials?.length || 0) > 0;
-    const existingMaterialLookupReady = !existingConstruction ? existingConstructionFetched : existingMaterialsFetched;
 
-    // Skip GIS auto-fill if: DB lookup not finished, already done, no GIS data/material catalog,
-    // user already has items, OR this assignment already has persisted construction data
-    if (!existingMaterialLookupReady || !gisData || !materials || gisAutoFilled || materialItems.length > 0 || hasExistingSavedMaterials || hasExistingConstruction) return;
-    
+  // Extracted: GIS->materials computation. Used by auto-fill effect AND manual button.
+  const computeGisMaterials = useCallback((): MaterialItem[] | null => {
+    if (!gisData || !materials) return null;
+
     const oteMaterials = materials.filter((m) => m.source === "OTE");
     const allMaterials = materials;
     const autoItems: MaterialItem[] = [];
@@ -687,13 +683,12 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
       }
     };
 
-    // Helper: flexible material name matching (case-insensitive, multiple patterns)
     const nameMatches = (name: string, ...patterns: string[]) => {
       const upper = name.toUpperCase();
       return patterns.every((p) => upper.includes(p.toUpperCase()));
     };
 
-    // 1. BEP - match size from bep_type (e.g. "MEDIUM/12/ZTT (01..12)")
+    // 1. BEP
     if (gisData.bep_type) {
       const bepSize = gisData.bep_type.toUpperCase();
       if (bepSize.includes("SMALL")) {
@@ -705,14 +700,13 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
       } else if (bepSize.includes("LARGE")) {
         addMaterial((m) => nameMatches(m.name, "LARGE", "BEP") && !nameMatches(m.name, "X-LARGE") && !nameMatches(m.name, "XLARGE"), 1);
       }
-      // Also try matching by capacity number
       const capMatch = bepSize.match(/\/(\d+)\//);
       if (capMatch && autoItems.length === 0) {
         addMaterial((m) => nameMatches(m.name, "BEP") && m.name.includes(capMatch[1]), 1);
       }
     }
 
-    // 2. BMO - match size from bmo_type (e.g. "SMALL/16/RAYCAP")
+    // 2. BMO - count από μοναδικά BMO IDs
     if (gisData.bmo_type) {
       const bmoSize = gisData.bmo_type.toUpperCase();
       const optPaths = (gisData.optical_paths as any[]) || [];
@@ -735,7 +729,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
       }
     }
 
-    // 3. Floor Boxes - count from floor_details (scan ALL keys for FB patterns)
+    // 3. Floor Boxes
     const floorDetails = (gisData.floor_details as any[]) || [];
     let fb4Total = 0;
     let fb12Total = 0;
@@ -744,37 +738,32 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
     for (const fd of floorDetails) {
       const row = fd.raw && typeof fd.raw === "object" ? fd.raw : fd;
       const keys = Object.keys(row);
-      
-      // Scan all keys for FB-related columns
+
       for (const key of keys) {
         const upperKey = key.toUpperCase().trim();
-        
-        // Match keys like "FB01", "FB 01", "FB1", "FB02", "FLOOR BOX", etc.
         const isFbKey = /^FB\s?\d+$/i.test(upperKey) || upperKey === "FB" || upperKey === "FLOOR BOX" || upperKey === "FLOORBOX";
         const isFbCountKey = /^(FB\s?\d+|FLOOR\s?BOX)$/i.test(upperKey);
-        
+
         if (isFbKey || isFbCountKey) {
           const val = parseInt(String(row[key])) || 0;
           if (val <= 0) continue;
-          
-          // Find corresponding TYPE key
+
           const typeKey = keys.find((k) => {
             const uk = k.toUpperCase().trim();
             return uk === upperKey + " TYPE" || uk === upperKey + "_TYPE" || uk === upperKey + " ΤΥΠΟΣ";
           });
           const fbType = typeKey ? String(row[typeKey] || "").toUpperCase() : "";
-          
+
           if (fbType.includes("12")) {
             fb12Total += val;
           } else if (fbType.includes("4")) {
             fb4Total += val;
           } else {
-            fbGenericTotal += val; // Will default to 4-port
+            fbGenericTotal += val;
           }
         }
       }
-      
-      // Fallback: if no specific FB keys found, check if this floor row has any FB indication
+
       if (fb4Total === 0 && fb12Total === 0 && fbGenericTotal === 0) {
         for (const key of keys) {
           const upperKey = key.toUpperCase().trim();
@@ -786,17 +775,14 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
       }
     }
 
-    // If no FB counts found from columns, count floors that have FB data (1 FB per floor as minimum)
     if (fb4Total === 0 && fb12Total === 0 && fbGenericTotal === 0 && floorDetails.length > 0) {
-      // Each floor typically gets at least 1 FB
       fbGenericTotal = floorDetails.length;
     }
 
-    fb4Total += fbGenericTotal; // Default generic FBs to 4-port
-    
+    fb4Total += fbGenericTotal;
+
     if (fb4Total > 0) {
       addMaterial((m) => nameMatches(m.name, "FLOOR", "BOX", "4") || nameMatches(m.name, "FB", "4"), fb4Total);
-      // Fallback: any floor box material
       if (!autoItems.some((a) => nameMatches(a.name, "FLOOR") || nameMatches(a.name, "FB"))) {
         addMaterial((m) => nameMatches(m.name, "FLOOR", "BOX") || (nameMatches(m.name, "FB") && !nameMatches(m.name, "BEP")), fb4Total);
       }
@@ -808,12 +794,12 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
       }
     }
 
-    // 5. BCP from GIS (nearby_bcp, new_bcp, associated_bcp)
+    // 5. BCP
     if (gisData.nearby_bcp || gisData.new_bcp) {
       addMaterial((m) => nameMatches(m.name, "BCP"), 1);
     }
 
-    // 6. Nanotronix / Smart readiness
+    // 6. Nanotronix
     if (gisData.nanotronix) {
       addMaterial((m) => nameMatches(m.name, "NANOTRONIX") || nameMatches(m.name, "NANO"), 1);
     }
@@ -843,18 +829,51 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
       );
     }
 
-    if (autoItems.length > 0) {
+    return autoItems;
+  }, [gisData, materials]);
+
+  // Manual trigger (button) — επαναφορτώνει υλικά από GIS αντικαθιστώντας υπάρχοντα
+  const handleManualGisRefill = useCallback(() => {
+    if (!gisData) {
+      toast.error("Δεν υπάρχουν δεδομένα GIS για αυτό το SR");
+      return;
+    }
+    if (!materials || materials.length === 0) {
+      toast.error("Ο κατάλογος υλικών δεν έχει φορτώσει ακόμα");
+      return;
+    }
+    const items = computeGisMaterials() || [];
+    if (items.length === 0) {
+      toast.warning("Δεν βρέθηκαν αντίστοιχα υλικά στον κατάλογο για τα GIS δεδομένα");
+      console.log("GIS data inspected:", {
+        bep_type: gisData.bep_type,
+        bmo_type: gisData.bmo_type,
+        optical_paths: (gisData.optical_paths as any[])?.length,
+        floor_details: (gisData.floor_details as any[])?.length,
+      });
+      return;
+    }
+    setMaterialItems(items);
+    setMaterialTab("OTE");
+    setGisAutoFilled(true);
+    toast.success(`✅ Επαναφορτώθηκαν ${items.length} υλικά από GIS`, { duration: 5000 });
+  }, [gisData, materials, computeGisMaterials]);
+
+  useEffect(() => {
+    const hasExistingConstruction = !!existingConstruction;
+    const hasExistingSavedMaterials = (existingMaterials?.length || 0) > 0;
+    const existingMaterialLookupReady = !existingConstruction ? existingConstructionFetched : existingMaterialsFetched;
+
+    if (!existingMaterialLookupReady || !gisData || !materials || gisAutoFilled || materialItems.length > 0 || hasExistingSavedMaterials || hasExistingConstruction) return;
+
+    const autoItems = computeGisMaterials();
+    if (autoItems && autoItems.length > 0) {
       setMaterialItems(autoItems);
       setMaterialTab("OTE");
       setGisAutoFilled(true);
-      toast.success(`✅ Αυτόματη χρέωση ${autoItems.length} υλικών από GIS (${fb4Total + fb12Total} FB, ${gisData.bep_type ? 'BEP: ' + gisData.bep_type : ''} ${gisData.bmo_type ? 'BMO: ' + gisData.bmo_type : ''})`, { duration: 6000 });
+      toast.success(`✅ Αυτόματη χρέωση ${autoItems.length} υλικών από GIS`, { duration: 6000 });
     } else if (gisData) {
-      console.log("GIS auto-fill: no matching materials found. GIS data:", {
-        bep_type: gisData.bep_type,
-        bmo_type: gisData.bmo_type,
-        bep_template: gisData.bep_template,
-        floor_details: gisData.floor_details,
-      });
+      console.log("GIS auto-fill: no matching materials found.");
     }
   }, [
     existingConstruction,
@@ -865,6 +884,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
     materials,
     gisAutoFilled,
     materialItems.length,
+    computeGisMaterials,
   ]);
 
   // Auto-fill basic fields from GIS data
@@ -3286,16 +3306,31 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
 
       {/* Materials - Category based */}
       <Card className="p-4 space-y-2">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-2 flex-wrap">
           <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
             <Package className="h-3.5 w-3.5" />
             Υλικά
           </Label>
-          {materialItems.length > 0 && (
-            <Badge variant="secondary" className="text-xs">
-              {oteMaterials.length} ΟΤΕ · {deltanetMaterials.length} {orgName}
-            </Badge>
-          )}
+          <div className="flex items-center gap-2">
+            {materialItems.length > 0 && (
+              <Badge variant="secondary" className="text-xs">
+                {oteMaterials.length} ΟΤΕ · {deltanetMaterials.length} {orgName}
+              </Badge>
+            )}
+            {gisData && (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="h-7 text-xs gap-1"
+                onClick={handleManualGisRefill}
+                title="Επαναφορτώνει τα υλικά από τα δεδομένα GIS του SR"
+              >
+                <RefreshCw className="h-3 w-3" />
+                Από GIS
+              </Button>
+            )}
+          </div>
         </div>
 
         <Tabs value={materialTab} onValueChange={setMaterialTab} className="w-full">
