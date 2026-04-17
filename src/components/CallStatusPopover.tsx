@@ -126,7 +126,7 @@ const CallStatusPopover = ({ assignment, children }: CallStatusPopoverProps) => 
             .update({
               appointment_at: apptAt,
               customer_name: customerName || null,
-              area: assignment.area_type || null,
+              area: (assignment as any).area || null,
               description: notes || `Ραντεβού με πελάτη (${CALL_STATUS.scheduled.label})`,
             })
             .eq("id", existing.id);
