@@ -2849,23 +2849,27 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
           Διαδρομές
         </Label>
         <div className="space-y-2">
-          {routes.map((route, idx) => {
+          {effectiveRoutes.map((route, idx) => {
             // In crew mode, only show INHOUSE route (index 3)
             if (isCrewMode && idx !== 3) return null;
+            const isInhouse = idx === 3;
             return (
             <div key={idx} className="border border-border rounded-lg p-3 space-y-2">
               <p className="text-xs font-medium text-foreground">{route.label}</p>
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <Label className="text-[10px] text-muted-foreground">KOI (m)</Label>
+                  <Label className="text-[10px] text-muted-foreground">
+                    KOI (m){isInhouse && " — auto από Μέτρα BMO→FB"}
+                  </Label>
                   <Input
                     type="number"
                     min="0"
                     step="0.1"
                     value={route.koi}
-                    onChange={(e) => updateRoute(idx, "koi", e.target.value)}
+                    onChange={(e) => !isInhouse && updateRoute(idx, "koi", e.target.value)}
                     placeholder="0"
-                    className="text-sm mt-0.5 h-8"
+                    readOnly={isInhouse}
+                    className={`text-sm mt-0.5 h-8 ${isInhouse ? "bg-muted cursor-not-allowed" : ""}`}
                   />
                 </div>
                 <div>
