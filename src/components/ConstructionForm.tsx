@@ -1227,6 +1227,11 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
           routes: routesData.length > 0 ? routesData : null,
           organization_id: organizationId,
           photo_counts: mergedPhotoCounts,
+          koi_type_cab_bep: koiTypeCabBep,
+          koi_type_cab_bcp: koiTypeCabBcp,
+          vertical_infra: verticalInfra,
+          floor_meters: floorMeters,
+          asbuilt_section6: section6,
         } as any;
 
 
