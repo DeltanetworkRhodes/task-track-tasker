@@ -85,6 +85,8 @@ interface AsBuiltData {
   exportDate: string;
   additionalBcpConnections: { placement: string; kind: string; cableType: string; length: number }[];
   verticalInfra?: string;
+  bepPlacementFloor?: string;
+  verticalInfraType?: string;
   ballMarkerBep?: number | string;
   msCount?: number | string;
   otdrPositions?: { pos: number; a: any; b: any; c: any; d: any }[];
@@ -431,6 +433,8 @@ async function fetchAsBuiltData(srId: string): Promise<AsBuiltData> {
     exportDate: new Date().toLocaleDateString("el-GR"),
     additionalBcpConnections,
     verticalInfra: (construction as any)?.vertical_infra || "ΙΣ",
+    bepPlacementFloor: (construction as any)?.bep_placement_floor || "ΙΣ",
+    verticalInfraType: (construction as any)?.vertical_infra_type || "",
     ballMarkerBep: (construction as any)?.ball_marker_bep ?? "",
     msCount: (construction as any)?.ms_count ?? "",
     otdrPositions: ((construction as any)?.otdr_positions as any[]) || [],
@@ -729,8 +733,8 @@ function fillEpimetrisiSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
 
   // ── 4. BEP-ΟΡΟΦΟΙ ── Rows 25-39
   // C22/D22 vertical infrastructure
-  ws.getCell("C22").value = d.verticalInfra === "ΙΣ" ? "ΙΣ" : "";
-  ws.getCell("D22").value = d.verticalInfra === "ΚΑΓΚΕΛΟ" ? "ΚΑΓΚΕΛΟ" : "";
+  ws.getCell("C22").value = d.bepPlacementFloor || "ΙΣ";
+  ws.getCell("D22").value = d.verticalInfraType || "";
 
   for (let r = 25; r <= 39; r++) {
     for (let c = 2; c <= 17; c++) {

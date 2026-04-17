@@ -520,6 +520,7 @@ export type Database = {
           asbuilt_section6: Json | null
           assignment_id: string | null
           ball_marker_bep: number | null
+          bep_placement_floor: string | null
           cab: string | null
           created_at: string
           floor_meters: Json | null
@@ -543,12 +544,14 @@ export type Database = {
           status: string
           updated_at: string
           vertical_infra: string | null
+          vertical_infra_type: string | null
         }
         Insert: {
           ak?: string | null
           asbuilt_section6?: Json | null
           assignment_id?: string | null
           ball_marker_bep?: number | null
+          bep_placement_floor?: string | null
           cab?: string | null
           created_at?: string
           floor_meters?: Json | null
@@ -572,12 +575,14 @@ export type Database = {
           status?: string
           updated_at?: string
           vertical_infra?: string | null
+          vertical_infra_type?: string | null
         }
         Update: {
           ak?: string | null
           asbuilt_section6?: Json | null
           assignment_id?: string | null
           ball_marker_bep?: number | null
+          bep_placement_floor?: string | null
           cab?: string | null
           created_at?: string
           floor_meters?: Json | null
@@ -601,6 +606,7 @@ export type Database = {
           status?: string
           updated_at?: string
           vertical_infra?: string | null
+          vertical_infra_type?: string | null
         }
         Relationships: [
           {
