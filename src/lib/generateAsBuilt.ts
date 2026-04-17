@@ -89,6 +89,11 @@ interface AsBuiltData {
   msCount?: number | string;
   otdrPositions?: { pos: number; a: any; b: any; c: any; d: any }[];
   floorMeters?: { floor: string; meters: any; pipe_type: string }[];
+  koiTypeCabBep?: string;
+  koiTypeCabBcp?: string;
+  koiCabBepLength?: number;
+  koiCabBcpLength?: number;
+  s6?: any;
 }
 
 /* ────────────────────────────────────────────
@@ -286,6 +291,15 @@ async function fetchAsBuiltData(srId: string): Promise<AsBuiltData> {
     msCount: (construction as any)?.ms_count ?? "",
     otdrPositions: ((construction as any)?.otdr_positions as any[]) || [],
     floorMeters: ((construction as any)?.floor_meters as any[]) || [],
+    koiTypeCabBep: (construction as any)?.koi_type_cab_bep || "4' μ cable",
+    koiTypeCabBcp: (construction as any)?.koi_type_cab_bcp || "4' μ cable",
+    koiCabBepLength: Number(
+      (Array.isArray((construction as any)?.routes) && (construction as any).routes[0]?.koi) || 0
+    ),
+    koiCabBcpLength: Number(
+      (Array.isArray((construction as any)?.routes) && (construction as any).routes[1]?.koi) || 0
+    ),
+    s6: (construction as any)?.asbuilt_section6 || {},
   };
 }
 
