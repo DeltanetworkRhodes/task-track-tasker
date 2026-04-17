@@ -109,6 +109,48 @@ const CallStatusPopover = ({ assignment, children }: CallStatusPopoverProps) => 
 
       if (error) throw error;
 
+      // Sync appointment to calendar (appointments table)
+      if (selectedStatus === "scheduled" && appointmentDate) {
+        const apptAt = new Date(appointmentDate).toISOString();
+        // Check if there's already an appointment for this SR matching the previous date
+        const { data: existing } = await supabase
+          .from("appointments")
+          .select("id")
+          .eq("sr_id", srId)
+          .eq("organization_id", organizationId || "")
+          .maybeSingle();
+
+        if (existing?.id) {
+          await supabase
+            .from("appointments")
+            .update({
+              appointment_at: apptAt,
+              customer_name: customerName || null,
+              area: assignment.area_type || null,
+              description: notes || `Ραντεβού με πελάτη (${CALL_STATUS.scheduled.label})`,
+            })
+            .eq("id", existing.id);
+        } else {
+          await supabase.from("appointments").insert({
+            sr_id: srId,
+            appointment_at: apptAt,
+            duration_minutes: 30,
+            customer_name: customerName || null,
+            description: notes || `Ραντεβού με πελάτη (${CALL_STATUS.scheduled.label})`,
+            organization_id: organizationId || null,
+          });
+        }
+        queryClient.invalidateQueries({ queryKey: ["appointments-calendar"] });
+      } else if (selectedStatus !== "scheduled" && currentStatus === "scheduled") {
+        // Status changed away from scheduled — remove the appointment
+        await supabase
+          .from("appointments")
+          .delete()
+          .eq("sr_id", srId)
+          .eq("organization_id", organizationId || "");
+        queryClient.invalidateQueries({ queryKey: ["appointments-calendar"] });
+      }
+
       // Auto-save call notes as SR comment
       if (notes && notes.trim() && user) {
         const statusLabel = CALL_STATUS[selectedStatus]?.label || selectedStatus;
