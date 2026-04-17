@@ -820,50 +820,26 @@ export async function generateAsBuiltFromData(data: AsBuiltData): Promise<AsBuil
   const warnings: string[] = [...validateAsBuiltData(data)];
   logPreview(data);
 
-  // Load template for Επιμέτρηση sheet
+  // Load template
   const templateResp = await fetch("/templates/as_build_template.xlsx");
   if (!templateResp.ok) {
     throw new Error("Δεν βρέθηκε το AS-BUILD template. Ελέγξτε ότι υπάρχει στο /templates/as_build_template.xlsx");
   }
-  const templateWb = new ExcelJS.Workbook();
-  await templateWb.xlsx.load(await templateResp.arrayBuffer());
+  const wb = new ExcelJS.Workbook();
+  await wb.xlsx.load(await templateResp.arrayBuffer());
 
-  // Find Επιμέτρηση sheet in template
-  const epimetrisiTemplate = templateWb.getWorksheet("AS build-Επιμέτρηση") || templateWb.worksheets[6];
-
-  // Create fresh workbook with only 4 sheets
-  const workbook = new ExcelJS.Workbook();
-
-  // Sheet 1-3: built from scratch
-  buildKtirioSheet(workbook, data);
-  buildOrofoiSheet(workbook, data);
-  buildOpticalPathsSheet(workbook, data);
-
-  // Sheet 4: Copy Επιμέτρηση from template
-  // We need to copy the template sheet structure — easiest via buffer round-trip
-  // Since ExcelJS doesn't support copying sheets between workbooks natively,
-  // we use the template workbook directly but remove unwanted sheets.
-  // Strategy: use the template workbook, delete unwanted sheets, and prepend new sheets.
-  // Actually: let's use the template workbook and manage sheets there.
-
-  // Alternative approach: work with template workbook, delete unwanted sheets, rebuild first 3
-  const sheetsToRemove = ["ΕΡΓΑΣΙΕΣ", "LABELS BMO", "LABELS BEP ", "LABELS BEP", "ΚΤΗΡΙΟ", "ΟΡΟΦΟΙ", "OPTICAL PATHS"];
-  for (const name of sheetsToRemove) {
-    const ws = templateWb.getWorksheet(name);
-    if (ws) templateWb.removeWorksheet(ws.id);
+  // Remove all sheets except Επιμέτρηση
+  const keepName = "AS build-Επιμέτρηση";
+  for (const ws of [...wb.worksheets]) {
+    if (ws.name !== keepName) wb.removeWorksheet(ws.id);
   }
 
-  // Now add the 3 data sheets to the template workbook (which now only has Επιμέτρηση)
-  // We need to rebuild since ExcelJS doesn't support sheet reordering easily.
-  // Final approach: use the template workbook, but we already removed sheets.
-  // Add sheets and fill Επιμέτρηση.
-
-  // Re-find Επιμέτρηση in the cleaned template
-  const epSheet = templateWb.getWorksheet("AS build-Επιμέτρηση");
+  // Fill Επιμέτρηση
+  const epSheet = wb.getWorksheet(keepName);
   if (epSheet) {
     fillEpimetrisiSheet(epSheet, data);
 
-    // Sketch image injection
+    // Sketch image
     let sketchBuf: ArrayBuffer | null = null;
     if (data.sketchImageUrl) {
       sketchBuf = await fetchImageBuffer(data.sketchImageUrl);
@@ -890,7 +866,7 @@ export async function generateAsBuiltFromData(data: AsBuiltData): Promise<AsBuil
       }
     }
     if (sketchBuf) {
-      const imgId = templateWb.addImage({ buffer: sketchBuf, extension: "png" });
+      const imgId = wb.addImage({ buffer: sketchBuf, extension: "png" });
       epSheet.addImage(imgId, {
         tl: { col: 1, row: 82, nativeCol: 1, nativeRow: 82, nativeColOff: 0, nativeRowOff: 0 } as any,
         br: { col: 17, row: 101, nativeCol: 17, nativeRow: 101, nativeColOff: 0, nativeRowOff: 0 } as any,
@@ -899,81 +875,29 @@ export async function generateAsBuiltFromData(data: AsBuiltData): Promise<AsBuil
     }
   }
 
-  // Now we need to merge: the 3 fresh sheets + the template Επιμέτρηση
-  // Since we can't easily reorder sheets in ExcelJS, we'll build the final workbook
-  // by writing all 4 sheets into the fresh workbook.
+  // Add 3 data sheets (they append after Επιμέτρηση)
+  buildKtirioSheet(wb, data);
+  buildOrofoiSheet(wb, data);
+  buildOpticalPathsSheet(wb, data);
 
-  // For Επιμέτρηση: serialize templateWb, then write fresh workbook with 3 sheets + Επιμέτρηση from template
-  // Simplest: just add the 3 sheets to the templateWb (which now only has Επιμέτρηση)
-
-  // Add sheets at the beginning by creating them in templateWb
-  // ExcelJS adds sheets at the end, but we need order: ΚΤΗΡΙΟ, ΟΡΟΦΟΙ, OPTICAL PATHS, AS build-Επιμέτρηση
-  // We can't reorder, so let's just use the fresh workbook approach:
-  // Copy Επιμέτρηση cell data into a new sheet in our fresh workbook.
-
-  // Actually the simplest correct approach: use templateWb as the final workbook.
-  // The 3 sheets we deleted are gone. Now add 3 new sheets.
-  // The problem: they'll be added AFTER Επιμέτρηση. But we can set order property.
-
-  // ExcelJS worksheets have an `orderNo` property. Let's set it.
-  if (epSheet) {
-    (epSheet as any).orderNo = 4;
+  // Reorder: ΚΤΗΡΙΟ, ΟΡΟΦΟΙ, OPTICAL PATHS, AS build-Επιμέτρηση
+  // ExcelJS stores sheets in _worksheets array (1-indexed, slot 0 is undefined)
+  const wsList = (wb as any)._worksheets as (ExcelJS.Worksheet | undefined)[];
+  const ordered: ExcelJS.Worksheet[] = [];
+  const nameOrder = ["ΚΤΗΡΙΟ", "ΟΡΟΦΟΙ", "OPTICAL PATHS", keepName];
+  for (const n of nameOrder) {
+    const found = wsList.find(ws => ws && ws.name === n);
+    if (found) ordered.push(found);
   }
-
-  const ws1 = templateWb.addWorksheet("ΚΤΗΡΙΟ");
-  (ws1 as any).orderNo = 1;
-  KTIRIO_HEADERS.forEach((h, i) => { ws1.getCell(1, i + 1).value = h; });
-  styleHeaderRow(ws1, KTIRIO_HEADERS.length);
-  const ktirioVals: (string | number | boolean)[] = [
-    data.srId, data.buildingId, data.areaType, data.floors, data.customerFloor, data.bepFloor,
-    data.adminSignature, data.bepOnly, data.bepTemplate, data.bepType, data.bmoType,
-    data.dehNanotronix, data.nanotronix, data.smartReadiness,
-    data.associatedBcp, data.nearbyBcp, data.newBcp, data.conduit,
-    data.distanceFromCabinet, data.latitude, data.longitude,
-    data.notes, data.warning, data.failure,
-  ];
-  ktirioVals.forEach((v, i) => { ws1.getCell(2, i + 1).value = v as any; });
-  KTIRIO_HEADERS.forEach((h, i) => { ws1.getColumn(i + 1).width = Math.max(h.length + 2, 14); });
-
-  const ws2 = templateWb.addWorksheet("ΟΡΟΦΟΙ");
-  (ws2 as any).orderNo = 2;
-  OROFOI_HEADERS.forEach((h, i) => { ws2.getCell(1, i + 1).value = h; });
-  styleHeaderRow(ws2, OROFOI_HEADERS.length);
-  data.floorDetails.forEach((fd, idx) => {
-    const r = 2 + idx;
-    ws2.getCell(r, 1).value = fd.floor as any;
-    ws2.getCell(r, 2).value = fd.apartments;
-    ws2.getCell(r, 3).value = fd.shops;
-    ws2.getCell(r, 4).value = fd.fb_count;
-    ws2.getCell(r, 5).value = fd.fb_type;
-    ws2.getCell(r, 6).value = fd.fb02_count || "";
-    ws2.getCell(r, 7).value = fd.fb02_type || "";
-    ws2.getCell(r, 8).value = fd.fb03_count || "";
-    ws2.getCell(r, 9).value = fd.fb03_type || "";
-    ws2.getCell(r, 10).value = fd.fb04_count || "";
-    ws2.getCell(r, 11).value = fd.fb04_type || "";
-    ws2.getCell(r, 12).value = fd.fb_customer || "";
-    ws2.getCell(r, 13).value = fd.customer_space || "";
-    ws2.getCell(r, 14).value = fd.fb_id || "";
+  // Rebuild _worksheets array
+  for (let i = 0; i < wsList.length; i++) wsList[i] = undefined;
+  ordered.forEach((ws, idx) => {
+    wsList[idx + 1] = ws;
+    (ws as any).orderNo = idx + 1;
   });
-  OROFOI_HEADERS.forEach((h, i) => { ws2.getColumn(i + 1).width = Math.max(h.length + 2, 12); });
-
-  const ws3 = templateWb.addWorksheet("OPTICAL PATHS");
-  (ws3 as any).orderNo = 3;
-  OPTICAL_HEADERS.forEach((h, i) => { ws3.getCell(1, i + 1).value = h; });
-  styleHeaderRow(ws3, OPTICAL_HEADERS.length);
-  data.opticalPaths.forEach((op, idx) => {
-    const r = 2 + idx;
-    ws3.getCell(r, 1).value = op.type;
-    ws3.getCell(r, 2).value = op.path;
-    ws3.getCell(r, 3).value = op.gis_id || "";
-  });
-  ws3.getColumn(1).width = 20;
-  ws3.getColumn(2).width = 60;
-  ws3.getColumn(3).width = 16;
 
   // Generate and download
-  const buffer = await templateWb.xlsx.writeBuffer();
+  const buffer = await wb.xlsx.writeBuffer();
   const arrayBuf = new Uint8Array(buffer instanceof ArrayBuffer ? buffer : (buffer as Uint8Array)).buffer as ArrayBuffer;
   const blob = new Blob([buffer], {
     type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
