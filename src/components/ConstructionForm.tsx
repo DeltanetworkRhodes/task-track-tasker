@@ -158,6 +158,21 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
   const totalKoi = effectiveRoutes.reduce((sum, r) => sum + (parseFloat(r.koi) || 0), 0);
   const totalFyraKoi = effectiveRoutes.reduce((sum, r) => sum + (parseFloat(r.fyraKoi) || 0), 0);
 
+  // Σύνολο INHOUSE KOI από floorMeters
+  const inhouseKoiTotal = useMemo(
+    () => floorMeters.reduce((sum, fm) => sum + (parseFloat(fm.meters) || 0), 0),
+    [floorMeters]
+  );
+  // Ξεχωριστά ανά τύπο ίνας
+  const inhouse4FoMeters = useMemo(
+    () => floorMeters.reduce((sum, fm) => (fm.fo_type === "4FO" ? sum + (parseFloat(fm.meters) || 0) : sum), 0),
+    [floorMeters]
+  );
+  const inhouse12FoMeters = useMemo(
+    () => floorMeters.reduce((sum, fm) => (fm.fo_type === "12FO" ? sum + (parseFloat(fm.meters) || 0) : sum), 0),
+    [floorMeters]
+  );
+
   // Work items
   const [workItems, setWorkItems] = useState<WorkItem[]>([]);
   const [openWorkCategories, setOpenWorkCategories] = useState<string[]>([]);
@@ -415,6 +430,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
         floor: fm.floor || "",
         meters: String(fm.meters ?? ""),
         pipe_type: fm.pipe_type || "2\"",
+        fo_type: fm.fo_type || "4FO",
       })));
       setFloorMetersAutoFilled(true);
     }
@@ -657,6 +673,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
       floor: f["ΟΡΟΦΟΣ"] || f.floor || "",
       meters: String(f["ΜΕΤΡΑ"] ?? f.meters ?? ""),
       pipe_type: f["ΕΙΔΟΣ"] || f.pipe_type || "2\"",
+      fo_type: f.fo_type || "4FO",
     })));
     setFloorMetersAutoFilled(true);
   }, [gisData, floorMetersAutoFilled]);
