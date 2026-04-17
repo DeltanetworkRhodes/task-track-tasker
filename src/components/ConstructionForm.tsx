@@ -914,6 +914,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
     gisAutoFilled,
     materialItems.length,
     computeGisMaterials,
+    section6,
   ]);
 
   // Auto-fill basic fields from GIS data
