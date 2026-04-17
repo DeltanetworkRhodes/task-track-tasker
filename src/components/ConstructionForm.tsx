@@ -426,12 +426,16 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
     setVerticalInfraType((existingConstruction as any).vertical_infra_type || "");
     const savedFloorMeters = (existingConstruction as any).floor_meters;
     if (Array.isArray(savedFloorMeters) && savedFloorMeters.length > 0) {
-      setFloorMeters(savedFloorMeters.map((fm: any) => ({
-        floor: fm.floor || "",
-        meters: String(fm.meters ?? ""),
-        pipe_type: fm.pipe_type || "2\"",
-        fo_type: fm.fo_type || "4FO",
-      })));
+      setFloorMeters(savedFloorMeters.map((fm: any) => {
+        const foType = fm.fo_type || "4FO";
+        const derivedPipe = foType === "12FO" ? '4"' : '2"';
+        return {
+          floor: fm.floor || "",
+          meters: String(fm.meters ?? ""),
+          pipe_type: fm.pipe_type || derivedPipe,
+          fo_type: foType,
+        };
+      }));
       setFloorMetersAutoFilled(true);
     }
     const savedSection6 = (existingConstruction as any).asbuilt_section6;
