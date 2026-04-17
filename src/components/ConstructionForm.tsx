@@ -2908,7 +2908,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
               <div className="grid grid-cols-[80px_1fr_100px] gap-2 text-[10px] uppercase tracking-wider text-muted-foreground px-2">
                 <span>Όροφος</span>
                 <span>Μέτρα (BMO→FB)</span>
-                <span>Σωλήνας</span>
+                <span>Τύπος Ίνας</span>
               </div>
               {floorMeters.map((fm, idx) => (
                 <div key={idx} className="grid grid-cols-[80px_1fr_100px] gap-2 items-center">
@@ -2943,9 +2943,12 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                     }
                     className="h-8 text-sm border border-border rounded-md px-2 bg-background text-foreground"
                   >
-                    <option value='2"'>2"</option>
-                    <option value='4"'>4"</option>
-                    <option value='12"'>12"</option>
+                    <option value="2άρα">2άρα</option>
+                    <option value="4άρα">4άρα</option>
+                    <option value="6άρα">6άρα</option>
+                    <option value="8άρα">8άρα</option>
+                    <option value="12άρα">12άρα</option>
+                    <option value="24άρα">24άρα</option>
                   </select>
                 </div>
               ))}
