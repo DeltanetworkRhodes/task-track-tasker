@@ -997,11 +997,14 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
   useEffect(() => {
     if (!materials) return;
     const cabToBepKoi = parseFloat(cabToBepKoiStr);
-    const foOutdoor = materials.find((m: any) =>
-      m.code === "14027440" ||
-      nameMatches(m.name, "4 FO", "outdoor") ||
-      nameMatches(m.name, "4 FO", "induct")
-    );
+    const foOutdoor = materials.find((m: any) => {
+      const n = (m.name || "").toLowerCase();
+      return (
+        m.code === "14027440" ||
+        (n.includes("4 fo") && n.includes("outdoor")) ||
+        (n.includes("4 fo") && n.includes("induct"))
+      );
+    });
     if (!foOutdoor) return;
     setMaterialItems(prev => {
       const updated = [...prev];
