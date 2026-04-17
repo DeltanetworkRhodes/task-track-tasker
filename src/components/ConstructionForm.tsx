@@ -340,35 +340,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
     setRoutingType(existingConstruction.routing_type || "");
     setPendingNote(existingConstruction.pending_note || "");
 
-    // AS-BUILD fields
-    const ec: any = existingConstruction;
-    if (ec.vertical_infra === "ΙΣ" || ec.vertical_infra === "ΚΛΙΜΑΚΟΣΤΑΣΙΟ") setVerticalInfra(ec.vertical_infra);
-    if (ec.ball_marker_bep != null) setBallMarkerBep(String(ec.ball_marker_bep));
-    if (ec.ms_count != null) setMsCount(String(ec.ms_count));
-    if (Array.isArray(ec.otdr_positions) && ec.otdr_positions.length > 0) {
-      setOtdrPositions(
-        Array.from({ length: 8 }, (_, i) => {
-          const pos = i + 2;
-          const found = ec.otdr_positions.find((o: any) => Number(o?.pos) === pos);
-          return {
-            pos,
-            a: found?.a != null ? String(found.a) : "",
-            b: found?.b != null ? String(found.b) : "",
-            c: found?.c != null ? String(found.c) : "",
-            d: found?.d != null ? String(found.d) : "",
-          };
-        })
-      );
-    }
-    if (Array.isArray(ec.floor_meters) && ec.floor_meters.length > 0) {
-      setFloorMeters(
-        ec.floor_meters.map((f: any) => ({
-          floor: String(f?.floor ?? ""),
-          meters: f?.meters != null ? String(f.meters) : "",
-          pipe_type: String(f?.pipe_type ?? ""),
-        }))
-      );
-    }
+
 
     const dbRoutes = Array.isArray(existingConstruction.routes) ? (existingConstruction.routes as any[]) : [];
     if (dbRoutes.length > 0) {
