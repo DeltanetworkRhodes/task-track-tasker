@@ -89,6 +89,11 @@ interface AsBuiltData {
   msCount?: number | string;
   otdrPositions?: { pos: number; a: any; b: any; c: any; d: any }[];
   floorMeters?: { floor: string; meters: any; pipe_type: string }[];
+  koiTypeCabBep?: string;
+  koiTypeCabBcp?: string;
+  koiCabBepLength?: number;
+  koiCabBcpLength?: number;
+  s6?: any;
 }
 
 /* ────────────────────────────────────────────
@@ -286,6 +291,15 @@ async function fetchAsBuiltData(srId: string): Promise<AsBuiltData> {
     msCount: (construction as any)?.ms_count ?? "",
     otdrPositions: ((construction as any)?.otdr_positions as any[]) || [],
     floorMeters: ((construction as any)?.floor_meters as any[]) || [],
+    koiTypeCabBep: (construction as any)?.koi_type_cab_bep || "4' μ cable",
+    koiTypeCabBcp: (construction as any)?.koi_type_cab_bcp || "4' μ cable",
+    koiCabBepLength: Number(
+      (Array.isArray((construction as any)?.routes) && (construction as any).routes[0]?.koi) || 0
+    ),
+    koiCabBcpLength: Number(
+      (Array.isArray((construction as any)?.routes) && (construction as any).routes[1]?.koi) || 0
+    ),
+    s6: (construction as any)?.asbuilt_section6 || {},
   };
 }
 
@@ -539,16 +553,22 @@ function fillEpimetrisiSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
   ws.getCell("R8").value = d.conduit;
 
   // ── 2. KOI CAB first box ── Row 13
-  ws.getCell("D13").value = "BEP";
-  ws.getCell("E13").value = "4' μ cable";
-  ws.getCell("F13").value = d.totalCableLength || d.distanceFromCabinet;
+  const hasCabBcp = d.opticalPaths.some((op) => op.type === "CAB-BCP");
+  ws.getCell("D13").value = hasCabBcp ? "BCP" : "BEP";
+  ws.getCell("E13").value = d.koiTypeCabBep || "4' μ cable";
+  ws.getCell("F13").value = d.koiCabBepLength || d.totalCableLength || d.distanceFromCabinet || "";
 
   // ── 3a. KOI BCP-BEP section (rows 17-18+) ──
-  if (d.bcpPlacement || d.bcpKind || d.bcpBepCableType) {
+  if (hasCabBcp) {
     ws.getCell("D18").value = d.bcpPlacement || "";
     ws.getCell("E18").value = d.bcpKind || "";
-    ws.getCell("F18").value = d.bcpBepCableType || "";
-    ws.getCell("G18").value = d.bcpBepLength || "";
+    ws.getCell("F18").value = d.koiTypeCabBcp || "4' μ cable";
+    ws.getCell("G18").value = d.koiCabBcpLength || d.bcpBepLength || "";
+  } else {
+    ws.getCell("D18").value = null;
+    ws.getCell("E18").value = null;
+    ws.getCell("F18").value = null;
+    ws.getCell("G18").value = null;
   }
   if (d.additionalBcpConnections && d.additionalBcpConnections.length > 0) {
     d.additionalBcpConnections.forEach((bcp, idx) => {
@@ -561,6 +581,10 @@ function fillEpimetrisiSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
   }
 
   // ── 4. BEP-ΟΡΟΦΟΙ ── Rows 25-39
+  // C22/D22 vertical infrastructure
+  ws.getCell("C22").value = d.verticalInfra === "ΙΣ" ? "ΙΣ" : "";
+  ws.getCell("D22").value = d.verticalInfra === "ΚΑΓΚΕΛΟ" ? "ΚΑΓΚΕΛΟ" : "";
+
   for (let r = 25; r <= 39; r++) {
     for (let c = 2; c <= 17; c++) {
       ws.getCell(r, c).value = null;
@@ -582,8 +606,10 @@ function fillEpimetrisiSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
     ws.getCell(r, 13).value = fd.fb_customer || "";
     ws.getCell(r, 14).value = fd.customer_space || "";
     ws.getCell(r, 15).value = fd.fb_id || "";
-    ws.getCell(r, 16).value = fd.meters || "";
-    ws.getCell(r, 17).value = fd.pipe_type || "";
+    // Merge floorMeters with floorDetails for P/Q (cols 16/17)
+    const fm = (d.floorMeters || []).find((m) => String(m.floor) === String(fd.floor));
+    ws.getCell(r, 16).value = (fm?.meters as any) || fd.meters || "";
+    ws.getCell(r, 17).value = fm?.pipe_type || fd.pipe_type || "";
   });
 
   // ── 5. CAB-BEP OPTICAL PATHS (rows 44-47) ──
@@ -747,13 +773,39 @@ function fillEpimetrisiSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
   }
 
   // ── 6. ΟΡΙΖΟΝΤΟΓΡΑΦΙΑ ──
-  ws.getCell("V83").value = d.distanceFromCabinet || "";
-  ws.getCell("V85").value = d.isNewInfrastructure ? "ΝΕΑ ΥΠΟΔΟΜΗ" : "";
-  if (d.verticalRouting) ws.getCell("V89").value = d.verticalRouting;
-  ws.getCell("V91").value = d.trenchLengthM || "";
-  if (d.escalitType) ws.getCell("V95").value = d.escalitType;
-  if (d.bcpType) ws.getCell("V98").value = d.bcpType;
-  if (d.newBcp) ws.getCell("V99").value = d.newBcp;
+  const s6 = d.s6 || {};
+  ws.getCell("V83").value = s6.bmo_bep_distance || d.distanceFromCabinet || "";
+  const eisagogiLabel: Record<string, string> = {
+    "ΝΕΑ ΥΠΟΔΟΜΗ": "NEA YPODOMH",
+    "ΕΣΚΑΛΗΤ": "ΕΣΚΑΛΗΤ",
+    "ΕΣΚΑΛΗΤ Β1": "ΕΣΚΑΛΗΤ Β1",
+    "BCP": "BCP",
+  };
+  ws.getCell("V85").value = eisagogiLabel[s6.eisagogi_type] || (d.isNewInfrastructure ? "NEA YPODOMH" : "");
+
+  if (s6.eisagogi_type === "ΝΕΑ ΥΠΟΔΟΜΗ") {
+    ws.getCell("V86").value = s6.ball_marker_bep || "";
+    ws.getCell("V87").value = s6.ms_skamma || "";
+  }
+  if (s6.eisagogi_type === "ΕΣΚΑΛΗΤ") {
+    ws.getCell("V89").value = "ΕΣΚΑΛΗΤ";
+    ws.getCell("V90").value = s6.eskalit_ms || "";
+    ws.getCell("V91").value = s6.eskalit_nea_solienosi || "";
+    ws.getCell("V92").value = s6.eskalit_solienosi_eisagogis || "";
+    ws.getCell("V93").value = s6.eskalit_bep || "";
+  }
+  if (s6.eisagogi_type === "ΕΣΚΑΛΗΤ Β1") {
+    ws.getCell("V95").value = "ΕΣΚΑΛΗΤ Β1";
+    ws.getCell("V96").value = s6.eskalit_b1_bep || "";
+  }
+  if (s6.eisagogi_type === "BCP") {
+    ws.getCell("V98").value = "BCP";
+    ws.getCell("V99").value = s6.bcp_eidos || "";
+    ws.getCell("V100").value = s6.bcp_ball_marker || "";
+    ws.getCell("V101").value = s6.bcp_ms || "";
+    ws.getCell("V102").value = s6.bcp_bep_ypogeia || "";
+    ws.getCell("V103").value = s6.bcp_bep_enaeria || "";
+  }
 }
 
 /* ────────────────────────────────────────────

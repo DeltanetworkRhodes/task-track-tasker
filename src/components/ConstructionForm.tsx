@@ -1652,6 +1652,11 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
         routes: routesData.length > 0 ? routesData : null,
         organization_id: organizationId,
         photo_counts: mergedPhotoCounts,
+        koi_type_cab_bep: koiTypeCabBep,
+        koi_type_cab_bcp: koiTypeCabBcp,
+        vertical_infra: verticalInfra,
+        floor_meters: floorMeters,
+        asbuilt_section6: section6,
       } as any;
 
 
@@ -1958,6 +1963,33 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
           <div>
             <Label className="text-xs">Αναμονή</Label>
             <Input value={pendingNote} onChange={(e) => setPendingNote(e.target.value)} placeholder="π.χ. Β21 σωληνίσκος" className="text-sm mt-1" />
+          </div>
+          <div className="col-span-2">
+            <Label className="text-xs">Κάθετη Υποδομή BEP</Label>
+            <div className="flex gap-4 mt-2">
+              <label className="flex items-center gap-2 cursor-pointer text-sm">
+                <input
+                  type="radio"
+                  name="verticalInfra"
+                  value="ΙΣ"
+                  checked={verticalInfra === "ΙΣ"}
+                  onChange={(e) => setVerticalInfra(e.target.value)}
+                  className="accent-primary"
+                />
+                ΙΣ
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer text-sm">
+                <input
+                  type="radio"
+                  name="verticalInfra"
+                  value="ΚΑΓΚΕΛΟ"
+                  checked={verticalInfra === "ΚΑΓΚΕΛΟ"}
+                  onChange={(e) => setVerticalInfra(e.target.value)}
+                  className="accent-primary"
+                />
+                ΚΑΓΚΕΛΟ
+              </label>
+            </div>
           </div>
         </div>
       </Card>}
@@ -2834,6 +2866,19 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                   />
                 </div>
               </div>
+              {(idx === 0 || idx === 1) && (
+                <div>
+                  <Label className="text-[10px] text-muted-foreground">Τύπος ΚΟΙ</Label>
+                  <select
+                    value={idx === 0 ? koiTypeCabBep : koiTypeCabBcp}
+                    onChange={(e) => idx === 0 ? setKoiTypeCabBep(e.target.value) : setKoiTypeCabBcp(e.target.value)}
+                    className="w-full mt-0.5 text-sm border border-border rounded-md px-2 py-1 h-8 bg-background text-foreground"
+                  >
+                    <option value="4' μ cable">4' μ cable</option>
+                    <option value="12' μ cable">12' μ cable</option>
+                  </select>
+                </div>
+              )}
             </div>
             );
           })}
@@ -2843,6 +2888,239 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
           </div>
         </div>
       </Card>
+
+      {/* 📐 Μέτρα BMO→FB ανά Όροφο (collapsible) */}
+      {!isCrewMode && floorMeters.length > 0 && (
+        <Card className="p-4 space-y-2">
+          <button
+            type="button"
+            onClick={() => setFloorMetersCardOpen((o) => !o)}
+            className="w-full flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+          >
+            <span className="flex items-center gap-1.5">
+              📐 Μέτρα BMO→FB ανά Όροφο
+              <Badge variant="secondary" className="text-[10px]">{floorMeters.length}</Badge>
+            </span>
+            {floorMetersCardOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+          </button>
+          {floorMetersCardOpen && (
+            <div className="space-y-2 pt-2">
+              <div className="grid grid-cols-[80px_1fr_100px] gap-2 text-[10px] uppercase tracking-wider text-muted-foreground px-2">
+                <span>Όροφος</span>
+                <span>Μέτρα (BMO→FB)</span>
+                <span>Σωλήνας</span>
+              </div>
+              {floorMeters.map((fm, idx) => (
+                <div key={idx} className="grid grid-cols-[80px_1fr_100px] gap-2 items-center">
+                  <Input
+                    value={fm.floor}
+                    onChange={(e) =>
+                      setFloorMeters((prev) =>
+                        prev.map((p, i) => (i === idx ? { ...p, floor: e.target.value } : p))
+                      )
+                    }
+                    className="h-8 text-sm"
+                  />
+                  <Input
+                    type="number"
+                    min="0"
+                    step="0.1"
+                    value={fm.meters}
+                    onChange={(e) =>
+                      setFloorMeters((prev) =>
+                        prev.map((p, i) => (i === idx ? { ...p, meters: e.target.value } : p))
+                      )
+                    }
+                    placeholder="0"
+                    className="h-8 text-sm"
+                  />
+                  <select
+                    value={fm.pipe_type}
+                    onChange={(e) =>
+                      setFloorMeters((prev) =>
+                        prev.map((p, i) => (i === idx ? { ...p, pipe_type: e.target.value } : p))
+                      )
+                    }
+                    className="h-8 text-sm border border-border rounded-md px-2 bg-background text-foreground"
+                  >
+                    <option value='2"'>2"</option>
+                    <option value='4"'>4"</option>
+                    <option value='12"'>12"</option>
+                  </select>
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
+      )}
+
+      {/* 🗺️ Οριζοντογραφία AS-BUILD (collapsible) */}
+      {!isCrewMode && (
+        <Card className="p-4 space-y-2">
+          <button
+            type="button"
+            onClick={() => setAsbuiltCardOpen((o) => !o)}
+            className="w-full flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+          >
+            <span>🗺️ Οριζοντογραφία AS-BUILD</span>
+            {asbuiltCardOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+          </button>
+          {asbuiltCardOpen && (
+            <div className="space-y-3 pt-2">
+              {/* Α — πάντα */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs">Απόσταση BMO-BEP (m)</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    step="0.1"
+                    value={section6.bmo_bep_distance}
+                    onChange={(e) => setSection6((s) => ({ ...s, bmo_bep_distance: e.target.value }))}
+                    className="h-8 text-sm mt-1"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">Είδος Εισαγωγής</Label>
+                  <select
+                    value={section6.eisagogi_type}
+                    onChange={(e) => setSection6((s) => ({ ...s, eisagogi_type: e.target.value }))}
+                    className="w-full mt-1 h-8 text-sm border border-border rounded-md px-2 bg-background text-foreground"
+                  >
+                    <option value="">— Επιλέξτε —</option>
+                    <option value="ΝΕΑ ΥΠΟΔΟΜΗ">ΝΕΑ ΥΠΟΔΟΜΗ</option>
+                    <option value="ΕΣΚΑΛΗΤ">ΕΣΚΑΛΗΤ</option>
+                    <option value="ΕΣΚΑΛΗΤ Β1">ΕΣΚΑΛΗΤ Β1</option>
+                    <option value="BCP">BCP</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Β — ΝΕΑ ΥΠΟΔΟΜΗ */}
+              {section6.eisagogi_type === "ΝΕΑ ΥΠΟΔΟΜΗ" && (
+                <div className="grid grid-cols-2 gap-3 border-t border-border pt-3">
+                  <div>
+                    <Label className="text-xs">Ball Marker BEP</Label>
+                    <Input
+                      type="number"
+                      value={section6.ball_marker_bep}
+                      onChange={(e) => setSection6((s) => ({ ...s, ball_marker_bep: e.target.value }))}
+                      className="h-8 text-sm mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Μ/Σ (Σκάμμα)</Label>
+                    <Input
+                      type="number"
+                      value={section6.ms_skamma}
+                      onChange={(e) => setSection6((s) => ({ ...s, ms_skamma: e.target.value }))}
+                      className="h-8 text-sm mt-1"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Γ — ΕΣΚΑΛΗΤ */}
+              {section6.eisagogi_type === "ΕΣΚΑΛΗΤ" && (
+                <div className="grid grid-cols-2 gap-3 border-t border-border pt-3">
+                  <div>
+                    <Label className="text-xs">Μ/Σ</Label>
+                    <Input
+                      value={section6.eskalit_ms}
+                      onChange={(e) => setSection6((s) => ({ ...s, eskalit_ms: e.target.value }))}
+                      className="h-8 text-sm mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Νέα Σωλήνωση</Label>
+                    <Input
+                      value={section6.eskalit_nea_solienosi}
+                      onChange={(e) => setSection6((s) => ({ ...s, eskalit_nea_solienosi: e.target.value }))}
+                      className="h-8 text-sm mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Σωλήνωση Εισαγωγής</Label>
+                    <Input
+                      value={section6.eskalit_solienosi_eisagogis}
+                      onChange={(e) => setSection6((s) => ({ ...s, eskalit_solienosi_eisagogis: e.target.value }))}
+                      className="h-8 text-sm mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">ΕΣΚΑΛΗΤ-BEP</Label>
+                    <Input
+                      value={section6.eskalit_bep}
+                      onChange={(e) => setSection6((s) => ({ ...s, eskalit_bep: e.target.value }))}
+                      className="h-8 text-sm mt-1"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Δ — ΕΣΚΑΛΗΤ Β1 */}
+              {section6.eisagogi_type === "ΕΣΚΑΛΗΤ Β1" && (
+                <div className="border-t border-border pt-3">
+                  <Label className="text-xs">ΕΣΚΑΛΗΤ-BEP</Label>
+                  <Input
+                    value={section6.eskalit_b1_bep}
+                    onChange={(e) => setSection6((s) => ({ ...s, eskalit_b1_bep: e.target.value }))}
+                    className="h-8 text-sm mt-1"
+                  />
+                </div>
+              )}
+
+              {/* Ε — BCP */}
+              {section6.eisagogi_type === "BCP" && (
+                <div className="grid grid-cols-2 gap-3 border-t border-border pt-3">
+                  <div>
+                    <Label className="text-xs">BCP Είδος</Label>
+                    <Input
+                      value={section6.bcp_eidos}
+                      onChange={(e) => setSection6((s) => ({ ...s, bcp_eidos: e.target.value }))}
+                      className="h-8 text-sm mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Ball Marker BCP</Label>
+                    <Input
+                      type="number"
+                      value={section6.bcp_ball_marker}
+                      onChange={(e) => setSection6((s) => ({ ...s, bcp_ball_marker: e.target.value }))}
+                      className="h-8 text-sm mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Μ/Σ</Label>
+                    <Input
+                      type="number"
+                      value={section6.bcp_ms}
+                      onChange={(e) => setSection6((s) => ({ ...s, bcp_ms: e.target.value }))}
+                      className="h-8 text-sm mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">BCP-BEP (υπόγεια)</Label>
+                    <Input
+                      value={section6.bcp_bep_ypogeia}
+                      onChange={(e) => setSection6((s) => ({ ...s, bcp_bep_ypogeia: e.target.value }))}
+                      className="h-8 text-sm mt-1"
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <Label className="text-xs">BCP-BEP (εναέρια)</Label>
+                    <Input
+                      value={section6.bcp_bep_enaeria}
+                      onChange={(e) => setSection6((s) => ({ ...s, bcp_bep_enaeria: e.target.value }))}
+                      className="h-8 text-sm mt-1"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </Card>
+      )}
 
       {/* Work Items - Category based */}
       <Card className="p-4 space-y-2">
