@@ -921,6 +921,60 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
     section6,
   ]);
 
+  // Microduct trigger — προσθέτει/ενημερώνει/αφαιρεί τα 2 Microducts
+  // βάσει του Ball Marker (BEP ή BCP) όταν ο τεχνικός το συμπληρώνει.
+  useEffect(() => {
+    if (!materials) return;
+    const hasBcp = !!(
+      (gisData as any)?.new_bcp ||
+      (gisData as any)?.nearby_bcp ||
+      ((gisData as any)?.optical_paths as any[])?.some(
+        (p: any) => (p.type || p["OPTICAL PATH TYPE"] || "").toUpperCase().includes("BCP")
+      )
+    );
+    const meters = hasBcp
+      ? parseFloat(ballMarkerBcp || "0")
+      : parseFloat(ballMarkerBep || "0");
+
+    const microSmall = materials.find((m: any) =>
+      m.code === "14026586" ||
+      (m.name?.toUpperCase().includes("MICRODUCT") && m.name?.includes("7/4"))
+    );
+    const microLarge = materials.find((m: any) =>
+      m.code === "14034374" ||
+      (m.name?.toUpperCase().includes("MICRODUCT") &&
+        (m.name?.includes("8/10") || m.name?.toUpperCase().includes("MDE")))
+    );
+
+    setMaterialItems((prev) => {
+      const updated = [...prev];
+      const upsertMicro = (mat: any, qty: number) => {
+        if (!mat) return;
+        const idx = updated.findIndex((m) => m.material_id === mat.id);
+        if (qty <= 0) {
+          if (idx >= 0) updated.splice(idx, 1);
+          return;
+        }
+        if (idx >= 0) {
+          updated[idx] = { ...updated[idx], quantity: qty };
+        } else {
+          updated.push({
+            material_id: mat.id,
+            code: mat.code,
+            name: mat.name,
+            unit: mat.unit,
+            price: mat.price,
+            source: mat.source,
+            quantity: qty,
+          });
+        }
+      };
+      upsertMicro(microSmall, meters);
+      upsertMicro(microLarge, meters);
+      return updated;
+    });
+  }, [ballMarkerBep, ballMarkerBcp, materials, gisData]);
+
   // Auto-fill basic fields from GIS data
   const [gisFieldsFilled, setGisFieldsFilled] = useState(false);
   useEffect(() => {
@@ -1326,7 +1380,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
           bep_placement_floor: bepPlacementFloor,
           vertical_infra_type: verticalInfraType,
           floor_meters: floorMeters,
-          asbuilt_section6: section6,
+          asbuilt_section6: { ...section6, ball_marker_bep: ballMarkerBep, bcp_ball_marker: ballMarkerBcp },
         } as any;
 
 
@@ -1753,7 +1807,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
         bep_placement_floor: bepPlacementFloor,
         vertical_infra_type: verticalInfraType,
         floor_meters: floorMeters,
-        asbuilt_section6: section6,
+        asbuilt_section6: { ...section6, ball_marker_bep: ballMarkerBep, bcp_ball_marker: ballMarkerBcp },
       } as any;
 
 
@@ -3109,8 +3163,8 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                     <Label className="text-xs">Ball Marker BEP</Label>
                     <Input
                       type="number"
-                      value={section6.ball_marker_bep}
-                      onChange={(e) => setSection6((s) => ({ ...s, ball_marker_bep: e.target.value }))}
+                      value={ballMarkerBep}
+                      onChange={(e) => setBallMarkerBep(e.target.value)}
                       className="h-8 text-sm mt-1"
                     />
                   </div>
@@ -3191,8 +3245,8 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                     <Label className="text-xs">Ball Marker BCP</Label>
                     <Input
                       type="number"
-                      value={section6.bcp_ball_marker}
-                      onChange={(e) => setSection6((s) => ({ ...s, bcp_ball_marker: e.target.value }))}
+                      value={ballMarkerBcp}
+                      onChange={(e) => setBallMarkerBcp(e.target.value)}
                       className="h-8 text-sm mt-1"
                     />
                   </div>
