@@ -2943,12 +2943,9 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                     }
                     className="h-8 text-sm border border-border rounded-md px-2 bg-background text-foreground"
                   >
-                    <option value="2άρα">2άρα</option>
-                    <option value="4άρα">4άρα</option>
-                    <option value="6άρα">6άρα</option>
-                    <option value="8άρα">8άρα</option>
-                    <option value="12άρα">12άρα</option>
-                    <option value="24άρα">24άρα</option>
+                    <option value='2"'>2"</option>
+                    <option value='4"'>4"</option>
+                    <option value='12"'>12"</option>
                   </select>
                 </div>
               ))}
