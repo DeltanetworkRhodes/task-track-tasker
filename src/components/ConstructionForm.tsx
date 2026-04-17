@@ -102,16 +102,6 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
   const [routingType, setRoutingType] = useState("");
   const [pendingNote, setPendingNote] = useState("");
 
-  // AS-BUILD πεδία (συμπλήρωμα για το Excel)
-  const [verticalInfra, setVerticalInfra] = useState<"ΙΣ" | "ΚΛΙΜΑΚΟΣΤΑΣΙΟ">("ΙΣ");
-  const [ballMarkerBep, setBallMarkerBep] = useState<string>("");
-  const [msCount, setMsCount] = useState<string>("");
-  const [otdrPositions, setOtdrPositions] = useState<{ pos: number; a: string; b: string; c: string; d: string }[]>(
-    Array.from({ length: 8 }, (_, i) => ({ pos: i + 2, a: "", b: "", c: "", d: "" }))
-  );
-  const [floorMeters, setFloorMeters] = useState<{ floor: string; meters: string; pipe_type: string }[]>([]);
-  const [asbuildOpen, setAsbuildOpen] = useState(false);
-
   // Routes (ΔΙΑΔΡΟΜΕΣ)
   const [routes, setRoutes] = useState([
     { label: "FTTH ΥΠΟΓ ΔΔ (Cabin to BEP)", koi: "", fyraKoi: "" },
@@ -350,35 +340,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
     setRoutingType(existingConstruction.routing_type || "");
     setPendingNote(existingConstruction.pending_note || "");
 
-    // AS-BUILD fields
-    const ec: any = existingConstruction;
-    if (ec.vertical_infra === "ΙΣ" || ec.vertical_infra === "ΚΛΙΜΑΚΟΣΤΑΣΙΟ") setVerticalInfra(ec.vertical_infra);
-    if (ec.ball_marker_bep != null) setBallMarkerBep(String(ec.ball_marker_bep));
-    if (ec.ms_count != null) setMsCount(String(ec.ms_count));
-    if (Array.isArray(ec.otdr_positions) && ec.otdr_positions.length > 0) {
-      setOtdrPositions(
-        Array.from({ length: 8 }, (_, i) => {
-          const pos = i + 2;
-          const found = ec.otdr_positions.find((o: any) => Number(o?.pos) === pos);
-          return {
-            pos,
-            a: found?.a != null ? String(found.a) : "",
-            b: found?.b != null ? String(found.b) : "",
-            c: found?.c != null ? String(found.c) : "",
-            d: found?.d != null ? String(found.d) : "",
-          };
-        })
-      );
-    }
-    if (Array.isArray(ec.floor_meters) && ec.floor_meters.length > 0) {
-      setFloorMeters(
-        ec.floor_meters.map((f: any) => ({
-          floor: String(f?.floor ?? ""),
-          meters: f?.meters != null ? String(f.meters) : "",
-          pipe_type: String(f?.pipe_type ?? ""),
-        }))
-      );
-    }
+
 
     const dbRoutes = Array.isArray(existingConstruction.routes) ? (existingConstruction.routes as any[]) : [];
     if (dbRoutes.length > 0) {
@@ -623,19 +585,6 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
     },
   });
 
-  // Sync floorMeters με floor_details από GIS (διατηρώντας τυχόν ήδη συμπληρωμένες τιμές)
-  useEffect(() => {
-    const fd = (gisData?.floor_details as any[]) || [];
-    if (fd.length === 0) return;
-    setFloorMeters((prev) => {
-      const prevMap = new Map(prev.map((p) => [String(p.floor), p]));
-      return fd.map((f: any) => {
-        const floor = String(f?.floor ?? f?.["ΟΡΟΦΟΣ"] ?? "");
-        const existing = prevMap.get(floor);
-        return existing || { floor, meters: "", pipe_type: "" };
-      });
-    });
-  }, [gisData]);
 
 
   const [gisAutoFilled, setGisAutoFilled] = useState(false);
@@ -1227,16 +1176,9 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
           routes: routesData.length > 0 ? routesData : null,
           organization_id: organizationId,
           photo_counts: mergedPhotoCounts,
-          vertical_infra: verticalInfra,
-          ball_marker_bep: ballMarkerBep ? parseInt(ballMarkerBep) : null,
-          ms_count: msCount ? parseInt(msCount) : null,
-          otdr_positions: otdrPositions
-            .filter((o) => o.a !== "" || o.b !== "" || o.c !== "" || o.d !== "")
-            .map((o) => ({ pos: o.pos, a: o.a, b: o.b, c: o.c, d: o.d })),
-          floor_meters: floorMeters
-            .filter((f) => f.meters !== "" || f.pipe_type !== "")
-            .map((f) => ({ floor: f.floor, meters: f.meters ? parseFloat(f.meters) : 0, pipe_type: f.pipe_type })),
         } as any;
+
+
 
         if (existingConstruction) {
           const { error } = await supabase
@@ -1654,16 +1596,8 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
         routes: routesData.length > 0 ? routesData : null,
         organization_id: organizationId,
         photo_counts: mergedPhotoCounts,
-        vertical_infra: verticalInfra,
-        ball_marker_bep: ballMarkerBep ? parseInt(ballMarkerBep) : null,
-        ms_count: msCount ? parseInt(msCount) : null,
-        otdr_positions: otdrPositions
-          .filter((o) => o.a !== "" || o.b !== "" || o.c !== "" || o.d !== "")
-          .map((o) => ({ pos: o.pos, a: o.a, b: o.b, c: o.c, d: o.d })),
-        floor_meters: floorMeters
-          .filter((f) => f.meters !== "" || f.pipe_type !== "")
-          .map((f) => ({ floor: f.floor, meters: f.meters ? parseFloat(f.meters) : 0, pipe_type: f.pipe_type })),
       } as any;
+
 
       let constructionId: string;
       if (existingConstructionRow) {
@@ -3091,181 +3025,6 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
           ))}
         </Tabs>
 
-      </Card>
-
-      {/* AS-BUILD Στοιχεία (πεδία για Excel) */}
-      <Card className="p-4 space-y-3">
-        <button
-          type="button"
-          onClick={() => setAsbuildOpen((v) => !v)}
-          className="w-full flex items-center justify-between gap-2"
-        >
-          <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5 cursor-pointer">
-            📋 Στοιχεία AS-BUILD
-          </Label>
-          {asbuildOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-        </button>
-
-        {asbuildOpen && (
-          <div className="space-y-5 pt-2 border-t border-border">
-            {/* Α: Κάθετη Υποδομή */}
-            <div className="space-y-2">
-              <Label className="text-xs font-semibold">Τύπος κάθετης ανόδου BEP</Label>
-              <div className="flex items-center gap-4">
-                <label className="flex items-center gap-2 text-sm cursor-pointer">
-                  <input
-                    type="radio"
-                    name="vertical_infra"
-                    value="ΙΣ"
-                    checked={verticalInfra === "ΙΣ"}
-                    onChange={() => setVerticalInfra("ΙΣ")}
-                    className="accent-primary"
-                  />
-                  ΙΣ
-                </label>
-                <label className="flex items-center gap-2 text-sm cursor-pointer">
-                  <input
-                    type="radio"
-                    name="vertical_infra"
-                    value="ΚΛΙΜΑΚΟΣΤΑΣΙΟ"
-                    checked={verticalInfra === "ΚΛΙΜΑΚΟΣΤΑΣΙΟ"}
-                    onChange={() => setVerticalInfra("ΚΛΙΜΑΚΟΣΤΑΣΙΟ")}
-                    className="accent-primary"
-                  />
-                  ΚΛΙΜΑΚΟΣΤΑΣΙΟ
-                </label>
-              </div>
-            </div>
-
-            {/* Β: Οριζοντογραφία */}
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label className="text-xs">Ball Marker BEP (αριθμός)</Label>
-                <Input
-                  type="number"
-                  min="0"
-                  value={ballMarkerBep}
-                  onChange={(e) => setBallMarkerBep(e.target.value)}
-                  className="text-sm mt-1"
-                />
-              </div>
-              <div>
-                <Label className="text-xs">Μ/Σ (αριθμός)</Label>
-                <Input
-                  type="number"
-                  min="0"
-                  value={msCount}
-                  onChange={(e) => setMsCount(e.target.value)}
-                  className="text-sm mt-1"
-                />
-              </div>
-            </div>
-
-            {/* Γ: OTDR Μετρήσεις BEP */}
-            <div className="space-y-2">
-              <Label className="text-xs font-semibold">OTDR Μετρήσεις ανά Θέση Splitter</Label>
-              <div className="overflow-x-auto rounded-md border border-border">
-                <table className="w-full text-xs">
-                  <thead className="bg-muted/50">
-                    <tr>
-                      <th className="px-2 py-1.5 text-left font-semibold">ΘΕΣΗ</th>
-                      <th className="px-2 py-1.5 text-center font-semibold">A</th>
-                      <th className="px-2 py-1.5 text-center font-semibold">B</th>
-                      <th className="px-2 py-1.5 text-center font-semibold">C</th>
-                      <th className="px-2 py-1.5 text-center font-semibold">D</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr className="border-t border-border bg-muted/20">
-                      <td className="px-2 py-1.5 font-semibold">1</td>
-                      <td className="px-2 py-1.5 text-center text-muted-foreground italic" colSpan={4}>
-                        από καμπίνα (αυτόματο)
-                      </td>
-                    </tr>
-                    {otdrPositions.map((row, idx) => (
-                      <tr key={row.pos} className="border-t border-border">
-                        <td className="px-2 py-1 font-semibold">{row.pos}</td>
-                        {(["a", "b", "c", "d"] as const).map((field) => (
-                          <td key={field} className="px-1 py-1">
-                            <Input
-                              type="number"
-                              step="0.01"
-                              value={row[field]}
-                              onChange={(e) => {
-                                const v = e.target.value;
-                                setOtdrPositions((prev) =>
-                                  prev.map((r, i) => (i === idx ? { ...r, [field]: v } : r))
-                                );
-                              }}
-                              className="h-7 text-xs text-center px-1"
-                            />
-                          </td>
-                        ))}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            {/* Δ: Μέτρα ανά Όροφο */}
-            {floorMeters.length > 0 && (
-              <div className="space-y-2">
-                <Label className="text-xs font-semibold">Μέτρα ανά Όροφο (KOI)</Label>
-                <div className="overflow-x-auto rounded-md border border-border">
-                  <table className="w-full text-xs">
-                    <thead className="bg-muted/50">
-                      <tr>
-                        <th className="px-2 py-1.5 text-left font-semibold">Όροφος</th>
-                        <th className="px-2 py-1.5 text-center font-semibold">Μέτρα KOI</th>
-                        <th className="px-2 py-1.5 text-center font-semibold">Είδος</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {floorMeters.map((row, idx) => (
-                        <tr key={`${row.floor}-${idx}`} className="border-t border-border">
-                          <td className="px-2 py-1 font-semibold">{row.floor || "—"}</td>
-                          <td className="px-1 py-1">
-                            <Input
-                              type="number"
-                              step="0.1"
-                              min="0"
-                              value={row.meters}
-                              onChange={(e) => {
-                                const v = e.target.value;
-                                setFloorMeters((prev) =>
-                                  prev.map((r, i) => (i === idx ? { ...r, meters: v } : r))
-                                );
-                              }}
-                              className="h-7 text-xs text-center px-1"
-                            />
-                          </td>
-                          <td className="px-1 py-1">
-                            <select
-                              value={row.pipe_type}
-                              onChange={(e) => {
-                                const v = e.target.value;
-                                setFloorMeters((prev) =>
-                                  prev.map((r, i) => (i === idx ? { ...r, pipe_type: v } : r))
-                                );
-                              }}
-                              className="h-7 w-full text-xs border border-border rounded px-1 bg-background"
-                            >
-                              <option value="">—</option>
-                              <option value='2"'>2"</option>
-                              <option value='4"'>4"</option>
-                              <option value='12"'>12"</option>
-                            </select>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
       </Card>
 
       {/* Construction Photos - Categorized */}
