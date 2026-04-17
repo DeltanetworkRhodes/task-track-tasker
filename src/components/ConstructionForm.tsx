@@ -386,6 +386,23 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
       );
     }
 
+    // AS-BUILD extra fields
+    setKoiTypeCabBep((existingConstruction as any).koi_type_cab_bep || "4' μ cable");
+    setKoiTypeCabBcp((existingConstruction as any).koi_type_cab_bcp || "4' μ cable");
+    setVerticalInfra((existingConstruction as any).vertical_infra || "ΙΣ");
+    const savedFloorMeters = (existingConstruction as any).floor_meters;
+    if (Array.isArray(savedFloorMeters) && savedFloorMeters.length > 0) {
+      setFloorMeters(savedFloorMeters.map((fm: any) => ({
+        floor: fm.floor || "",
+        meters: String(fm.meters ?? ""),
+        pipe_type: fm.pipe_type || "2\"",
+      })));
+    }
+    const savedSection6 = (existingConstruction as any).asbuilt_section6;
+    if (savedSection6 && typeof savedSection6 === "object") {
+      setSection6(prev => ({ ...prev, ...savedSection6 }));
+    }
+
     // Prevent GIS defaults from overriding persisted values
     setGisFieldsFilled(true);
     setGisAutoFilled(true);
