@@ -94,6 +94,9 @@ interface AsBuiltData {
   koiCabBepLength?: number;
   koiCabBcpLength?: number;
   s6?: any;
+  bepPhotoUrl?: string | null;
+  bmoPhotoUrl?: string | null;
+  bcpPhotoUrl?: string | null;
 }
 
 /* ────────────────────────────────────────────
