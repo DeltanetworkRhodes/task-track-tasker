@@ -976,6 +976,35 @@ export async function generateAsBuiltFromData(data: AsBuiltData): Promise<AsBuil
         editAs: "twoCell",
       } as any);
     }
+
+    // BEP photo — col F-I, row 51-67
+    if (data.bepPhotoUrl) {
+      const bepBuf = await fetchImageBuffer(data.bepPhotoUrl);
+      if (bepBuf) {
+        const ext = data.bepPhotoUrl.toLowerCase().includes(".png") ? "png" : "jpeg";
+        const bepImgId = wb.addImage({ buffer: bepBuf, extension: ext as any });
+        epSheet.addImage(bepImgId, {
+          tl: { col: 5, row: 50 } as any,
+          br: { col: 9, row: 67 } as any,
+          editAs: "oneCell",
+        } as any);
+      }
+    }
+
+    // BMO ή BCP photo — col U-Y, row 51-67 (προτεραιότητα BMO)
+    const bmoOrBcpUrl = data.bmoPhotoUrl || data.bcpPhotoUrl || null;
+    if (bmoOrBcpUrl) {
+      const bmoBuf = await fetchImageBuffer(bmoOrBcpUrl);
+      if (bmoBuf) {
+        const ext = bmoOrBcpUrl.toLowerCase().includes(".png") ? "png" : "jpeg";
+        const bmoImgId = wb.addImage({ buffer: bmoBuf, extension: ext as any });
+        epSheet.addImage(bmoImgId, {
+          tl: { col: 20, row: 50 } as any,
+          br: { col: 25, row: 67 } as any,
+          editAs: "oneCell",
+        } as any);
+      }
+    }
   }
 
   // Add 3 data sheets (they append after Επιμέτρηση)
