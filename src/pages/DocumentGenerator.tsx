@@ -100,17 +100,21 @@ const DocumentGenerator = () => {
 
     setZippingId(srId);
     try {
-      // 1. Generate AS-BUILD Excel buffer (in memory)
+      // 1. Generate AS-BUILD Excel buffer (in memory) - ΦΥΛΛΟ ΑΠΟΛΟΓΙΣΜΟΥ
       let asBuiltBuffer: ArrayBuffer | null = null;
       try {
-        toast.info("Δημιουργία AS-BUILD Excel...");
+        toast.info("Δημιουργία ΦΥΛΛΟΥ ΑΠΟΛΟΓΙΣΜΟΥ ΕΡΓΑΣΙΩΝ...");
         const asBuiltResult = await generateAsBuilt(srId);
-        if (asBuiltResult.buffer) {
+        if (asBuiltResult.buffer && asBuiltResult.buffer.byteLength > 0) {
           asBuiltBuffer = asBuiltResult.buffer;
+          console.log(`[ZIP] AS-BUILD buffer ready: ${asBuiltResult.buffer.byteLength} bytes`);
+        } else {
+          console.warn("[ZIP] AS-BUILD result has no buffer", asBuiltResult);
+          toast.warning("Το ΦΥΛΛΟ ΑΠΟΛΟΓΙΣΜΟΥ δεν επέστρεψε δεδομένα");
         }
       } catch (asBuiltErr: any) {
-        console.warn("AS-BUILD generation failed:", asBuiltErr);
-        toast.warning("Το AS-BUILD δεν δημιουργήθηκε, συνεχίζω με τα υπόλοιπα");
+        console.error("[ZIP] AS-BUILD generation failed:", asBuiltErr);
+        toast.warning(`ΦΥΛΛΟ ΑΠΟΛΟΓΙΣΜΟΥ: ${asBuiltErr.message || "σφάλμα"}`);
       }
 
       // 2. Build ZIP (Storage + Drive + AS-BUILD)
