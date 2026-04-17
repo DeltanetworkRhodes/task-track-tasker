@@ -108,7 +108,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
   const [verticalInfra, setVerticalInfra] = useState("ΙΣ");
   const [bepPlacementFloor, setBepPlacementFloor] = useState("ΙΣ");
   const [verticalInfraType, setVerticalInfraType] = useState("");
-  const [floorMeters, setFloorMeters] = useState<{ floor: string; meters: string; pipe_type: string }[]>([]);
+  const [floorMeters, setFloorMeters] = useState<{ floor: string; meters: string; pipe_type: string; fo_type: string }[]>([]);
   const [floorMetersAutoFilled, setFloorMetersAutoFilled] = useState(false);
   const [section6, setSection6] = useState<Record<string, string>>({
     eisagogi_type: "",
