@@ -1987,32 +1987,37 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
             <Label className="text-xs">Αναμονή</Label>
             <Input value={pendingNote} onChange={(e) => setPendingNote(e.target.value)} placeholder="π.χ. Β21 σωληνίσκος" className="text-sm mt-1" />
           </div>
-          <div className="col-span-2">
-            <Label className="text-xs">Κάθετη Υποδομή BEP</Label>
-            <div className="flex gap-4 mt-2">
-              <label className="flex items-center gap-2 cursor-pointer text-sm">
-                <input
-                  type="radio"
-                  name="verticalInfra"
-                  value="ΙΣ"
-                  checked={verticalInfra === "ΙΣ"}
-                  onChange={(e) => setVerticalInfra(e.target.value)}
-                  className="accent-primary"
-                />
-                ΙΣ
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer text-sm">
-                <input
-                  type="radio"
-                  name="verticalInfra"
-                  value="ΚΑΓΚΕΛΟ"
-                  checked={verticalInfra === "ΚΑΓΚΕΛΟ"}
-                  onChange={(e) => setVerticalInfra(e.target.value)}
-                  className="accent-primary"
-                />
-                ΚΑΓΚΕΛΟ
-              </label>
-            </div>
+          <div>
+            <Label className="text-xs">Όροφος Τοποθέτησης BEP</Label>
+            <select
+              value={bepPlacementFloor}
+              onChange={(e) => setBepPlacementFloor(e.target.value)}
+              className="w-full mt-1 text-sm border border-border rounded-md px-2 py-1.5 h-9 bg-background text-foreground"
+            >
+              <option value="">— Επιλέξτε —</option>
+              <option value="ΙΣ">ΙΣ</option>
+              {Array.from({ length: Math.max(parseInt(floors) || 0, 0) }, (_, i) => {
+                const label = `+${String(i).padStart(2, "0")}`;
+                return (
+                  <option key={label} value={label}>{label}</option>
+                );
+              })}
+            </select>
+          </div>
+          <div>
+            <Label className="text-xs">Είδος Κάθετης Υποδομής</Label>
+            <select
+              value={verticalInfraType}
+              onChange={(e) => setVerticalInfraType(e.target.value)}
+              className="w-full mt-1 text-sm border border-border rounded-md px-2 py-1.5 h-9 bg-background text-foreground"
+            >
+              <option value="">— Επιλέξτε —</option>
+              <option value="ΚΑΓΚΕΛΟ">ΚΑΓΚΕΛΟ</option>
+              <option value="ΚΛΙΜΑΚΟΣΤΑΣΙΟ">ΚΛΙΜΑΚΟΣΤΑΣΙΟ</option>
+              <option value="ΕΞΩΤΕΡΙΚΑ ΕΠΙΤΟΙΧΙΑ">ΕΞΩΤΕΡΙΚΑ ΕΠΙΤΟΙΧΙΑ</option>
+              <option value="ΦΩΤΑΓΩΓΟΣ">ΦΩΤΑΓΩΓΟΣ</option>
+              <option value="ΑΛΛΟ">ΑΛΛΟ</option>
+            </select>
           </div>
         </div>
       </Card>}
