@@ -1101,7 +1101,7 @@ const AppointmentsCalendar = ({ viewMode }: AppointmentsCalendarProps) => {
                               )}
                             </div>
                             {(a.customer_name || a.area) && (
-                              <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                              <div className="flex items-center gap-2 text-[11px] text-muted-foreground flex-wrap">
                                 {a.area && (
                                   <span className="flex items-center gap-1">
                                     <MapPin className="h-3 w-3" /> {a.area}
@@ -1109,6 +1109,36 @@ const AppointmentsCalendar = ({ viewMode }: AppointmentsCalendarProps) => {
                                 )}
                                 {a.customer_name && <span>• {a.customer_name}</span>}
                               </div>
+                            )}
+                            {a.assignment?.address && (
+                              <a
+                                href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(
+                                  a.assignment.latitude && a.assignment.longitude
+                                    ? `${a.assignment.latitude},${a.assignment.longitude}`
+                                    : `${a.assignment.address}, ${a.assignment.area || ""}, Ελλάδα`
+                                )}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={(e) => e.stopPropagation()}
+                                className="inline-flex items-center gap-1 text-[11px] text-primary hover:underline font-medium break-all"
+                                title="Άνοιγμα στο Google Maps για πλοήγηση"
+                              >
+                                <MapPin className="h-3 w-3 shrink-0" />
+                                <span className="truncate">{a.assignment.address}</span>
+                              </a>
+                            )}
+                            {a.assignment?.phone && (
+                              <a
+                                href={`tel:${a.assignment.phone.replace(/\s+/g, "")}`}
+                                onClick={(e) => e.stopPropagation()}
+                                className="inline-flex items-center gap-1 text-[11px] text-primary hover:underline font-medium"
+                                title="Κλήση πελάτη"
+                              >
+                                <svg className="h-3 w-3 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                  <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+                                </svg>
+                                {a.assignment.phone}
+                              </a>
                             )}
                           </div>
                           <button
