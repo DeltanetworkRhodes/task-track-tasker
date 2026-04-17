@@ -673,12 +673,16 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
     if (!gisData || floorMetersAutoFilled) return;
     const fd = (gisData as any).floor_details;
     if (!Array.isArray(fd) || fd.length === 0) return;
-    setFloorMeters(fd.map((f: any) => ({
-      floor: f["ΟΡΟΦΟΣ"] || f.floor || "",
-      meters: String(f["ΜΕΤΡΑ"] ?? f.meters ?? ""),
-      pipe_type: f["ΕΙΔΟΣ"] || f.pipe_type || "2\"",
-      fo_type: f.fo_type || "4FO",
-    })));
+    setFloorMeters(fd.map((f: any) => {
+      const foType = f.fo_type || "4FO";
+      const derivedPipe = foType === "12FO" ? '4"' : '2"';
+      return {
+        floor: f["ΟΡΟΦΟΣ"] || f.floor || "",
+        meters: String(f["ΜΕΤΡΑ"] ?? f.meters ?? ""),
+        pipe_type: f["ΕΙΔΟΣ"] || f.pipe_type || derivedPipe,
+        fo_type: foType,
+      };
+    }));
     setFloorMetersAutoFilled(true);
   }, [gisData, floorMetersAutoFilled]);
 
