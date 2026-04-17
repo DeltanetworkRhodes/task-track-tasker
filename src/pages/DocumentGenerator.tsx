@@ -10,6 +10,7 @@ import { FileSpreadsheet, Download, Search, CheckCircle2, Loader2, FlaskConical,
 import { useAssignments, useConstructions, useGisDataByOrg } from "@/hooks/useData";
 import { generateAsBuilt, generateAsBuiltFromData, getDemoAsBuiltData } from "@/lib/generateAsBuilt";
 import { generateConstructionZip } from "@/lib/generateConstructionZip";
+import { generateApologismos } from "@/lib/generateApologismos";
 import { useDemo } from "@/contexts/DemoContext";
 import { toast } from "sonner";
 
@@ -100,30 +101,49 @@ const DocumentGenerator = () => {
 
     setZippingId(srId);
     try {
-      // 1. Generate AS-BUILD Excel buffer (in memory) - ΦΥΛΛΟ ΑΠΟΛΟΓΙΣΜΟΥ
+      // 1. Generate AS-BUILD Excel buffer
       let asBuiltBuffer: ArrayBuffer | null = null;
       try {
-        toast.info("Δημιουργία ΦΥΛΛΟΥ ΑΠΟΛΟΓΙΣΜΟΥ ΕΡΓΑΣΙΩΝ...");
+        toast.info("Δημιουργία AS-BUILD...");
         const asBuiltResult = await generateAsBuilt(srId);
         if (asBuiltResult.buffer && asBuiltResult.buffer.byteLength > 0) {
           asBuiltBuffer = asBuiltResult.buffer;
-          console.log(`[ZIP] AS-BUILD buffer ready: ${asBuiltResult.buffer.byteLength} bytes`);
+          console.log(`[ZIP] AS-BUILD ready: ${asBuiltResult.buffer.byteLength} bytes`);
         } else {
-          console.warn("[ZIP] AS-BUILD result has no buffer", asBuiltResult);
-          toast.warning("Το ΦΥΛΛΟ ΑΠΟΛΟΓΙΣΜΟΥ δεν επέστρεψε δεδομένα");
+          toast.warning("AS-BUILD: δεν δημιουργήθηκε buffer");
         }
       } catch (asBuiltErr: any) {
-        console.error("[ZIP] AS-BUILD generation failed:", asBuiltErr);
-        toast.warning(`ΦΥΛΛΟ ΑΠΟΛΟΓΙΣΜΟΥ: ${asBuiltErr.message || "σφάλμα"}`);
+        console.error("[ZIP] AS-BUILD failed:", asBuiltErr);
+        toast.warning(`AS-BUILD: ${asBuiltErr.message || "σφάλμα"}`);
       }
 
-      // 2. Build ZIP (Storage + Drive + AS-BUILD)
+      // 2. Generate ΦΥΛΛΟ ΑΠΟΛΟΓΙΣΜΟΥ Excel buffer
+      let apologismosBuffer: ArrayBuffer | null = null;
+      try {
+        toast.info("Δημιουργία ΦΥΛΛΟΥ ΑΠΟΛΟΓΙΣΜΟΥ ΕΡΓΑΣΙΩΝ...");
+        const apoResult = await generateApologismos(srId);
+        if (apoResult.buffer && apoResult.buffer.byteLength > 0) {
+          apologismosBuffer = apoResult.buffer;
+          console.log(`[ZIP] Apologismos ready: ${apoResult.buffer.byteLength} bytes`);
+          if (apoResult.warnings.length > 0) {
+            apoResult.warnings.slice(0, 2).forEach(w => toast.warning(w));
+          }
+        } else {
+          toast.warning(`ΦΥΛΛΟ ΑΠΟΛΟΓΙΣΜΟΥ: ${apoResult.warnings.join(", ") || "δεν δημιουργήθηκε"}`);
+        }
+      } catch (apoErr: any) {
+        console.error("[ZIP] Apologismos failed:", apoErr);
+        toast.warning(`ΦΥΛΛΟ ΑΠΟΛΟΓΙΣΜΟΥ: ${apoErr.message || "σφάλμα"}`);
+      }
+
+      // 3. Build ZIP (Storage + Drive + AS-BUILD + Apologismos)
       toast.info("Λήψη φωτογραφιών από Google Drive...");
       const result = await generateConstructionZip(
         srId,
         (assignment as any).address || "",
         (construction as any).id,
-        asBuiltBuffer
+        asBuiltBuffer,
+        apologismosBuffer
       );
 
       if (result.warnings.length > 0) {

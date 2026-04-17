@@ -314,6 +314,7 @@ export async function generateConstructionZip(
     `Σύνολο Φωτογραφιών (Storage): ${photoCount}`,
     `Σύνολο Αρχείων Drive: ${driveCount}`,
     `AS-BUILD Excel: ${asBuiltBlob ? "Ναι" : "Όχι"}`,
+    `ΦΥΛΛΟ ΑΠΟΛΟΓΙΣΜΟΥ Excel: ${apologismosBlob ? "Ναι" : "Όχι"}`,
     `Παράχθηκε από: deltanetwork.app`,
   ].join("\n");
   zip.file(`${rootName}/README.txt`, readmeContent);
@@ -334,7 +335,7 @@ export async function generateConstructionZip(
 
   return {
     success: true,
-    fileCount: photoCount + driveCount + (asBuiltBlob ? 1 : 0),
+    fileCount: photoCount + driveCount + (asBuiltBlob ? 1 : 0) + (apologismosBlob ? 1 : 0),
     warnings,
   };
 }
