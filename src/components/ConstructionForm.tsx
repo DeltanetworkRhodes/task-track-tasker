@@ -102,6 +102,30 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
   const [routingType, setRoutingType] = useState("");
   const [pendingNote, setPendingNote] = useState("");
 
+  // ── AS-BUILD extra fields ──
+  const [koiTypeCabBep, setKoiTypeCabBep] = useState("4' μ cable");
+  const [koiTypeCabBcp, setKoiTypeCabBcp] = useState("4' μ cable");
+  const [verticalInfra, setVerticalInfra] = useState("ΙΣ");
+  const [floorMeters, setFloorMeters] = useState<{ floor: string; meters: string; pipe_type: string }[]>([]);
+  const [section6, setSection6] = useState<Record<string, string>>({
+    eisagogi_type: "",
+    bmo_bep_distance: "",
+    ball_marker_bep: "",
+    ms_skamma: "",
+    eskalit_ms: "",
+    eskalit_nea_solienosi: "",
+    eskalit_solienosi_eisagogis: "",
+    eskalit_bep: "",
+    eskalit_b1_bep: "",
+    bcp_eidos: "",
+    bcp_ball_marker: "",
+    bcp_ms: "",
+    bcp_bep_ypogeia: "",
+    bcp_bep_enaeria: "",
+  });
+  const [asbuiltCardOpen, setAsbuiltCardOpen] = useState(false);
+  const [floorMetersCardOpen, setFloorMetersCardOpen] = useState(false);
+
   // Routes (ΔΙΑΔΡΟΜΕΣ)
   const [routes, setRoutes] = useState([
     { label: "FTTH ΥΠΟΓ ΔΔ (Cabin to BEP)", koi: "", fyraKoi: "" },
