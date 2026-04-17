@@ -829,8 +829,37 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
       );
     }
 
+    // 9. Microduct — από Ball Marker απόσταση
+    // Παίρνουμε τιμή από section6 state (Οριζοντογραφία AS-BUILD)
+    const hasBcp = !!(
+      gisData.new_bcp ||
+      gisData.nearby_bcp ||
+      (gisData.optical_paths as any[])?.some(
+        (p: any) => (p.type || p["OPTICAL PATH TYPE"] || "").toUpperCase().includes("BCP")
+      )
+    );
+    // Απόσταση: αν BCP → bcp_ball_marker, αν όχι → ball_marker_bep
+    const ballMarkerMeters = hasBcp
+      ? parseFloat(section6?.bcp_ball_marker || "0")
+      : parseFloat(section6?.ball_marker_bep || "0");
+    if (ballMarkerMeters > 0) {
+      // Microduct 7/4mm (μικρό) — μπαίνει η ίνα
+      addMaterial(
+        (m) => m.code === "14026586" || nameMatches(m.name, "Microduct", "7/4"),
+        ballMarkerMeters
+      );
+      // Microduct 8/10mm (χοντρό) — κενό
+      addMaterial(
+        (m) =>
+          m.code === "14034374" ||
+          nameMatches(m.name, "Microduct", "8/10") ||
+          nameMatches(m.name, "Microduct", "Mde"),
+        ballMarkerMeters
+      );
+    }
+
     return autoItems;
-  }, [gisData, materials]);
+  }, [gisData, materials, section6]);
 
   // Manual trigger (button) — επαναφορτώνει υλικά από GIS αντικαθιστώντας υπάρχοντα
   const handleManualGisRefill = useCallback(() => {
@@ -885,6 +914,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
     gisAutoFilled,
     materialItems.length,
     computeGisMaterials,
+    section6,
   ]);
 
   // Auto-fill basic fields from GIS data
