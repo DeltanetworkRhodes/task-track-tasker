@@ -1070,6 +1070,54 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
     });
   }, [ballMarkerBep, ballMarkerBcp, materials, gisData, section6]);
 
+  // Trigger: ΣΠΙΡΑΛ + ΚΟΛΑΡΑ από Ball Marker BEP - Μ/Σ Σκάμμα
+  useEffect(() => {
+    if (!materials) return;
+    const ballMarker = parseFloat(ballMarkerBep || "0");
+    const skamma = parseFloat(section6?.ms_skamma || "0");
+    // ΣΠΙΡΑΛ = Ball Marker - Μ/Σ Σκάμμα
+    const spiralMeters = ballMarker - skamma;
+    const spiralMat = materials.find(
+      (m: any) =>
+        m.code === "01-20250250" ||
+        (m.name?.toUpperCase().includes("ΣΠΙΡΑΛ") && m.name?.includes("25"))
+    );
+    const kolaraMat = materials.find(
+      (m: any) =>
+        m.code === "01-41250250" ||
+        (m.name?.toUpperCase().includes("ΚΟΛΑΡΑ") && m.name?.includes("25"))
+    );
+    // ΚΟΛΑΡΑ = ceil(ΣΠΙΡΑΛ / 0.60)
+    const kolaraQty = spiralMeters > 0 ? Math.ceil(spiralMeters / 0.6) : 0;
+    setMaterialItems((prev) => {
+      const updated = [...prev];
+      const upsert = (mat: any, qty: number) => {
+        if (!mat) return;
+        const i = updated.findIndex((m) => m.material_id === mat.id);
+        if (qty <= 0) {
+          if (i >= 0) updated.splice(i, 1);
+          return;
+        }
+        if (i >= 0) {
+          updated[i] = { ...updated[i], quantity: qty };
+        } else {
+          updated.push({
+            material_id: mat.id,
+            code: mat.code,
+            name: mat.name,
+            unit: mat.unit,
+            price: mat.price,
+            source: mat.source,
+            quantity: qty,
+          });
+        }
+      };
+      upsert(spiralMat, spiralMeters > 0 ? Math.ceil(spiralMeters) : 0);
+      upsert(kolaraMat, kolaraQty);
+      return updated;
+    });
+  }, [ballMarkerBep, section6?.ms_skamma, materials]);
+
   // Trigger: 4 FO outdoor — routes[0].koi
   const cabToBepKoiStr = routes[0]?.koi || "0";
   useEffect(() => {
