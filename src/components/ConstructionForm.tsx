@@ -107,6 +107,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
   const [koiTypeCabBcp, setKoiTypeCabBcp] = useState("4' μ cable");
   const [verticalInfra, setVerticalInfra] = useState("ΙΣ");
   const [floorMeters, setFloorMeters] = useState<{ floor: string; meters: string; pipe_type: string }[]>([]);
+  const [floorMetersAutoFilled, setFloorMetersAutoFilled] = useState(false);
   const [section6, setSection6] = useState<Record<string, string>>({
     eisagogi_type: "",
     bmo_bep_distance: "",
@@ -397,6 +398,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
         meters: String(fm.meters ?? ""),
         pipe_type: fm.pipe_type || "2\"",
       })));
+      setFloorMetersAutoFilled(true);
     }
     const savedSection6 = (existingConstruction as any).asbuilt_section6;
     if (savedSection6 && typeof savedSection6 === "object") {
@@ -626,9 +628,9 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
     },
   });
 
-  // Auto-populate floorMeters from gisData.floor_details (if not already loaded)
+  // Auto-populate floorMeters from gisData.floor_details (only once, never overwrite user edits)
   useEffect(() => {
-    if (!gisData || floorMeters.length > 0) return;
+    if (!gisData || floorMetersAutoFilled) return;
     const fd = (gisData as any).floor_details;
     if (!Array.isArray(fd) || fd.length === 0) return;
     setFloorMeters(fd.map((f: any) => ({
@@ -636,7 +638,8 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
       meters: String(f["ΜΕΤΡΑ"] ?? f.meters ?? ""),
       pipe_type: f["ΕΙΔΟΣ"] || f.pipe_type || "2\"",
     })));
-  }, [gisData, floorMeters.length]);
+    setFloorMetersAutoFilled(true);
+  }, [gisData, floorMetersAutoFilled]);
 
   const [gisAutoFilled, setGisAutoFilled] = useState(false);
   useEffect(() => {
