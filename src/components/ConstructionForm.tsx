@@ -678,6 +678,59 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
     setFloorMetersAutoFilled(true);
   }, [gisData, floorMetersAutoFilled]);
 
+  // Auto-calculate Indoor FO Cable (4FO/12FO) από floorMeters + ΦΥΡΑ
+  useEffect(() => {
+    if (!materials) return;
+    const fyraKoi = parseFloat(routes[3]?.fyraKoi || "0");
+    const totalMeters = inhouse4FoMeters + inhouse12FoMeters;
+    // Αναλογική κατανομή ΦΥΡΑ
+    const fyra4 = totalMeters > 0 ? fyraKoi * (inhouse4FoMeters / totalMeters) : 0;
+    const fyra12 = totalMeters > 0 ? fyraKoi * (inhouse12FoMeters / totalMeters) : 0;
+    const total4 = inhouse4FoMeters > 0 ? Math.ceil(inhouse4FoMeters + fyra4) : 0;
+    const total12 = inhouse12FoMeters > 0 ? Math.ceil(inhouse12FoMeters + fyra12) : 0;
+
+    const fo4Mat = (materials as any[]).find((m: any) =>
+      m.code === "14027437" ||
+      (m.name?.toUpperCase().includes("4 FO") &&
+        m.name?.toLowerCase().includes("indoor") &&
+        m.name?.toLowerCase().includes("micro"))
+    );
+    const fo12Mat = (materials as any[]).find((m: any) =>
+      m.code === "14027438" ||
+      (m.name?.toUpperCase().includes("12 FO") &&
+        m.name?.toLowerCase().includes("indoor") &&
+        m.name?.toLowerCase().includes("micro"))
+    );
+
+    setMaterialItems((prev) => {
+      const updated = [...prev];
+      const upsert = (mat: any, qty: number) => {
+        if (!mat) return;
+        const i = updated.findIndex((m) => m.material_id === mat.id);
+        if (qty <= 0) {
+          if (i >= 0) updated.splice(i, 1);
+          return;
+        }
+        if (i >= 0) {
+          updated[i] = { ...updated[i], quantity: qty };
+        } else {
+          updated.push({
+            material_id: mat.id,
+            code: mat.code,
+            name: mat.name,
+            unit: mat.unit,
+            price: mat.price,
+            source: mat.source,
+            quantity: qty,
+          });
+        }
+      };
+      upsert(fo4Mat, total4);
+      upsert(fo12Mat, total12);
+      return updated;
+    });
+  }, [inhouse4FoMeters, inhouse12FoMeters, routes, materials]);
+
   const [gisAutoFilled, setGisAutoFilled] = useState(false);
 
   // Extracted: GIS->materials computation. Used by auto-fill effect AND manual button.
@@ -3137,13 +3190,19 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
           </button>
           {floorMetersCardOpen && (
             <div className="space-y-2 pt-2">
-              <div className="grid grid-cols-[80px_1fr_100px] gap-2 text-[10px] uppercase tracking-wider text-muted-foreground px-2">
+              <p className="text-[10px] text-muted-foreground px-2">
+                Σύνολο: {inhouseKoiTotal.toFixed(1)}μ
+                {inhouse4FoMeters > 0 && ` · 4FO: ${inhouse4FoMeters}μ`}
+                {inhouse12FoMeters > 0 && ` · 12FO: ${inhouse12FoMeters}μ`}
+              </p>
+              <div className="grid grid-cols-[80px_1fr_90px_90px] gap-2 text-[10px] uppercase tracking-wider text-muted-foreground px-2">
                 <span>Όροφος</span>
                 <span>Μέτρα (BMO→FB)</span>
+                <span>Σωλήνας</span>
                 <span>Τύπος Ίνας</span>
               </div>
               {floorMeters.map((fm, idx) => (
-                <div key={idx} className="grid grid-cols-[80px_1fr_100px] gap-2 items-center">
+                <div key={idx} className="grid grid-cols-[80px_1fr_90px_90px] gap-2 items-center">
                   <Input
                     value={fm.floor}
                     onChange={(e) =>
@@ -3178,6 +3237,18 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                     <option value='2"'>2"</option>
                     <option value='4"'>4"</option>
                     <option value='12"'>12"</option>
+                  </select>
+                  <select
+                    value={fm.fo_type || "4FO"}
+                    onChange={(e) =>
+                      setFloorMeters((prev) =>
+                        prev.map((p, i) => (i === idx ? { ...p, fo_type: e.target.value } : p))
+                      )
+                    }
+                    className="h-8 text-sm border border-border rounded-md px-2 bg-background text-foreground"
+                  >
+                    <option value="4FO">4 FO</option>
+                    <option value="12FO">12 FO</option>
                   </select>
                 </div>
               ))}
