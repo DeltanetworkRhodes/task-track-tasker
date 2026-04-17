@@ -3306,16 +3306,31 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
 
       {/* Materials - Category based */}
       <Card className="p-4 space-y-2">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-2 flex-wrap">
           <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
             <Package className="h-3.5 w-3.5" />
             Υλικά
           </Label>
-          {materialItems.length > 0 && (
-            <Badge variant="secondary" className="text-xs">
-              {oteMaterials.length} ΟΤΕ · {deltanetMaterials.length} {orgName}
-            </Badge>
-          )}
+          <div className="flex items-center gap-2">
+            {materialItems.length > 0 && (
+              <Badge variant="secondary" className="text-xs">
+                {oteMaterials.length} ΟΤΕ · {deltanetMaterials.length} {orgName}
+              </Badge>
+            )}
+            {gisData && (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="h-7 text-xs gap-1"
+                onClick={handleManualGisRefill}
+                title="Επαναφορτώνει τα υλικά από τα δεδομένα GIS του SR"
+              >
+                <RefreshCw className="h-3 w-3" />
+                Από GIS
+              </Button>
+            )}
+          </div>
         </div>
 
         <Tabs value={materialTab} onValueChange={setMaterialTab} className="w-full">
