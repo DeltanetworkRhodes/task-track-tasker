@@ -1676,6 +1676,8 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
         koi_type_cab_bep: koiTypeCabBep,
         koi_type_cab_bcp: koiTypeCabBcp,
         vertical_infra: verticalInfra,
+        bep_placement_floor: bepPlacementFloor,
+        vertical_infra_type: verticalInfraType,
         floor_meters: floorMeters,
         asbuilt_section6: section6,
       } as any;
