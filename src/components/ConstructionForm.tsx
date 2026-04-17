@@ -626,7 +626,17 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
     },
   });
 
-
+  // Auto-populate floorMeters from gisData.floor_details (if not already loaded)
+  useEffect(() => {
+    if (!gisData || floorMeters.length > 0) return;
+    const fd = (gisData as any).floor_details;
+    if (!Array.isArray(fd) || fd.length === 0) return;
+    setFloorMeters(fd.map((f: any) => ({
+      floor: f["ΟΡΟΦΟΣ"] || f.floor || "",
+      meters: String(f["ΜΕΤΡΑ"] ?? f.meters ?? ""),
+      pipe_type: f["ΕΙΔΟΣ"] || f.pipe_type || "2\"",
+    })));
+  }, [gisData, floorMeters.length]);
 
   const [gisAutoFilled, setGisAutoFilled] = useState(false);
   useEffect(() => {
