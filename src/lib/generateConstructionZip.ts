@@ -314,7 +314,7 @@ export async function generateConstructionZip(
 
   return {
     success: true,
-    fileCount: photoCount + (asBuiltBlob ? 1 : 0),
+    fileCount: photoCount + driveCount + (asBuiltBlob ? 1 : 0),
     warnings,
   };
 }
