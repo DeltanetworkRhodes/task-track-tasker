@@ -247,9 +247,39 @@ export async function generateConstructionZip(
     }
   }
 
-  // 4. Add AS-BUILD Excel if provided
+  // 4. Download files from Google Drive (full SR folder)
+  let driveCount = 0;
+  const drive = await fetchDriveFiles(srId);
+  if (drive.found) {
+    // Root-level files
+    for (const f of drive.rootFiles) {
+      const buf = await downloadDriveFileAsArrayBuffer(f.id);
+      if (buf) {
+        zip.file(`${rootName}/Drive/${f.name}`, buf);
+        driveCount++;
+      } else {
+        warnings.push(`Drive: αποτυχία λήψης ${f.name}`);
+      }
+    }
+    // Subfolder files (ΕΓΓΡΑΦΑ, ΠΡΟΜΕΛΕΤΗ, etc.)
+    for (const [folderName, files] of Object.entries(drive.subfolders)) {
+      for (const f of files) {
+        const buf = await downloadDriveFileAsArrayBuffer(f.id);
+        if (buf) {
+          zip.file(`${rootName}/Drive/${folderName}/${f.name}`, buf);
+          driveCount++;
+        } else {
+          warnings.push(`Drive: αποτυχία λήψης ${folderName}/${f.name}`);
+        }
+      }
+    }
+  } else {
+    warnings.push("Δεν βρέθηκε φάκελος SR στο Google Drive");
+  }
+
+  // 5. Add AS-BUILD Excel if provided
   if (asBuiltBlob) {
-    zip.file(`${rootName}/AS-BUILD/SR-${srId}_AS-BUILD.xlsx`, asBuiltBlob);
+    zip.file(`${rootName}/AS-BUILD/SR-${srId}_AS-BUILD.xlsx`, asBuiltBlob as any);
   }
 
   // 5. Add README.txt
