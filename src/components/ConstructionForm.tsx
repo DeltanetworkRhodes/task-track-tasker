@@ -1652,6 +1652,11 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
         routes: routesData.length > 0 ? routesData : null,
         organization_id: organizationId,
         photo_counts: mergedPhotoCounts,
+        koi_type_cab_bep: koiTypeCabBep,
+        koi_type_cab_bcp: koiTypeCabBcp,
+        vertical_infra: verticalInfra,
+        floor_meters: floorMeters,
+        asbuilt_section6: section6,
       } as any;
 
 
@@ -1958,6 +1963,33 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
           <div>
             <Label className="text-xs">Αναμονή</Label>
             <Input value={pendingNote} onChange={(e) => setPendingNote(e.target.value)} placeholder="π.χ. Β21 σωληνίσκος" className="text-sm mt-1" />
+          </div>
+          <div className="col-span-2">
+            <Label className="text-xs">Κάθετη Υποδομή BEP</Label>
+            <div className="flex gap-4 mt-2">
+              <label className="flex items-center gap-2 cursor-pointer text-sm">
+                <input
+                  type="radio"
+                  name="verticalInfra"
+                  value="ΙΣ"
+                  checked={verticalInfra === "ΙΣ"}
+                  onChange={(e) => setVerticalInfra(e.target.value)}
+                  className="accent-primary"
+                />
+                ΙΣ
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer text-sm">
+                <input
+                  type="radio"
+                  name="verticalInfra"
+                  value="ΚΑΓΚΕΛΟ"
+                  checked={verticalInfra === "ΚΑΓΚΕΛΟ"}
+                  onChange={(e) => setVerticalInfra(e.target.value)}
+                  className="accent-primary"
+                />
+                ΚΑΓΚΕΛΟ
+              </label>
+            </div>
           </div>
         </div>
       </Card>}
