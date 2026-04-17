@@ -516,9 +516,9 @@ function fillEpimetrisiSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
   // ── 0. ΣΤΟΙΧΕΙΑ ΑΙΤΗΜΑΤΟΣ + META ──
   ws.getCell("E5").value = d.srId;
   ws.getCell("F5").value = d.address;
-  ws.getCell("R4").value = d.exportDate || new Date().toLocaleDateString("el-GR");
-  if (d.technicianName) ws.getCell("R5").value = d.technicianName;
-  if (d.akId) ws.getCell("S8").value = d.akId;
+  // ΑΚ → R4 (δεξιά της ΔΙΕΥΘΥΝΣΗ γραμμής) & R5 (γραμμή PILOT/RETAIL)
+  ws.getCell("R4").value = d.akId || "";
+  ws.getCell("R5").value = d.akId || "";
   if (d.sesId) ws.getCell("T8").value = d.sesId;
 
   // ── 1. ΚΤΗΡΙΟ ── Row 8
