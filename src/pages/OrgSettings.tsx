@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import AppLayout from "@/components/AppLayout";
 import AuditLogViewer from "@/components/AuditLogViewer";
 import DailyBackupViewer from "@/components/DailyBackupViewer";
+import GoogleCalendarConnect from "@/components/GoogleCalendarConnect";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -499,6 +500,11 @@ const OrgSettings = () => {
               <Save className="h-4 w-4" />
               {saving ? "Αποθήκευση..." : "Αποθήκευση Ρυθμίσεων"}
             </Button>
+
+            {/* Google Calendar Sync */}
+            <div className="mt-8">
+              <GoogleCalendarConnect />
+            </div>
 
             {/* Daily Backup Section */}
             <div className="mt-8">
