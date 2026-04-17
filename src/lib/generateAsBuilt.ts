@@ -85,6 +85,8 @@ interface AsBuiltData {
   exportDate: string;
   additionalBcpConnections: { placement: string; kind: string; cableType: string; length: number }[];
   verticalInfra?: string;
+  bepPlacementFloor?: string;
+  verticalInfraType?: string;
   ballMarkerBep?: number | string;
   msCount?: number | string;
   otdrPositions?: { pos: number; a: any; b: any; c: any; d: any }[];
