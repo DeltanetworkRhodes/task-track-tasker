@@ -243,6 +243,43 @@ async function fetchAsBuiltData(srId: string): Promise<AsBuiltData> {
   const verticalMeters = floorBoxes.reduce((sum, fb) => sum + (fb.meters || 0), 0);
   const totalCableLength = Number(gisData?.distance_from_cabinet || 0) + verticalMeters;
 
+  // Fetch first photo URLs (BEP, BMO, BCP) from storage
+  const constructionId = construction?.id || "";
+  const safeSrId = srId.replace(/[^a-zA-Z0-9_-]/g, "_");
+  const storagePrefix = `constructions/${safeSrId}/${constructionId}`;
+  let bepPhotoUrl: string | null = null;
+  let bmoPhotoUrl: string | null = null;
+  let bcpPhotoUrl: string | null = null;
+  if (constructionId) {
+    try {
+      const { data: bepFiles } = await supabase.storage.from("photos")
+        .list(`${storagePrefix}/BEP`, { limit: 1, sortBy: { column: "created_at", order: "asc" } });
+      if (bepFiles && bepFiles.length > 0) {
+        const { data: urlData } = supabase.storage.from("photos")
+          .getPublicUrl(`${storagePrefix}/BEP/${bepFiles[0].name}`);
+        bepPhotoUrl = urlData?.publicUrl || null;
+      }
+    } catch (e) { console.warn("BEP photo fetch failed:", e); }
+    try {
+      const { data: bmoFiles } = await supabase.storage.from("photos")
+        .list(`${storagePrefix}/BMO`, { limit: 1, sortBy: { column: "created_at", order: "asc" } });
+      if (bmoFiles && bmoFiles.length > 0) {
+        const { data: urlData } = supabase.storage.from("photos")
+          .getPublicUrl(`${storagePrefix}/BMO/${bmoFiles[0].name}`);
+        bmoPhotoUrl = urlData?.publicUrl || null;
+      }
+    } catch (e) { console.warn("BMO photo fetch failed:", e); }
+    try {
+      const { data: bcpFiles } = await supabase.storage.from("photos")
+        .list(`${storagePrefix}/BCP`, { limit: 1, sortBy: { column: "created_at", order: "asc" } });
+      if (bcpFiles && bcpFiles.length > 0) {
+        const { data: urlData } = supabase.storage.from("photos")
+          .getPublicUrl(`${storagePrefix}/BCP/${bcpFiles[0].name}`);
+        bcpPhotoUrl = urlData?.publicUrl || null;
+      }
+    } catch (e) { console.warn("BCP photo fetch failed:", e); }
+  }
+
   return {
     srId: assignment.sr_id,
     buildingId: gisData?.building_id || "",
