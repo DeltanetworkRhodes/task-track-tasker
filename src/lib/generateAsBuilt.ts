@@ -295,6 +295,95 @@ async function fetchAsBuiltData(srId: string): Promise<AsBuiltData> {
     console.warn("[AS-BUILD] No constructionId — skipping photo fetch");
   }
 
+  // ── DRIVE FALLBACK ──────────────────────────────────────
+  // Αν λείπει κάποια φωτό από Supabase, ψάξε στο Google Drive folder του SR
+  if (!bepPhotoUrl || !bmoPhotoUrl || !bcpPhotoUrl) {
+    try {
+      console.log("[AS-BUILD] 🔍 Drive fallback for missing photos...");
+      const { data: driveData, error: driveErr } = await supabase.functions.invoke(
+        "google-drive-files",
+        { body: { action: "sr_folder", sr_id: srId } }
+      );
+
+      if (driveErr) {
+        console.warn("[AS-BUILD] Drive fallback error:", driveErr);
+      } else if (driveData?.found && driveData?.subfolders) {
+        const subfolders = driveData.subfolders as Record<string, { id: string; files: any[] }>;
+
+        // Βρες subfolder που ταιριάζει με keyword (case-insensitive)
+        const findFolderFiles = (keyword: string): any[] => {
+          const kw = keyword.toUpperCase();
+          for (const [name, info] of Object.entries(subfolders)) {
+            if (name.toUpperCase().includes(kw)) {
+              return info.files || [];
+            }
+          }
+          return [];
+        };
+
+        const isImage = (f: any) => {
+          const n = (f.name || "").toLowerCase();
+          const m = (f.mimeType || "").toLowerCase();
+          return /\.(jpe?g|png|webp)$/i.test(n) || m.startsWith("image/");
+        };
+
+        // Κατέβασμα πρώτης εικόνας μέσω edge function (επιστρέφει public_url)
+        const downloadFirst = async (files: any[]): Promise<string | null> => {
+          const imgs = files.filter(isImage).sort((a, b) =>
+            (a.name || "").localeCompare(b.name || "")
+          );
+          if (imgs.length === 0) return null;
+          try {
+            const { data, error } = await supabase.functions.invoke(
+              "google-drive-files",
+              { body: { action: "download", file_id: imgs[0].id } }
+            );
+            if (error || !data?.public_url) {
+              console.warn("[AS-BUILD] Drive download failed:", error);
+              return null;
+            }
+            return data.public_url;
+          } catch (e) {
+            console.warn("[AS-BUILD] Drive download exception:", e);
+            return null;
+          }
+        };
+
+        if (!bepPhotoUrl) {
+          const files = findFolderFiles("BEP");
+          if (files.length > 0) {
+            bepPhotoUrl = await downloadFirst(files);
+            if (bepPhotoUrl) console.log("[AS-BUILD] ✅ BEP photo from Drive");
+          }
+        }
+        if (!bmoPhotoUrl) {
+          const files = findFolderFiles("BMO");
+          if (files.length > 0) {
+            bmoPhotoUrl = await downloadFirst(files);
+            if (bmoPhotoUrl) console.log("[AS-BUILD] ✅ BMO photo from Drive");
+          }
+        }
+        if (!bcpPhotoUrl) {
+          const files = findFolderFiles("BCP");
+          if (files.length > 0) {
+            bcpPhotoUrl = await downloadFirst(files);
+            if (bcpPhotoUrl) console.log("[AS-BUILD] ✅ BCP photo from Drive");
+          }
+        }
+
+        // Αν ακόμα δεν υπάρχει BMO αλλά υπάρχει BCP → fallback σε BCP
+        if (!bmoPhotoUrl && bcpPhotoUrl) {
+          bmoPhotoUrl = bcpPhotoUrl;
+          console.log("[AS-BUILD] ↪ Using BCP photo as BMO fallback");
+        }
+      } else {
+        console.warn("[AS-BUILD] Drive folder not found for SR", srId);
+      }
+    } catch (e) {
+      console.warn("[AS-BUILD] Drive fallback exception:", e);
+    }
+  }
+
   return {
     srId: assignment.sr_id,
     buildingId: gisData?.building_id || "",
