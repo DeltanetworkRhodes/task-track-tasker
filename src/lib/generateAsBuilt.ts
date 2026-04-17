@@ -928,6 +928,7 @@ export async function generateAsBuiltFromData(data: AsBuiltData): Promise<AsBuil
           cabId: data.cabId || "",
           trenchLengthM: data.trenchLengthM || 0,
           distanceFromCabinet: data.distanceFromCabinet || 0,
+          koiCabBepLength: data.koiCabBepLength || 0,
           address: data.address || "",
           buildingId: data.buildingId || "",
           verticalRouting: data.verticalRouting || "",
