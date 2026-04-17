@@ -117,6 +117,63 @@ async function listConstructionFiles(prefix: string): Promise<StorageFileInfo[]>
 }
 
 /* ────────────────────────────────────────────
+   Google Drive download via edge function
+   ──────────────────────────────────────────── */
+
+interface DriveFileInfo {
+  id: string;
+  name: string;
+  mimeType?: string;
+}
+
+async function downloadDriveFileAsArrayBuffer(fileId: string): Promise<ArrayBuffer | null> {
+  try {
+    const { data, error } = await supabase.functions.invoke("google-drive-files", {
+      body: { action: "download", file_id: fileId },
+    });
+    if (error || !data?.public_url) return null;
+    const resp = await fetch(data.public_url);
+    if (!resp.ok) return null;
+    return await resp.arrayBuffer();
+  } catch {
+    return null;
+  }
+}
+
+async function fetchDriveFiles(srId: string): Promise<{
+  found: boolean;
+  rootFiles: DriveFileInfo[];
+  subfolders: Record<string, DriveFileInfo[]>;
+}> {
+  try {
+    const { data, error } = await supabase.functions.invoke("google-drive-files", {
+      body: { action: "sr_folder", sr_id: srId },
+    });
+    if (error || !data?.found) {
+      return { found: false, rootFiles: [], subfolders: {} };
+    }
+    const subfolders: Record<string, DriveFileInfo[]> = {};
+    for (const [folderName, folderData] of Object.entries(data.subfolders || {})) {
+      const fd = folderData as any;
+      // Skip nested folders, only files
+      subfolders[folderName] = (fd.files || []).filter(
+        (f: any) => f.mimeType !== "application/vnd.google-apps.folder"
+      );
+    }
+    return {
+      found: true,
+      rootFiles: (data.files || []).filter(
+        (f: any) => f.mimeType !== "application/vnd.google-apps.folder"
+      ),
+      subfolders,
+    };
+  } catch (err) {
+    console.warn("Drive fetch failed:", err);
+    return { found: false, rootFiles: [], subfolders: {} };
+  }
+}
+
+/* ────────────────────────────────────────────
    Main ZIP generator
    ──────────────────────────────────────────── */
 
@@ -130,7 +187,7 @@ export async function generateConstructionZip(
   srId: string,
   address: string,
   constructionId: string,
-  asBuiltBlob?: Blob | null
+  asBuiltBlob?: Blob | ArrayBuffer | null
 ): Promise<ZipExportResult> {
   const warnings: string[] = [];
   const zip = new JSZip();
