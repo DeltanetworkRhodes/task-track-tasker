@@ -786,13 +786,15 @@ function fillEpimetrisiSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
 
   // ── 6. ΟΡΙΖΟΝΤΟΓΡΑΦΙΑ ──
   const s6 = d.s6 || {};
-  // Τα μέτρα στην οριζοντιογραφία προέρχονται από τον πίνακα "2 ΚΟΙ CAB first box" (F13)
+  // ΑΠΟΣΤΑΣΗ ΒΜΟ→BEP = άθροισμα μέτρων κάθετης όδευσης (BMO→FB ανά όροφο)
+  // ΟΧΙ distanceFromCabinet (αυτή είναι CAB→BEP, διαφορετικό μέγεθος)
+  const verticalSum = (d.floorDetails || []).reduce(
+    (sum: number, fb: any) => sum + (Number(fb.meters) || 0),
+    0
+  );
   ws.getCell("V83").value =
-    d.koiCabBepLength ||
-    d.totalCableLength ||
     s6.bmo_bep_distance ||
-    d.distanceFromCabinet ||
-    "";
+    (verticalSum > 0 ? verticalSum : "");
   const eisagogiLabel: Record<string, string> = {
     "ΝΕΑ ΥΠΟΔΟΜΗ": "NEA YPODOMH",
     "ΕΣΚΑΛΗΤ": "ΕΣΚΑΛΗΤ",
