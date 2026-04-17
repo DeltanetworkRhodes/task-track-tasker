@@ -516,10 +516,8 @@ function fillEpimetrisiSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
   // ── 0. ΣΤΟΙΧΕΙΑ ΑΙΤΗΜΑΤΟΣ + META ──
   ws.getCell("E5").value = d.srId;
   ws.getCell("F5").value = d.address;
-  // ΑΚ → R4 (δεξιά της ΔΙΕΥΘΥΝΣΗ γραμμής) & R5 (γραμμή PILOT/RETAIL)
-  ws.getCell("R4").value = d.akId || "";
+  // R4 είναι label "ΑΚ" στο template — ΜΗΝ το αγγίζεις
   ws.getCell("R5").value = d.akId || "";
-  if (d.sesId) ws.getCell("T8").value = d.sesId;
 
   // ── 1. ΚΤΗΡΙΟ ── Row 8
   ws.getCell("B8").value = d.srId;
