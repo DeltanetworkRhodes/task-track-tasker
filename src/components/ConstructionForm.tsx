@@ -1087,8 +1087,8 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
         m.code === "01-41250250" ||
         (m.name?.toUpperCase().includes("ΚΟΛΑΡΑ") && m.name?.includes("25"))
     );
-    // ΚΟΛΑΡΑ = ceil(ΣΠΙΡΑΛ / 0.60)
-    const kolaraQty = spiralMeters > 0 ? Math.ceil(spiralMeters / 0.6) : 0;
+    // ΚΟΛΑΡΑ = ceil(ΣΠΙΡΑΛ / 0.80)
+    const kolaraQty = spiralMeters > 0 ? Math.ceil(spiralMeters / 0.8) : 0;
     setMaterialItems((prev) => {
       const updated = [...prev];
       const upsert = (mat: any, qty: number) => {
