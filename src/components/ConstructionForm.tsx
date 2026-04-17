@@ -350,6 +350,36 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
     setRoutingType(existingConstruction.routing_type || "");
     setPendingNote(existingConstruction.pending_note || "");
 
+    // AS-BUILD fields
+    const ec: any = existingConstruction;
+    if (ec.vertical_infra === "ΙΣ" || ec.vertical_infra === "ΚΛΙΜΑΚΟΣΤΑΣΙΟ") setVerticalInfra(ec.vertical_infra);
+    if (ec.ball_marker_bep != null) setBallMarkerBep(String(ec.ball_marker_bep));
+    if (ec.ms_count != null) setMsCount(String(ec.ms_count));
+    if (Array.isArray(ec.otdr_positions) && ec.otdr_positions.length > 0) {
+      setOtdrPositions(
+        Array.from({ length: 8 }, (_, i) => {
+          const pos = i + 2;
+          const found = ec.otdr_positions.find((o: any) => Number(o?.pos) === pos);
+          return {
+            pos,
+            a: found?.a != null ? String(found.a) : "",
+            b: found?.b != null ? String(found.b) : "",
+            c: found?.c != null ? String(found.c) : "",
+            d: found?.d != null ? String(found.d) : "",
+          };
+        })
+      );
+    }
+    if (Array.isArray(ec.floor_meters) && ec.floor_meters.length > 0) {
+      setFloorMeters(
+        ec.floor_meters.map((f: any) => ({
+          floor: String(f?.floor ?? ""),
+          meters: f?.meters != null ? String(f.meters) : "",
+          pipe_type: String(f?.pipe_type ?? ""),
+        }))
+      );
+    }
+
     const dbRoutes = Array.isArray(existingConstruction.routes) ? (existingConstruction.routes as any[]) : [];
     if (dbRoutes.length > 0) {
       setRoutes((prev) =>
@@ -1180,6 +1210,15 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
           routes: routesData.length > 0 ? routesData : null,
           organization_id: organizationId,
           photo_counts: mergedPhotoCounts,
+          vertical_infra: verticalInfra,
+          ball_marker_bep: ballMarkerBep ? parseInt(ballMarkerBep) : null,
+          ms_count: msCount ? parseInt(msCount) : null,
+          otdr_positions: otdrPositions
+            .filter((o) => o.a !== "" || o.b !== "" || o.c !== "" || o.d !== "")
+            .map((o) => ({ pos: o.pos, a: o.a, b: o.b, c: o.c, d: o.d })),
+          floor_meters: floorMeters
+            .filter((f) => f.meters !== "" || f.pipe_type !== "")
+            .map((f) => ({ floor: f.floor, meters: f.meters ? parseFloat(f.meters) : 0, pipe_type: f.pipe_type })),
         } as any;
 
         if (existingConstruction) {
