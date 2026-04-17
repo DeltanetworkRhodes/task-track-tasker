@@ -102,6 +102,16 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
   const [routingType, setRoutingType] = useState("");
   const [pendingNote, setPendingNote] = useState("");
 
+  // AS-BUILD πεδία (συμπλήρωμα για το Excel)
+  const [verticalInfra, setVerticalInfra] = useState<"ΙΣ" | "ΚΛΙΜΑΚΟΣΤΑΣΙΟ">("ΙΣ");
+  const [ballMarkerBep, setBallMarkerBep] = useState<string>("");
+  const [msCount, setMsCount] = useState<string>("");
+  const [otdrPositions, setOtdrPositions] = useState<{ pos: number; a: string; b: string; c: string; d: string }[]>(
+    Array.from({ length: 8 }, (_, i) => ({ pos: i + 2, a: "", b: "", c: "", d: "" }))
+  );
+  const [floorMeters, setFloorMeters] = useState<{ floor: string; meters: string; pipe_type: string }[]>([]);
+  const [asbuildOpen, setAsbuildOpen] = useState(false);
+
   // Routes (ΔΙΑΔΡΟΜΕΣ)
   const [routes, setRoutes] = useState([
     { label: "FTTH ΥΠΟΓ ΔΔ (Cabin to BEP)", koi: "", fyraKoi: "" },
