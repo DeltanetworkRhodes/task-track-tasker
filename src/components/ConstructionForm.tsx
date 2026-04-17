@@ -1637,6 +1637,15 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
         routes: routesData.length > 0 ? routesData : null,
         organization_id: organizationId,
         photo_counts: mergedPhotoCounts,
+        vertical_infra: verticalInfra,
+        ball_marker_bep: ballMarkerBep ? parseInt(ballMarkerBep) : null,
+        ms_count: msCount ? parseInt(msCount) : null,
+        otdr_positions: otdrPositions
+          .filter((o) => o.a !== "" || o.b !== "" || o.c !== "" || o.d !== "")
+          .map((o) => ({ pos: o.pos, a: o.a, b: o.b, c: o.c, d: o.d })),
+        floor_meters: floorMeters
+          .filter((f) => f.meters !== "" || f.pipe_type !== "")
+          .map((f) => ({ floor: f.floor, meters: f.meters ? parseFloat(f.meters) : 0, pipe_type: f.pipe_type })),
       } as any;
 
       let constructionId: string;
