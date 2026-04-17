@@ -1176,8 +1176,8 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
           routes: routesData.length > 0 ? routesData : null,
           organization_id: organizationId,
           photo_counts: mergedPhotoCounts,
-          vertical_infra: 'ΙΣ',
         } as any;
+
 
 
         if (existingConstruction) {
