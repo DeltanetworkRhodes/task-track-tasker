@@ -773,13 +773,39 @@ function fillEpimetrisiSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
   }
 
   // ── 6. ΟΡΙΖΟΝΤΟΓΡΑΦΙΑ ──
-  ws.getCell("V83").value = d.distanceFromCabinet || "";
-  ws.getCell("V85").value = d.isNewInfrastructure ? "ΝΕΑ ΥΠΟΔΟΜΗ" : "";
-  if (d.verticalRouting) ws.getCell("V89").value = d.verticalRouting;
-  ws.getCell("V91").value = d.trenchLengthM || "";
-  if (d.escalitType) ws.getCell("V95").value = d.escalitType;
-  if (d.bcpType) ws.getCell("V98").value = d.bcpType;
-  if (d.newBcp) ws.getCell("V99").value = d.newBcp;
+  const s6 = d.s6 || {};
+  ws.getCell("V83").value = s6.bmo_bep_distance || d.distanceFromCabinet || "";
+  const eisagogiLabel: Record<string, string> = {
+    "ΝΕΑ ΥΠΟΔΟΜΗ": "NEA YPODOMH",
+    "ΕΣΚΑΛΗΤ": "ΕΣΚΑΛΗΤ",
+    "ΕΣΚΑΛΗΤ Β1": "ΕΣΚΑΛΗΤ Β1",
+    "BCP": "BCP",
+  };
+  ws.getCell("V85").value = eisagogiLabel[s6.eisagogi_type] || (d.isNewInfrastructure ? "NEA YPODOMH" : "");
+
+  if (s6.eisagogi_type === "ΝΕΑ ΥΠΟΔΟΜΗ") {
+    ws.getCell("V86").value = s6.ball_marker_bep || "";
+    ws.getCell("V87").value = s6.ms_skamma || "";
+  }
+  if (s6.eisagogi_type === "ΕΣΚΑΛΗΤ") {
+    ws.getCell("V89").value = "ΕΣΚΑΛΗΤ";
+    ws.getCell("V90").value = s6.eskalit_ms || "";
+    ws.getCell("V91").value = s6.eskalit_nea_solienosi || "";
+    ws.getCell("V92").value = s6.eskalit_solienosi_eisagogis || "";
+    ws.getCell("V93").value = s6.eskalit_bep || "";
+  }
+  if (s6.eisagogi_type === "ΕΣΚΑΛΗΤ Β1") {
+    ws.getCell("V95").value = "ΕΣΚΑΛΗΤ Β1";
+    ws.getCell("V96").value = s6.eskalit_b1_bep || "";
+  }
+  if (s6.eisagogi_type === "BCP") {
+    ws.getCell("V98").value = "BCP";
+    ws.getCell("V99").value = s6.bcp_eidos || "";
+    ws.getCell("V100").value = s6.bcp_ball_marker || "";
+    ws.getCell("V101").value = s6.bcp_ms || "";
+    ws.getCell("V102").value = s6.bcp_bep_ypogeia || "";
+    ws.getCell("V103").value = s6.bcp_bep_enaeria || "";
+  }
 }
 
 /* ────────────────────────────────────────────
