@@ -112,16 +112,6 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
   const [floorMeters, setFloorMeters] = useState<{ floor: string; meters: string; pipe_type: string }[]>([]);
   const [asbuildOpen, setAsbuildOpen] = useState(false);
 
-  // AS-BUILD πεδία (συμπλήρωμα για το Excel)
-  const [verticalInfra, setVerticalInfra] = useState<"ΙΣ" | "ΚΛΙΜΑΚΟΣΤΑΣΙΟ">("ΙΣ");
-  const [ballMarkerBep, setBallMarkerBep] = useState<string>("");
-  const [msCount, setMsCount] = useState<string>("");
-  const [otdrPositions, setOtdrPositions] = useState<{ pos: number; a: string; b: string; c: string; d: string }[]>(
-    Array.from({ length: 8 }, (_, i) => ({ pos: i + 2, a: "", b: "", c: "", d: "" }))
-  );
-  const [floorMeters, setFloorMeters] = useState<{ floor: string; meters: string; pipe_type: string }[]>([]);
-  const [asbuildOpen, setAsbuildOpen] = useState(false);
-
   // Routes (ΔΙΑΔΡΟΜΕΣ)
   const [routes, setRoutes] = useState([
     { label: "FTTH ΥΠΟΓ ΔΔ (Cabin to BEP)", koi: "", fyraKoi: "" },
@@ -451,6 +441,622 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
     setExistingMaterialsLoaded(true);
     setGisAutoFilled(true);
   }, [existingMaterials, existingMaterialsLoaded]);
+
+  // (moved below gisData declaration)
+
+
+  // Load uploaded file counters for already-saved construction (including ΣΚΑΜΑ/ΟΔΕΥΣΗ)
+  useEffect(() => {
+    if (!existingConstruction?.id) {
+      setExistingPhotoCounts({});
+      setExistingOtdrCounts({});
+      return;
+    }
+
+    let cancelled = false;
+
+    const loadExistingFileCounts = async () => {
+      const safeSrId = assignment.sr_id.replace(/[^a-zA-Z0-9_-]/g, "_");
+      const storagePrefix = `constructions/${safeSrId}/${existingConstruction.id}`;
+
+      const { data: folders, error } = await supabase.storage.from("photos").list(storagePrefix);
+
+      const photoCounts: Record<string, number> = {};
+      const otdrCounts: Record<string, number> = {};
+
+      if (!error && folders && !cancelled) {
+        const photoFolderToCategory: Record<string, string> = {
+          SKAMA: "ΣΚΑΜΑ",
+          ODEFSI: "ΟΔΕΥΣΗ",
+          BCP: "BCP",
+          BEP: "BEP",
+          BMO: "BMO",
+          FB: "FB",
+          KAMPINA: "ΚΑΜΠΙΝΑ",
+          G_FASI: "Γ_ΦΑΣΗ",
+        };
+
+        const otdrFolderToCategory = (folderName: string) => {
+          const withoutPrefix = folderName.replace(/^OTDR_/, "");
+          if (withoutPrefix === "KAMPINA") return "ΚΑΜΠΙΝΑ";
+          return withoutPrefix;
+        };
+
+        for (const folder of folders) {
+          if (folder.id !== null) continue;
+
+          const { data: files } = await supabase.storage.from("photos").list(`${storagePrefix}/${folder.name}`);
+          if (!files || cancelled) continue;
+
+          const fileCount = files.filter((f) => f.id !== null).length;
+          if (!fileCount) continue;
+
+          if (folder.name.startsWith("OTDR_")) {
+            const key = otdrFolderToCategory(folder.name);
+            otdrCounts[key] = (otdrCounts[key] || 0) + fileCount;
+          } else {
+            const key = photoFolderToCategory[folder.name] || folder.name;
+            photoCounts[key] = (photoCounts[key] || 0) + fileCount;
+          }
+        }
+      }
+
+      // Fallback: use saved photo_counts from construction record (photos may have been moved to Drive)
+      const savedCounts = (existingConstruction as any)?.photo_counts as Record<string, number> | null;
+      if (savedCounts && typeof savedCounts === "object") {
+        for (const [key, count] of Object.entries(savedCounts)) {
+          if (typeof count === "number" && count > 0 && !(photoCounts[key] > 0)) {
+            photoCounts[key] = count;
+          }
+        }
+      }
+
+      // Fallback 2: If still no photo counts and assignment has drive_folder_url, fetch from Google Drive
+      const hasAnyPhotoCounts = Object.values(photoCounts).some(c => c > 0);
+      if (!hasAnyPhotoCounts && assignment.drive_folder_url && !cancelled) {
+        try {
+          const { data: sessionData } = await supabase.auth.getSession();
+          const token = sessionData?.session?.access_token;
+          if (token) {
+            const driveRes = await supabase.functions.invoke("google-drive-files", {
+              body: { action: "sr_folder", sr_id: assignment.sr_id },
+            });
+            
+            if (driveRes.data?.found && driveRes.data?.subfolders) {
+              const driveFolderToCategory: Record<string, string> = {
+                "ΣΚΑΜΑ": "ΣΚΑΜΑ", "ΣΚΑΜΜΑ": "ΣΚΑΜΑ", "SKAMA": "ΣΚΑΜΑ", "ΣΚΆΜΑ": "ΣΚΑΜΑ",
+                "ΟΔΕΥΣΗ": "ΟΔΕΥΣΗ", "ODEFSI": "ΟΔΕΥΣΗ", "ΌΔΕΥΣΗ": "ΟΔΕΥΣΗ",
+                "BCP": "BCP", "BEP": "BEP", "BMO": "BMO", "FB": "FB",
+                "FLOOR BOX": "FB", "FLOORBOX": "FB",
+                "ΚΑΜΠΙΝΑ": "ΚΑΜΠΙΝΑ", "ΚΑΜΠΊΝΑ": "ΚΑΜΠΙΝΑ", "KAMPINA": "ΚΑΜΠΙΝΑ",
+                "Γ_ΦΑΣΗ": "Γ_ΦΑΣΗ", "Γ ΦΑΣΗ": "Γ_ΦΑΣΗ", "G_FASI": "Γ_ΦΑΣΗ", "Γ' ΦΑΣΗ": "Γ_ΦΑΣΗ", "Γ' ΦΆΣΗ": "Γ_ΦΑΣΗ",
+              };
+
+              const normalizeFolderName = (name: string): string => {
+                return name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().trim();
+              };
+
+              for (const [folderName, folderData] of Object.entries(driveRes.data.subfolders as Record<string, any>)) {
+                // Try exact match, then uppercase, then normalized (accent-stripped)
+                let categoryKey = driveFolderToCategory[folderName] || driveFolderToCategory[folderName.toUpperCase()];
+                if (!categoryKey) {
+                  const normalized = normalizeFolderName(folderName);
+                  categoryKey = Object.entries(driveFolderToCategory).find(
+                    ([k]) => normalizeFolderName(k) === normalized
+                  )?.[1] || "";
+                }
+                if (categoryKey && folderData.files?.length > 0) {
+                  const imageCount = folderData.files.filter((f: any) =>
+                    f.mimeType?.startsWith("image/")
+                  ).length;
+                  if (imageCount > 0) {
+                    photoCounts[categoryKey] = imageCount;
+                  }
+                }
+              }
+
+              // Save the discovered counts back to the construction record for future use
+              const drivePhotoCounts = { ...photoCounts };
+              if (Object.keys(drivePhotoCounts).length > 0) {
+                await supabase
+                  .from("constructions")
+                  .update({ photo_counts: drivePhotoCounts } as any)
+                  .eq("id", existingConstruction.id);
+              }
+            }
+          }
+        } catch (driveErr) {
+          console.warn("Drive fallback for photo counts failed:", driveErr);
+        }
+      }
+
+      if (!cancelled) {
+        setExistingPhotoCounts(photoCounts);
+        setExistingOtdrCounts(otdrCounts);
+      }
+    };
+
+    loadExistingFileCounts();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [existingConstruction?.id, assignment.sr_id]);
+
+  // Fetch work pricing
+  const { data: workPricing } = useQuery({
+    queryKey: ["work_pricing"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("work_pricing")
+        .select("*")
+        .order("code", { ascending: true });
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // Fetch materials
+  const { data: materials } = useQuery({
+    queryKey: ["materials"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("materials")
+        .select("*")
+        .order("code", { ascending: true });
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // Fetch GIS data for this assignment
+  const { data: gisData } = useQuery({
+    queryKey: ["gis_data_for_construction", assignment.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("gis_data")
+        .select("*")
+        .eq("assignment_id", assignment.id)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // Sync floorMeters με floor_details από GIS (διατηρώντας τυχόν ήδη συμπληρωμένες τιμές)
+  useEffect(() => {
+    const fd = (gisData?.floor_details as any[]) || [];
+    if (fd.length === 0) return;
+    setFloorMeters((prev) => {
+      const prevMap = new Map(prev.map((p) => [String(p.floor), p]));
+      return fd.map((f: any) => {
+        const floor = String(f?.floor ?? f?.["ΟΡΟΦΟΣ"] ?? "");
+        const existing = prevMap.get(floor);
+        return existing || { floor, meters: "", pipe_type: "" };
+      });
+    });
+  }, [gisData]);
+
+
+  const [gisAutoFilled, setGisAutoFilled] = useState(false);
+  useEffect(() => {
+    const hasExistingConstruction = !!existingConstruction;
+    const hasExistingSavedMaterials = (existingMaterials?.length || 0) > 0;
+    const existingMaterialLookupReady = !existingConstruction ? existingConstructionFetched : existingMaterialsFetched;
+
+    // Skip GIS auto-fill if: DB lookup not finished, already done, no GIS data/material catalog,
+    // user already has items, OR this assignment already has persisted construction data
+    if (!existingMaterialLookupReady || !gisData || !materials || gisAutoFilled || materialItems.length > 0 || hasExistingSavedMaterials || hasExistingConstruction) return;
+    
+    const oteMaterials = materials.filter((m) => m.source === "OTE");
+    const allMaterials = materials;
+    const autoItems: MaterialItem[] = [];
+
+    const addMaterial = (match: (m: any) => boolean, qty: number, sourceFilter?: string) => {
+      const pool = sourceFilter ? allMaterials.filter((m) => m.source === sourceFilter) : oteMaterials;
+      const found = pool.find(match);
+      if (found && qty > 0 && !autoItems.some((a) => a.material_id === found.id)) {
+        autoItems.push({
+          material_id: found.id,
+          code: found.code,
+          name: found.name,
+          unit: found.unit,
+          price: found.price,
+          source: found.source,
+          quantity: qty,
+        });
+      }
+    };
+
+    // Helper: flexible material name matching (case-insensitive, multiple patterns)
+    const nameMatches = (name: string, ...patterns: string[]) => {
+      const upper = name.toUpperCase();
+      return patterns.every((p) => upper.includes(p.toUpperCase()));
+    };
+
+    // 1. BEP - match size from bep_type (e.g. "MEDIUM/12/ZTT (01..12)")
+    if (gisData.bep_type) {
+      const bepSize = gisData.bep_type.toUpperCase();
+      if (bepSize.includes("SMALL")) {
+        addMaterial((m) => nameMatches(m.name, "SMALL", "BEP"), 1);
+      } else if (bepSize.includes("MEDIUM")) {
+        addMaterial((m) => nameMatches(m.name, "MEDIUM", "BEP"), 1);
+      } else if (bepSize.includes("X-LARGE") || bepSize.includes("XLARGE")) {
+        addMaterial((m) => nameMatches(m.name, "X-LARGE", "BEP") || nameMatches(m.name, "XLARGE", "BEP"), 1);
+      } else if (bepSize.includes("LARGE")) {
+        addMaterial((m) => nameMatches(m.name, "LARGE", "BEP") && !nameMatches(m.name, "X-LARGE") && !nameMatches(m.name, "XLARGE"), 1);
+      }
+      // Also try matching by capacity number
+      const capMatch = bepSize.match(/\/(\d+)\//);
+      if (capMatch && autoItems.length === 0) {
+        addMaterial((m) => nameMatches(m.name, "BEP") && m.name.includes(capMatch[1]), 1);
+      }
+    }
+
+    // 2. BMO - match size from bmo_type (e.g. "SMALL/16/RAYCAP")
+    if (gisData.bmo_type) {
+      const bmoSize = gisData.bmo_type.toUpperCase();
+      if (bmoSize.includes("SMALL")) {
+        addMaterial((m) => nameMatches(m.name, "SMALL", "BMO"), 1);
+      } else if (bmoSize.includes("MEDIUM")) {
+        addMaterial((m) => nameMatches(m.name, "MEDIUM", "BMO"), 1);
+      } else if (bmoSize.includes("X-LARGE") || bmoSize.includes("XLARGE")) {
+        addMaterial((m) => nameMatches(m.name, "X-LARGE", "BMO") || nameMatches(m.name, "XLARGE", "BMO"), 1);
+      } else if (bmoSize.includes("LARGE")) {
+        addMaterial((m) => nameMatches(m.name, "LARGE", "BMO") && !nameMatches(m.name, "X-LARGE") && !nameMatches(m.name, "XLARGE"), 1);
+      }
+    }
+
+    // 3. Floor Boxes - count from floor_details (scan ALL keys for FB patterns)
+    const floorDetails = (gisData.floor_details as any[]) || [];
+    let fb4Total = 0;
+    let fb12Total = 0;
+    let fbGenericTotal = 0;
+
+    for (const fd of floorDetails) {
+      const row = fd.raw && typeof fd.raw === "object" ? fd.raw : fd;
+      const keys = Object.keys(row);
+      
+      // Scan all keys for FB-related columns
+      for (const key of keys) {
+        const upperKey = key.toUpperCase().trim();
+        
+        // Match keys like "FB01", "FB 01", "FB1", "FB02", "FLOOR BOX", etc.
+        const isFbKey = /^FB\s?\d+$/i.test(upperKey) || upperKey === "FB" || upperKey === "FLOOR BOX" || upperKey === "FLOORBOX";
+        const isFbCountKey = /^(FB\s?\d+|FLOOR\s?BOX)$/i.test(upperKey);
+        
+        if (isFbKey || isFbCountKey) {
+          const val = parseInt(String(row[key])) || 0;
+          if (val <= 0) continue;
+          
+          // Find corresponding TYPE key
+          const typeKey = keys.find((k) => {
+            const uk = k.toUpperCase().trim();
+            return uk === upperKey + " TYPE" || uk === upperKey + "_TYPE" || uk === upperKey + " ΤΥΠΟΣ";
+          });
+          const fbType = typeKey ? String(row[typeKey] || "").toUpperCase() : "";
+          
+          if (fbType.includes("12")) {
+            fb12Total += val;
+          } else if (fbType.includes("4")) {
+            fb4Total += val;
+          } else {
+            fbGenericTotal += val; // Will default to 4-port
+          }
+        }
+      }
+      
+      // Fallback: if no specific FB keys found, check if this floor row has any FB indication
+      if (fb4Total === 0 && fb12Total === 0 && fbGenericTotal === 0) {
+        for (const key of keys) {
+          const upperKey = key.toUpperCase().trim();
+          if (upperKey.includes("FB") && !upperKey.includes("TYPE") && !upperKey.includes("ΤΥΠΟΣ")) {
+            const val = parseInt(String(row[key])) || 0;
+            if (val > 0) fbGenericTotal += val;
+          }
+        }
+      }
+    }
+
+    // If no FB counts found from columns, count floors that have FB data (1 FB per floor as minimum)
+    if (fb4Total === 0 && fb12Total === 0 && fbGenericTotal === 0 && floorDetails.length > 0) {
+      // Each floor typically gets at least 1 FB
+      fbGenericTotal = floorDetails.length;
+    }
+
+    fb4Total += fbGenericTotal; // Default generic FBs to 4-port
+    
+    if (fb4Total > 0) {
+      addMaterial((m) => nameMatches(m.name, "FLOOR", "BOX", "4") || nameMatches(m.name, "FB", "4"), fb4Total);
+      // Fallback: any floor box material
+      if (!autoItems.some((a) => nameMatches(a.name, "FLOOR") || nameMatches(a.name, "FB"))) {
+        addMaterial((m) => nameMatches(m.name, "FLOOR", "BOX") || (nameMatches(m.name, "FB") && !nameMatches(m.name, "BEP")), fb4Total);
+      }
+    }
+    if (fb12Total > 0) {
+      addMaterial((m) => nameMatches(m.name, "FLOOR", "BOX", "12") || nameMatches(m.name, "FB", "12"), fb12Total);
+      if (!autoItems.some((a) => (nameMatches(a.name, "FLOOR") || nameMatches(a.name, "FB")) && a.name.includes("12"))) {
+        addMaterial((m) => nameMatches(m.name, "FLOOR", "BOX") || (nameMatches(m.name, "FB") && !nameMatches(m.name, "BEP")), fb12Total);
+      }
+    }
+
+    // 4. Splitter from bep_template (e.g. "BEP 1SP 1:8(01..12)")
+    if (gisData.bep_template) {
+      const tmpl = gisData.bep_template.toUpperCase();
+      if (tmpl.includes("1:8")) {
+        addMaterial((m) => nameMatches(m.name, "SPLITTER") && m.name.includes("1:8"), 1);
+      } else if (tmpl.includes("1:4")) {
+        addMaterial((m) => nameMatches(m.name, "SPLITTER") && m.name.includes("1:4"), 1);
+      } else if (tmpl.includes("1:2")) {
+        addMaterial((m) => nameMatches(m.name, "SPLITTER") && m.name.includes("1:2"), 1);
+      } else if (tmpl.includes("1:16")) {
+        addMaterial((m) => nameMatches(m.name, "SPLITTER") && m.name.includes("1:16"), 1);
+      }
+    }
+
+    // 5. BCP from GIS (nearby_bcp, new_bcp, associated_bcp)
+    if (gisData.nearby_bcp || gisData.new_bcp) {
+      addMaterial((m) => nameMatches(m.name, "BCP"), 1);
+    }
+
+    // 6. Nanotronix / Smart readiness
+    if (gisData.nanotronix) {
+      addMaterial((m) => nameMatches(m.name, "NANOTRONIX") || nameMatches(m.name, "NANO"), 1);
+    }
+
+    if (autoItems.length > 0) {
+      setMaterialItems(autoItems);
+      setMaterialTab("OTE");
+      setGisAutoFilled(true);
+      toast.success(`✅ Αυτόματη χρέωση ${autoItems.length} υλικών από GIS (${fb4Total + fb12Total} FB, ${gisData.bep_type ? 'BEP: ' + gisData.bep_type : ''} ${gisData.bmo_type ? 'BMO: ' + gisData.bmo_type : ''})`, { duration: 6000 });
+    } else if (gisData) {
+      console.log("GIS auto-fill: no matching materials found. GIS data:", {
+        bep_type: gisData.bep_type,
+        bmo_type: gisData.bmo_type,
+        bep_template: gisData.bep_template,
+        floor_details: gisData.floor_details,
+      });
+    }
+  }, [
+    existingConstruction,
+    existingConstructionFetched,
+    existingMaterials,
+    existingMaterialsFetched,
+    gisData,
+    materials,
+    gisAutoFilled,
+    materialItems.length,
+  ]);
+
+  // Auto-fill basic fields from GIS data
+  const [gisFieldsFilled, setGisFieldsFilled] = useState(false);
+  useEffect(() => {
+    if (!gisData || gisFieldsFilled || !!existingConstruction) return;
+
+    // CAB from assignment or GIS associated_bcp
+    if (!cab && gisData.associated_bcp) {
+      setCab(gisData.associated_bcp);
+    }
+
+    // Floors
+    if (gisData.floors && floors === "0") {
+      setFloors(String(gisData.floors));
+    }
+
+    // Routing type from area_type or conduit
+    if (!routingType) {
+      if (gisData.area_type) {
+        setRoutingType(gisData.area_type);
+      } else if (gisData.conduit) {
+        setRoutingType(gisData.conduit);
+      }
+    }
+
+    // AK from building_id
+    if (!ak && gisData.building_id) {
+      setAk(gisData.building_id);
+    }
+
+    // Routes from optical_paths
+    const opticalPaths = (gisData.optical_paths as any[]) || [];
+    if (opticalPaths.length > 0) {
+      setRoutes((prev) => {
+        const updated = [...prev];
+        
+        // Check if any path is INHOUSE — if so, skip ΕΝΑΕΡΙΟ auto-fill
+        const hasInhouse = opticalPaths.some((path) => {
+          const raw = path.raw || path;
+          const pt = (raw["OPTICAL PATH TYPE"] || raw["optical_path_type"] || "").toUpperCase();
+          return pt.includes("INHOUSE") || pt.includes("ΚΑΘΕΤ") || pt.includes("BEP-BMO") || pt.includes("BMO-FB");
+        });
+        
+        for (const path of opticalPaths) {
+          const raw = path.raw || path;
+          const pathType = (raw["OPTICAL PATH TYPE"] || raw["optical_path_type"] || "").toUpperCase();
+          const koiVal = String(raw["KOI"] || raw["koi"] || "");
+          const fyraVal = String(raw["4KOI"] || raw["fyra_koi"] || raw["4ΚΟΙ"] || "");
+
+          // Match to existing route labels
+          let matchIdx = -1;
+          if (pathType.includes("ΥΠΟΓ") || pathType.includes("CABIN TO BEP") || pathType.includes("CAB")) {
+            matchIdx = 0;
+          } else if (pathType.includes("ΕΝΑΕΡΙΟ") && pathType.includes("ΔΔ")) {
+            matchIdx = 1;
+          } else if (pathType.includes("ΕΝΑΕΡΙΟ") && pathType.includes("ΣΥΝΔΡ")) {
+            matchIdx = 2;
+          } else if (pathType.includes("INHOUSE") || pathType.includes("ΚΑΘΕΤ")) {
+            matchIdx = 3;
+          }
+
+          // Skip ΕΝΑΕΡΙΟ routes (index 1, 2) when INHOUSE path exists
+          if (hasInhouse && (matchIdx === 1 || matchIdx === 2)) {
+            continue;
+          }
+
+          if (matchIdx >= 0) {
+            updated[matchIdx] = {
+              ...updated[matchIdx],
+              koi: koiVal || updated[matchIdx].koi,
+              fyraKoi: fyraVal || updated[matchIdx].fyraKoi,
+            };
+          }
+        }
+        return updated;
+      });
+    }
+
+    // Notes
+    if (gisData.notes && !pendingNote) {
+      setPendingNote(gisData.notes);
+    }
+
+    setGisFieldsFilled(true);
+    toast.success("Αυτόματη συμπλήρωση στοιχείων από GIS");
+  }, [gisData, gisFieldsFilled, existingConstruction]);
+
+  const worksByCategory = useMemo(() => {
+    if (!workPricing) return {};
+    const groups: Record<string, typeof workPricing> = {};
+    const uncategorized: typeof workPricing = [];
+    
+    // In crew mode, filter to only allowed prefixes
+    const allowedPrefixes = filterWorkPrefixes && filterWorkPrefixes.length > 0 ? filterWorkPrefixes : null;
+    
+    for (const w of workPricing) {
+      const cat = WORK_CATEGORIES.find((c) => w.code.startsWith(c.prefix));
+      if (cat) {
+        // Skip categories not in allowed prefixes (crew mode)
+        if (allowedPrefixes && !allowedPrefixes.some((p) => w.code.startsWith(p))) continue;
+        if (!groups[cat.prefix]) groups[cat.prefix] = [];
+        groups[cat.prefix].push(w);
+      } else {
+        if (!allowedPrefixes) uncategorized.push(w);
+      }
+    }
+    if (uncategorized.length > 0) groups["other"] = uncategorized;
+    return groups;
+  }, [workPricing, filterWorkPrefixes]);
+
+  // Group materials by category
+  const materialsByCategory = useMemo(() => {
+    if (!materials) return {};
+    const groups: Record<string, Record<string, typeof materials>> = { OTE: {}, DELTANETWORK: {} };
+    
+    // In crew mode, filter to only allowed material codes
+    const allowedCodes = filterMaterialCodes && filterMaterialCodes.length > 0 ? new Set(filterMaterialCodes) : null;
+    
+    for (const m of materials) {
+      // Skip materials not in allowed codes (crew mode)
+      if (allowedCodes && !allowedCodes.has(m.code)) continue;
+      
+      const source = m.source as "OTE" | "DELTANETWORK";
+      if (!groups[source]) groups[source] = {};
+      
+      const cat = MATERIAL_CATEGORIES.find((c) => c.match(m.name, m.code));
+      const catLabel = cat?.label || "Λοιπά";
+      if (!groups[source][catLabel]) groups[source][catLabel] = [];
+      groups[source][catLabel].push(m);
+    }
+    return groups;
+  }, [materials, filterMaterialCodes]);
+
+  // Toggle category
+  const toggleWorkCategory = (prefix: string) => {
+    setOpenWorkCategories((prev) =>
+      prev.includes(prefix) ? prev.filter((p) => p !== prefix) : [...prev, prefix]
+    );
+  };
+  const toggleMaterialCategory = (cat: string) => {
+    setOpenMaterialCategories((prev) =>
+      prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat]
+    );
+  };
+
+  // Check if work is selected
+  const isWorkSelected = (id: string) => workItems.some((w) => w.work_pricing_id === id);
+  const getWorkQty = (id: string) => workItems.find((w) => w.work_pricing_id === id)?.quantity || 0;
+  
+  const isMaterialSelected = (id: string) => materialItems.some((m) => m.material_id === id);
+  const getMaterialQty = (id: string) => materialItems.find((m) => m.material_id === id)?.quantity || 0;
+
+  // Toggle work item
+  const toggleWork = (w: any) => {
+    if (isWorkSelected(w.id)) {
+      setWorkItems((prev) => prev.filter((wi) => wi.work_pricing_id !== w.id));
+    } else {
+      setWorkItems((prev) => [
+        ...prev,
+        {
+          work_pricing_id: w.id,
+          code: w.code,
+          description: w.description,
+          unit: w.unit,
+          unit_price: w.unit_price,
+          quantity: 1,
+        },
+      ]);
+    }
+  };
+
+  // Toggle material
+  const toggleMaterial = (m: any) => {
+    if (isMaterialSelected(m.id)) {
+      setMaterialItems((prev) => prev.filter((mi) => mi.material_id !== m.id));
+    } else {
+      setMaterialItems((prev) => [
+        ...prev,
+        {
+          material_id: m.id,
+          code: m.code,
+          name: m.name,
+          unit: m.unit,
+          price: m.price,
+          source: m.source,
+          quantity: 1,
+        },
+      ]);
+    }
+  };
+
+  // Update quantities
+  const updateWorkQty = (id: string, qty: number) => {
+    if (qty < 1) qty = 1;
+    setWorkItems((prev) => prev.map((w) => (w.work_pricing_id === id ? { ...w, quantity: qty } : w)));
+  };
+  const updateMaterialQty = (id: string, qty: number) => {
+    if (qty < 1) qty = 1;
+    setMaterialItems((prev) => prev.map((m) => (m.material_id === id ? { ...m, quantity: qty } : m)));
+  };
+
+  // compressImage imported from shared utility
+
+  // Photo handling per category with AI QA
+  const handleCategoryPhotoSelect = async (category: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+    const ref = fileInputRefs.current[category];
+    if (ref) ref.value = "";
+    
+    // Compress all photos in parallel
+    const compressed = await Promise.all(files.map((f) => compressImage(f)));
+
+    // Apply watermark
+    const wmData: WatermarkData = {
+      srId: assignment?.sr_id || "—",
+      address: assignment?.address || undefined,
+      latitude: assignment?.latitude,
+      longitude: assignment?.longitude,
+      datetime: new Date(),
+    };
+    const watermarked = await Promise.all(compressed.map((f) => applyWatermark(f, wmData)));
+    // AI analysis for each photo (only when online)
+    const accepted: File[] = [];
+    const acceptedPreviews: string[] = [];
+
+    for (let i = 0; i < watermarked.length; i++) {
+      const file = watermarked[i];
+      const existingCount = (categorizedPhotos[category] || []).length;
+      const idx = existingCount + accepted.length;
 
 
       accepted.push(file);
