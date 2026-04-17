@@ -553,16 +553,22 @@ function fillEpimetrisiSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
   ws.getCell("R8").value = d.conduit;
 
   // ── 2. KOI CAB first box ── Row 13
-  ws.getCell("D13").value = "BEP";
-  ws.getCell("E13").value = "4' μ cable";
-  ws.getCell("F13").value = d.totalCableLength || d.distanceFromCabinet;
+  const hasCabBcp = d.opticalPaths.some((op) => op.type === "CAB-BCP");
+  ws.getCell("D13").value = hasCabBcp ? "BCP" : "BEP";
+  ws.getCell("E13").value = d.koiTypeCabBep || "4' μ cable";
+  ws.getCell("F13").value = d.koiCabBepLength || d.totalCableLength || d.distanceFromCabinet || "";
 
   // ── 3a. KOI BCP-BEP section (rows 17-18+) ──
-  if (d.bcpPlacement || d.bcpKind || d.bcpBepCableType) {
+  if (hasCabBcp) {
     ws.getCell("D18").value = d.bcpPlacement || "";
     ws.getCell("E18").value = d.bcpKind || "";
-    ws.getCell("F18").value = d.bcpBepCableType || "";
-    ws.getCell("G18").value = d.bcpBepLength || "";
+    ws.getCell("F18").value = d.koiTypeCabBcp || "4' μ cable";
+    ws.getCell("G18").value = d.koiCabBcpLength || d.bcpBepLength || "";
+  } else {
+    ws.getCell("D18").value = null;
+    ws.getCell("E18").value = null;
+    ws.getCell("F18").value = null;
+    ws.getCell("G18").value = null;
   }
   if (d.additionalBcpConnections && d.additionalBcpConnections.length > 0) {
     d.additionalBcpConnections.forEach((bcp, idx) => {
@@ -575,6 +581,10 @@ function fillEpimetrisiSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
   }
 
   // ── 4. BEP-ΟΡΟΦΟΙ ── Rows 25-39
+  // C22/D22 vertical infrastructure
+  ws.getCell("C22").value = d.verticalInfra === "ΙΣ" ? "ΙΣ" : "";
+  ws.getCell("D22").value = d.verticalInfra === "ΚΑΓΚΕΛΟ" ? "ΚΑΓΚΕΛΟ" : "";
+
   for (let r = 25; r <= 39; r++) {
     for (let c = 2; c <= 17; c++) {
       ws.getCell(r, c).value = null;
@@ -596,8 +606,10 @@ function fillEpimetrisiSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
     ws.getCell(r, 13).value = fd.fb_customer || "";
     ws.getCell(r, 14).value = fd.customer_space || "";
     ws.getCell(r, 15).value = fd.fb_id || "";
-    ws.getCell(r, 16).value = fd.meters || "";
-    ws.getCell(r, 17).value = fd.pipe_type || "";
+    // Merge floorMeters with floorDetails for P/Q (cols 16/17)
+    const fm = (d.floorMeters || []).find((m) => String(m.floor) === String(fd.floor));
+    ws.getCell(r, 16).value = (fm?.meters as any) || fd.meters || "";
+    ws.getCell(r, 17).value = fm?.pipe_type || fd.pipe_type || "";
   });
 
   // ── 5. CAB-BEP OPTICAL PATHS (rows 44-47) ──
