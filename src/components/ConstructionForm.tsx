@@ -2866,6 +2866,19 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                   />
                 </div>
               </div>
+              {(idx === 0 || idx === 1) && (
+                <div>
+                  <Label className="text-[10px] text-muted-foreground">Τύπος ΚΟΙ</Label>
+                  <select
+                    value={idx === 0 ? koiTypeCabBep : koiTypeCabBcp}
+                    onChange={(e) => idx === 0 ? setKoiTypeCabBep(e.target.value) : setKoiTypeCabBcp(e.target.value)}
+                    className="w-full mt-0.5 text-sm border border-border rounded-md px-2 py-1 h-8 bg-background text-foreground"
+                  >
+                    <option value="4' μ cable">4' μ cable</option>
+                    <option value="12' μ cable">12' μ cable</option>
+                  </select>
+                </div>
+              )}
             </div>
             );
           })}
