@@ -518,13 +518,17 @@ export type Database = {
         Row: {
           ak: string | null
           assignment_id: string | null
+          ball_marker_bep: number | null
           cab: string | null
           created_at: string
+          floor_meters: Json | null
           floors: number | null
           google_sheet_row_id: number | null
           id: string
           material_cost: number
+          ms_count: number | null
           organization_id: string | null
+          otdr_positions: Json | null
           pending_note: string | null
           photo_counts: Json | null
           profit: number | null
@@ -535,17 +539,22 @@ export type Database = {
           sr_id: string
           status: string
           updated_at: string
+          vertical_infra: string | null
         }
         Insert: {
           ak?: string | null
           assignment_id?: string | null
+          ball_marker_bep?: number | null
           cab?: string | null
           created_at?: string
+          floor_meters?: Json | null
           floors?: number | null
           google_sheet_row_id?: number | null
           id?: string
           material_cost?: number
+          ms_count?: number | null
           organization_id?: string | null
+          otdr_positions?: Json | null
           pending_note?: string | null
           photo_counts?: Json | null
           profit?: number | null
@@ -556,17 +565,22 @@ export type Database = {
           sr_id: string
           status?: string
           updated_at?: string
+          vertical_infra?: string | null
         }
         Update: {
           ak?: string | null
           assignment_id?: string | null
+          ball_marker_bep?: number | null
           cab?: string | null
           created_at?: string
+          floor_meters?: Json | null
           floors?: number | null
           google_sheet_row_id?: number | null
           id?: string
           material_cost?: number
+          ms_count?: number | null
           organization_id?: string | null
+          otdr_positions?: Json | null
           pending_note?: string | null
           photo_counts?: Json | null
           profit?: number | null
@@ -577,6 +591,7 @@ export type Database = {
           sr_id?: string
           status?: string
           updated_at?: string
+          vertical_infra?: string | null
         }
         Relationships: [
           {

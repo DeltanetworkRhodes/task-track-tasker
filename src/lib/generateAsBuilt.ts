@@ -84,6 +84,11 @@ interface AsBuiltData {
   sesId: string;
   exportDate: string;
   additionalBcpConnections: { placement: string; kind: string; cableType: string; length: number }[];
+  verticalInfra?: string;
+  ballMarkerBep?: number | string;
+  msCount?: number | string;
+  otdrPositions?: { pos: number; a: any; b: any; c: any; d: any }[];
+  floorMeters?: { floor: string; meters: any; pipe_type: string }[];
 }
 
 /* ────────────────────────────────────────────
@@ -276,6 +281,11 @@ async function fetchAsBuiltData(srId: string): Promise<AsBuiltData> {
     sesId: construction?.ses_id || "",
     exportDate: new Date().toLocaleDateString("el-GR"),
     additionalBcpConnections,
+    verticalInfra: (construction as any)?.vertical_infra || "ΙΣ",
+    ballMarkerBep: (construction as any)?.ball_marker_bep ?? "",
+    msCount: (construction as any)?.ms_count ?? "",
+    otdrPositions: ((construction as any)?.otdr_positions as any[]) || [],
+    floorMeters: ((construction as any)?.floor_meters as any[]) || [],
   };
 }
 
