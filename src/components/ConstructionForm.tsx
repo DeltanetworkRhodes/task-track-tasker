@@ -421,6 +421,8 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
     const savedSection6 = (existingConstruction as any).asbuilt_section6;
     if (savedSection6 && typeof savedSection6 === "object") {
       setSection6(prev => ({ ...prev, ...savedSection6 }));
+      setBallMarkerBep(savedSection6.ball_marker_bep || "");
+      setBallMarkerBcp(savedSection6.bcp_ball_marker || "");
     }
 
     // Prevent GIS defaults from overriding persisted values
