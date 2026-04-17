@@ -243,16 +243,19 @@ Deno.serve(async (req) => {
 
       if (uploadError) throw uploadError;
 
-      const { data: publicUrl } = supabase.storage
+      // Bucket "photos" is private — return a signed URL (valid 1 hour)
+      const { data: signed, error: signedErr } = await supabase.storage
         .from("photos")
-        .getPublicUrl(filePath);
+        .createSignedUrl(filePath, 3600);
+
+      if (signedErr) throw signedErr;
 
       return new Response(
         JSON.stringify({
           success: true,
           file_name: meta.name,
           storage_path: filePath,
-          public_url: publicUrl.publicUrl,
+          public_url: signed.signedUrl,
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
