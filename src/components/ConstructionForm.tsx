@@ -139,18 +139,20 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
     setRoutes((prev) => prev.map((r, i) => (i === index ? { ...r, [field]: value } : r)));
   };
 
-  // Auto-sync FTTH INHOUSE (Κάθετη όδευση BEP-FI) KOI from sum of floor meters BMO→FB
-  useEffect(() => {
-    const sum = floorMeters.reduce((acc, fm) => acc + (parseFloat(fm.meters) || 0), 0);
-    const sumStr = sum > 0 ? String(sum) : "";
-    setRoutes((prev) => {
-      if (prev[3]?.koi === sumStr) return prev;
-      return prev.map((r, i) => (i === 3 ? { ...r, koi: sumStr } : r));
-    });
-  }, [floorMeters]);
+  // Auto-computed: FTTH INHOUSE KOI = sum of floor meters BMO→FB
+  const inhouseKoiSum = useMemo(
+    () => floorMeters.reduce((acc, fm) => acc + (parseFloat(fm.meters) || 0), 0),
+    [floorMeters]
+  );
 
-  const totalKoi = routes.reduce((sum, r) => sum + (parseFloat(r.koi) || 0), 0);
-  const totalFyraKoi = routes.reduce((sum, r) => sum + (parseFloat(r.fyraKoi) || 0), 0);
+  // Routes with FTTH INHOUSE (idx 3) KOI overridden by computed sum
+  const effectiveRoutes = useMemo(
+    () => routes.map((r, i) => (i === 3 ? { ...r, koi: inhouseKoiSum > 0 ? String(inhouseKoiSum) : "" } : r)),
+    [routes, inhouseKoiSum]
+  );
+
+  const totalKoi = effectiveRoutes.reduce((sum, r) => sum + (parseFloat(r.koi) || 0), 0);
+  const totalFyraKoi = effectiveRoutes.reduce((sum, r) => sum + (parseFloat(r.fyraKoi) || 0), 0);
 
   // Work items
   const [workItems, setWorkItems] = useState<WorkItem[]>([]);
