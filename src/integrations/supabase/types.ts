@@ -49,6 +49,8 @@ export type Database = {
           customer_name: string | null
           description: string | null
           duration_minutes: number
+          google_calendar_user_id: string | null
+          google_event_id: string | null
           id: string
           organization_id: string | null
           sr_id: string
@@ -61,6 +63,8 @@ export type Database = {
           customer_name?: string | null
           description?: string | null
           duration_minutes?: number
+          google_calendar_user_id?: string | null
+          google_event_id?: string | null
           id?: string
           organization_id?: string | null
           sr_id: string
@@ -73,6 +77,8 @@ export type Database = {
           customer_name?: string | null
           description?: string | null
           duration_minutes?: number
+          google_calendar_user_id?: string | null
+          google_event_id?: string | null
           id?: string
           organization_id?: string | null
           sr_id?: string
@@ -1926,6 +1932,42 @@ export type Database = {
           longitude?: number
           organization_id?: string
           updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_google_calendar_tokens: {
+        Row: {
+          access_token: string | null
+          calendar_id: string | null
+          connected_at: string
+          google_email: string | null
+          id: string
+          refresh_token: string
+          token_expires_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_token?: string | null
+          calendar_id?: string | null
+          connected_at?: string
+          google_email?: string | null
+          id?: string
+          refresh_token: string
+          token_expires_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_token?: string | null
+          calendar_id?: string | null
+          connected_at?: string
+          google_email?: string | null
+          id?: string
+          refresh_token?: string
+          token_expires_at?: string | null
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
