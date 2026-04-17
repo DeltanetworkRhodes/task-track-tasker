@@ -786,15 +786,8 @@ function fillEpimetrisiSheet(ws: ExcelJS.Worksheet, d: AsBuiltData) {
 
   // ── 6. ΟΡΙΖΟΝΤΟΓΡΑΦΙΑ ──
   const s6 = d.s6 || {};
-  // ΑΠΟΣΤΑΣΗ ΒΜΟ→BEP = άθροισμα μέτρων κάθετης όδευσης (BMO→FB ανά όροφο)
-  // ΟΧΙ distanceFromCabinet (αυτή είναι CAB→BEP, διαφορετικό μέγεθος)
-  const verticalSum = (d.floorDetails || []).reduce(
-    (sum: number, fb: any) => sum + (Number(fb.meters) || 0),
-    0
-  );
-  ws.getCell("V83").value =
-    s6.bmo_bep_distance ||
-    (verticalSum > 0 ? verticalSum : "");
+  // ΑΠΟΣΤΑΣΗ ΒΜΟ→BEP = πάντα 1 μέτρο (σταθερή τιμή, δεν υπολογίζεται)
+  ws.getCell("V83").value = 1;
   const eisagogiLabel: Record<string, string> = {
     "ΝΕΑ ΥΠΟΔΟΜΗ": "NEA YPODOMH",
     "ΕΣΚΑΛΗΤ": "ΕΣΚΑΛΗΤ",
