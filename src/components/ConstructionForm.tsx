@@ -405,6 +405,8 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
     setKoiTypeCabBep((existingConstruction as any).koi_type_cab_bep || "4' μ cable");
     setKoiTypeCabBcp((existingConstruction as any).koi_type_cab_bcp || "4' μ cable");
     setVerticalInfra((existingConstruction as any).vertical_infra || "ΙΣ");
+    setBepPlacementFloor((existingConstruction as any).bep_placement_floor || "ΙΣ");
+    setVerticalInfraType((existingConstruction as any).vertical_infra_type || "");
     const savedFloorMeters = (existingConstruction as any).floor_meters;
     if (Array.isArray(savedFloorMeters) && savedFloorMeters.length > 0) {
       setFloorMeters(savedFloorMeters.map((fm: any) => ({
