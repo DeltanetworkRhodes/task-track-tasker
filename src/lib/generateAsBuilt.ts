@@ -94,6 +94,9 @@ interface AsBuiltData {
   koiCabBepLength?: number;
   koiCabBcpLength?: number;
   s6?: any;
+  bepPhotoUrl?: string | null;
+  bmoPhotoUrl?: string | null;
+  bcpPhotoUrl?: string | null;
 }
 
 /* ────────────────────────────────────────────
@@ -240,6 +243,43 @@ async function fetchAsBuiltData(srId: string): Promise<AsBuiltData> {
   const verticalMeters = floorBoxes.reduce((sum, fb) => sum + (fb.meters || 0), 0);
   const totalCableLength = Number(gisData?.distance_from_cabinet || 0) + verticalMeters;
 
+  // Fetch first photo URLs (BEP, BMO, BCP) from storage
+  const constructionId = construction?.id || "";
+  const safeSrId = srId.replace(/[^a-zA-Z0-9_-]/g, "_");
+  const storagePrefix = `constructions/${safeSrId}/${constructionId}`;
+  let bepPhotoUrl: string | null = null;
+  let bmoPhotoUrl: string | null = null;
+  let bcpPhotoUrl: string | null = null;
+  if (constructionId) {
+    try {
+      const { data: bepFiles } = await supabase.storage.from("photos")
+        .list(`${storagePrefix}/BEP`, { limit: 1, sortBy: { column: "created_at", order: "asc" } });
+      if (bepFiles && bepFiles.length > 0) {
+        const { data: urlData } = supabase.storage.from("photos")
+          .getPublicUrl(`${storagePrefix}/BEP/${bepFiles[0].name}`);
+        bepPhotoUrl = urlData?.publicUrl || null;
+      }
+    } catch (e) { console.warn("BEP photo fetch failed:", e); }
+    try {
+      const { data: bmoFiles } = await supabase.storage.from("photos")
+        .list(`${storagePrefix}/BMO`, { limit: 1, sortBy: { column: "created_at", order: "asc" } });
+      if (bmoFiles && bmoFiles.length > 0) {
+        const { data: urlData } = supabase.storage.from("photos")
+          .getPublicUrl(`${storagePrefix}/BMO/${bmoFiles[0].name}`);
+        bmoPhotoUrl = urlData?.publicUrl || null;
+      }
+    } catch (e) { console.warn("BMO photo fetch failed:", e); }
+    try {
+      const { data: bcpFiles } = await supabase.storage.from("photos")
+        .list(`${storagePrefix}/BCP`, { limit: 1, sortBy: { column: "created_at", order: "asc" } });
+      if (bcpFiles && bcpFiles.length > 0) {
+        const { data: urlData } = supabase.storage.from("photos")
+          .getPublicUrl(`${storagePrefix}/BCP/${bcpFiles[0].name}`);
+        bcpPhotoUrl = urlData?.publicUrl || null;
+      }
+    } catch (e) { console.warn("BCP photo fetch failed:", e); }
+  }
+
   return {
     srId: assignment.sr_id,
     buildingId: gisData?.building_id || "",
@@ -300,6 +340,9 @@ async function fetchAsBuiltData(srId: string): Promise<AsBuiltData> {
       (Array.isArray((construction as any)?.routes) && (construction as any).routes[1]?.koi) || 0
     ),
     s6: (construction as any)?.asbuilt_section6 || {},
+    bepPhotoUrl,
+    bmoPhotoUrl,
+    bcpPhotoUrl,
   };
 }
 
@@ -932,6 +975,35 @@ export async function generateAsBuiltFromData(data: AsBuiltData): Promise<AsBuil
         br: { col: 17, row: 101, nativeCol: 17, nativeRow: 101, nativeColOff: 0, nativeRowOff: 0 } as any,
         editAs: "twoCell",
       } as any);
+    }
+
+    // BEP photo — col F-I, row 51-67
+    if (data.bepPhotoUrl) {
+      const bepBuf = await fetchImageBuffer(data.bepPhotoUrl);
+      if (bepBuf) {
+        const ext = data.bepPhotoUrl.toLowerCase().includes(".png") ? "png" : "jpeg";
+        const bepImgId = wb.addImage({ buffer: bepBuf, extension: ext as any });
+        epSheet.addImage(bepImgId, {
+          tl: { col: 5, row: 50 } as any,
+          br: { col: 9, row: 67 } as any,
+          editAs: "oneCell",
+        } as any);
+      }
+    }
+
+    // BMO ή BCP photo — col U-Y, row 51-67 (προτεραιότητα BMO)
+    const bmoOrBcpUrl = data.bmoPhotoUrl || data.bcpPhotoUrl || null;
+    if (bmoOrBcpUrl) {
+      const bmoBuf = await fetchImageBuffer(bmoOrBcpUrl);
+      if (bmoBuf) {
+        const ext = bmoOrBcpUrl.toLowerCase().includes(".png") ? "png" : "jpeg";
+        const bmoImgId = wb.addImage({ buffer: bmoBuf, extension: ext as any });
+        epSheet.addImage(bmoImgId, {
+          tl: { col: 20, row: 50 } as any,
+          br: { col: 25, row: 67 } as any,
+          editAs: "oneCell",
+        } as any);
+      }
     }
   }
 
