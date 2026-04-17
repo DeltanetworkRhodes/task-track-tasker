@@ -280,8 +280,8 @@ export function generateOteSketch(input: SketchInput): string {
     ctx.fillText(condText, conduitX, cableY - 8);
   }
 
-  // ── Distance annotation ──
-  const cabToBepDistance = input.distanceFromCabinet || input.trenchLengthM;
+  // ── Distance annotation (priority: koiCabBepLength → distanceFromCabinet → trenchLengthM) ──
+  const cabToBepDistance = input.koiCabBepLength || input.distanceFromCabinet || input.trenchLengthM;
   const distText = `ΥΠΟΓ. ΟΔΕΥΣΗ: ${cabToBepDistance}m`;
   const midCableX = (cableStartX + cableEndX) / 2;
 
