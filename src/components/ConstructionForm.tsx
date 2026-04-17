@@ -585,19 +585,6 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
     },
   });
 
-  // Sync floorMeters με floor_details από GIS (διατηρώντας τυχόν ήδη συμπληρωμένες τιμές)
-  useEffect(() => {
-    const fd = (gisData?.floor_details as any[]) || [];
-    if (fd.length === 0) return;
-    setFloorMeters((prev) => {
-      const prevMap = new Map(prev.map((p) => [String(p.floor), p]));
-      return fd.map((f: any) => {
-        const floor = String(f?.floor ?? f?.["ΟΡΟΦΟΣ"] ?? "");
-        const existing = prevMap.get(floor);
-        return existing || { floor, meters: "", pipe_type: "" };
-      });
-    });
-  }, [gisData]);
 
 
   const [gisAutoFilled, setGisAutoFilled] = useState(false);
