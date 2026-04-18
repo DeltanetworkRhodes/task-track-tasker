@@ -171,25 +171,73 @@ const TechnicianDashboard = () => {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="sticky top-0 z-50 border-b border-border bg-card/80 backdrop-blur-md">
+      <header className="sticky top-0 z-50 border-b border-border bg-card/95 backdrop-blur-md">
         <div className="flex items-center justify-between px-4 py-3">
-          <div>
-            <h1 className="text-lg font-bold text-foreground">DeltaNet FTTH</h1>
-            <p className="text-xs text-muted-foreground">
-              {profile?.full_name || user?.email} · {profile?.area || "—"}
-            </p>
+          <div className="flex items-center gap-3 min-w-0">
+            {/* Avatar */}
+            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center border border-primary/20 shrink-0">
+              <span className="text-sm font-bold text-primary">{initials}</span>
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-bold text-foreground leading-tight truncate">
+                {greeting}, {profile?.full_name?.split(" ")[0] || "—"}!
+              </p>
+              <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                {profile?.area && (
+                  <span className="text-[10px] text-muted-foreground">📍 {profile.area}</span>
+                )}
+                {profile?.default_phase && (
+                  <span
+                    className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full border ${
+                      PHASE_COLORS[profile.default_phase as 1 | 2 | 3]
+                    }`}
+                  >
+                    {PHASE_LABELS[profile.default_phase as 1 | 2 | 3]}
+                  </span>
+                )}
+              </div>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 shrink-0">
             <GpsOnlineToggle />
             <NotificationBell />
             <button
               onClick={signOut}
-              className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs text-muted-foreground hover:bg-muted transition-colors"
+              className="p-2 rounded-lg border border-border text-muted-foreground hover:bg-muted transition-colors"
+              aria-label="Έξοδος"
             >
-              <LogOut className="h-3.5 w-3.5" />
-              Έξοδος
+              <LogOut className="h-4 w-4" />
             </button>
           </div>
+        </div>
+
+        {/* Quick stats bar */}
+        <div className="flex border-t border-border/50 divide-x divide-border/50">
+          {[
+            {
+              label: "Ενεργά",
+              value:
+                assignments?.filter(
+                  (a) => !["cancelled", "completed", "submitted", "paid", "rejected"].includes(a.status)
+                ).length || 0,
+              color: "text-primary",
+            },
+            {
+              label: "Κατασκευή",
+              value: assignments?.filter((a) => a.status === "construction").length || 0,
+              color: "text-purple-600",
+            },
+            {
+              label: "Αυτοψία",
+              value: assignments?.filter((a) => a.status === "inspection").length || 0,
+              color: "text-orange-600",
+            },
+          ].map((stat) => (
+            <div key={stat.label} className="flex-1 text-center py-2">
+              <p className={`text-base font-bold ${stat.color}`}>{stat.value}</p>
+              <p className="text-[10px] text-muted-foreground">{stat.label}</p>
+            </div>
+          ))}
         </div>
       </header>
 
@@ -212,6 +260,34 @@ const TechnicianDashboard = () => {
 
         <TabsContent value="assignments">
           <NotificationPermissionCard />
+
+          {/* Today's appointments banner */}
+          {todayAppointments.length > 0 && (
+            <div className="mb-4 p-3 rounded-xl border-2 border-green-500/30 bg-green-500/5 space-y-2">
+              <p className="text-xs font-bold text-green-700 flex items-center gap-1.5">
+                📅 Σήμερα — {todayAppointments.length} ραντεβού
+              </p>
+              {todayAppointments.map((a) => (
+                <div
+                  key={a.id}
+                  className="flex items-center justify-between text-xs bg-background rounded-lg px-3 py-2 border border-green-500/20"
+                >
+                  <div>
+                    <span className="font-bold text-primary">{a.sr_id}</span>
+                    <span className="text-muted-foreground ml-2">
+                      {new Date(a.appointment_at!).toLocaleTimeString("el-GR", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </span>
+                  </div>
+                  <span className="text-muted-foreground truncate ml-2 max-w-[120px]">
+                    {a.address}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
           {/* Search Bar */}
           <div className="relative mb-3">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
