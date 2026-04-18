@@ -14,6 +14,28 @@ import TechnicianMap from "@/components/TechnicianMap";
 import GpsOnlineToggle from "@/components/GpsOnlineToggle";
 import TechnicianInventoryView from "@/components/TechnicianInventoryView";
 
+const isToday = (date: Date) => {
+  const today = new Date();
+  return (
+    date.getDate() === today.getDate() &&
+    date.getMonth() === today.getMonth() &&
+    date.getFullYear() === today.getFullYear()
+  );
+};
+
+const PHASE_COLORS: Record<1 | 2 | 3, string> = {
+  1: "bg-amber-500/15 text-amber-700 border-amber-500/30",
+  2: "bg-blue-500/15 text-blue-700 border-blue-500/30",
+  3: "bg-green-500/15 text-green-700 border-green-500/30",
+};
+
+const PHASE_LABELS: Record<1 | 2 | 3, string> = {
+  1: "🚜 Χωματουργικά",
+  2: "🔧 Οδεύσεις",
+  3: "🔬 Κόλληση",
+};
+
+
 const statusFilters = [
   { value: "all", label: "Όλα" },
   { value: "pending", label: "Αναμονή", color: "bg-yellow-500/10 text-yellow-600 border-yellow-500/20" },
