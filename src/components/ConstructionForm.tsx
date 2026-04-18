@@ -2564,26 +2564,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
         </div>
       )}
 
-      {/* Phase 3 lock — Phase 2 must be completed first */}
-      {phase === 3 && phaseStatus?.phase2_status !== "completed" && (
-        <div className="rounded-xl p-8 border-2 border-dashed border-muted text-center space-y-3">
-          <span className="text-5xl block">🔒</span>
-          <p className="font-bold">Φάση 3 Κλειδωμένη</p>
-          <p className="text-sm text-muted-foreground">
-            Η Φάση 2 (Οδεύσεις) πρέπει να ολοκληρωθεί πρώτα
-          </p>
-          <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
-            <div
-              className={`h-2 w-2 rounded-full ${
-                phaseStatus?.phase2_status === "in_progress"
-                  ? "bg-amber-500 animate-pulse"
-                  : "bg-muted-foreground/30"
-              }`}
-            />
-            Φάση 2: {phaseStatus?.phase2_status === "in_progress" ? "Σε εξέλιξη..." : "Εκκρεμεί"}
-          </div>
-        </div>
-      )}
+      {/* Phase 3 lock removed — phases are independent */}
 
       {/* Progress bar */}
       <div className="space-y-1">
