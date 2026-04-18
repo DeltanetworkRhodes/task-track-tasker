@@ -534,6 +534,12 @@ export type Database = {
           organization_id: string | null
           otdr_positions: Json | null
           pending_note: string | null
+          phase1_completed_at: string | null
+          phase1_status: string | null
+          phase2_completed_at: string | null
+          phase2_status: string | null
+          phase3_completed_at: string | null
+          phase3_status: string | null
           photo_counts: Json | null
           profit: number | null
           revenue: number
@@ -565,6 +571,12 @@ export type Database = {
           organization_id?: string | null
           otdr_positions?: Json | null
           pending_note?: string | null
+          phase1_completed_at?: string | null
+          phase1_status?: string | null
+          phase2_completed_at?: string | null
+          phase2_status?: string | null
+          phase3_completed_at?: string | null
+          phase3_status?: string | null
           photo_counts?: Json | null
           profit?: number | null
           revenue?: number
@@ -596,6 +608,12 @@ export type Database = {
           organization_id?: string | null
           otdr_positions?: Json | null
           pending_note?: string | null
+          phase1_completed_at?: string | null
+          phase1_status?: string | null
+          phase2_completed_at?: string | null
+          phase2_status?: string | null
+          phase3_completed_at?: string | null
+          phase3_status?: string | null
           photo_counts?: Json | null
           profit?: number | null
           revenue?: number
@@ -1433,6 +1451,7 @@ export type Database = {
         Row: {
           area: string | null
           created_at: string
+          default_phase: number | null
           email: string | null
           full_name: string
           id: string
@@ -1448,6 +1467,7 @@ export type Database = {
         Insert: {
           area?: string | null
           created_at?: string
+          default_phase?: number | null
           email?: string | null
           full_name?: string
           id?: string
@@ -1463,6 +1483,7 @@ export type Database = {
         Update: {
           area?: string | null
           created_at?: string
+          default_phase?: number | null
           email?: string | null
           full_name?: string
           id?: string
@@ -1709,6 +1730,7 @@ export type Database = {
           material_codes: string[] | null
           name: string
           organization_id: string
+          phase: number | null
           photo_categories: string[] | null
           requires_measurements: boolean | null
           requires_works: boolean | null
@@ -1722,6 +1744,7 @@ export type Database = {
           material_codes?: string[] | null
           name: string
           organization_id: string
+          phase?: number | null
           photo_categories?: string[] | null
           requires_measurements?: boolean | null
           requires_works?: boolean | null
@@ -1735,6 +1758,7 @@ export type Database = {
           material_codes?: string[] | null
           name?: string
           organization_id?: string
+          phase?: number | null
           photo_categories?: string[] | null
           requires_measurements?: boolean | null
           requires_works?: boolean | null
