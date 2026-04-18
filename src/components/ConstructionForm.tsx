@@ -1540,6 +1540,12 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
     for (const m of materials) {
       // Skip materials not in allowed codes (crew mode)
       if (allowedCodes && !allowedCodes.has(m.code)) continue;
+
+      // 3-Phase technician mode: only show materials present in the technician's personal warehouse
+      if (phase) {
+        const inv = techInventoryMap.get(m.id) || 0;
+        if (inv <= 0) continue;
+      }
       
       const source = m.source as "OTE" | "DELTANETWORK";
       if (!groups[source]) groups[source] = {};
@@ -1550,7 +1556,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
       groups[source][catLabel].push(m);
     }
     return groups;
-  }, [materials, filterMaterialCodes]);
+  }, [materials, filterMaterialCodes, phase, techInventoryMap]);
 
   // Toggle category
   const toggleWorkCategory = (prefix: string) => {
