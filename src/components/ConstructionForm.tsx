@@ -54,7 +54,21 @@ interface Props {
   filterWorkPrefixes?: string[];
   /** Crew mode: only show materials whose code matches these codes */
   filterMaterialCodes?: string[];
+  /** 3-Phase workflow: which phase the current technician is responsible for (1, 2, 3). undefined = admin / sees all */
+  phase?: 1 | 2 | 3;
+  /** Phase status snapshot used for the lock UI */
+  phaseStatus?: {
+    phase1_status?: string;
+    phase2_status?: string;
+    phase3_status?: string;
+  } | null;
 }
+
+const PHASE_INFO = {
+  1: { icon: "🚜", title: "Φάση 1 — Χωματουργικά", sub: "Σκάμμα · Εμφύσηση · Σωληνίσκος" },
+  2: { icon: "🔧", title: "Φάση 2 — Οδεύσεις", sub: "BEP · BMO · FB · Κάθετη Όδευση" },
+  3: { icon: "🔬", title: "Φάση 3 — Κόλληση", sub: "OTDR · Labels · AS-BUILD" },
+} as const;
 
 // Category definitions for works based on code prefix
 const WORK_CATEGORIES: { prefix: string; label: string; icon: string }[] = [
@@ -83,7 +97,7 @@ const MATERIAL_CATEGORIES: { label: string; match: (name: string, code: string) 
   { label: "Σωλήνες & Στύλοι", match: (n) => /σωλήν|σιδηρ|δακτύλ|στύλ|ξύλιν/i.test(n) },
 ];
 
-const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssignmentIds, isCrewMode, filterWorkPrefixes, filterMaterialCodes }: Props) => {
+const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssignmentIds, isCrewMode, filterWorkPrefixes, filterMaterialCodes, phase, phaseStatus }: Props) => {
   const { user } = useAuth();
   const { organizationId, organization } = useOrganization();
   const orgName = organization?.name || "DELTANETWORK";
@@ -1759,6 +1773,10 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
           vertical_infra_type: verticalInfraType,
           floor_meters: floorMeters,
           asbuilt_section6: { ...section6, ball_marker_bep: ballMarkerBep, bcp_ball_marker: ballMarkerBcp },
+          // 3-Phase workflow: mark this phase as in-progress while saving in crew mode
+          ...(phase === 1 && { phase1_status: "in_progress" }),
+          ...(phase === 2 && { phase2_status: "in_progress" }),
+          ...(phase === 3 && { phase3_status: "in_progress" }),
         } as any;
 
 
@@ -2186,6 +2204,16 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
         vertical_infra_type: verticalInfraType,
         floor_meters: floorMeters,
         asbuilt_section6: { ...section6, ball_marker_bep: ballMarkerBep, bcp_ball_marker: ballMarkerBcp },
+        // 3-Phase workflow: mark this phase's status (in_progress on save, completed when finishing)
+        ...(phase === 1 && (isCompleting
+          ? { phase1_status: "completed", phase1_completed_at: new Date().toISOString() }
+          : { phase1_status: "in_progress" })),
+        ...(phase === 2 && (isCompleting
+          ? { phase2_status: "completed", phase2_completed_at: new Date().toISOString() }
+          : { phase2_status: "in_progress" })),
+        ...(phase === 3 && (isCompleting
+          ? { phase3_status: "completed", phase3_completed_at: new Date().toISOString() }
+          : { phase3_status: "in_progress" })),
       } as any;
 
 
@@ -2465,6 +2493,55 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
           {openSections.length === 6 ? "Σύμπτυξη όλων ▲" : "Ανάπτυξη όλων ▼"}
         </button>
       </div>
+
+      {/* Phase Banner — visible only when current user is bound to a specific phase */}
+      {phase && (
+        <div
+          className={`rounded-xl p-4 border-2 flex items-center gap-3 ${
+            phase === 1
+              ? "border-amber-500/30 bg-amber-50 dark:bg-amber-950/20"
+              : phase === 2
+              ? "border-blue-500/30 bg-blue-50 dark:bg-blue-950/20"
+              : "border-green-500/30 bg-green-50 dark:bg-green-950/20"
+          }`}
+        >
+          <span className="text-3xl">{PHASE_INFO[phase].icon}</span>
+          <div className="flex-1">
+            <p className="font-bold text-sm">{PHASE_INFO[phase].title}</p>
+            <p className="text-xs text-muted-foreground">{PHASE_INFO[phase].sub}</p>
+          </div>
+          <div
+            className={`h-3 w-3 rounded-full ${
+              (phaseStatus as any)?.[`phase${phase}_status`] === "completed"
+                ? "bg-green-500"
+                : (phaseStatus as any)?.[`phase${phase}_status`] === "in_progress"
+                ? "bg-amber-500 animate-pulse"
+                : "bg-muted-foreground/30"
+            }`}
+          />
+        </div>
+      )}
+
+      {/* Phase 3 lock — Phase 2 must be completed first */}
+      {phase === 3 && phaseStatus?.phase2_status !== "completed" && (
+        <div className="rounded-xl p-8 border-2 border-dashed border-muted text-center space-y-3">
+          <span className="text-5xl block">🔒</span>
+          <p className="font-bold">Φάση 3 Κλειδωμένη</p>
+          <p className="text-sm text-muted-foreground">
+            Η Φάση 2 (Οδεύσεις) πρέπει να ολοκληρωθεί πρώτα
+          </p>
+          <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
+            <div
+              className={`h-2 w-2 rounded-full ${
+                phaseStatus?.phase2_status === "in_progress"
+                  ? "bg-amber-500 animate-pulse"
+                  : "bg-muted-foreground/30"
+              }`}
+            />
+            Φάση 2: {phaseStatus?.phase2_status === "in_progress" ? "Σε εξέλιξη..." : "Εκκρεμεί"}
+          </div>
+        </div>
+      )}
 
       {/* Progress bar */}
       <div className="space-y-1">

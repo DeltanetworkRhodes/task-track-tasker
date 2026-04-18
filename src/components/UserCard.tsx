@@ -26,7 +26,7 @@ const UserCard = ({ profile: p, role, roleMap, isPending }: UserCardProps) => {
   const [assigning, setAssigning] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [editValues, setEditValues] = useState({ email: "", phone: "", area: "" });
+  const [editValues, setEditValues] = useState({ email: "", phone: "", area: "", default_phase: null as number | null });
   const [resetOpen, setResetOpen] = useState(false);
 
   const handleSetRole = async (userId: string, newRole: string) => {
@@ -65,19 +65,29 @@ const UserCard = ({ profile: p, role, roleMap, isPending }: UserCardProps) => {
 
   const startEditing = () => {
     setIsEditing(true);
-    setEditValues({ email: p.email || "", phone: p.phone || "", area: p.area || "" });
+    setEditValues({
+      email: p.email || "",
+      phone: p.phone || "",
+      area: p.area || "",
+      default_phase: (p.default_phase as number | null) ?? null,
+    });
   };
 
   const cancelEditing = () => {
     setIsEditing(false);
-    setEditValues({ email: "", phone: "", area: "" });
+    setEditValues({ email: "", phone: "", area: "", default_phase: null });
   };
 
   const saveEditing = async () => {
     try {
       const { error } = await supabase
         .from("profiles")
-        .update({ email: editValues.email || null, phone: editValues.phone || null, area: editValues.area || null } as any)
+        .update({
+          email: editValues.email || null,
+          phone: editValues.phone || null,
+          area: editValues.area || null,
+          default_phase: editValues.default_phase,
+        } as any)
         .eq("id", p.id);
       if (error) throw error;
       toast.success("Στοιχεία ενημερώθηκαν");
@@ -168,6 +178,25 @@ const UserCard = ({ profile: p, role, roleMap, isPending }: UserCardProps) => {
               <MapPin className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
               <Input value={editValues.area} onChange={(e) => setEditValues({ ...editValues, area: e.target.value })} placeholder="Περιοχή" className="h-8 text-xs" />
             </div>
+          </div>
+          <div>
+            <label className="text-[10px] text-muted-foreground uppercase tracking-wider">Προεπιλεγμένη Φάση</label>
+            <select
+              value={editValues.default_phase ?? ""}
+              onChange={(e) => setEditValues({
+                ...editValues,
+                default_phase: e.target.value ? parseInt(e.target.value) : null,
+              })}
+              className="w-full mt-1 h-9 text-xs border border-border rounded-md px-2 bg-background"
+            >
+              <option value="">— Admin (βλέπει όλα) —</option>
+              <option value="1">🚜 Φάση 1 — Χωματουργικά</option>
+              <option value="2">🔧 Φάση 2 — Οδεύσεις</option>
+              <option value="3">🔬 Φάση 3 — Κόλληση</option>
+            </select>
+            <p className="text-[10px] text-muted-foreground mt-1">
+              Μπορεί να αντικατασταθεί ανά SR από το CrewAssignment
+            </p>
           </div>
           <div className="flex gap-2">
             <Button size="sm" variant="default" className="h-7 text-xs gap-1" onClick={saveEditing}>

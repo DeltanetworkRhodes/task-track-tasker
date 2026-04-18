@@ -42,6 +42,40 @@ const assignmentStatusLabels: Record<string, string> = {
   rejected: "Απορρίφθηκε",
 };
 
+const PHASE_INFO: Record<1 | 2 | 3, { icon: string; title: string }> = {
+  1: { icon: "🚜", title: "Φάση 1 — Χωματουργικά" },
+  2: { icon: "🔧", title: "Φάση 2 — Οδεύσεις" },
+  3: { icon: "🔬", title: "Φάση 3 — Κόλληση" },
+};
+
+function PhaseProgress({
+  p1 = "pending",
+  p2 = "pending",
+  p3 = "pending",
+}: { p1?: string; p2?: string; p3?: string }) {
+  const dot = (s: string) =>
+    s === "completed"
+      ? "bg-green-500"
+      : s === "in_progress"
+      ? "bg-amber-500 animate-pulse"
+      : "bg-muted-foreground/20";
+  const phases = [
+    { label: "Φ1", s: p1 },
+    { label: "Φ2", s: p2 },
+    { label: "Φ3", s: p3 },
+  ];
+  return (
+    <div className="flex items-center gap-2">
+      {phases.map(({ label, s }) => (
+        <div key={label} className="flex items-center gap-1">
+          <div className={`h-2 w-2 rounded-full transition-colors ${dot(s)}`} />
+          <span className="text-[9px] text-muted-foreground font-medium">{label}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 const topTabs = [
   { key: "constructions", label: "Κατασκευές", icon: Wrench },
   { key: "submitted", label: "Παραδόθηκαν", icon: Radio },
@@ -117,6 +151,12 @@ const ConstructionPage = () => {
       pendingNote: (c as any).pending_note || '',
       assignmentId: (c as any).assignment_id || '',
       routes: (c as any).routes || [],
+      phase1Status: (c as any).phase1_status || 'pending',
+      phase2Status: (c as any).phase2_status || 'pending',
+      phase3Status: (c as any).phase3_status || 'pending',
+      phase1CompletedAt: (c as any).phase1_completed_at || null,
+      phase2CompletedAt: (c as any).phase2_completed_at || null,
+      phase3CompletedAt: (c as any).phase3_completed_at || null,
     }));
   }, [dbConstructions]);
 
@@ -420,6 +460,9 @@ const ConstructionPage = () => {
                           {(constructionStatusLabels as any)[c.status] || c.status}
                         </Badge>
                       </div>
+                      <div className="mb-2">
+                        <PhaseProgress p1={(c as any).phase1Status} p2={(c as any).phase2Status} p3={(c as any).phase3Status} />
+                      </div>
                       <div className="flex items-center gap-3 text-xs text-muted-foreground mb-2">
                         {c.sesId && <span>SES: {c.sesId}</span>}
                         {c.cab && <span>CAB: {c.cab}</span>}
@@ -514,6 +557,7 @@ const ConstructionPage = () => {
                       <th className="py-2.5 px-2 text-left font-medium text-muted-foreground text-[11px] uppercase tracking-wider w-[8%]">CAB</th>
                       <th className="py-2.5 px-2 text-left font-medium text-muted-foreground text-[11px] uppercase tracking-wider w-[14%]">Πελάτης</th>
                       <th className="py-2.5 px-2 text-left font-medium text-muted-foreground text-[11px] uppercase tracking-wider w-[12%]">Κατάσταση</th>
+                      <th className="py-2.5 px-2 text-left font-medium text-muted-foreground text-[11px] uppercase tracking-wider w-[10%]">Φάσεις</th>
                       <th className="py-2.5 px-2 text-right font-medium text-muted-foreground text-[11px] uppercase tracking-wider w-[10%] cursor-pointer hover:text-foreground" onClick={() => toggleSort("revenue")}>
                         <span className="flex items-center justify-end gap-1">Έσοδα <SortIcon field="revenue" /></span>
                       </th>
@@ -544,6 +588,9 @@ const ConstructionPage = () => {
                             <Badge variant="outline" className={`text-[10px] ${statusColors[c.status] || ""}`}>
                               {(constructionStatusLabels as any)[c.status] || c.status}
                             </Badge>
+                          </td>
+                          <td className="py-2.5 px-2">
+                            <PhaseProgress p1={(c as any).phase1Status} p2={(c as any).phase2Status} p3={(c as any).phase3Status} />
                           </td>
                           <td className="py-2.5 px-2 text-right font-bold text-xs">{c.revenue > 0 ? `${c.revenue.toLocaleString('el-GR')}€` : '—'}</td>
                           <td className="py-2.5 px-2 text-right font-bold text-xs text-destructive">{c.materialCost > 0 ? `${c.materialCost.toLocaleString('el-GR')}€` : '—'}</td>
@@ -691,6 +738,45 @@ const ConstructionPage = () => {
 
                   {/* AS-BUILD Export */}
                   <AsBuiltExporter srId={c.srId} variant="default" size="default" className="w-full" />
+
+                  {/* Phase Progress */}
+                  <Card className="p-4 space-y-3">
+                    <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Πρόοδος Φάσεων</h3>
+                    {[1, 2, 3].map((ph) => {
+                      const status = (c as any)[`phase${ph}Status`] || "pending";
+                      const completedAt = (c as any)[`phase${ph}CompletedAt`];
+                      const info = PHASE_INFO[ph as 1 | 2 | 3];
+                      return (
+                        <div key={ph} className="flex items-center gap-3">
+                          <span className="text-lg">{info.icon}</span>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-medium truncate">{info.title}</p>
+                            {completedAt && (
+                              <p className="text-[10px] text-muted-foreground">
+                                {new Date(completedAt).toLocaleDateString("el-GR")}
+                              </p>
+                            )}
+                          </div>
+                          <Badge
+                            variant="outline"
+                            className={`text-[10px] ${
+                              status === "completed"
+                                ? "border-green-500/30 text-green-600 bg-green-50"
+                                : status === "in_progress"
+                                ? "border-amber-500/30 text-amber-600 bg-amber-50"
+                                : "border-border text-muted-foreground"
+                            }`}
+                          >
+                            {status === "completed"
+                              ? "✅ Ολοκληρώθηκε"
+                              : status === "in_progress"
+                              ? "🔄 Σε εξέλιξη"
+                              : "⏳ Εκκρεμεί"}
+                          </Badge>
+                        </div>
+                      );
+                    })}
+                  </Card>
 
                   {/* Technical Details */}
                   <Card className="p-4 space-y-2 text-sm">
