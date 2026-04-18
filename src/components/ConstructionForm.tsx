@@ -679,7 +679,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
             }
 
             // Save the discovered counts back to the construction record for future use
-            if (Object.keys(photoCounts).length > 0) {
+            if (Object.keys(photoCounts).length > 0 && existingConstruction?.id) {
               await supabase
                 .from("constructions")
                 .update({ photo_counts: photoCounts } as any)
