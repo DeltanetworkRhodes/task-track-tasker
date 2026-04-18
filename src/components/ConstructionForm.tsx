@@ -3404,11 +3404,21 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
       )}
 
       {/* ΔΙΑΔΡΟΜΕΣ */}
-      <Card className="p-4 space-y-3">
-        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-          <Route className="h-3.5 w-3.5" />
-          Διαδρομές
-        </Label>
+      <Card className="overflow-hidden">
+        <button
+          type="button"
+          onClick={() => toggleSection("routes")}
+          className="w-full flex items-center justify-between p-4 hover:bg-muted/30 transition-colors"
+        >
+          <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5 pointer-events-none">
+            <Route className="h-3.5 w-3.5" />
+            Διαδρομές
+            <Badge variant="secondary" className="text-[10px] ml-1">{totalKoi.toFixed(0)}μ</Badge>
+          </Label>
+          <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${openSections.includes("routes") ? "rotate-180" : ""}`} />
+        </button>
+        {openSections.includes("routes") && (
+        <div className="px-4 pb-4 space-y-3 border-t border-border/50 pt-3">
         <div className="space-y-2">
           {effectiveRoutes.map((route, idx) => {
             // In crew mode, only show INHOUSE route (index 3)
