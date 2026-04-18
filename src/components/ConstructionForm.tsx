@@ -9,7 +9,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useTimeTracking } from "@/hooks/useTimeTracking";
-import { Trash2, Loader2, CheckCircle, HardHat, Package, Wrench, Camera, X, ChevronDown, ChevronRight, Plus, Minus, MapPin, Route, AlertTriangle, Save, GitMerge, Building2, Copy, LogOut, RefreshCw } from "lucide-react";
+import { Trash2, Loader2, CheckCircle, HardHat, Package, Wrench, Camera, X, ChevronDown, ChevronRight, Plus, Minus, MapPin, Route, AlertTriangle, Save, GitMerge, Building2, Copy, LogOut, RefreshCw, Maximize2 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -4354,20 +4354,84 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
 
 
       {/* Existing uploaded files summary */}
-      {(Object.keys(existingPhotoCounts).length > 0 || Object.keys(existingOtdrCounts).length > 0) && (
-        <Alert className="border-blue-500/30 bg-blue-500/5">
-          <CheckCircle className="h-4 w-4 text-blue-600" />
-          <AlertTitle className="text-xs font-semibold text-blue-700">Αρχεία στο Google Drive</AlertTitle>
-          <AlertDescription className="text-xs text-blue-600 space-y-1">
+      {Object.keys(existingPhotoCounts).length > 0 && (
+        <Card className="p-4 space-y-3 border-blue-500/20 bg-blue-500/5">
+          <Label className="text-xs font-semibold uppercase tracking-wider text-blue-700 dark:text-blue-400 flex items-center gap-1.5">
+            <CheckCircle className="h-3.5 w-3.5" />
+            Ανεβασμένες Φωτογραφίες SR
+          </Label>
+          <div className="space-y-3">
             {Object.entries(existingPhotoCounts).map(([key, count]) => {
               const cat = ALL_PHOTO_CATEGORIES.find(c => c.key === key);
-              return <div key={key}>✅ {cat?.label || key}: {count} φωτογραφίες</div>;
+              const urls = existingPhotoUrls[key] || [];
+              const isExpanded = expandedPhotoCategory === key;
+              return (
+                <div key={key} className="space-y-2">
+                  <button
+                    type="button"
+                    onClick={() => setExpandedPhotoCategory(isExpanded ? null : key)}
+                    className="w-full flex items-center justify-between text-xs hover:bg-blue-500/10 rounded-lg px-2 py-1.5 transition-colors"
+                  >
+                    <span className="flex items-center gap-1.5 font-medium text-blue-700 dark:text-blue-400">
+                      <span>{cat?.icon || "📷"}</span>
+                      {cat?.label || key}
+                      <span className="font-bold bg-blue-100 dark:bg-blue-900/40 px-1.5 py-0.5 rounded-full text-[10px]">
+                        {count} φωτο
+                      </span>
+                    </span>
+                    <span className="text-[10px] text-blue-600/60">
+                      {isExpanded ? "▲" : "▼"}
+                    </span>
+                  </button>
+                  {isExpanded && (
+                    <div className="space-y-2 px-2">
+                      {urls.length > 0 ? (
+                        <>
+                          <div className="grid grid-cols-3 sm:grid-cols-4 gap-1.5">
+                            {urls.map((url, i) => (
+                              <div key={i} className="relative group aspect-square">
+                                <img
+                                  src={url}
+                                  alt={`${cat?.label} ${i + 1}`}
+                                  loading="lazy"
+                                  className="w-full h-full object-cover rounded-lg border border-blue-200 dark:border-blue-800 cursor-pointer hover:opacity-80 transition-opacity"
+                                  onClick={() => window.open(url, "_blank")}
+                                />
+                                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                                  <div className="bg-black/50 rounded-full p-1">
+                                    <Maximize2 className="h-3 w-3 text-white" />
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                          {count > urls.length && (
+                            <p className="text-[10px] text-blue-600/60 text-center">
+                              +{count - urls.length} ακόμα
+                            </p>
+                          )}
+                        </>
+                      ) : (
+                        <div className="grid grid-cols-3 sm:grid-cols-4 gap-1.5">
+                          {Array.from({ length: Math.min(count, 4) }).map((_, i) => (
+                            <div key={i} className="aspect-square bg-blue-100 dark:bg-blue-900/30 animate-pulse rounded-lg" />
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
             })}
             {Object.entries(existingOtdrCounts).map(([key, count]) => (
-              <div key={key}>✅ OTDR {key}: {count} αρχεία</div>
+              <div key={key} className="flex items-center gap-2 text-xs text-blue-700 dark:text-blue-400 px-2">
+                <span>📊</span>
+                <span>OTDR {key}:</span>
+                <span className="font-bold">{count} αρχεία</span>
+              </div>
             ))}
-          </AlertDescription>
-        </Alert>
+          </div>
+        </Card>
       )}
 
       {/* Check Out button */}
