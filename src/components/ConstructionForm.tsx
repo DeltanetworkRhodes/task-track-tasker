@@ -4598,8 +4598,8 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
             </AlertDialog>
           )}
 
-          {/* Completion button for crew member with splicing (1986) */}
-          {isCrewMode && filterWorkPrefixes?.some(p => p === '1986') && (
+          {/* Completion button for crew member — ONLY Phase 3 */}
+          {isCrewMode && phase === 3 && (
             <AlertDialog open={showCompleteConfirm} onOpenChange={setShowCompleteConfirm}>
               <AlertDialogTrigger asChild>
                 <Button
