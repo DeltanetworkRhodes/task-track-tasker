@@ -48,6 +48,15 @@ const statusColors: Record<string, string> = {
   cancelled: "bg-red-500/10 text-red-600 border-red-500/20",
 };
 
+const isToday = (date: Date) => {
+  const today = new Date();
+  return (
+    date.getDate() === today.getDate() &&
+    date.getMonth() === today.getMonth() &&
+    date.getFullYear() === today.getFullYear()
+  );
+};
+
 interface Props {
   assignments: any[];
   loading: boolean;
@@ -474,24 +483,17 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
     return (
       <div className="space-y-3">
         {[1, 2, 3].map((i) => (
-          <Card key={i} className="p-4 space-y-3">
-            <div className="flex items-start justify-between">
-              <div className="space-y-1.5">
-                <Skeleton className="h-4 w-24" />
-                <Skeleton className="h-3 w-16" />
+          <div key={i} className="rounded-xl border border-border overflow-hidden animate-pulse">
+            <div className="h-1 bg-muted" />
+            <div className="p-4 space-y-3">
+              <div className="flex justify-between">
+                <div className="h-4 w-32 bg-muted rounded" />
+                <div className="h-5 w-20 bg-muted rounded-full" />
               </div>
-              <Skeleton className="h-5 w-20 rounded-full" />
+              <div className="h-3 w-48 bg-muted rounded" />
+              <div className="h-3 w-36 bg-muted rounded" />
             </div>
-            <Skeleton className="h-3 w-48" />
-            <div className="flex gap-4">
-              <Skeleton className="h-3 w-28" />
-              <Skeleton className="h-3 w-20" />
-            </div>
-            <div className="flex justify-between pt-1">
-              <Skeleton className="h-3 w-20" />
-              <Skeleton className="h-3 w-12" />
-            </div>
-          </Card>
+          </div>
         ))}
       </div>
     );
@@ -499,9 +501,12 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
 
   if (assignments.length === 0) {
     return (
-      <div className="text-center py-12 text-muted-foreground">
-        <MapPin className="h-10 w-10 mx-auto mb-3 opacity-30" />
-        <p className="text-sm">Δεν υπάρχουν αναθέσεις</p>
+      <div className="flex flex-col items-center justify-center py-16 text-center space-y-3">
+        <div className="h-16 w-16 rounded-full bg-muted/50 flex items-center justify-center">
+          <CheckCircle className="h-8 w-8 text-muted-foreground/40" />
+        </div>
+        <p className="font-semibold text-foreground">Δεν υπάρχουν ενεργές αναθέσεις</p>
+        <p className="text-sm text-muted-foreground">Ωραία δουλειά! 🎉</p>
       </div>
     );
   }
@@ -684,80 +689,163 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
         {assignments.map((a) => (
           <Card
             key={a.id}
-            className="p-4 space-y-2 cursor-pointer hover:border-primary/30 transition-colors"
-            onClick={() => { setSelectedAssignment(a); setShowSurveyForm(false); setShowConstructionForm(false); setShowCrewPanel(false); }}
+            className={`cursor-pointer transition-all duration-200 hover:shadow-md active:scale-[0.98] overflow-hidden ${
+              a.status === "construction"
+                ? "border-purple-500/30"
+                : a.appointment_at && isToday(new Date(a.appointment_at))
+                ? "border-green-500/40 shadow-green-500/10 shadow-sm"
+                : "border-border"
+            }`}
+            onClick={() => {
+              setSelectedAssignment(a);
+              setShowSurveyForm(false);
+              setShowConstructionForm(false);
+              setShowCrewPanel(false);
+            }}
             onMouseEnter={() => handleCardHover(a)}
             onTouchStart={() => handleCardHover(a)}
           >
-            <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0">
-                <p className="font-semibold text-sm text-foreground">SR {a.sr_id}</p>
-                <p className="text-xs text-muted-foreground">{a.area}</p>
-              </div>
-              <div className="flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-                {updating === a.id ? (
-                  <Badge variant="outline" className="gap-1">
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                  </Badge>
-                ) : (
-                  <Badge variant="outline" className={statusColors[a.status] || ""}>
-                    {statusLabels[a.status] || a.status}
-                  </Badge>
-                )}
-              </div>
-            </div>
+            {/* Color stripe top */}
+            <div
+              className={`h-1 w-full ${
+                a.status === "construction"
+                  ? "bg-purple-500"
+                  : a.status === "inspection"
+                  ? "bg-orange-500"
+                  : a.status === "pre_committed"
+                  ? "bg-blue-500"
+                  : "bg-muted"
+              }`}
+            />
 
-            {a.address && (
-              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <MapPin className="h-3 w-3" />
-                {a.address}
+            <div className="p-4 space-y-3">
+              {/* Top row: SR + Status */}
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="font-bold text-sm text-primary">{a.sr_id}</p>
+                    {a.appointment_at && isToday(new Date(a.appointment_at)) && (
+                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-green-500/15 text-green-700 border border-green-500/30">
+                        📅 ΣΗΜΕΡΑ
+                      </span>
+                    )}
+                    {gisAssignmentIds?.includes(a.id) && (
+                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-blue-500/10 text-blue-600 border border-blue-500/20">
+                        GIS ✓
+                      </span>
+                    )}
+                  </div>
+                  {a.area && (
+                    <p className="text-[11px] text-muted-foreground mt-0.5">{a.area}</p>
+                  )}
+                </div>
+                <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
+                  {updating === a.id ? (
+                    <Badge variant="outline" className="gap-1">
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className={`text-[10px] ${statusColors[a.status] || ""}`}>
+                      {statusLabels[a.status] || a.status}
+                    </Badge>
+                  )}
+                </div>
               </div>
-            )}
 
-            <div className="flex items-center gap-4 text-xs text-muted-foreground">
-              {a.customer_name && <span>{a.customer_name}</span>}
-              {a.phone && (
-                <a href={`tel:${a.phone}`} className="flex items-center gap-1 text-primary" onClick={(e) => e.stopPropagation()}>
-                  <Phone className="h-3 w-3" />
-                  {a.phone}
-                </a>
+              {/* Address */}
+              {a.address && (
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <MapPin className="h-3 w-3 shrink-0" />
+                  <span className="truncate">{a.address}</span>
+                </div>
               )}
-            </div>
 
-            {a.comments && (
-              <div className="flex items-start gap-1.5 text-xs text-muted-foreground">
-                <MessageSquare className="h-3 w-3 mt-0.5 shrink-0" />
-                <span className="line-clamp-2">{a.comments}</span>
-              </div>
-            )}
+              {/* Customer + Phone */}
+              {(a.customer_name || a.phone) && (
+                <div className="flex items-center justify-between">
+                  {a.customer_name && (
+                    <span className="text-xs text-foreground font-medium truncate">
+                      👤 {a.customer_name}
+                    </span>
+                  )}
+                  {a.phone && (
+                    <a
+                      href={`tel:${a.phone}`}
+                      onClick={(e) => e.stopPropagation()}
+                      className="flex items-center gap-1 text-xs text-primary font-medium shrink-0 ml-2"
+                    >
+                      <Phone className="h-3 w-3" />
+                      Κλήση
+                    </a>
+                  )}
+                </div>
+              )}
 
-            {/* Appointment info */}
-            {a.appointment_at && (
-              <div className="flex items-center gap-1.5 rounded-md bg-green-500/10 border border-green-500/20 px-2.5 py-1.5 text-xs text-green-600">
-                <CalendarClock className="h-3.5 w-3.5 shrink-0" />
-                <span className="font-medium">
-                  Ραντεβού: {new Date(a.appointment_at).toLocaleDateString("el-GR", { weekday: "short", day: "numeric", month: "numeric" })} στις {new Date(a.appointment_at).toLocaleTimeString("el-GR", { hour: "2-digit", minute: "2-digit" })}
-                </span>
-              </div>
-            )}
+              {/* Appointment */}
+              {a.appointment_at && (
+                <div
+                  className={`flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium ${
+                    isToday(new Date(a.appointment_at))
+                      ? "bg-green-500/10 text-green-700 border border-green-500/20"
+                      : "bg-muted/50 text-muted-foreground"
+                  }`}
+                >
+                  <CalendarClock className="h-3.5 w-3.5 shrink-0" />
+                  <span>
+                    Ραντεβού:{" "}
+                    {new Date(a.appointment_at).toLocaleDateString("el-GR", {
+                      weekday: "short",
+                      day: "numeric",
+                      month: "short",
+                    })}{" "}
+                    {new Date(a.appointment_at).toLocaleTimeString("el-GR", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </span>
+                </div>
+              )}
 
-            {/* GIS pending indicator for pre_committed */}
-            {a.status === "pre_committed" && !gisAssignmentIds?.includes(a.id) && (
-              <div className="flex items-center gap-1.5 rounded-md bg-amber-500/10 border border-amber-500/20 px-2.5 py-1.5 text-xs text-amber-600">
-                <FileSpreadsheet className="h-3.5 w-3.5 shrink-0" />
-                <span className="font-medium">Αναμονή GIS αρχείου</span>
-              </div>
-            )}
+              {/* GIS missing warning */}
+              {a.status === "pre_committed" && !gisAssignmentIds?.includes(a.id) && (
+                <div className="flex items-center gap-2 rounded-lg px-3 py-2 bg-amber-500/10 border border-amber-500/20 text-xs text-amber-700 font-medium">
+                  <FileSpreadsheet className="h-3.5 w-3.5 shrink-0" />
+                  Αναμονή GIS αρχείου
+                </div>
+              )}
 
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <Calendar className="h-3 w-3" />
-                {new Date(a.created_at).toLocaleDateString("el-GR")}
-              </div>
-              {gisAssignmentIds?.includes(a.id) && (
-                <div className="flex items-center gap-1 text-xs text-blue-600">
-                  <FileSpreadsheet className="h-3.5 w-3.5" />
-                  <span className="font-medium">GIS</span>
+              {/* Quick actions */}
+              {a.status === "construction" && (
+                <div className="flex gap-2 pt-1">
+                  <Button
+                    size="sm"
+                    className="flex-1 h-8 text-xs gap-1.5 bg-purple-600 hover:bg-purple-700 text-white"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedAssignment(a);
+                      setShowConstructionForm(true);
+                    }}
+                  >
+                    <HardHat className="h-3.5 w-3.5" />
+                    Κατασκευή
+                  </Button>
+                </div>
+              )}
+              {a.status === "inspection" && (
+                <div className="flex gap-2 pt-1">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="flex-1 h-8 text-xs gap-1.5 border-orange-500/30 text-orange-600 hover:bg-orange-50"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedAssignment(a);
+                      setShowSurveyForm(true);
+                    }}
+                  >
+                    <Eye className="h-3.5 w-3.5" />
+                    Αυτοψία
+                  </Button>
                 </div>
               )}
             </div>
