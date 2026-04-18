@@ -90,6 +90,9 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
   // 3-Phase workflow context for the open assignment
   const { phase, isAdmin } = useMyPhase(selectedAssignment?.id ?? null);
   const { data: phaseStatus } = usePhaseStatus(selectedAssignment?.id ?? null);
+  // Ο Υπεύθυνος του SR ελέγχει τα πάντα → βλέπει τη φόρμα χωρίς phase filter
+  const isResponsible = !!user && !!selectedAssignment?.technician_id && selectedAssignment.technician_id === user.id;
+  const effectivePhase = (isAdmin || isResponsible) ? undefined : (phase ?? undefined);
 
   // Fetch existing survey for selected assignment
   const { data: existingSurvey } = useQuery({
@@ -954,7 +957,7 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
             {selectedAssignment && showConstructionForm && (
               <ConstructionForm
                 assignment={selectedAssignment}
-                phase={isAdmin ? undefined : phase ?? undefined}
+                phase={effectivePhase}
                 phaseStatus={phaseStatus ?? null}
                 onComplete={() => {
                   setShowConstructionForm(false);
@@ -973,7 +976,7 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
                 filterWorkPrefixes={crewWorkPrefixes.length > 0 ? crewWorkPrefixes : undefined}
                 filterMaterialCodes={crewMaterialCodes.length > 0 ? crewMaterialCodes : undefined}
                 crewAssignmentIds={crewAssignmentIds.length > 0 ? crewAssignmentIds : undefined}
-                phase={isAdmin ? undefined : phase ?? undefined}
+                phase={effectivePhase}
                 phaseStatus={phaseStatus ?? null}
                 onComplete={() => {
                   setShowCrewPanel(false);
