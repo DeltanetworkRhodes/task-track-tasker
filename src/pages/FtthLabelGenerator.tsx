@@ -1,339 +1,475 @@
-import { useState, useCallback } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Copy, Check, AlertTriangle, Printer, Tag } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Tag, Copy, Check, Printer } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import AppLayout from "@/components/AppLayout";
 
-// ─── Types ───
-interface Fields {
-  address: string;
-  splitter: string;
-  cabinet: string;
-  tube: string;
-  limits: string;
-  fiberCapacity: string;
-  bepNumber: string;
-  buildingA1B1: string;
-  buildingC1D1: string;
-  destination: string;
-  port1: string;
-  port2: string;
-  port3: string;
+// ─── Helpers ───
+function floorLabel(floor: string): string {
+  const f = (floor || "").trim();
+  if (f === "+00" || f === "00") return "ΙΣ";
+  if (f === "-01") return "Υπόγ";
+  const n = parseInt(f);
+  if (isNaN(n)) return f;
+  if (n === 1) return "1ος";
+  if (n === 2) return "2ος";
+  if (n === 3) return "3ος";
+  if (n === 4) return "4ος";
+  if (n === 5) return "5ος";
+  return `${n}ος`;
 }
 
-const DEFAULT: Fields = {
-  address: "",
-  splitter: "",
-  cabinet: "",
-  tube: "",
-  limits: "",
-  fiberCapacity: "4FO",
-  bepNumber: "BEP01",
-  buildingA1B1: "",
-  buildingC1D1: "",
-  destination: "",
-  port1: "ΕΙΣΟΔΟΣ ΠΑΡΟΧΙΚΗΣ",
-  port2: "SPLITTER",
-  port3: "PATCH TO BMO",
-};
-
-// ─── Copy helper ───
-function CopyButton({ text, disabled }: { text: string; disabled?: boolean }) {
+// ─── Label Chip (click to copy) ───
+function LabelChip({ text, dim = false }: { text: string; dim?: boolean }) {
   const [copied, setCopied] = useState(false);
   const handleCopy = useCallback(() => {
-    if (disabled) return;
+    if (!text) return;
     navigator.clipboard.writeText(text);
     setCopied(true);
     toast.success("Αντιγράφηκε!");
-    setTimeout(() => setCopied(false), 1500);
-  }, [text, disabled]);
+    setTimeout(() => setCopied(false), 1200);
+  }, [text]);
 
   return (
-    <Button
+    <button
       type="button"
-      variant="ghost"
-      size="sm"
       onClick={handleCopy}
-      disabled={disabled}
-      className="h-7 w-7 p-0 shrink-0"
+      className={`inline-flex items-center gap-1 cursor-pointer px-2 py-1 rounded border font-mono text-xs font-bold select-none transition-colors ${
+        dim
+          ? "opacity-40 border-border"
+          : "border-primary/30 bg-primary/5 hover:bg-primary/10 text-foreground"
+      }`}
     >
-      {copied ? <Check className="h-3.5 w-3.5 text-primary" /> : <Copy className="h-3.5 w-3.5" />}
-    </Button>
+      <span>{text || "—"}</span>
+      {copied ? (
+        <Check className="h-3 w-3 text-primary" />
+      ) : (
+        <Copy className="h-3 w-3 opacity-50" />
+      )}
+    </button>
   );
 }
 
-// ─── Label preview ───
-function LabelPreview({ label, text, disabled, multiline }: { label: string; text: string; disabled?: boolean; multiline?: boolean }) {
-  return (
-    <div className={`space-y-1 ${disabled ? "opacity-40" : ""}`}>
-      <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">{label}</div>
-      <div className="flex items-start gap-2">
-        <div className={`flex-1 font-mono text-xs bg-muted/50 rounded-md px-3 py-2 border border-border text-foreground ${multiline ? "whitespace-pre-line" : ""} ${disabled ? "italic text-muted-foreground" : "font-semibold"}`}>
-          {disabled ? "—" : text}
-        </div>
-        <CopyButton text={text} disabled={disabled} />
-      </div>
-    </div>
-  );
-}
-
-// ─── Section card ───
-function Section({ title, icon, children, badge }: { title: string; icon: string; children: React.ReactNode; badge?: string }) {
-  return (
-    <Card className="p-4 space-y-3 print:break-inside-avoid">
-      <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-lg">{icon}</span>
-        <h2 className="text-sm font-bold text-foreground uppercase tracking-wide">{title}</h2>
-        {badge && <Badge variant="secondary" className="text-[9px]">{badge}</Badge>}
-      </div>
-      {children}
-    </Card>
-  );
-}
-
-function SubSection({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div className="space-y-2 pl-1 border-l-2 border-primary/20 ml-1">
-      <div className="text-[10px] font-bold text-primary uppercase tracking-wider pl-2">{title}</div>
-      <div className="space-y-2 pl-2">{children}</div>
-    </div>
-  );
-}
-
-// ─── Placeholder section ───
-function PlaceholderSection({ title, icon }: { title: string; icon: string }) {
-  return (
-    <Section title={title} icon={icon}>
-      <div className="flex items-start gap-2 p-3 rounded-md bg-muted/30 border border-border">
-        <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
-        <p className="text-xs text-muted-foreground">
-          Δεν υπάρχει ρητή οδηγία εσωτερικού / εξωτερικού label για {title} στο source PDF.
-        </p>
-      </div>
-    </Section>
-  );
-}
-
-// ─── Main page ───
+// ─── Main Page ───
 export default function FtthLabelGenerator() {
-  const [f, setF] = useState<Fields>(DEFAULT);
+  const [srId, setSrId] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [srData, setSrData] = useState<any>(null);
+  const [gisData, setGisData] = useState<any>(null);
 
-  const set = (key: keyof Fields) => (e: React.ChangeEvent<HTMLInputElement>) =>
-    setF((prev) => ({ ...prev, [key]: e.target.value }));
+  const loadSr = useCallback(async () => {
+    if (!srId.trim()) return;
+    setLoading(true);
+    try {
+      const { data: asgn, error: aerr } = await supabase
+        .from("assignments")
+        .select("sr_id, address, cab, building_id_hemd, organization_id, id")
+        .eq("sr_id", srId.trim())
+        .maybeSingle();
 
-  const hasAddress = f.address.trim().length > 0;
-  const hasCabinet = f.cabinet.trim().length > 0;
-  const hasLimits = f.limits.trim().length > 0;
-  const hasFiber = f.fiberCapacity.trim().length > 0;
-  const hasBcpOutside = hasCabinet && hasLimits;
-  const hasBepOutside = hasCabinet && hasLimits;
+      if (aerr || !asgn) {
+        toast.error("SR δεν βρέθηκε");
+        setSrData(null);
+        setGisData(null);
+        return;
+      }
+      setSrData(asgn);
+
+      const { data: gis } = await supabase
+        .from("gis_data")
+        .select("*")
+        .eq("assignment_id", asgn.id)
+        .maybeSingle();
+
+      setGisData(gis);
+      if (!gis) {
+        toast.warning("Δεν βρέθηκαν GIS δεδομένα για αυτό το SR");
+      }
+    } catch (e: any) {
+      toast.error(e.message || "Σφάλμα φόρτωσης");
+    } finally {
+      setLoading(false);
+    }
+  }, [srId]);
+
+  // ─── Parse GIS data ───
+  const parsed = useMemo(() => {
+    if (!gisData) return null;
+
+    const optPaths = (gisData.optical_paths as any[]) || [];
+
+    const getType = (p: any) =>
+      (p.type || p["OPTICAL PATH TYPE"] || "").toUpperCase();
+    const getPath = (p: any) => p.path || p["OPTICAL PATH"] || "";
+
+    const cabBepPaths = optPaths.filter((p) => getType(p) === "CAB-BEP");
+    const bepBmoPaths = optPaths.filter((p) => getType(p) === "BEP-BMO");
+    const bmoFbPaths = optPaths.filter((p) => getType(p) === "BMO-FB");
+
+    // ── BEP Grid (A-D rows × 1-12 cols) ──
+    const splitterToRow: Record<string, string> = {
+      SB01: "A",
+      SB02: "B",
+      SB03: "C",
+      SB04: "D",
+    };
+
+    interface GridCell {
+      row: string;
+      col: number;
+      text: string;
+    }
+    const bepCells: GridCell[] = [];
+
+    // Col 1: CAB fiber limits
+    cabBepPaths.forEach((p: any, i: number) => {
+      const path = getPath(p);
+      const limMatch = path.match(/B(\d+)\.(\d+)/) || path.match(/(\d+)-(\d+)/);
+      const row = ["A", "B", "C", "D"][i];
+      if (row) {
+        bepCells.push({ row, col: 1, text: limMatch ? limMatch[0] : "" });
+      }
+    });
+
+    // Col 2+: BEP-BMO ports → όροφος
+    bepBmoPaths.forEach((p: any) => {
+      const path = getPath(p);
+      const sbMatch = path.match(/_(SB\d+)\([^)]+\)\.(\d+)/);
+      if (!sbMatch) return;
+
+      const splitter = sbMatch[1];
+      const port = parseInt(sbMatch[2]);
+      const row = splitterToRow[splitter];
+      if (!row) return;
+
+      const col = port + 1;
+
+      const bmoPortMatch = path.match(/BMO\d+_(\d+)$/);
+      const bmoPort = bmoPortMatch ? parseInt(bmoPortMatch[1]) : -1;
+
+      let floor = "";
+      if (bmoPort >= 0) {
+        const fbPath = bmoFbPaths.find((fb: any) => {
+          const s = getPath(fb);
+          return s.match(new RegExp(`BMO\\d+_${bmoPort}_`));
+        });
+        if (fbPath) {
+          const s = getPath(fbPath);
+          const fm = s.match(/FB\(([^)]+)\)/);
+          if (fm) floor = fm[1];
+        }
+      }
+
+      if (!bepCells.find((c) => c.row === row && c.col === col)) {
+        bepCells.push({
+          row,
+          col,
+          text: floor ? floorLabel(floor) : "",
+        });
+      }
+    });
+
+    // ── BMO ports → όροφος ──
+    interface BmoPort {
+      port: number;
+      floor: string;
+    }
+    const bmoPorts: BmoPort[] = [];
+    bmoFbPaths.forEach((p: any) => {
+      const path = getPath(p);
+      const m = path.match(/BMO\d+_(\d+)_FB\(([^)]+)\)/);
+      if (!m) return;
+      bmoPorts.push({ port: parseInt(m[1]), floor: m[2] });
+    });
+    bmoPorts.sort((a, b) => a.port - b.port);
+
+    // ── FB groups (ομαδοποίηση BMO ports ανά όροφο) ──
+    interface FbGroup {
+      floor: string;
+      portFrom: number;
+      portTo: number;
+    }
+    const floorPortMap: Record<string, number[]> = {};
+    bmoPorts.forEach((bp) => {
+      if (!floorPortMap[bp.floor]) floorPortMap[bp.floor] = [];
+      floorPortMap[bp.floor].push(bp.port);
+    });
+
+    const fbGroups: FbGroup[] = Object.keys(floorPortMap)
+      .sort()
+      .map((floor) => ({
+        floor,
+        portFrom: Math.min(...floorPortMap[floor]),
+        portTo: Math.max(...floorPortMap[floor]),
+      }));
+
+    // CAB limits για BEP door
+    const cabLimits = cabBepPaths
+      .map((p: any) => {
+        const path = getPath(p);
+        const m = path.match(/B(\d+)\.(\d+)/) || path.match(/(\d+)-(\d+)/);
+        return m ? m[0] : "";
+      })
+      .filter(Boolean)
+      .join(", ");
+
+    return { bepCells, bmoPorts, fbGroups, cabLimits, cabBepPaths };
+  }, [gisData]);
 
   return (
     <AppLayout>
       <div className="max-w-4xl mx-auto space-y-6 pb-12 print:max-w-none">
-        {/* Header */}
-        <div className="space-y-2">
-          <div className="flex items-center gap-3 flex-wrap">
-            <Tag className="h-6 w-6 text-primary" />
-            <h1 className="text-xl font-bold text-foreground">FTTH Label Generator</h1>
-            <Badge variant="outline" className="text-[10px]">COSMOTE Β' Φάση</Badge>
-          </div>
-          <div className="flex items-center gap-2">
-            <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />
-            <span className="text-[11px] text-amber-600 dark:text-amber-400 font-medium">
-              ΜΟΝΟ όσα labels ορίζονται ρητά από το PDF
-            </span>
-          </div>
+        {/* 1. HEADER */}
+        <div className="flex items-center gap-3 flex-wrap">
+          <Tag className="h-6 w-6 text-primary" />
+          <h1 className="text-xl font-bold text-foreground">
+            FTTH Label Generator
+          </h1>
+          <Badge variant="outline" className="text-[10px]">
+            COSMOTE Β' Φάση
+          </Badge>
         </div>
 
-        {/* Input fields */}
-        <Card className="p-4 space-y-4">
-          <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Πεδία εισαγωγής</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            <div className="space-y-1">
-              <Label className="text-[11px]">Διεύθυνση *</Label>
-              <Input value={f.address} onChange={set("address")} placeholder="π.χ. ΟΔΥΣΣΕΩΣ 25" className="h-8 text-xs font-mono" />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-[11px]">Splitter</Label>
-              <Input value={f.splitter} onChange={set("splitter")} placeholder="π.χ. SGA01(1:8).04" className="h-8 text-xs font-mono" />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-[11px]">Καμπίνα *</Label>
-              <Input value={f.cabinet} onChange={set("cabinet")} placeholder="π.χ. A17" className="h-8 text-xs font-mono" />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-[11px]">Σωληνίσκος</Label>
-              <Input value={f.tube} onChange={set("tube")} placeholder="π.χ. A17" className="h-8 text-xs font-mono" />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-[11px]">Όρια *</Label>
-              <Input value={f.limits} onChange={set("limits")} placeholder="π.χ. 205-208" className="h-8 text-xs font-mono" />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-[11px]">Χωρητικότητα ίνας *</Label>
-              <Select value={f.fiberCapacity} onValueChange={(v) => setF((p) => ({ ...p, fiberCapacity: v }))}>
-                <SelectTrigger className="h-8 text-xs font-mono">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-              <SelectItem value="4FO">4FO (≤2 διαμ/όροφο)</SelectItem>
-                  <SelectItem value="12FO">12FO (&gt;2 διαμ/όροφο)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1">
-              <Label className="text-[11px]">BEP Αρίθμηση</Label>
-              <Input value={f.bepNumber} onChange={set("bepNumber")} placeholder="π.χ. BEP01" className="h-8 text-xs font-mono" />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-[11px]">Κτήριο A1-B1</Label>
-              <Input value={f.buildingA1B1} onChange={set("buildingA1B1")} placeholder="π.χ. ΟΔΥΣΣΕΩΣ 25" className="h-8 text-xs font-mono" />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-[11px]">Κτήριο C1-D1</Label>
-              <Input value={f.buildingC1D1} onChange={set("buildingC1D1")} placeholder="π.χ. ΑΘΗΝΑΣ 14" className="h-8 text-xs font-mono" />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-[11px]">Προορισμός (BEP καλώδια)</Label>
-              <Input value={f.destination} onChange={set("destination")} placeholder="π.χ. BMO" className="h-8 text-xs font-mono" />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-[11px]">Αντιστοίχιση Πόρτας 1</Label>
-              <Input value={f.port1} onChange={set("port1")} placeholder="ΕΙΣΟΔΟΣ ΠΑΡΟΧΙΚΗΣ" className="h-8 text-xs font-mono" />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-[11px]">Αντιστοίχιση Πόρτας 2</Label>
-              <Input value={f.port2} onChange={set("port2")} placeholder="SPLITTER" className="h-8 text-xs font-mono" />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-[11px]">Αντιστοίχιση Πόρτας 3</Label>
-              <Input value={f.port3} onChange={set("port3")} placeholder="PATCH TO BMO" className="h-8 text-xs font-mono" />
-            </div>
-          </div>
-          <div className="flex justify-end print:hidden">
-            <Button variant="outline" size="sm" onClick={() => window.print()} className="text-xs gap-1.5">
-              <Printer className="h-3.5 w-3.5" />
-              Εκτύπωση
+        {/* 2. SR SELECTION */}
+        <Card className="p-4 space-y-3 print:hidden">
+          <Label className="text-[11px]">Επιλογή SR</Label>
+          <div className="flex gap-2">
+            <Input
+              value={srId}
+              onChange={(e) => setSrId(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && loadSr()}
+              placeholder="π.χ. SR123456"
+              className="font-mono text-sm"
+            />
+            <Button onClick={loadSr} disabled={loading || !srId.trim()}>
+              {loading ? "..." : "Φόρτωση"}
             </Button>
           </div>
+          {srData && (
+            <div className="text-xs text-muted-foreground">
+              ✅ {srData.address} · Καμπίνα: {srData.cab || "—"}
+            </div>
+          )}
         </Card>
 
-        {/* ═══ 1. ΚΑΜΠΙΝΑ ΝΕΟΥ ΤΥΠΟΥ ═══ */}
-        <Section title="Καμπίνα νέου τύπου" icon="🏗️" badge="COSMOTE Β' Φάση">
-          <SubSection title="Εσωτερικά">
-            <LabelPreview
-              label="A. Μέσα στην κασέτα"
-              text={`ΔΙΕΥΘΥΝΣΗ: ${f.address}`}
-              disabled={!hasAddress}
-            />
-            <LabelPreview
-              label="B. Πάνω στις εξόδους Splitter"
-              text={`${f.splitter} - ${f.address}`}
-              disabled={!hasAddress || !f.splitter.trim()}
-            />
-          </SubSection>
-          <SubSection title="Εξωτερικά">
-            <LabelPreview
-              label="C. Πάνω στην πόρτα του sub rack"
-              text={f.address}
-              disabled={!hasAddress}
-            />
-            <LabelPreview
-              label="D. Πάνω στον σωληνίσκο"
-              text={f.address}
-              disabled={!hasAddress}
-            />
-          </SubSection>
-        </Section>
+        {/* Placeholder */}
+        {!parsed && (
+          <Card className="p-8 text-center text-muted-foreground text-sm">
+            Εισάγετε SR ID για να φορτώσετε τα δεδομένα GIS και να δημιουργηθούν
+            αυτόματα τα labels.
+          </Card>
+        )}
 
-        {/* ═══ 2. ΚΑΜΠΙΝΑ ΠΑΛΑΙΟΥ ΤΥΠΟΥ ═══ */}
-        <Section title="Καμπίνα παλαιού τύπου" icon="🏗️" badge="COSMOTE Β' Φάση">
-          <SubSection title="Εσωτερικά">
-            <LabelPreview
-              label="A. Μέσα στην κασέτα"
-              text={f.address}
-              disabled={!hasAddress}
-            />
-            <LabelPreview
-              label="B. Πάνω στις εξόδους Splitter"
-              text={`${f.splitter} - ${f.address}`}
-              disabled={!hasAddress || !f.splitter.trim()}
-            />
-          </SubSection>
-          <SubSection title="Εξωτερικά">
-            <LabelPreview
-              label="C. Πάνω στον σωληνίσκο"
-              text={f.address}
-              disabled={!hasAddress}
-            />
-          </SubSection>
-        </Section>
+        {/* 3. ΚΑΜΠΙΝΑ */}
+        {parsed && srData && (
+          <Card className="p-4 space-y-4 print:break-inside-avoid">
+            <h2 className="text-sm font-bold uppercase tracking-wide flex items-center gap-2">
+              🏗️ <span>Καμπίνα</span>
+            </h2>
 
-        {/* ═══ 3. BCP ═══ */}
-        <Section title="BCP" icon="📦" badge="COSMOTE Β' Φάση">
-          <SubSection title="Εσωτερικά">
-            <LabelPreview
-              label="A. Label μαύρης ίνας"
-              text={`ΚΑΜΠΙΝΑ: ${f.cabinet} | ${f.fiberCapacity} | ΟΡΙΑ: ${f.limits}`}
-              disabled={!hasCabinet || !hasFiber || !hasLimits}
-            />
-            <LabelPreview
-              label="B. Label άσπρης ίνας"
-              text={`${f.bepNumber} | ${f.fiberCapacity}`}
-              disabled={!f.bepNumber.trim() || !hasFiber}
-            />
-          </SubSection>
-          <SubSection title="Εξωτερικά">
-            <LabelPreview
-              label="C. Στην πόρτα του BCP"
-              text={[
-                `ΚΑΜΠΙΝΑ: ${f.cabinet}`,
-                `ΣΩΛΗΝΙΣΚΟΣ: ${f.tube || f.cabinet}`,
-                `ΟΡΙΑ: ${f.limits}`,
-                ...(f.buildingA1B1.trim() ? [`A1-B1: ${f.buildingA1B1}`] : []),
-                ...(f.buildingC1D1.trim() ? [`C1-D1: ${f.buildingC1D1}`] : []),
-              ].join("\n")}
-              disabled={!hasBcpOutside}
-              multiline
-            />
-          </SubSection>
-        </Section>
+            <div className="space-y-1">
+              <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                Μέσα στην κασέτα
+              </div>
+              <LabelChip text={`ΔΙΕΥΘΥΝΣΗ: ${srData.address || ""}`} />
+            </div>
 
-        {/* ═══ 4. BEP ═══ */}
-        <Section title="BEP" icon="🔌" badge="COSMOTE Β' Φάση">
-          <SubSection title="Εσωτερικά">
-            <LabelPreview
-              label="A. Label μαύρης ίνας (από καμπίνα)"
-              text={`${f.cabinet} (${f.tube || f.cabinet})\n${f.limits}`}
-              disabled={!hasCabinet || !hasLimits}
-              multiline
-            />
-          </SubSection>
-          <SubSection title="Εξωτερικά">
-            <LabelPreview
-              label="B. Στην πόρτα του BEP"
-              text={[
-                `ΚΑΜΠΙΝΑ: ${f.cabinet}`,
-                `ΣΩΛΗΝΙΣΚΟΣ: ${f.tube || f.cabinet}`,
-                `ΟΡΙΑ: ${f.limits}`,
-              ].join("\n")}
-              disabled={!hasBepOutside}
-              multiline
-            />
-          </SubSection>
-        </Section>
+            <div className="space-y-1">
+              <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                Εξόδους Splitter
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {parsed.cabBepPaths.length === 0 && (
+                  <span className="text-xs text-muted-foreground italic">
+                    Καμία CAB-BEP διαδρομή
+                  </span>
+                )}
+                {parsed.cabBepPaths.map((p: any, i: number) => {
+                  const path = p.path || p["OPTICAL PATH"] || "";
+                  const m = path.match(/SGA?\d*\([^)]+\)\.\d+/);
+                  return (
+                    <LabelChip
+                      key={i}
+                      text={`${m ? m[0] : `Splitter ${i + 1}`} - ${
+                        srData.address || ""
+                      }`}
+                    />
+                  );
+                })}
+              </div>
+            </div>
 
-        {/* ═══ 5. BMO ═══ */}
-        <PlaceholderSection title="BMO" icon="📡" />
+            <div className="space-y-1">
+              <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                Σωληνίσκο
+              </div>
+              <LabelChip text={srData.address || ""} />
+            </div>
+          </Card>
+        )}
 
-        {/* ═══ 6. FB ═══ */}
-        <PlaceholderSection title="FB" icon="🏠" />
+        {/* 4. BEP */}
+        {parsed && srData && (
+          <Card className="p-4 space-y-4 print:break-inside-avoid">
+            <h2 className="text-sm font-bold uppercase tracking-wide flex items-center gap-2">
+              🔌 <span>BEP — Labels</span>
+            </h2>
+
+            {/* Πόρτα BEP */}
+            <div className="space-y-1">
+              <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                Πόρτα BEP
+              </div>
+              <LabelChip
+                text={`ΚΑΜΠΙΝΑ: ${srData.cab || ""}\nΟΡΙΑ: ${
+                  parsed.cabLimits
+                }`}
+              />
+            </div>
+
+            {/* Μαύρη Ίνα */}
+            <div className="space-y-1">
+              <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                Μαύρη Ίνα
+              </div>
+              <LabelChip
+                text={`${srData.cab || ""}\n${parsed.cabLimits}`}
+              />
+            </div>
+
+            {/* Grid A-D × 1-12 */}
+            <div className="space-y-2">
+              <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                Εσωτερικό Grid{" "}
+                <span className="opacity-60 normal-case font-normal">
+                  (κλικ για αντιγραφή)
+                </span>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="border-collapse text-xs">
+                  <thead>
+                    <tr>
+                      <th className="border border-border bg-muted/50 w-10 h-8"></th>
+                      {Array.from({ length: 12 }, (_, i) => (
+                        <th
+                          key={i}
+                          className="border border-border bg-muted/50 w-14 h-8 font-mono text-[10px]"
+                        >
+                          {i + 1}
+                          {i === 0 && (
+                            <div className="text-[8px] opacity-60">CAB</div>
+                          )}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {["A", "B", "C", "D"].map((row) => (
+                      <tr key={row}>
+                        <td className="border border-border bg-muted/50 text-center font-bold font-mono">
+                          {row}
+                        </td>
+                        {Array.from({ length: 12 }, (_, i) => {
+                          const col = i + 1;
+                          const cell = parsed.bepCells.find(
+                            (c) => c.row === row && c.col === col,
+                          );
+                          const isCAB = col === 1;
+                          return (
+                            <td
+                              key={col}
+                              className={`border border-border p-1 text-center align-middle ${
+                                isCAB ? "bg-amber-500/5" : ""
+                              }`}
+                            >
+                              {cell?.text ? (
+                                <LabelChip text={cell.text} />
+                              ) : (
+                                <span className="text-muted-foreground/30">
+                                  —
+                                </span>
+                              )}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </Card>
+        )}
+
+        {/* 5. BMO */}
+        {parsed && (
+          <Card className="p-4 space-y-3 print:break-inside-avoid">
+            <h2 className="text-sm font-bold uppercase tracking-wide flex items-center gap-2">
+              📡 <span>BMO — Labels ανά Port</span>
+            </h2>
+            <div className="text-xs text-muted-foreground">
+              Κολλάς στην ίνα κάθε port
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+              {parsed.bmoPorts.length === 0 && (
+                <span className="text-xs text-muted-foreground italic col-span-full">
+                  Καμία BMO-FB διαδρομή
+                </span>
+              )}
+              {parsed.bmoPorts.map((bp) => (
+                <div
+                  key={bp.port}
+                  className="flex items-center gap-2 p-2 rounded border border-border bg-muted/20"
+                >
+                  <Badge variant="secondary" className="font-mono">
+                    Port {bp.port}
+                  </Badge>
+                  <LabelChip text={floorLabel(bp.floor)} />
+                </div>
+              ))}
+            </div>
+          </Card>
+        )}
+
+        {/* 6. FLOOR BOX */}
+        {parsed && parsed.fbGroups.length > 0 && (
+          <Card className="p-4 space-y-3 print:break-inside-avoid">
+            <h2 className="text-sm font-bold uppercase tracking-wide flex items-center gap-2">
+              🏠 <span>Floor Box — Labels</span>
+            </h2>
+            {parsed.fbGroups.map((fb) => (
+              <div
+                key={fb.floor}
+                className="flex items-center gap-3 p-2 rounded border border-border bg-muted/20"
+              >
+                <div className="text-xs font-bold w-16 text-foreground">
+                  {floorLabel(fb.floor)}
+                </div>
+                <div className="flex gap-2">
+                  <LabelChip text={`Port ${fb.portFrom}`} />
+                  <LabelChip text={`Port ${fb.portTo}`} />
+                </div>
+              </div>
+            ))}
+          </Card>
+        )}
+
+        {/* 7. PRINT */}
+        {parsed && (
+          <Button
+            onClick={() => window.print()}
+            variant="outline"
+            className="w-full gap-2 print:hidden"
+          >
+            <Printer className="h-4 w-4" />
+            Εκτύπωση
+          </Button>
+        )}
       </div>
     </AppLayout>
   );
