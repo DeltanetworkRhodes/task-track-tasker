@@ -4111,15 +4111,22 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
         </div>
         )}
       </Card>
-      {!isCrewMode && <Card className="p-4 space-y-3">
-        <div className="flex items-center justify-between">
-          <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+      {!isCrewMode && <Card className="overflow-hidden">
+        <button
+          type="button"
+          onClick={() => toggleSection("otdr")}
+          className="w-full flex items-center justify-between p-4 hover:bg-muted/30 transition-colors"
+        >
+          <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5 pointer-events-none">
             📊 Μετρήσεις OTDR (PDF)
+            {totalOtdrFiles > 0 && (
+              <Badge variant="secondary" className="text-[10px] ml-1">{totalOtdrFiles} PDF</Badge>
+            )}
           </Label>
-          {totalOtdrFiles > 0 && (
-            <Badge variant="secondary" className="text-xs">{totalOtdrFiles} PDF</Badge>
-          )}
-        </div>
+          <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${openSections.includes("otdr") ? "rotate-180" : ""}`} />
+        </button>
+        {openSections.includes("otdr") && (
+        <div className="px-4 pb-4 space-y-3 border-t border-border/50 pt-3">
 
         <div className="space-y-2">
           {OTDR_CATEGORIES.map((cat) => {
