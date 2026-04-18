@@ -957,7 +957,7 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
             {selectedAssignment && showConstructionForm && (
               <ConstructionForm
                 assignment={selectedAssignment}
-                phase={isAdmin ? undefined : phase ?? undefined}
+                phase={effectivePhase}
                 phaseStatus={phaseStatus ?? null}
                 onComplete={() => {
                   setShowConstructionForm(false);
@@ -976,7 +976,7 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
                 filterWorkPrefixes={crewWorkPrefixes.length > 0 ? crewWorkPrefixes : undefined}
                 filterMaterialCodes={crewMaterialCodes.length > 0 ? crewMaterialCodes : undefined}
                 crewAssignmentIds={crewAssignmentIds.length > 0 ? crewAssignmentIds : undefined}
-                phase={isAdmin ? undefined : phase ?? undefined}
+                phase={effectivePhase}
                 phaseStatus={phaseStatus ?? null}
                 onComplete={() => {
                   setShowCrewPanel(false);
