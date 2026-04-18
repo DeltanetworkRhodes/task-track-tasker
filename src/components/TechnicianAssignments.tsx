@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 
-import { MapPin, Phone, Calendar, MessageSquare, Loader2, Eye, FileEdit, CheckCircle, Clock, HardHat, XCircle, Ban, Upload, FileSpreadsheet, FileText, CalendarClock, Users } from "lucide-react";
+import { MapPin, Phone, Calendar, MessageSquare, Loader2, Eye, FileEdit, CheckCircle, Clock, HardHat, XCircle, Ban, Upload, FileSpreadsheet, FileText, CalendarClock, Users, Navigation } from "lucide-react";
 import GisUploadCard from "@/components/GisUploadCard";
 import { useMyCrewAssignments, useWorkCategories, useMyPhase, usePhaseStatus } from "@/hooks/useCrewData";
 import { Card } from "@/components/ui/card";
@@ -297,7 +297,10 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
         .eq("id", assignmentId);
       if (error) throw error;
 
-      toast.success(`Κατάσταση → ${statusLabels[newStatus]}`);
+      toast.success(`${statusLabels[newStatus]} →`, {
+        description: `SR ${assignments.find((a) => a.id === assignmentId)?.sr_id || ""}`,
+        duration: 2000,
+      });
 
       const assignment = assignments.find((a) => a.id === assignmentId);
 
@@ -694,7 +697,7 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
                 <p className="font-semibold text-sm text-foreground">SR {a.sr_id}</p>
                 <p className="text-xs text-muted-foreground">{a.area}</p>
               </div>
-              <div className="flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+              <div className="flex-shrink-0 flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
                 {updating === a.id ? (
                   <Badge variant="outline" className="gap-1">
                     <Loader2 className="h-3 w-3 animate-spin" />
@@ -704,13 +707,40 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
                     {statusLabels[a.status] || a.status}
                   </Badge>
                 )}
+                {/* Quick next status button */}
+                {(() => {
+                  if (updating === a.id) return null;
+                  const flow = ["pending", "inspection", "pre_committed", "construction", "completed"];
+                  const idx = flow.indexOf(a.status);
+                  const next = flow[idx + 1];
+                  if (!next || a.status === "completed") return null;
+                  return (
+                    <button
+                      type="button"
+                      onClick={() => handleStatusChange(a.id, next, a.status)}
+                      className="flex items-center gap-1 text-[10px] font-bold text-muted-foreground hover:text-foreground bg-muted hover:bg-muted/80 px-2 py-1 rounded-full transition-colors whitespace-nowrap"
+                    >
+                      → {statusLabels[next]}
+                    </button>
+                  );
+                })()}
               </div>
             </div>
 
             {a.address && (
               <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <MapPin className="h-3 w-3" />
-                {a.address}
+                <MapPin className="h-3 w-3 shrink-0" />
+                <span className="truncate flex-1">{a.address}</span>
+                <a
+                  href={`https://maps.google.com/?q=${encodeURIComponent(a.address + ", " + (a.area || ""))}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  className="shrink-0 flex items-center gap-1 text-[10px] font-bold text-primary bg-primary/10 px-2 py-1 rounded-full hover:bg-primary/20 transition-colors"
+                >
+                  <Navigation className="h-3 w-3" />
+                  Πλοήγηση
+                </a>
               </div>
             )}
 
