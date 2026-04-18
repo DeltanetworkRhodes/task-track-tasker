@@ -541,26 +541,25 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
   // (moved below gisData declaration)
 
 
-  // Load uploaded file counters for already-saved construction (including ΣΚΑΜΑ/ΟΔΕΥΣΗ)
+  // Load uploaded file counters + Drive thumbnails (works for ALL phases/users by SR ID)
   useEffect(() => {
-    if (!existingConstruction?.id) {
-      setExistingPhotoCounts({});
-      setExistingOtdrCounts({});
-      return;
-    }
-
     let cancelled = false;
 
     const loadExistingFileCounts = async () => {
-      const safeSrId = assignment.sr_id.replace(/[^a-zA-Z0-9_-]/g, "_");
-      const storagePrefix = `constructions/${safeSrId}/${existingConstruction.id}`;
-
-      const { data: folders, error } = await supabase.storage.from("photos").list(storagePrefix);
-
       const photoCounts: Record<string, number> = {};
       const otdrCounts: Record<string, number> = {};
 
-      if (!error && folders && !cancelled) {
+      // Storage scan only if we have a saved construction (RLS may block otherwise)
+      const safeSrId = assignment.sr_id.replace(/[^a-zA-Z0-9_-]/g, "_");
+      const storagePrefix = existingConstruction?.id
+        ? `constructions/${safeSrId}/${existingConstruction.id}`
+        : null;
+
+      const { data: folders, error } = storagePrefix
+        ? await supabase.storage.from("photos").list(storagePrefix)
+        : { data: null, error: null };
+
+      if (!error && folders && storagePrefix && !cancelled) {
         const photoFolderToCategory: Record<string, string> = {
           SKAMA: "ΣΚΑΜΑ",
           ODEFSI: "ΟΔΕΥΣΗ",
@@ -680,7 +679,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
             }
 
             // Save the discovered counts back to the construction record for future use
-            if (Object.keys(photoCounts).length > 0) {
+            if (Object.keys(photoCounts).length > 0 && existingConstruction?.id) {
               await supabase
                 .from("constructions")
                 .update({ photo_counts: photoCounts } as any)
