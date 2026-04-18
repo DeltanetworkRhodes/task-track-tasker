@@ -48,6 +48,15 @@ const statusColors: Record<string, string> = {
   cancelled: "bg-red-500/10 text-red-600 border-red-500/20",
 };
 
+const isToday = (date: Date) => {
+  const today = new Date();
+  return (
+    date.getDate() === today.getDate() &&
+    date.getMonth() === today.getMonth() &&
+    date.getFullYear() === today.getFullYear()
+  );
+};
+
 interface Props {
   assignments: any[];
   loading: boolean;
