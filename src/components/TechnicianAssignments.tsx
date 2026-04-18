@@ -2,7 +2,7 @@ import { useState, useCallback } from "react";
 
 import { MapPin, Phone, Calendar, MessageSquare, Loader2, Eye, FileEdit, CheckCircle, Clock, HardHat, XCircle, Ban, Upload, FileSpreadsheet, FileText, CalendarClock, Users } from "lucide-react";
 import GisUploadCard from "@/components/GisUploadCard";
-import { useMyCrewAssignments, useWorkCategories } from "@/hooks/useCrewData";
+import { useMyCrewAssignments, useWorkCategories, useMyPhase, usePhaseStatus } from "@/hooks/useCrewData";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -86,6 +86,10 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
     return cat?.material_codes || [];
   });
   const crewAssignmentIds = (myCrewAssignments || []).map((ca: any) => ca.id);
+
+  // 3-Phase workflow context for the open assignment
+  const { phase, isAdmin } = useMyPhase(selectedAssignment?.id ?? null);
+  const { data: phaseStatus } = usePhaseStatus(selectedAssignment?.id ?? null);
 
   // Fetch existing survey for selected assignment
   const { data: existingSurvey } = useQuery({
@@ -920,6 +924,8 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
             {selectedAssignment && showConstructionForm && (
               <ConstructionForm
                 assignment={selectedAssignment}
+                phase={isAdmin ? undefined : phase ?? undefined}
+                phaseStatus={phaseStatus ?? null}
                 onComplete={() => {
                   setShowConstructionForm(false);
                   setSelectedAssignment(null);
@@ -937,6 +943,8 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
                 filterWorkPrefixes={crewWorkPrefixes.length > 0 ? crewWorkPrefixes : undefined}
                 filterMaterialCodes={crewMaterialCodes.length > 0 ? crewMaterialCodes : undefined}
                 crewAssignmentIds={crewAssignmentIds.length > 0 ? crewAssignmentIds : undefined}
+                phase={isAdmin ? undefined : phase ?? undefined}
+                phaseStatus={phaseStatus ?? null}
                 onComplete={() => {
                   setShowCrewPanel(false);
                   setSelectedAssignment(null);
