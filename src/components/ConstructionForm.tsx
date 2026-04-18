@@ -576,6 +576,21 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
           } else {
             const key = photoFolderToCategory[folder.name] || folder.name;
             photoCounts[key] = (photoCounts[key] || 0) + fileCount;
+
+            // Fetch signed URLs for preview (photos bucket is private)
+            const imageFiles = files.filter((f) => f.id !== null).slice(0, 10);
+            const signedResults = await Promise.all(
+              imageFiles.map(async (f) => {
+                const { data } = await supabase.storage
+                  .from("photos")
+                  .createSignedUrl(`${storagePrefix}/${folder.name}/${f.name}`, 3600);
+                return data?.signedUrl || "";
+              })
+            );
+            const urls = signedResults.filter(Boolean);
+            if (urls.length > 0 && !cancelled) {
+              setExistingPhotoUrls((prev) => ({ ...prev, [key]: urls }));
+            }
           }
         }
       }
