@@ -1602,6 +1602,17 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
   const totalPhotos = Object.values(categorizedPhotos).reduce((sum, arr) => sum + arr.length, 0);
   const totalOtdrFiles = Object.values(otdrFiles).reduce((sum, arr) => sum + arr.length, 0);
 
+  // Form completion progress (mobile UX indicator)
+  const progress = useMemo(() => {
+    let score = 0;
+    if (sesId) score += 20;
+    if (routes.some((r) => r.koi)) score += 20;
+    if (workItems.length > 0) score += 20;
+    if (materialItems.length > 0) score += 20;
+    if (totalPhotos > 0) score += 20;
+    return score;
+  }, [sesId, routes, workItems, materialItems, totalPhotos]);
+
   // Validation: mandatory photo categories must have at least 1 photo (new or existing) and no unresolved rejections
   const mandatoryPhotosValid = useMemo(() => {
     for (const key of mandatoryPhotoKeys) {
