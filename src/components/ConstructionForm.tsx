@@ -1932,7 +1932,10 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
           }
         }
 
-        toast.success("✅ Αποθηκεύτηκε επιτυχώς!");
+        toast.success("✅ Αποθηκεύτηκε!", {
+          description: `${totalPhotos} φωτο · ${workItems.length} εργασίες · ${materialItems.length} υλικά`,
+          duration: 3000,
+        });
         queryClient.invalidateQueries({ queryKey: ["technician-assignments"] });
         queryClient.invalidateQueries({ queryKey: ["constructions"] });
         queryClient.invalidateQueries({ queryKey: ["existing_construction", assignment.id] });
@@ -2435,7 +2438,10 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
         toast.success("🎉 Η κατασκευή ολοκληρώθηκε!");
       } else {
         // Just saving
-        toast.success("✅ Αποθηκεύτηκε επιτυχώς!");
+        toast.success("✅ Αποθηκεύτηκε!", {
+          description: `${totalPhotos} φωτο · ${workItems.length} εργασίες · ${materialItems.length} υλικά`,
+          duration: 3000,
+        });
       }
 
       setSubmitted(true);
@@ -4449,6 +4455,65 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
 
       {/* Spacer for sticky bar */}
       <div className="h-20" />
+
+      {/* Floating Camera Button (FAB) — Phase 1/2/3 only */}
+      {phase && visiblePhotoCategories.length > 0 && (
+        <>
+          <div className="fixed bottom-24 right-4 z-50" style={{ marginBottom: "env(safe-area-inset-bottom)" }}>
+            <Button
+              type="button"
+              onClick={() => setShowCameraSheet(true)}
+              className="h-14 w-14 rounded-full shadow-xl gap-0 p-0 bg-primary hover:bg-primary/90"
+              aria-label="Φωτογραφία"
+            >
+              <Camera className="h-6 w-6" />
+            </Button>
+          </div>
+          <Sheet open={showCameraSheet} onOpenChange={setShowCameraSheet}>
+            <SheetContent side="bottom" className="rounded-t-2xl pb-8">
+              <SheetHeader className="mb-4">
+                <SheetTitle className="text-base">📸 Φωτογραφία — Επίλεξε Κατηγορία</SheetTitle>
+              </SheetHeader>
+              <div className="grid grid-cols-2 gap-3 max-h-[60vh] overflow-y-auto">
+                {visiblePhotoCategories.map((cat) => {
+                  const existingCount = existingPhotoCounts[cat.key] || 0;
+                  const newCount = (categorizedPhotos[cat.key] || []).length;
+                  const totalCount = existingCount + newCount;
+                  const isMandatory = mandatoryPhotoKeys.has(cat.key);
+                  const hasPhotos = totalCount > 0;
+                  return (
+                    <button
+                      key={cat.key}
+                      type="button"
+                      onClick={() => {
+                        setShowCameraSheet(false);
+                        setTimeout(() => {
+                          fileInputRefs.current[`${cat.key}_camera`]?.click();
+                        }, 300);
+                      }}
+                      className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${
+                        hasPhotos
+                          ? "border-green-500/30 bg-green-500/5"
+                          : isMandatory
+                          ? "border-destructive/30 bg-destructive/5"
+                          : "border-border bg-muted/30"
+                      }`}
+                    >
+                      <span className="text-2xl">{cat.icon}</span>
+                      <span className="text-xs font-medium text-center leading-tight">{cat.label}</span>
+                      {hasPhotos ? (
+                        <span className="text-[10px] text-green-600 font-bold">✅ {totalCount} φωτο</span>
+                      ) : isMandatory ? (
+                        <span className="text-[10px] text-destructive font-bold">ΥΠΟΧΡ.</span>
+                      ) : null}
+                    </button>
+                  );
+                })}
+              </div>
+            </SheetContent>
+          </Sheet>
+        </>
+      )}
     </div>
   );
 };
