@@ -622,8 +622,10 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
         }
       }
 
-      // Fallback 2: ALWAYS fetch from Google Drive for thumbnails (regardless of existing counts)
-      if (assignment.drive_folder_url && !cancelled) {
+      // Fallback 2: ALWAYS fetch from Google Drive for thumbnails (by SR ID, regardless of drive_folder_url)
+      // The edge function searches the entire Shared Drive for the SR folder, so this works
+      // even for technicians whose assignment record doesn't have drive_folder_url set.
+      if (!cancelled) {
         try {
           const driveRes = await supabase.functions.invoke("google-drive-files", {
             body: { action: "sr_folder", sr_id: assignment.sr_id },
