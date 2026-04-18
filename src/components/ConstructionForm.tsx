@@ -436,7 +436,14 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
 
   // Hydrate base form fields from saved construction so edits persist across reopen/save cycles
   useEffect(() => {
-    if (existingConstructionLoaded || !existingConstruction) return;
+    if (existingConstructionLoaded) return;
+    // Wait for the fetch to complete (even if result is null) before deciding what to do.
+    if (!existingConstructionFetched) return;
+    if (!existingConstruction) {
+      // No saved construction exists — mark as loaded so GIS auto-populate can take over.
+      setExistingConstructionLoaded(true);
+      return;
+    }
 
     setSesId(existingConstruction.ses_id || "");
     setAk(existingConstruction.ak || "");
@@ -500,7 +507,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
     setGisFieldsFilled(true);
     setGisAutoFilled(true);
     setExistingConstructionLoaded(true);
-  }, [existingConstruction, existingConstructionLoaded, assignment.cab]);
+  }, [existingConstruction, existingConstructionFetched, existingConstructionLoaded, assignment.cab]);
 
   // Hydrate saved works
   useEffect(() => {
@@ -769,8 +776,11 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
   });
 
   // Auto-populate floorMeters from gisData.floor_details (only once, never overwrite user edits)
+  // CRITICAL: Wait for existingConstruction fetch to complete first, otherwise we race
+  // and overwrite user's typed values when the saved data finally loads.
   useEffect(() => {
     if (!gisData || floorMetersInitialized) return;
+    if (!existingConstructionLoaded) return;
     const fd = (gisData as any).floor_details;
     if (!Array.isArray(fd) || fd.length === 0) return;
     setFloorMeters(fd.map((f: any) => {
@@ -784,7 +794,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
       };
     }));
     setFloorMetersInitialized(true);
-  }, [gisData, floorMetersInitialized]);
+  }, [gisData, floorMetersInitialized, existingConstructionLoaded]);
 
   // Auto-populate από gisData.raw_data — ΜΟΝΟ αν τα πεδία είναι κενά
   // (guard για να μην overwrite χειροκίνητες τιμές ή τιμές από existingConstruction)
