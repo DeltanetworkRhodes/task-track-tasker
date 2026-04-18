@@ -3440,7 +3440,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                     onChange={(e) => !isInhouse && updateRoute(idx, "koi", e.target.value)}
                     placeholder="0"
                     readOnly={isInhouse}
-                    className={`text-sm mt-0.5 h-8 ${isInhouse ? "bg-muted cursor-not-allowed" : ""}`}
+                    className={`text-sm mt-0.5 h-10 ${isInhouse ? "bg-muted cursor-not-allowed" : ""}`}
                   />
                 </div>
                 <div>
@@ -3452,7 +3452,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                     value={route.fyraKoi}
                     onChange={(e) => updateRoute(idx, "fyraKoi", e.target.value)}
                     placeholder="0"
-                    className="text-sm mt-0.5 h-8"
+                    className="text-sm mt-0.5 h-10"
                   />
                 </div>
               </div>
@@ -3462,7 +3462,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                   <select
                     value={idx === 0 ? koiTypeCabBep : koiTypeCabBcp}
                     onChange={(e) => idx === 0 ? setKoiTypeCabBep(e.target.value) : setKoiTypeCabBcp(e.target.value)}
-                    className="w-full mt-0.5 text-sm border border-border rounded-md px-2 py-1 h-8 bg-background text-foreground"
+                    className="w-full mt-0.5 text-sm border border-border rounded-md px-2 py-1 h-10 bg-background text-foreground"
                   >
                     <option value="4' μ cable">4' μ cable</option>
                     <option value="12' μ cable">12' μ cable</option>
@@ -3516,7 +3516,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                         prev.map((p, i) => (i === idx ? { ...p, floor: e.target.value } : p))
                       )
                     }
-                    className="h-8 text-sm"
+                    className="h-10 text-sm"
                   />
                   <Input
                     type="number"
@@ -3529,7 +3529,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                       )
                     }
                     placeholder="0"
-                    className="h-8 text-sm"
+                    className="h-10 text-sm"
                   />
                   <select
                     value={fm.fo_type || "4FO"}
@@ -3543,7 +3543,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                         )
                       );
                     }}
-                    className="h-8 text-sm border border-border rounded-md px-2 bg-background text-foreground"
+                    className="h-10 text-sm border border-border rounded-md px-2 bg-background text-foreground"
                   >
                     <option value="4FO">4 FO</option>
                     <option value="12FO">12 FO</option>
@@ -3578,7 +3578,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                     step="0.1"
                     value={section6.bmo_bep_distance}
                     onChange={(e) => setSection6((s) => ({ ...s, bmo_bep_distance: e.target.value }))}
-                    className="h-8 text-sm mt-1"
+                    className="h-10 text-sm mt-1"
                   />
                 </div>
                 <div>
@@ -3586,7 +3586,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                   <select
                     value={section6.eisagogi_type}
                     onChange={(e) => setSection6((s) => ({ ...s, eisagogi_type: e.target.value }))}
-                    className="w-full mt-1 h-8 text-sm border border-border rounded-md px-2 bg-background text-foreground"
+                    className="w-full mt-1 h-10 text-sm border border-border rounded-md px-2 bg-background text-foreground"
                   >
                     <option value="">— Επιλέξτε —</option>
                     <option value="ΝΕΑ ΥΠΟΔΟΜΗ">ΝΕΑ ΥΠΟΔΟΜΗ</option>
@@ -3606,7 +3606,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                       type="number"
                       value={ballMarkerBep}
                       onChange={(e) => setBallMarkerBep(e.target.value)}
-                      className="h-8 text-sm mt-1"
+                      className="h-10 text-sm mt-1"
                     />
                   </div>
                   <div>
@@ -3615,7 +3615,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                       type="number"
                       value={section6.ms_skamma}
                       onChange={(e) => setSection6((s) => ({ ...s, ms_skamma: e.target.value }))}
-                      className="h-8 text-sm mt-1"
+                      className="h-10 text-sm mt-1"
                     />
                   </div>
                 </div>
@@ -3629,7 +3629,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                     <Input
                       value={section6.eskalit_ms}
                       onChange={(e) => setSection6((s) => ({ ...s, eskalit_ms: e.target.value }))}
-                      className="h-8 text-sm mt-1"
+                      className="h-10 text-sm mt-1"
                     />
                   </div>
                   <div>
@@ -3637,7 +3637,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                     <Input
                       value={section6.eskalit_nea_solienosi}
                       onChange={(e) => setSection6((s) => ({ ...s, eskalit_nea_solienosi: e.target.value }))}
-                      className="h-8 text-sm mt-1"
+                      className="h-10 text-sm mt-1"
                     />
                   </div>
                   <div>
@@ -3645,7 +3645,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                     <Input
                       value={section6.eskalit_solienosi_eisagogis}
                       onChange={(e) => setSection6((s) => ({ ...s, eskalit_solienosi_eisagogis: e.target.value }))}
-                      className="h-8 text-sm mt-1"
+                      className="h-10 text-sm mt-1"
                     />
                   </div>
                   <div>
@@ -3653,7 +3653,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                     <Input
                       value={section6.eskalit_bep}
                       onChange={(e) => setSection6((s) => ({ ...s, eskalit_bep: e.target.value }))}
-                      className="h-8 text-sm mt-1"
+                      className="h-10 text-sm mt-1"
                     />
                   </div>
                 </div>
@@ -3666,7 +3666,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                   <Input
                     value={section6.eskalit_b1_bep}
                     onChange={(e) => setSection6((s) => ({ ...s, eskalit_b1_bep: e.target.value }))}
-                    className="h-8 text-sm mt-1"
+                    className="h-10 text-sm mt-1"
                   />
                 </div>
               )}
@@ -3679,7 +3679,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                     <Input
                       value={section6.bcp_eidos}
                       onChange={(e) => setSection6((s) => ({ ...s, bcp_eidos: e.target.value }))}
-                      className="h-8 text-sm mt-1"
+                      className="h-10 text-sm mt-1"
                     />
                   </div>
                   <div>
@@ -3688,7 +3688,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                       type="number"
                       value={ballMarkerBcp}
                       onChange={(e) => setBallMarkerBcp(e.target.value)}
-                      className="h-8 text-sm mt-1"
+                      className="h-10 text-sm mt-1"
                     />
                   </div>
                   <div>
@@ -3697,7 +3697,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                       type="number"
                       value={section6.bcp_ms}
                       onChange={(e) => setSection6((s) => ({ ...s, bcp_ms: e.target.value }))}
-                      className="h-8 text-sm mt-1"
+                      className="h-10 text-sm mt-1"
                     />
                   </div>
                   <div>
@@ -3705,7 +3705,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                     <Input
                       value={section6.bcp_bep_ypogeia}
                       onChange={(e) => setSection6((s) => ({ ...s, bcp_bep_ypogeia: e.target.value }))}
-                      className="h-8 text-sm mt-1"
+                      className="h-10 text-sm mt-1"
                     />
                   </div>
                   <div className="col-span-2">
@@ -3713,7 +3713,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                     <Input
                       value={section6.bcp_bep_enaeria}
                       onChange={(e) => setSection6((s) => ({ ...s, bcp_bep_enaeria: e.target.value }))}
-                      className="h-8 text-sm mt-1"
+                      className="h-10 text-sm mt-1"
                     />
                   </div>
                 </div>
