@@ -730,6 +730,30 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
     },
   });
 
+  // Fetch technician's personal inventory (only used when phase is set = technician mode)
+  const { data: techInventory } = useQuery({
+    queryKey: ["tech-inventory", user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      const { data } = await supabase
+        .from("technician_inventory" as any)
+        .select("id, material_id, quantity")
+        .eq("technician_id", user.id)
+        .gt("quantity", 0);
+      return (data || []) as any[];
+    },
+    enabled: !!user && !!phase,
+  });
+
+  // Quick lookup map: material_id → quantity in technician's personal warehouse
+  const techInventoryMap = useMemo(() => {
+    const map = new Map<string, number>();
+    (techInventory || []).forEach((inv: any) => {
+      map.set(inv.material_id, Number(inv.quantity));
+    });
+    return map;
+  }, [techInventory]);
+
   // Fetch GIS data for this assignment
   const { data: gisData } = useQuery({
     queryKey: ["gis_data_for_construction", assignment.id],
@@ -1516,6 +1540,12 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
     for (const m of materials) {
       // Skip materials not in allowed codes (crew mode)
       if (allowedCodes && !allowedCodes.has(m.code)) continue;
+
+      // 3-Phase technician mode: only show materials present in the technician's personal warehouse
+      if (phase) {
+        const inv = techInventoryMap.get(m.id) || 0;
+        if (inv <= 0) continue;
+      }
       
       const source = m.source as "OTE" | "DELTANETWORK";
       if (!groups[source]) groups[source] = {};
@@ -1526,7 +1556,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
       groups[source][catLabel].push(m);
     }
     return groups;
-  }, [materials, filterMaterialCodes]);
+  }, [materials, filterMaterialCodes, phase, techInventoryMap]);
 
   // Toggle category
   const toggleWorkCategory = (prefix: string) => {
@@ -1762,6 +1792,21 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
       return;
     }
 
+    // 3-Phase technician mode: warn if requested quantity exceeds personal warehouse stock
+    if (phase && materialItems.length > 0) {
+      const insufficient = materialItems.filter((item) => {
+        const avail = techInventoryMap.get(item.material_id) || 0;
+        return item.quantity > avail;
+      });
+      if (insufficient.length > 0) {
+        const names = insufficient.map((i) => `${i.code} (${i.quantity}/${techInventoryMap.get(i.material_id) || 0})`).join(", ");
+        toast.warning(`⚠️ Ανεπαρκές απόθεμα: ${names}`, {
+          description: "Συνεχίζεται η αποθήκευση αλλά το απόθεμα θα γίνει αρνητικό.",
+          duration: 5000,
+        });
+      }
+    }
+
     // ═══════ CREW MODE BRANCH ═══════
     if (isCrewMode) {
       setSubmitting(true);
@@ -1904,6 +1949,31 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
             console.error("Stock deduction error:", deductErr);
             toast.warning("Αποθηκεύτηκαν τα υλικά αλλά απέτυχε η ενημέρωση αποθήκης. Ελέγξτε το Admin Panel.");
           }
+        }
+
+        // 3-Phase technician mode: deduct from technician's personal warehouse + log history
+        if (phase && user && materialItems.length > 0 && organizationId) {
+          for (const item of materialItems) {
+            const currentQty = techInventoryMap.get(item.material_id) || 0;
+            const newQty = currentQty - item.quantity;
+            await supabase
+              .from("technician_inventory" as any)
+              .update({ quantity: newQty, updated_at: new Date().toISOString() })
+              .eq("technician_id", user.id)
+              .eq("material_id", item.material_id);
+            await supabase.from("technician_inventory_history" as any).insert({
+              technician_id: user.id,
+              material_id: item.material_id,
+              change_amount: -item.quantity,
+              reason: "SR χρέωση",
+              construction_sr_id: assignment.sr_id,
+              organization_id: organizationId,
+              changed_by: user.id,
+            });
+          }
+          queryClient.invalidateQueries({ queryKey: ["tech-inventory", user.id] });
+          queryClient.invalidateQueries({ queryKey: ["technician-inventory", user.id] });
+          queryClient.invalidateQueries({ queryKey: ["technician-inventory-history", user.id] });
         }
 
         // Upload photos
@@ -2341,6 +2411,31 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
           console.error("Stock deduction error:", deductErr);
           toast.warning("Αποθηκεύτηκαν τα υλικά αλλά απέτυχε η ενημέρωση αποθήκης. Ελέγξτε το Admin Panel.");
         }
+      }
+
+      // 3-Phase technician mode: deduct from technician's personal warehouse + log history
+      if (phase && user && materialItems.length > 0 && organizationId) {
+        for (const item of materialItems) {
+          const currentQty = techInventoryMap.get(item.material_id) || 0;
+          const newQty = currentQty - item.quantity;
+          await supabase
+            .from("technician_inventory" as any)
+            .update({ quantity: newQty, updated_at: new Date().toISOString() })
+            .eq("technician_id", user.id)
+            .eq("material_id", item.material_id);
+          await supabase.from("technician_inventory_history" as any).insert({
+            technician_id: user.id,
+            material_id: item.material_id,
+            change_amount: -item.quantity,
+            reason: "SR χρέωση",
+            construction_sr_id: assignment.sr_id,
+            organization_id: organizationId,
+            changed_by: user.id,
+          });
+        }
+        queryClient.invalidateQueries({ queryKey: ["tech-inventory", user.id] });
+        queryClient.invalidateQueries({ queryKey: ["technician-inventory", user.id] });
+        queryClient.invalidateQueries({ queryKey: ["technician-inventory-history", user.id] });
       }
 
       const photoPaths: string[] = [];
@@ -4064,6 +4159,11 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
 
                               <div className="flex-1 min-w-0" onClick={() => toggleMaterial(m)}>
                                 <span className="text-xs text-primary font-bold">{m.code}</span>
+                                {phase && techInventoryMap.has(m.id) && (
+                                  <span className={`text-[10px] ml-1.5 font-bold ${(techInventoryMap.get(m.id) || 0) <= 5 ? 'text-destructive' : 'text-muted-foreground'}`}>
+                                    (απόθεμα: {techInventoryMap.get(m.id)} {m.unit})
+                                  </span>
+                                )}
                                 <p className="text-[11px] text-muted-foreground leading-tight truncate">{m.name}</p>
                               </div>
 
