@@ -19,6 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 
 import { isOnline, enqueueConstruction, fileToOfflineFile, type OfflineConstructionPayload } from "@/lib/offlineQueue";
 
@@ -1558,6 +1559,9 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
 
   // compressImage imported from shared utility
 
+  // Floating camera sheet state
+  const [showCameraSheet, setShowCameraSheet] = useState(false);
+
   // Photo handling per category with AI QA
   const handleCategoryPhotoSelect = async (category: string, e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -1928,7 +1932,10 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
           }
         }
 
-        toast.success("✅ Αποθηκεύτηκε επιτυχώς!");
+        toast.success("✅ Αποθηκεύτηκε!", {
+          description: `${totalPhotos} φωτο · ${workItems.length} εργασίες · ${materialItems.length} υλικά`,
+          duration: 3000,
+        });
         queryClient.invalidateQueries({ queryKey: ["technician-assignments"] });
         queryClient.invalidateQueries({ queryKey: ["constructions"] });
         queryClient.invalidateQueries({ queryKey: ["existing_construction", assignment.id] });
@@ -2431,7 +2438,10 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
         toast.success("🎉 Η κατασκευή ολοκληρώθηκε!");
       } else {
         // Just saving
-        toast.success("✅ Αποθηκεύτηκε επιτυχώς!");
+        toast.success("✅ Αποθηκεύτηκε!", {
+          description: `${totalPhotos} φωτο · ${workItems.length} εργασίες · ${materialItems.length} υλικά`,
+          duration: 3000,
+        });
       }
 
       setSubmitted(true);
@@ -4134,13 +4144,13 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                       onChange={(e) => handleCategoryPhotoSelect(cat.key, e)}
                       className="hidden"
                     />
-                    <div className="flex gap-1">
+                    <div className="flex gap-1.5">
                         <Button
                           type="button"
                           variant="outline"
                           size="sm"
                           onClick={() => fileInputRefs.current[cat.key]?.click()}
-                          className="h-7 text-[11px] gap-1 px-2"
+                          className="h-9 text-xs gap-1.5 px-3"
                           title="Από γκαλερί"
                         >
                           📁
@@ -4150,24 +4160,24 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                           variant="outline"
                           size="sm"
                           onClick={() => fileInputRefs.current[`${cat.key}_camera`]?.click()}
-                          className="h-7 text-[11px] gap-1 px-2"
+                          className="h-9 text-xs gap-1.5 px-3"
                           title="Κάμερα"
                         >
-                          <Camera className="h-3 w-3" />
+                          <Camera className="h-4 w-4" />
                         </Button>
                       </div>
                   </div>
                 </div>
                 
                 {catPreviews.length > 0 && (
-                  <div className="grid grid-cols-4 gap-1.5">
+                  <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
                     {catPreviews.map((preview, i) => {
                       return (
                         <div key={i} className="relative group">
                           <img
                             src={preview}
                             alt={`${cat.label} ${i + 1}`}
-                            className="w-full h-16 object-cover rounded border border-border"
+                            className="w-full h-20 sm:h-16 object-cover rounded-lg border border-border"
                           />
                           <button
                             type="button"
@@ -4445,6 +4455,65 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
 
       {/* Spacer for sticky bar */}
       <div className="h-20" />
+
+      {/* Floating Camera Button (FAB) — Phase 1/2/3 only */}
+      {phase && visiblePhotoCategories.length > 0 && (
+        <>
+          <div className="fixed bottom-24 right-4 z-50" style={{ marginBottom: "env(safe-area-inset-bottom)" }}>
+            <Button
+              type="button"
+              onClick={() => setShowCameraSheet(true)}
+              className="h-14 w-14 rounded-full shadow-xl gap-0 p-0 bg-primary hover:bg-primary/90"
+              aria-label="Φωτογραφία"
+            >
+              <Camera className="h-6 w-6" />
+            </Button>
+          </div>
+          <Sheet open={showCameraSheet} onOpenChange={setShowCameraSheet}>
+            <SheetContent side="bottom" className="rounded-t-2xl pb-8">
+              <SheetHeader className="mb-4">
+                <SheetTitle className="text-base">📸 Φωτογραφία — Επίλεξε Κατηγορία</SheetTitle>
+              </SheetHeader>
+              <div className="grid grid-cols-2 gap-3 max-h-[60vh] overflow-y-auto">
+                {visiblePhotoCategories.map((cat) => {
+                  const existingCount = existingPhotoCounts[cat.key] || 0;
+                  const newCount = (categorizedPhotos[cat.key] || []).length;
+                  const totalCount = existingCount + newCount;
+                  const isMandatory = mandatoryPhotoKeys.has(cat.key);
+                  const hasPhotos = totalCount > 0;
+                  return (
+                    <button
+                      key={cat.key}
+                      type="button"
+                      onClick={() => {
+                        setShowCameraSheet(false);
+                        setTimeout(() => {
+                          fileInputRefs.current[`${cat.key}_camera`]?.click();
+                        }, 300);
+                      }}
+                      className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${
+                        hasPhotos
+                          ? "border-green-500/30 bg-green-500/5"
+                          : isMandatory
+                          ? "border-destructive/30 bg-destructive/5"
+                          : "border-border bg-muted/30"
+                      }`}
+                    >
+                      <span className="text-2xl">{cat.icon}</span>
+                      <span className="text-xs font-medium text-center leading-tight">{cat.label}</span>
+                      {hasPhotos ? (
+                        <span className="text-[10px] text-green-600 font-bold">✅ {totalCount} φωτο</span>
+                      ) : isMandatory ? (
+                        <span className="text-[10px] text-destructive font-bold">ΥΠΟΧΡ.</span>
+                      ) : null}
+                    </button>
+                  );
+                })}
+              </div>
+            </SheetContent>
+          </Sheet>
+        </>
+      )}
     </div>
   );
 };
