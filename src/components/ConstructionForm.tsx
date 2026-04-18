@@ -276,6 +276,8 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
   // ─── Existing uploaded photos from storage (persistence) ───
   const [existingPhotoCounts, setExistingPhotoCounts] = useState<Record<string, number>>({});
   const [existingOtdrCounts, setExistingOtdrCounts] = useState<Record<string, number>>({});
+  const [existingPhotoUrls, setExistingPhotoUrls] = useState<Record<string, string[]>>({});
+  const [expandedPhotoCategory, setExpandedPhotoCategory] = useState<string | null>(null);
 
   // In crew mode, show filtered categories with alias support (fallback: show all)
   // In normal mode, show categories based on selected works
