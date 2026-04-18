@@ -776,8 +776,11 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
   });
 
   // Auto-populate floorMeters from gisData.floor_details (only once, never overwrite user edits)
+  // CRITICAL: Wait for existingConstruction fetch to complete first, otherwise we race
+  // and overwrite user's typed values when the saved data finally loads.
   useEffect(() => {
     if (!gisData || floorMetersInitialized) return;
+    if (!existingConstructionLoaded) return;
     const fd = (gisData as any).floor_details;
     if (!Array.isArray(fd) || fd.length === 0) return;
     setFloorMeters(fd.map((f: any) => {
@@ -791,7 +794,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
       };
     }));
     setFloorMetersInitialized(true);
-  }, [gisData, floorMetersInitialized]);
+  }, [gisData, floorMetersInitialized, existingConstructionLoaded]);
 
   // Auto-populate από gisData.raw_data — ΜΟΝΟ αν τα πεδία είναι κενά
   // (guard για να μην overwrite χειροκίνητες τιμές ή τιμές από existingConstruction)
