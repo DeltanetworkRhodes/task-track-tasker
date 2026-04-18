@@ -90,7 +90,13 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err: any) {
-    return new Response(JSON.stringify({ error: err.message }), {
+    let message = err.message || "Σφάλμα";
+    if (message.includes("known to be weak") || message.includes("pwned") || message.includes("easy to guess")) {
+      message = "Ο κωδικός είναι πολύ αδύναμος ή έχει διαρρεύσει σε γνωστές παραβιάσεις. Επίλεξε έναν πιο ισχυρό κωδικό (π.χ. συνδυασμός γραμμάτων, αριθμών και συμβόλων).";
+    } else if (message.includes("at least") && message.includes("characters")) {
+      message = "Ο κωδικός πρέπει να έχει τουλάχιστον 6 χαρακτήρες.";
+    }
+    return new Response(JSON.stringify({ error: message }), {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
