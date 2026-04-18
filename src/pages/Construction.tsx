@@ -589,6 +589,9 @@ const ConstructionPage = () => {
                               {(constructionStatusLabels as any)[c.status] || c.status}
                             </Badge>
                           </td>
+                          <td className="py-2.5 px-2">
+                            <PhaseProgress p1={(c as any).phase1Status} p2={(c as any).phase2Status} p3={(c as any).phase3Status} />
+                          </td>
                           <td className="py-2.5 px-2 text-right font-bold text-xs">{c.revenue > 0 ? `${c.revenue.toLocaleString('el-GR')}€` : '—'}</td>
                           <td className="py-2.5 px-2 text-right font-bold text-xs text-destructive">{c.materialCost > 0 ? `${c.materialCost.toLocaleString('el-GR')}€` : '—'}</td>
                           <td className={`py-2.5 px-2 text-right font-bold text-xs ${c.profit >= 0 ? 'text-green-600' : 'text-destructive'}`}>
