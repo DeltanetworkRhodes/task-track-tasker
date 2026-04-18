@@ -4288,18 +4288,6 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                   return null;
                 })()}
 
-                {/* Loading skeleton */}
-                {expandedPhotoCategory === cat.key &&
-                  existingPhotoCounts[cat.key] > 0 &&
-                  !existingPhotoUrls[cat.key] && (
-                    <div className="mt-2 grid grid-cols-3 gap-1.5 sm:grid-cols-4">
-                      {Array.from({
-                        length: Math.min(existingPhotoCounts[cat.key], 4),
-                      }).map((_, i) => (
-                        <div key={i} className="aspect-square bg-muted animate-pulse rounded-lg" />
-                      ))}
-                    </div>
-                  )}
 
                 {catPreviews.length > 0 && (
                   <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
