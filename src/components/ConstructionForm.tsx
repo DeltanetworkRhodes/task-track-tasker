@@ -3990,6 +3990,8 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
           ))}
         </Tabs>
 
+        </div>
+        )}
       </Card>
 
       {/* Construction Photos - Categorized */}
