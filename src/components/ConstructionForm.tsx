@@ -4111,7 +4111,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
 
         </div>
         )}
-      </Card>
+      </Card>}
 
       {/* Construction Photos - Categorized */}
       <Card className="overflow-hidden">
@@ -4294,7 +4294,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
         </div>
         </div>
         )}
-      </Card>}
+      </Card>
       {(!phase || phase === 3) && <Card className="overflow-hidden">
         <button
           type="button"
