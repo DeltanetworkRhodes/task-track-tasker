@@ -4231,95 +4231,36 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
         </div>
       )}
 
-      {/* Submit */}
-      <div className="space-y-3">
-        <Button 
-          variant="secondary"
-          onClick={handleSubmit} 
-          disabled={submitting || completing} 
-          className="w-full py-6 text-sm font-bold gap-2 !bg-amber-600 !hover:bg-amber-700 !text-white border-0"
-        >
-          {submitting && !completing ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" />
-              {submitProgress || (isCrewMode ? "Αποθήκευση..." : "Υποβολή...")}
-            </>
-          ) : (
-            <>
-              <Save className="h-4 w-4" />
-              {isCrewMode ? "💾 Αποθήκευση Εργασιών" : "💾 Αποθήκευση Κατασκευής"}
-            </>
-          )}
-        </Button>
-
-        {/* Completion button for responsible technician (non-crew) */}
-        {!isCrewMode && (
-          <AlertDialog open={showCompleteConfirm} onOpenChange={setShowCompleteConfirm}>
-            <AlertDialogTrigger asChild>
-              <Button
-                disabled={submitting || completing}
-                variant="default"
-                className="w-full py-6 text-sm font-bold gap-2 bg-green-600 hover:bg-green-700 text-white"
-              >
-                {completing ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    {submitProgress || "Ολοκλήρωση..."}
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle className="h-4 w-4" />
-                    ✅ Ολοκλήρωση Κατασκευής
-                  </>
-                )}
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Ολοκλήρωση Κατασκευής</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Είστε σίγουροι ότι θέλετε να ολοκληρώσετε την κατασκευή για το SR <strong>{assignment.sr_id}</strong>;
-                  <br /><br />
-                  Θα δημιουργηθεί ο φάκελος πελάτη και θα σταλεί email ολοκλήρωσης.
-                  <br /><br />
-                  <strong>Αυτή η ενέργεια δεν αναιρείται.</strong>
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Ακύρωση</AlertDialogCancel>
-                <AlertDialogAction
-                  className="bg-green-600 hover:bg-green-700 text-white"
-                  onClick={() => {
-                    completingRef.current = true;
-                    setCompleting(true);
-                    handleSubmit();
-                  }}
-                >
-                  Ναι, Ολοκλήρωση
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        )}
-
-        {/* Completion button for crew member with splicing (1986) */}
-        {isCrewMode && filterWorkPrefixes?.some(p => p === '1986') && (
-          <>
-            {!mandatoryPhotosValid && mandatoryPhotoKeys.size > 0 && (
-              <Alert className="border-destructive/30 bg-destructive/5">
-                <AlertTriangle className="h-4 w-4 text-destructive" />
-                <AlertTitle className="text-xs font-semibold text-destructive">Υποχρεωτικές φωτογραφίες</AlertTitle>
-                <AlertDescription className="text-xs text-destructive/80">
-                  {`Λείπουν φωτογραφίες: ${missingMandatoryCategories.join(", ")}`}
-                </AlertDescription>
-              </Alert>
+      {/* Sticky Submit Bar */}
+      <div className="fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur border-t border-border p-3" style={{ paddingBottom: "calc(0.75rem + env(safe-area-inset-bottom))" }}>
+        <div className="max-w-2xl mx-auto flex gap-2">
+          <Button
+            variant="secondary"
+            onClick={handleSubmit}
+            disabled={submitting || completing}
+            className="flex-1 py-5 text-sm font-bold gap-2 !bg-amber-600 !text-white border-0"
+          >
+            {submitting && !completing ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                {submitProgress || (isCrewMode ? "Αποθήκευση..." : "Υποβολή...")}
+              </>
+            ) : (
+              <>
+                <Save className="h-4 w-4" />
+                {isCrewMode ? "💾 Αποθήκευση" : "💾 Αποθήκευση"}
+              </>
             )}
+          </Button>
+
+          {/* Completion button for responsible technician (non-crew) */}
+          {!isCrewMode && (
             <AlertDialog open={showCompleteConfirm} onOpenChange={setShowCompleteConfirm}>
               <AlertDialogTrigger asChild>
                 <Button
-                  disabled={submitting || completing || (!mandatoryPhotosValid && mandatoryPhotoKeys.size > 0)}
+                  disabled={submitting || completing}
                   variant="default"
-                  className="w-full py-6 text-sm font-bold gap-2 bg-green-600 hover:bg-green-700 text-white"
+                  className="flex-1 py-5 text-sm font-bold gap-2 bg-green-600 hover:bg-green-700 text-white"
                 >
                   {completing ? (
                     <>
@@ -4329,7 +4270,57 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                   ) : (
                     <>
                       <CheckCircle className="h-4 w-4" />
-                      ✅ Ολοκλήρωση Κατασκευής
+                      ✅ Ολοκλήρωση
+                    </>
+                  )}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Ολοκλήρωση Κατασκευής</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Είστε σίγουροι ότι θέλετε να ολοκληρώσετε την κατασκευή για το SR <strong>{assignment.sr_id}</strong>;
+                    <br /><br />
+                    Θα δημιουργηθεί ο φάκελος πελάτη και θα σταλεί email ολοκλήρωσης.
+                    <br /><br />
+                    <strong>Αυτή η ενέργεια δεν αναιρείται.</strong>
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Ακύρωση</AlertDialogCancel>
+                  <AlertDialogAction
+                    className="bg-green-600 hover:bg-green-700 text-white"
+                    onClick={() => {
+                      completingRef.current = true;
+                      setCompleting(true);
+                      handleSubmit();
+                    }}
+                  >
+                    Ναι, Ολοκλήρωση
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
+
+          {/* Completion button for crew member with splicing (1986) */}
+          {isCrewMode && filterWorkPrefixes?.some(p => p === '1986') && (
+            <AlertDialog open={showCompleteConfirm} onOpenChange={setShowCompleteConfirm}>
+              <AlertDialogTrigger asChild>
+                <Button
+                  disabled={submitting || completing || (!mandatoryPhotosValid && mandatoryPhotoKeys.size > 0)}
+                  variant="default"
+                  className="flex-1 py-5 text-sm font-bold gap-2 bg-green-600 hover:bg-green-700 text-white"
+                >
+                  {completing ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      {submitProgress || "Ολοκλήρωση..."}
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="h-4 w-4" />
+                      ✅ Ολοκλήρωση
                     </>
                   )}
                 </Button>
@@ -4360,9 +4351,23 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
-          </>
-        )}
+          )}
+        </div>
       </div>
+
+      {/* Mandatory photos warning (crew mode with splicing) */}
+      {isCrewMode && filterWorkPrefixes?.some(p => p === '1986') && !mandatoryPhotosValid && mandatoryPhotoKeys.size > 0 && (
+        <Alert className="border-destructive/30 bg-destructive/5">
+          <AlertTriangle className="h-4 w-4 text-destructive" />
+          <AlertTitle className="text-xs font-semibold text-destructive">Υποχρεωτικές φωτογραφίες</AlertTitle>
+          <AlertDescription className="text-xs text-destructive/80">
+            {`Λείπουν φωτογραφίες: ${missingMandatoryCategories.join(", ")}`}
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Spacer for sticky bar */}
+      <div className="h-20" />
     </div>
   );
 };
