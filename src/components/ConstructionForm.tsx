@@ -281,13 +281,28 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
 
   // In crew mode, show filtered categories with alias support (fallback: show all)
   // In normal mode, show categories based on selected works
-  const visiblePhotoCategories = filterPhotoCatKeys
-    ? (crewFilteredPhotoCategories.length > 0 ? crewFilteredPhotoCategories : ALL_PHOTO_CATEGORIES)
-    : ALL_PHOTO_CATEGORIES.filter((cat) =>
+  const visiblePhotoCategories = ALL_PHOTO_CATEGORIES.filter((cat) => {
+    if (isCrewMode) {
+      return crewFilteredPhotoCategories.some((c) => c.key === cat.key);
+    }
+    // Admin (no phase) sees all that match work prefixes
+    if (!phase) {
+      return (
         cat.workPrefixes.length === 0 ||
         cat.workPrefixes.some((p) => selectedWorkPrefixes.has(p)) ||
         (existingPhotoCounts[cat.key] || 0) > 0
       );
+    }
+    // Φάση 1 + 2: ΣΚΑΜΑ, ΟΔΕΥΣΗ
+    if (phase === 1 || phase === 2) {
+      return ["ΣΚΑΜΑ", "ΟΔΕΥΣΗ"].includes(cat.key);
+    }
+    // Φάση 3: BEP, BMO, FB, ΚΑΜΠΙΝΑ
+    if (phase === 3) {
+      return ["BEP", "BMO", "FB", "ΚΑΜΠΙΝΑ", "Γ_ΦΑΣΗ"].includes(cat.key);
+    }
+    return true;
+  });
 
   // OTDR PDF measurement categories (FB is dynamic based on floors)
   const OTDR_CATEGORIES_STATIC = [
@@ -2585,7 +2600,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
       </div>
 
       {/* Technical Details */}
-      {!isCrewMode && <Card className="overflow-hidden">
+      {!isCrewMode && (!phase || phase === 1 || phase === 2) && <Card className="overflow-hidden">
         <button
           type="button"
           onClick={() => toggleSection("technical")}
@@ -2675,7 +2690,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
       </Card>}
 
       {/* GIS: Δομή Κτιρίου */}
-      {gisData && Array.isArray(gisData.floor_details) && (gisData.floor_details as any[]).length > 0 && (
+      {(!phase || phase === 2 || phase === 3) && gisData && Array.isArray(gisData.floor_details) && (gisData.floor_details as any[]).length > 0 && (
         <Card className="p-4 space-y-3 border-primary/20 bg-primary/5">
           <Label className="text-xs font-bold uppercase tracking-wider text-primary flex items-center gap-1.5">
             🏢 Δομή Κτιρίου (GIS)
@@ -2718,7 +2733,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
       )}
 
       {/* GIS: Οδηγίες Κόλλησης ανά Όροφο */}
-      {!isCrewMode && gisData && Array.isArray(gisData.optical_paths) && (gisData.optical_paths as any[]).length > 0 && (
+      {!isCrewMode && (!phase || phase === 3) && gisData && Array.isArray(gisData.optical_paths) && (gisData.optical_paths as any[]).length > 0 && (
         <Card className="p-4 space-y-3 border-accent/30 bg-accent/5">
           <Label className="text-xs font-bold uppercase tracking-wider text-accent-foreground flex items-center gap-1.5">
             <Building2 className="h-3.5 w-3.5" /> Οδηγίες Κόλλησης — Ανά Όροφο
@@ -3586,7 +3601,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
       </Card>
 
       {/* 📐 Μέτρα BMO→FB ανά Όροφο (collapsible) */}
-      {!isCrewMode && floorMeters.length > 0 && (
+      {!isCrewMode && floorMeters.length > 0 && (!phase || phase === 2 || phase === 3) && (
         <Card className="p-4 space-y-2">
           <button
             type="button"
@@ -3943,7 +3958,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
         </div>
         )}
       </Card>
-      <Card className="overflow-hidden">
+      {(!phase || phase === 1 || phase === 2) && <Card className="overflow-hidden">
         <button
           type="button"
           onClick={() => toggleSection("materials")}
@@ -4096,7 +4111,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
 
         </div>
         )}
-      </Card>
+      </Card>}
 
       {/* Construction Photos - Categorized */}
       <Card className="overflow-hidden">
@@ -4280,7 +4295,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
         </div>
         )}
       </Card>
-      {!isCrewMode && <Card className="overflow-hidden">
+      {(!phase || phase === 3) && <Card className="overflow-hidden">
         <button
           type="button"
           onClick={() => toggleSection("otdr")}
