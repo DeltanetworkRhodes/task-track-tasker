@@ -688,6 +688,72 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
     setFloorMetersInitialized(true);
   }, [gisData, floorMetersInitialized]);
 
+  // Auto-populate από gisData.raw_data — ΜΟΝΟ αν τα πεδία είναι κενά
+  // (guard για να μην overwrite χειροκίνητες τιμές ή τιμές από existingConstruction)
+  useEffect(() => {
+    if (!gisData) return;
+    const rawData = ((gisData as any)?.raw_data as any) || {};
+
+    // ── Κάθετη Υποδομή BEP ──
+    if (!verticalInfra || verticalInfra === "ΙΣ") {
+      const vr = (
+        rawData.vertical_routing ||
+        rawData["Είδος κάθετης υποδομής"] ||
+        ""
+      ).toString().toUpperCase();
+      if (vr.includes("ΚΑΓΚΕΛΟ")) setVerticalInfra("ΚΑΓΚΕΛΟ");
+      else if (vr.includes("ΚΛΙΜΑΚΟΣΤΑΣΙΟ")) setVerticalInfra("ΚΛΙΜΑΚΟΣΤΑΣΙΟ");
+      else if (vr.includes("ΦΩΤΑΓΩΓΟΣ")) setVerticalInfra("ΦΩΤΑΓΩΓΟΣ");
+      else if (vr.includes("ΕΞΩΤΕΡΙΚΑ")) setVerticalInfra("ΕΞΩΤΕΡΙΚΑ ΕΠΙΤΟΙΧΙΑ");
+      else if (vr) setVerticalInfra("ΑΛΛΟ");
+    }
+
+    // ── Είδος Εισαγωγής (section6) ──
+    if (!section6?.eisagogi_type) {
+      const hasBcp = !!(
+        (gisData as any)?.new_bcp ||
+        (gisData as any)?.nearby_bcp ||
+        rawData.bcp_placement
+      );
+      const isEskalit = !!(rawData.escalit_type || rawData["ΕΣΚΑΛΗΤ"]);
+      const areaType = ((gisData as any)?.area_type || "").toString().toUpperCase();
+      const isNew = areaType.includes("ΝΕΑ") || !areaType.includes("OTE");
+
+      let eisagogi = "";
+      if (hasBcp) eisagogi = "BCP";
+      else if (isEskalit) eisagogi = "ΕΣΚΑΛΗΤ";
+      else if (isNew) eisagogi = "ΝΕΑ ΥΠΟΔΟΜΗ";
+
+      if (eisagogi) {
+        setSection6((s) => ({ ...s, eisagogi_type: eisagogi }));
+      }
+    }
+
+    // ── BCP στοιχεία στο section6 ──
+    if (rawData.bcp_placement && !section6?.bcp_eidos) {
+      setSection6((s) => ({
+        ...s,
+        bcp_eidos: rawData.bcp_type_oriz || rawData["BCP ΕΙΔΟΣ"] || "",
+      }));
+    }
+
+    // ── FTTH ΥΠΟΓ ΔΔ KOI (routes[0]) από distance_from_cabinet ──
+    if ((gisData as any)?.distance_from_cabinet && !routes[0]?.koi) {
+      updateRoute(0, "koi", String((gisData as any).distance_from_cabinet));
+    }
+
+    // ── BEP Placement Floor ──
+    if ((gisData as any)?.bep_floor && (!bepPlacementFloor || bepPlacementFloor === "ΙΣ")) {
+      setBepPlacementFloor((gisData as any).bep_floor);
+    }
+
+    // ── AK από conduit (μόνο αν εντελώς κενό) ──
+    if ((gisData as any)?.conduit && !ak) {
+      setAk(((gisData as any).conduit as string).toUpperCase());
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gisData]);
+
   // Auto-calculate Indoor FO Cable (4FO/12FO) από floorMeters + ΦΥΡΑ
   useEffect(() => {
     if (!materials) return;
