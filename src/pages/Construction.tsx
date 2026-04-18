@@ -460,6 +460,9 @@ const ConstructionPage = () => {
                           {(constructionStatusLabels as any)[c.status] || c.status}
                         </Badge>
                       </div>
+                      <div className="mb-2">
+                        <PhaseProgress p1={(c as any).phase1Status} p2={(c as any).phase2Status} p3={(c as any).phase3Status} />
+                      </div>
                       <div className="flex items-center gap-3 text-xs text-muted-foreground mb-2">
                         {c.sesId && <span>SES: {c.sesId}</span>}
                         {c.cab && <span>CAB: {c.cab}</span>}
