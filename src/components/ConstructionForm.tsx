@@ -1773,6 +1773,10 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
           vertical_infra_type: verticalInfraType,
           floor_meters: floorMeters,
           asbuilt_section6: { ...section6, ball_marker_bep: ballMarkerBep, bcp_ball_marker: ballMarkerBcp },
+          // 3-Phase workflow: mark this phase as in-progress while saving in crew mode
+          ...(phase === 1 && { phase1_status: "in_progress" }),
+          ...(phase === 2 && { phase2_status: "in_progress" }),
+          ...(phase === 3 && { phase3_status: "in_progress" }),
         } as any;
 
 
@@ -2200,6 +2204,16 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
         vertical_infra_type: verticalInfraType,
         floor_meters: floorMeters,
         asbuilt_section6: { ...section6, ball_marker_bep: ballMarkerBep, bcp_ball_marker: ballMarkerBcp },
+        // 3-Phase workflow: mark this phase's status (in_progress on save, completed when finishing)
+        ...(phase === 1 && (isCompleting
+          ? { phase1_status: "completed", phase1_completed_at: new Date().toISOString() }
+          : { phase1_status: "in_progress" })),
+        ...(phase === 2 && (isCompleting
+          ? { phase2_status: "completed", phase2_completed_at: new Date().toISOString() }
+          : { phase2_status: "in_progress" })),
+        ...(phase === 3 && (isCompleting
+          ? { phase3_status: "completed", phase3_completed_at: new Date().toISOString() }
+          : { phase3_status: "in_progress" })),
       } as any;
 
 
