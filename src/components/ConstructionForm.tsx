@@ -2413,6 +2413,31 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
         }
       }
 
+      // 3-Phase technician mode: deduct from technician's personal warehouse + log history
+      if (phase && user && materialItems.length > 0 && organizationId) {
+        for (const item of materialItems) {
+          const currentQty = techInventoryMap.get(item.material_id) || 0;
+          const newQty = currentQty - item.quantity;
+          await supabase
+            .from("technician_inventory" as any)
+            .update({ quantity: newQty, updated_at: new Date().toISOString() })
+            .eq("technician_id", user.id)
+            .eq("material_id", item.material_id);
+          await supabase.from("technician_inventory_history" as any).insert({
+            technician_id: user.id,
+            material_id: item.material_id,
+            change_amount: -item.quantity,
+            reason: "SR χρέωση",
+            construction_sr_id: assignment.sr_id,
+            organization_id: organizationId,
+            changed_by: user.id,
+          });
+        }
+        queryClient.invalidateQueries({ queryKey: ["tech-inventory", user.id] });
+        queryClient.invalidateQueries({ queryKey: ["technician-inventory", user.id] });
+        queryClient.invalidateQueries({ queryKey: ["technician-inventory-history", user.id] });
+      }
+
       const photoPaths: string[] = [];
       const allCategoryPhotos = Object.entries(categorizedPhotos).filter(([_, files]) => files.length > 0);
       const totalPhotoCount = allCategoryPhotos.reduce((sum, [_, files]) => sum + files.length, 0);
