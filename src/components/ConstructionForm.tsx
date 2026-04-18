@@ -3477,6 +3477,8 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
             <span>KOI: {totalKoi.toFixed(1)}m · ΦΥΡΑ: {totalFyraKoi.toFixed(1)}m</span>
           </div>
         </div>
+        </div>
+        )}
       </Card>
 
       {/* 📐 Μέτρα BMO→FB ανά Όροφο (collapsible) */}
