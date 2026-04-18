@@ -341,6 +341,21 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
   const [submitProgress, setSubmitProgress] = useState("");
   const [showCompleteConfirm, setShowCompleteConfirm] = useState(false);
 
+  // Collapsible sections state (mobile UX)
+  const [openSections, setOpenSections] = useState<string[]>([
+    "technical",
+    "routes",
+    "works",
+    "materials",
+    "photos",
+    "otdr",
+  ]);
+  const toggleSection = (id: string) => {
+    setOpenSections((prev) =>
+      prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]
+    );
+  };
+
   // Load existing construction data when re-entering the form
   const { data: existingConstruction, isFetched: existingConstructionFetched } = useQuery({
     queryKey: ["existing_construction", assignment.id],
@@ -1587,6 +1602,17 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
   const totalPhotos = Object.values(categorizedPhotos).reduce((sum, arr) => sum + arr.length, 0);
   const totalOtdrFiles = Object.values(otdrFiles).reduce((sum, arr) => sum + arr.length, 0);
 
+  // Form completion progress (mobile UX indicator)
+  const progress = useMemo(() => {
+    let score = 0;
+    if (sesId) score += 20;
+    if (routes.some((r) => r.koi)) score += 20;
+    if (workItems.length > 0) score += 20;
+    if (materialItems.length > 0) score += 20;
+    if (totalPhotos > 0) score += 20;
+    return score;
+  }, [sesId, routes, workItems, materialItems, totalPhotos]);
+
   // Validation: mandatory photo categories must have at least 1 photo (new or existing) and no unresolved rejections
   const mandatoryPhotosValid = useMemo(() => {
     for (const key of mandatoryPhotoKeys) {
@@ -2423,16 +2449,56 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
 
   return (
     <div className="space-y-4 pb-8">
-      <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
-        <HardHat className="h-5 w-5" />
-        {isCrewMode ? "Κατασκευή – Η Δουλειά μου" : "Φόρμα Κατασκευής"}
-      </h2>
+      <div className="flex items-center justify-between gap-2">
+        <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
+          <HardHat className="h-5 w-5" />
+          {isCrewMode ? "Κατασκευή – Η Δουλειά μου" : "Φόρμα Κατασκευής"}
+        </h2>
+        <button
+          type="button"
+          onClick={() => {
+            const allIds = ["technical", "routes", "works", "materials", "photos", "otdr"];
+            setOpenSections(openSections.length === allIds.length ? [] : allIds);
+          }}
+          className="text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+        >
+          {openSections.length === 6 ? "Σύμπτυξη όλων ▲" : "Ανάπτυξη όλων ▼"}
+        </button>
+      </div>
+
+      {/* Progress bar */}
+      <div className="space-y-1">
+        <div className="flex justify-between text-[10px] text-muted-foreground">
+          <span>Πρόοδος</span>
+          <span>{progress}%</span>
+        </div>
+        <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+          <div
+            className="h-full bg-primary rounded-full transition-all duration-500"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+      </div>
 
       {/* Technical Details */}
-      {!isCrewMode && <Card className="p-4 space-y-3">
-        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          Τεχνικά Στοιχεία
-        </Label>
+      {!isCrewMode && <Card className="overflow-hidden">
+        <button
+          type="button"
+          onClick={() => toggleSection("technical")}
+          className="w-full flex items-center justify-between p-4 hover:bg-muted/30 transition-colors"
+        >
+          <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5 pointer-events-none">
+            Τεχνικά Στοιχεία
+            {(sesId || cab) && (
+              <Badge variant="secondary" className="text-[10px] ml-1">
+                {sesId || cab}
+              </Badge>
+            )}
+          </Label>
+          <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${openSections.includes("technical") ? "rotate-180" : ""}`} />
+        </button>
+        {openSections.includes("technical") && (
+        <div className="px-4 pb-4 space-y-3 border-t border-border/50 pt-3">
         <div className="grid grid-cols-2 gap-3">
           <div>
             <Label className="text-xs">SES ID</Label>
@@ -2500,6 +2566,8 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
             </select>
           </div>
         </div>
+        </div>
+        )}
       </Card>}
 
       {/* GIS: Δομή Κτιρίου */}
@@ -3336,11 +3404,21 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
       )}
 
       {/* ΔΙΑΔΡΟΜΕΣ */}
-      <Card className="p-4 space-y-3">
-        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-          <Route className="h-3.5 w-3.5" />
-          Διαδρομές
-        </Label>
+      <Card className="overflow-hidden">
+        <button
+          type="button"
+          onClick={() => toggleSection("routes")}
+          className="w-full flex items-center justify-between p-4 hover:bg-muted/30 transition-colors"
+        >
+          <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5 pointer-events-none">
+            <Route className="h-3.5 w-3.5" />
+            Διαδρομές
+            <Badge variant="secondary" className="text-[10px] ml-1">{totalKoi.toFixed(0)}μ</Badge>
+          </Label>
+          <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${openSections.includes("routes") ? "rotate-180" : ""}`} />
+        </button>
+        {openSections.includes("routes") && (
+        <div className="px-4 pb-4 space-y-3 border-t border-border/50 pt-3">
         <div className="space-y-2">
           {effectiveRoutes.map((route, idx) => {
             // In crew mode, only show INHOUSE route (index 3)
@@ -3362,7 +3440,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                     onChange={(e) => !isInhouse && updateRoute(idx, "koi", e.target.value)}
                     placeholder="0"
                     readOnly={isInhouse}
-                    className={`text-sm mt-0.5 h-8 ${isInhouse ? "bg-muted cursor-not-allowed" : ""}`}
+                    className={`text-sm mt-0.5 h-10 ${isInhouse ? "bg-muted cursor-not-allowed" : ""}`}
                   />
                 </div>
                 <div>
@@ -3374,7 +3452,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                     value={route.fyraKoi}
                     onChange={(e) => updateRoute(idx, "fyraKoi", e.target.value)}
                     placeholder="0"
-                    className="text-sm mt-0.5 h-8"
+                    className="text-sm mt-0.5 h-10"
                   />
                 </div>
               </div>
@@ -3384,7 +3462,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                   <select
                     value={idx === 0 ? koiTypeCabBep : koiTypeCabBcp}
                     onChange={(e) => idx === 0 ? setKoiTypeCabBep(e.target.value) : setKoiTypeCabBcp(e.target.value)}
-                    className="w-full mt-0.5 text-sm border border-border rounded-md px-2 py-1 h-8 bg-background text-foreground"
+                    className="w-full mt-0.5 text-sm border border-border rounded-md px-2 py-1 h-10 bg-background text-foreground"
                   >
                     <option value="4' μ cable">4' μ cable</option>
                     <option value="12' μ cable">12' μ cable</option>
@@ -3399,6 +3477,8 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
             <span>KOI: {totalKoi.toFixed(1)}m · ΦΥΡΑ: {totalFyraKoi.toFixed(1)}m</span>
           </div>
         </div>
+        </div>
+        )}
       </Card>
 
       {/* 📐 Μέτρα BMO→FB ανά Όροφο (collapsible) */}
@@ -3436,7 +3516,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                         prev.map((p, i) => (i === idx ? { ...p, floor: e.target.value } : p))
                       )
                     }
-                    className="h-8 text-sm"
+                    className="h-10 text-sm"
                   />
                   <Input
                     type="number"
@@ -3449,7 +3529,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                       )
                     }
                     placeholder="0"
-                    className="h-8 text-sm"
+                    className="h-10 text-sm"
                   />
                   <select
                     value={fm.fo_type || "4FO"}
@@ -3463,7 +3543,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                         )
                       );
                     }}
-                    className="h-8 text-sm border border-border rounded-md px-2 bg-background text-foreground"
+                    className="h-10 text-sm border border-border rounded-md px-2 bg-background text-foreground"
                   >
                     <option value="4FO">4 FO</option>
                     <option value="12FO">12 FO</option>
@@ -3498,7 +3578,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                     step="0.1"
                     value={section6.bmo_bep_distance}
                     onChange={(e) => setSection6((s) => ({ ...s, bmo_bep_distance: e.target.value }))}
-                    className="h-8 text-sm mt-1"
+                    className="h-10 text-sm mt-1"
                   />
                 </div>
                 <div>
@@ -3506,7 +3586,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                   <select
                     value={section6.eisagogi_type}
                     onChange={(e) => setSection6((s) => ({ ...s, eisagogi_type: e.target.value }))}
-                    className="w-full mt-1 h-8 text-sm border border-border rounded-md px-2 bg-background text-foreground"
+                    className="w-full mt-1 h-10 text-sm border border-border rounded-md px-2 bg-background text-foreground"
                   >
                     <option value="">— Επιλέξτε —</option>
                     <option value="ΝΕΑ ΥΠΟΔΟΜΗ">ΝΕΑ ΥΠΟΔΟΜΗ</option>
@@ -3526,7 +3606,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                       type="number"
                       value={ballMarkerBep}
                       onChange={(e) => setBallMarkerBep(e.target.value)}
-                      className="h-8 text-sm mt-1"
+                      className="h-10 text-sm mt-1"
                     />
                   </div>
                   <div>
@@ -3535,7 +3615,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                       type="number"
                       value={section6.ms_skamma}
                       onChange={(e) => setSection6((s) => ({ ...s, ms_skamma: e.target.value }))}
-                      className="h-8 text-sm mt-1"
+                      className="h-10 text-sm mt-1"
                     />
                   </div>
                 </div>
@@ -3549,7 +3629,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                     <Input
                       value={section6.eskalit_ms}
                       onChange={(e) => setSection6((s) => ({ ...s, eskalit_ms: e.target.value }))}
-                      className="h-8 text-sm mt-1"
+                      className="h-10 text-sm mt-1"
                     />
                   </div>
                   <div>
@@ -3557,7 +3637,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                     <Input
                       value={section6.eskalit_nea_solienosi}
                       onChange={(e) => setSection6((s) => ({ ...s, eskalit_nea_solienosi: e.target.value }))}
-                      className="h-8 text-sm mt-1"
+                      className="h-10 text-sm mt-1"
                     />
                   </div>
                   <div>
@@ -3565,7 +3645,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                     <Input
                       value={section6.eskalit_solienosi_eisagogis}
                       onChange={(e) => setSection6((s) => ({ ...s, eskalit_solienosi_eisagogis: e.target.value }))}
-                      className="h-8 text-sm mt-1"
+                      className="h-10 text-sm mt-1"
                     />
                   </div>
                   <div>
@@ -3573,7 +3653,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                     <Input
                       value={section6.eskalit_bep}
                       onChange={(e) => setSection6((s) => ({ ...s, eskalit_bep: e.target.value }))}
-                      className="h-8 text-sm mt-1"
+                      className="h-10 text-sm mt-1"
                     />
                   </div>
                 </div>
@@ -3586,7 +3666,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                   <Input
                     value={section6.eskalit_b1_bep}
                     onChange={(e) => setSection6((s) => ({ ...s, eskalit_b1_bep: e.target.value }))}
-                    className="h-8 text-sm mt-1"
+                    className="h-10 text-sm mt-1"
                   />
                 </div>
               )}
@@ -3599,7 +3679,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                     <Input
                       value={section6.bcp_eidos}
                       onChange={(e) => setSection6((s) => ({ ...s, bcp_eidos: e.target.value }))}
-                      className="h-8 text-sm mt-1"
+                      className="h-10 text-sm mt-1"
                     />
                   </div>
                   <div>
@@ -3608,7 +3688,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                       type="number"
                       value={ballMarkerBcp}
                       onChange={(e) => setBallMarkerBcp(e.target.value)}
-                      className="h-8 text-sm mt-1"
+                      className="h-10 text-sm mt-1"
                     />
                   </div>
                   <div>
@@ -3617,7 +3697,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                       type="number"
                       value={section6.bcp_ms}
                       onChange={(e) => setSection6((s) => ({ ...s, bcp_ms: e.target.value }))}
-                      className="h-8 text-sm mt-1"
+                      className="h-10 text-sm mt-1"
                     />
                   </div>
                   <div>
@@ -3625,7 +3705,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                     <Input
                       value={section6.bcp_bep_ypogeia}
                       onChange={(e) => setSection6((s) => ({ ...s, bcp_bep_ypogeia: e.target.value }))}
-                      className="h-8 text-sm mt-1"
+                      className="h-10 text-sm mt-1"
                     />
                   </div>
                   <div className="col-span-2">
@@ -3633,7 +3713,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                     <Input
                       value={section6.bcp_bep_enaeria}
                       onChange={(e) => setSection6((s) => ({ ...s, bcp_bep_enaeria: e.target.value }))}
-                      className="h-8 text-sm mt-1"
+                      className="h-10 text-sm mt-1"
                     />
                   </div>
                 </div>
@@ -3644,18 +3724,23 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
       )}
 
       {/* Work Items - Category based */}
-      <Card className="p-4 space-y-2">
-        <div className="flex items-center justify-between">
-          <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+      <Card className="overflow-hidden">
+        <button
+          type="button"
+          onClick={() => toggleSection("works")}
+          className="w-full flex items-center justify-between p-4 hover:bg-muted/30 transition-colors"
+        >
+          <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5 pointer-events-none">
             <Wrench className="h-3.5 w-3.5" />
             Εργασίες <span className="text-destructive">*</span>
+            {workItems.length > 0 && (
+              <Badge variant="secondary" className="text-[10px] ml-1">{workItems.length} εργασίες</Badge>
+            )}
           </Label>
-          {workItems.length > 0 && (
-            <Badge variant="secondary" className="text-xs">
-              {workItems.length} επιλεγμένες
-            </Badge>
-          )}
-        </div>
+          <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${openSections.includes("works") ? "rotate-180" : ""}`} />
+        </button>
+        {openSections.includes("works") && (
+        <div className="px-4 pb-4 space-y-2 border-t border-border/50 pt-3">
 
         <div className="space-y-1">
           {WORK_CATEGORIES.map((cat) => {
@@ -3751,35 +3836,45 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
             );
           })}
         </div>
+        </div>
+        )}
       </Card>
-
-      {/* Materials - Category based */}
-      <Card className="p-4 space-y-2">
-        <div className="flex items-center justify-between gap-2 flex-wrap">
-          <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+      <Card className="overflow-hidden">
+        <button
+          type="button"
+          onClick={() => toggleSection("materials")}
+          className="w-full flex items-center justify-between p-4 hover:bg-muted/30 transition-colors"
+        >
+          <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5 pointer-events-none">
             <Package className="h-3.5 w-3.5" />
             Υλικά
-          </Label>
-          <div className="flex items-center gap-2">
             {materialItems.length > 0 && (
-              <Badge variant="secondary" className="text-xs">
-                {oteMaterials.length} ΟΤΕ · {deltanetMaterials.length} {orgName}
-              </Badge>
+              <Badge variant="secondary" className="text-[10px] ml-1">{materialItems.length} υλικά</Badge>
             )}
-            {gisData && (
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                className="h-7 text-xs gap-1"
-                onClick={handleManualGisRefill}
-                title="Επαναφορτώνει τα υλικά από τα δεδομένα GIS του SR"
-              >
-                <RefreshCw className="h-3 w-3" />
-                Από GIS
-              </Button>
-            )}
-          </div>
+          </Label>
+          <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${openSections.includes("materials") ? "rotate-180" : ""}`} />
+        </button>
+        {openSections.includes("materials") && (
+        <div className="px-4 pb-4 space-y-2 border-t border-border/50 pt-3">
+        <div className="flex items-center justify-end gap-2 flex-wrap">
+          {materialItems.length > 0 && (
+            <Badge variant="secondary" className="text-xs">
+              {oteMaterials.length} ΟΤΕ · {deltanetMaterials.length} {orgName}
+            </Badge>
+          )}
+          {gisData && (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="h-7 text-xs gap-1"
+              onClick={handleManualGisRefill}
+              title="Επαναφορτώνει τα υλικά από τα δεδομένα GIS του SR"
+            >
+              <RefreshCw className="h-3 w-3" />
+              Από GIS
+            </Button>
+          )}
         </div>
 
         <Tabs value={materialTab} onValueChange={setMaterialTab} className="w-full">
@@ -3895,19 +3990,28 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
           ))}
         </Tabs>
 
+        </div>
+        )}
       </Card>
 
       {/* Construction Photos - Categorized */}
-      <Card className="p-4 space-y-3">
-        <div className="flex items-center justify-between">
-          <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+      <Card className="overflow-hidden">
+        <button
+          type="button"
+          onClick={() => toggleSection("photos")}
+          className="w-full flex items-center justify-between p-4 hover:bg-muted/30 transition-colors"
+        >
+          <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5 pointer-events-none">
             <Camera className="h-3.5 w-3.5" />
             Φωτογραφίες Κατασκευής
+            {totalPhotos > 0 && (
+              <Badge variant="secondary" className="text-[10px] ml-1">{totalPhotos} φωτο</Badge>
+            )}
           </Label>
-          {totalPhotos > 0 && (
-            <Badge variant="secondary" className="text-xs">{totalPhotos} φωτο</Badge>
-          )}
-        </div>
+          <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${openSections.includes("photos") ? "rotate-180" : ""}`} />
+        </button>
+        {openSections.includes("photos") && (
+        <div className="px-4 pb-4 space-y-3 border-t border-border/50 pt-3">
 
         <div className="space-y-2">
           {visiblePhotoCategories.map((cat) => {
@@ -4004,18 +4108,25 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
             );
           })}
         </div>
-      </Card>
-
-      {/* OTDR Measurements - PDF uploads */}
-      {!isCrewMode && <Card className="p-4 space-y-3">
-        <div className="flex items-center justify-between">
-          <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-            📊 Μετρήσεις OTDR (PDF)
-          </Label>
-          {totalOtdrFiles > 0 && (
-            <Badge variant="secondary" className="text-xs">{totalOtdrFiles} PDF</Badge>
-          )}
         </div>
+        )}
+      </Card>
+      {!isCrewMode && <Card className="overflow-hidden">
+        <button
+          type="button"
+          onClick={() => toggleSection("otdr")}
+          className="w-full flex items-center justify-between p-4 hover:bg-muted/30 transition-colors"
+        >
+          <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5 pointer-events-none">
+            📊 Μετρήσεις OTDR (PDF)
+            {totalOtdrFiles > 0 && (
+              <Badge variant="secondary" className="text-[10px] ml-1">{totalOtdrFiles} PDF</Badge>
+            )}
+          </Label>
+          <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${openSections.includes("otdr") ? "rotate-180" : ""}`} />
+        </button>
+        {openSections.includes("otdr") && (
+        <div className="px-4 pb-4 space-y-3 border-t border-border/50 pt-3">
 
         <div className="space-y-2">
           {OTDR_CATEGORIES.map((cat) => {
@@ -4070,6 +4181,8 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
             );
           })}
         </div>
+        </div>
+        )}
       </Card>}
 
 
@@ -4118,95 +4231,36 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
         </div>
       )}
 
-      {/* Submit */}
-      <div className="space-y-3">
-        <Button 
-          variant="secondary"
-          onClick={handleSubmit} 
-          disabled={submitting || completing} 
-          className="w-full py-6 text-sm font-bold gap-2 !bg-amber-600 !hover:bg-amber-700 !text-white border-0"
-        >
-          {submitting && !completing ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" />
-              {submitProgress || (isCrewMode ? "Αποθήκευση..." : "Υποβολή...")}
-            </>
-          ) : (
-            <>
-              <Save className="h-4 w-4" />
-              {isCrewMode ? "💾 Αποθήκευση Εργασιών" : "💾 Αποθήκευση Κατασκευής"}
-            </>
-          )}
-        </Button>
-
-        {/* Completion button for responsible technician (non-crew) */}
-        {!isCrewMode && (
-          <AlertDialog open={showCompleteConfirm} onOpenChange={setShowCompleteConfirm}>
-            <AlertDialogTrigger asChild>
-              <Button
-                disabled={submitting || completing}
-                variant="default"
-                className="w-full py-6 text-sm font-bold gap-2 bg-green-600 hover:bg-green-700 text-white"
-              >
-                {completing ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    {submitProgress || "Ολοκλήρωση..."}
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle className="h-4 w-4" />
-                    ✅ Ολοκλήρωση Κατασκευής
-                  </>
-                )}
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Ολοκλήρωση Κατασκευής</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Είστε σίγουροι ότι θέλετε να ολοκληρώσετε την κατασκευή για το SR <strong>{assignment.sr_id}</strong>;
-                  <br /><br />
-                  Θα δημιουργηθεί ο φάκελος πελάτη και θα σταλεί email ολοκλήρωσης.
-                  <br /><br />
-                  <strong>Αυτή η ενέργεια δεν αναιρείται.</strong>
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Ακύρωση</AlertDialogCancel>
-                <AlertDialogAction
-                  className="bg-green-600 hover:bg-green-700 text-white"
-                  onClick={() => {
-                    completingRef.current = true;
-                    setCompleting(true);
-                    handleSubmit();
-                  }}
-                >
-                  Ναι, Ολοκλήρωση
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        )}
-
-        {/* Completion button for crew member with splicing (1986) */}
-        {isCrewMode && filterWorkPrefixes?.some(p => p === '1986') && (
-          <>
-            {!mandatoryPhotosValid && mandatoryPhotoKeys.size > 0 && (
-              <Alert className="border-destructive/30 bg-destructive/5">
-                <AlertTriangle className="h-4 w-4 text-destructive" />
-                <AlertTitle className="text-xs font-semibold text-destructive">Υποχρεωτικές φωτογραφίες</AlertTitle>
-                <AlertDescription className="text-xs text-destructive/80">
-                  {`Λείπουν φωτογραφίες: ${missingMandatoryCategories.join(", ")}`}
-                </AlertDescription>
-              </Alert>
+      {/* Sticky Submit Bar */}
+      <div className="fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur border-t border-border p-3" style={{ paddingBottom: "calc(0.75rem + env(safe-area-inset-bottom))" }}>
+        <div className="max-w-2xl mx-auto flex gap-2">
+          <Button
+            variant="secondary"
+            onClick={handleSubmit}
+            disabled={submitting || completing}
+            className="flex-1 py-5 text-sm font-bold gap-2 !bg-amber-600 !text-white border-0"
+          >
+            {submitting && !completing ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                {submitProgress || (isCrewMode ? "Αποθήκευση..." : "Υποβολή...")}
+              </>
+            ) : (
+              <>
+                <Save className="h-4 w-4" />
+                {isCrewMode ? "💾 Αποθήκευση" : "💾 Αποθήκευση"}
+              </>
             )}
+          </Button>
+
+          {/* Completion button for responsible technician (non-crew) */}
+          {!isCrewMode && (
             <AlertDialog open={showCompleteConfirm} onOpenChange={setShowCompleteConfirm}>
               <AlertDialogTrigger asChild>
                 <Button
-                  disabled={submitting || completing || (!mandatoryPhotosValid && mandatoryPhotoKeys.size > 0)}
+                  disabled={submitting || completing}
                   variant="default"
-                  className="w-full py-6 text-sm font-bold gap-2 bg-green-600 hover:bg-green-700 text-white"
+                  className="flex-1 py-5 text-sm font-bold gap-2 bg-green-600 hover:bg-green-700 text-white"
                 >
                   {completing ? (
                     <>
@@ -4216,7 +4270,57 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                   ) : (
                     <>
                       <CheckCircle className="h-4 w-4" />
-                      ✅ Ολοκλήρωση Κατασκευής
+                      ✅ Ολοκλήρωση
+                    </>
+                  )}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Ολοκλήρωση Κατασκευής</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Είστε σίγουροι ότι θέλετε να ολοκληρώσετε την κατασκευή για το SR <strong>{assignment.sr_id}</strong>;
+                    <br /><br />
+                    Θα δημιουργηθεί ο φάκελος πελάτη και θα σταλεί email ολοκλήρωσης.
+                    <br /><br />
+                    <strong>Αυτή η ενέργεια δεν αναιρείται.</strong>
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Ακύρωση</AlertDialogCancel>
+                  <AlertDialogAction
+                    className="bg-green-600 hover:bg-green-700 text-white"
+                    onClick={() => {
+                      completingRef.current = true;
+                      setCompleting(true);
+                      handleSubmit();
+                    }}
+                  >
+                    Ναι, Ολοκλήρωση
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
+
+          {/* Completion button for crew member with splicing (1986) */}
+          {isCrewMode && filterWorkPrefixes?.some(p => p === '1986') && (
+            <AlertDialog open={showCompleteConfirm} onOpenChange={setShowCompleteConfirm}>
+              <AlertDialogTrigger asChild>
+                <Button
+                  disabled={submitting || completing || (!mandatoryPhotosValid && mandatoryPhotoKeys.size > 0)}
+                  variant="default"
+                  className="flex-1 py-5 text-sm font-bold gap-2 bg-green-600 hover:bg-green-700 text-white"
+                >
+                  {completing ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      {submitProgress || "Ολοκλήρωση..."}
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="h-4 w-4" />
+                      ✅ Ολοκλήρωση
                     </>
                   )}
                 </Button>
@@ -4247,9 +4351,23 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
-          </>
-        )}
+          )}
+        </div>
       </div>
+
+      {/* Mandatory photos warning (crew mode with splicing) */}
+      {isCrewMode && filterWorkPrefixes?.some(p => p === '1986') && !mandatoryPhotosValid && mandatoryPhotoKeys.size > 0 && (
+        <Alert className="border-destructive/30 bg-destructive/5">
+          <AlertTriangle className="h-4 w-4 text-destructive" />
+          <AlertTitle className="text-xs font-semibold text-destructive">Υποχρεωτικές φωτογραφίες</AlertTitle>
+          <AlertDescription className="text-xs text-destructive/80">
+            {`Λείπουν φωτογραφίες: ${missingMandatoryCategories.join(", ")}`}
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Spacer for sticky bar */}
+      <div className="h-20" />
     </div>
   );
 };
