@@ -436,7 +436,14 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
 
   // Hydrate base form fields from saved construction so edits persist across reopen/save cycles
   useEffect(() => {
-    if (existingConstructionLoaded || !existingConstruction) return;
+    if (existingConstructionLoaded) return;
+    // Wait for the fetch to complete (even if result is null) before deciding what to do.
+    if (!existingConstructionFetched) return;
+    if (!existingConstruction) {
+      // No saved construction exists — mark as loaded so GIS auto-populate can take over.
+      setExistingConstructionLoaded(true);
+      return;
+    }
 
     setSesId(existingConstruction.ses_id || "");
     setAk(existingConstruction.ak || "");
