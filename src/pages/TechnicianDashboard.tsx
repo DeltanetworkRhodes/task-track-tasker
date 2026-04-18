@@ -44,24 +44,11 @@ const TechnicianDashboard = () => {
     enabled: !!user,
   });
 
-  // Fetch crew assignment IDs for this technician
-  const { data: crewAssignmentIds } = useQuery({
-    queryKey: ["my-crew-assignment-ids", user?.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("sr_crew_assignments" as any)
-        .select("assignment_id")
-        .eq("technician_id", user!.id);
-      if (error) throw error;
-      return [...new Set((data || []).map((d: any) => d.assignment_id))] as string[];
-    },
-    enabled: !!user,
-  });
-
   const { data: assignments, isLoading } = useQuery({
-    queryKey: ["technician-assignments", user?.id, crewAssignmentIds],
+    queryKey: ["technician-assignments", user?.id],
+    enabled: !!user,
     queryFn: async () => {
-      // Get assignments where user is main technician
+      // 1) Assignments where user is main technician
       const { data: mainData, error: mainErr } = await supabase
         .from("assignments")
         .select("*")
@@ -69,28 +56,35 @@ const TechnicianDashboard = () => {
         .order("updated_at", { ascending: false });
       if (mainErr) throw mainErr;
 
-      // Get assignments where user has crew assignments but is not main tech
-      const crewOnlyIds = (crewAssignmentIds || []).filter(
-        (id) => !(mainData || []).some((a) => a.id === id)
-      );
+      // 2) Assignments where user is in a crew (additional/override)
+      const { data: crewRows, error: crewErr } = await supabase
+        .from("sr_crew_assignments" as any)
+        .select("assignment_id")
+        .eq("technician_id", user!.id);
+      if (crewErr) throw crewErr;
+
+      const mainIdSet = new Set((mainData || []).map((a) => a.id));
+      const crewOnlyIds = Array.from(
+        new Set((crewRows || []).map((r: any) => r.assignment_id as string))
+      ).filter((id) => !mainIdSet.has(id));
 
       let crewData: typeof mainData = [];
       if (crewOnlyIds.length > 0) {
         const { data, error } = await supabase
           .from("assignments")
           .select("*")
-          .in("id", crewOnlyIds)
-          .order("updated_at", { ascending: false });
+          .in("id", crewOnlyIds);
         if (error) throw error;
         crewData = data || [];
       }
 
-      // Merge and sort by updated_at desc
       const all = [...(mainData || []), ...crewData];
-      all.sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
+      all.sort(
+        (a, b) =>
+          new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+      );
       return all;
     },
-    enabled: !!user && crewAssignmentIds !== undefined,
   });
 
   const filteredAssignments = useMemo(() => {
