@@ -557,6 +557,7 @@ const ConstructionPage = () => {
                       <th className="py-2.5 px-2 text-left font-medium text-muted-foreground text-[11px] uppercase tracking-wider w-[8%]">CAB</th>
                       <th className="py-2.5 px-2 text-left font-medium text-muted-foreground text-[11px] uppercase tracking-wider w-[14%]">Πελάτης</th>
                       <th className="py-2.5 px-2 text-left font-medium text-muted-foreground text-[11px] uppercase tracking-wider w-[12%]">Κατάσταση</th>
+                      <th className="py-2.5 px-2 text-left font-medium text-muted-foreground text-[11px] uppercase tracking-wider w-[10%]">Φάσεις</th>
                       <th className="py-2.5 px-2 text-right font-medium text-muted-foreground text-[11px] uppercase tracking-wider w-[10%] cursor-pointer hover:text-foreground" onClick={() => toggleSort("revenue")}>
                         <span className="flex items-center justify-end gap-1">Έσοδα <SortIcon field="revenue" /></span>
                       </th>
