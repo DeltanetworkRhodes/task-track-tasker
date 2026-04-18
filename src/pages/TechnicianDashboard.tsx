@@ -149,6 +149,25 @@ const TechnicianDashboard = () => {
     return counts;
   }, [assignments]);
 
+  // SRs with appointment today
+  const todayAppointments = useMemo(
+    () =>
+      (assignments || []).filter(
+        (a) => a.appointment_at && isToday(new Date(a.appointment_at))
+      ),
+    [assignments]
+  );
+
+  // Greeting based on time
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? "Καλημέρα" : hour < 17 ? "Καλησπέρα" : "Καλό βράδυ";
+  const initials = (profile?.full_name || "?")
+    .split(" ")
+    .map((n: string) => n[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
