@@ -54,7 +54,21 @@ interface Props {
   filterWorkPrefixes?: string[];
   /** Crew mode: only show materials whose code matches these codes */
   filterMaterialCodes?: string[];
+  /** 3-Phase workflow: which phase the current technician is responsible for (1, 2, 3). undefined = admin / sees all */
+  phase?: 1 | 2 | 3;
+  /** Phase status snapshot used for the lock UI */
+  phaseStatus?: {
+    phase1_status?: string;
+    phase2_status?: string;
+    phase3_status?: string;
+  } | null;
 }
+
+const PHASE_INFO = {
+  1: { icon: "🚜", title: "Φάση 1 — Χωματουργικά", sub: "Σκάμμα · Εμφύσηση · Σωληνίσκος" },
+  2: { icon: "🔧", title: "Φάση 2 — Οδεύσεις", sub: "BEP · BMO · FB · Κάθετη Όδευση" },
+  3: { icon: "🔬", title: "Φάση 3 — Κόλληση", sub: "OTDR · Labels · AS-BUILD" },
+} as const;
 
 // Category definitions for works based on code prefix
 const WORK_CATEGORIES: { prefix: string; label: string; icon: string }[] = [
@@ -83,7 +97,7 @@ const MATERIAL_CATEGORIES: { label: string; match: (name: string, code: string) 
   { label: "Σωλήνες & Στύλοι", match: (n) => /σωλήν|σιδηρ|δακτύλ|στύλ|ξύλιν/i.test(n) },
 ];
 
-const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssignmentIds, isCrewMode, filterWorkPrefixes, filterMaterialCodes }: Props) => {
+const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssignmentIds, isCrewMode, filterWorkPrefixes, filterMaterialCodes, phase, phaseStatus }: Props) => {
   const { user } = useAuth();
   const { organizationId, organization } = useOrganization();
   const orgName = organization?.name || "DELTANETWORK";
