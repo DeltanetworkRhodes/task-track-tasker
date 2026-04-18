@@ -345,6 +345,8 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
     ];
 
     if (!filterPhotoCatKeys) return allOtdr;
+    // Phase 3 technicians get all OTDR categories
+    if (phase === 3) return allOtdr;
     if (allowAllOtdrInCrewMode) return allOtdr;
 
     const crewFilteredOtdr = allOtdr.filter((otdr) => {
@@ -355,7 +357,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
 
     // If filters from DB were malformed, keep OTDR visible instead of hiding everything.
     return crewFilteredOtdr.length > 1 ? crewFilteredOtdr : allOtdr;
-  }, [fbOtdrCategories, filterPhotoCatKeys, normalizedCrewPhotoKeys, allowAllOtdrInCrewMode]);
+  }, [fbOtdrCategories, filterPhotoCatKeys, normalizedCrewPhotoKeys, allowAllOtdrInCrewMode, phase]);
 
   const [categorizedPhotos, setCategorizedPhotos] = useState<Record<string, File[]>>({});
   const [categorizedPreviews, setCategorizedPreviews] = useState<Record<string, string[]>>({});
@@ -3820,8 +3822,8 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
         </Card>
       )}
 
-      {/* Work Items - Category based */}
-      <Card className="overflow-hidden">
+      {/* Work Items - Category based (hidden for all crew members) */}
+      {!isCrewMode && <Card className="overflow-hidden">
         <button
           type="button"
           onClick={() => toggleSection("works")}
@@ -3935,7 +3937,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
         </div>
         </div>
         )}
-      </Card>
+      </Card>}
       {(!phase || phase === 1 || phase === 2) && <Card className="overflow-hidden">
         <button
           type="button"
