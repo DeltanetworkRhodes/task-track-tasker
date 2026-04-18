@@ -4136,9 +4136,20 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                   </div>
                   <div className="flex items-center gap-2">
                     {existingPhotoCounts[cat.key] > 0 && (
-                      <Badge variant="secondary" className="text-[10px] h-5 bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setExpandedPhotoCategory(
+                            expandedPhotoCategory === cat.key ? null : cat.key
+                          )
+                        }
+                        className="flex items-center gap-1 text-[10px] font-bold bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 px-2 py-1 rounded-full border border-blue-200 dark:border-blue-800 hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors"
+                      >
                         ✅ {existingPhotoCounts[cat.key]}
-                      </Badge>
+                        <span className="text-[9px] opacity-70">
+                          {expandedPhotoCategory === cat.key ? "▲" : "▼"}
+                        </span>
+                      </button>
                     )}
                     {catPhotos.length > 0 && (
                       <Badge variant="outline" className="text-[10px] h-5">{catPhotos.length} νέες</Badge>
@@ -4185,7 +4196,61 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                       </div>
                   </div>
                 </div>
-                
+
+                {/* Preview grid for existing photos */}
+                {expandedPhotoCategory === cat.key && existingPhotoUrls[cat.key]?.length > 0 && (
+                  <div className="mt-2 space-y-2">
+                    <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-4">
+                      {existingPhotoUrls[cat.key].map((url, i) => (
+                        <div key={i} className="relative group aspect-square">
+                          <img
+                            src={url}
+                            alt={`${cat.label} ${i + 1}`}
+                            className="w-full h-full object-cover rounded-lg border border-border cursor-pointer hover:opacity-90 transition-opacity"
+                            onClick={() => window.open(url, "_blank")}
+                            loading="lazy"
+                          />
+                          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                            <div className="bg-black/50 rounded-full p-1.5">
+                              <svg
+                                className="h-3 w-3 text-white"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"
+                                />
+                              </svg>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    {existingPhotoCounts[cat.key] > (existingPhotoUrls[cat.key]?.length || 0) && (
+                      <p className="text-[10px] text-muted-foreground text-center">
+                        +{existingPhotoCounts[cat.key] - (existingPhotoUrls[cat.key]?.length || 0)} ακόμα
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {/* Loading skeleton */}
+                {expandedPhotoCategory === cat.key &&
+                  existingPhotoCounts[cat.key] > 0 &&
+                  !existingPhotoUrls[cat.key] && (
+                    <div className="mt-2 grid grid-cols-3 gap-1.5 sm:grid-cols-4">
+                      {Array.from({
+                        length: Math.min(existingPhotoCounts[cat.key], 4),
+                      }).map((_, i) => (
+                        <div key={i} className="aspect-square bg-muted animate-pulse rounded-lg" />
+                      ))}
+                    </div>
+                  )}
+
                 {catPreviews.length > 0 && (
                   <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
                     {catPreviews.map((preview, i) => {
