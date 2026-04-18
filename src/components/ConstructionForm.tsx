@@ -284,10 +284,12 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
   const visiblePhotoCategories = ALL_PHOTO_CATEGORIES.filter((cat) => {
     // Phase-based filtering (applies to both crew and non-crew when phase is set)
     if (phase === 1 || phase === 2) {
-      return ["ΣΚΑΜΑ", "ΟΔΕΥΣΗ"].includes(cat.key);
+      // Φάση 1/2: δικές της κατηγορίες + ό,τι έχει ήδη ανέβει
+      return ["ΣΚΑΜΑ", "ΟΔΕΥΣΗ"].includes(cat.key) || (existingPhotoCounts[cat.key] || 0) > 0;
     }
     if (phase === 3) {
-      return ["BEP", "BMO", "FB", "ΚΑΜΠΙΝΑ", "Γ_ΦΑΣΗ"].includes(cat.key);
+      // Φάση 3: δικές της κατηγορίες + ό,τι έχει ήδη ανέβει από Φάσεις 1/2
+      return ["BEP", "BMO", "FB", "ΚΑΜΠΙΝΑ", "Γ_ΦΑΣΗ"].includes(cat.key) || (existingPhotoCounts[cat.key] || 0) > 0;
     }
     // Crew mode without phase: use crew filter
     if (isCrewMode) {
