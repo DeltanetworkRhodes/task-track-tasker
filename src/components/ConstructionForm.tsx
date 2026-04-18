@@ -622,62 +622,71 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
         }
       }
 
-      // Fallback 2: If still no photo counts and assignment has drive_folder_url, fetch from Google Drive
-      const hasAnyPhotoCounts = Object.values(photoCounts).some(c => c > 0);
-      if (!hasAnyPhotoCounts && assignment.drive_folder_url && !cancelled) {
+      // Fallback 2: ALWAYS fetch from Google Drive for thumbnails (regardless of existing counts)
+      if (assignment.drive_folder_url && !cancelled) {
         try {
-          const { data: sessionData } = await supabase.auth.getSession();
-          const token = sessionData?.session?.access_token;
-          if (token) {
-            const driveRes = await supabase.functions.invoke("google-drive-files", {
-              body: { action: "sr_folder", sr_id: assignment.sr_id },
-            });
-            
-            if (driveRes.data?.found && driveRes.data?.subfolders) {
-              const driveFolderToCategory: Record<string, string> = {
-                "ΣΚΑΜΑ": "ΣΚΑΜΑ", "ΣΚΑΜΜΑ": "ΣΚΑΜΑ", "SKAMA": "ΣΚΑΜΑ", "ΣΚΆΜΑ": "ΣΚΑΜΑ",
-                "ΟΔΕΥΣΗ": "ΟΔΕΥΣΗ", "ODEFSI": "ΟΔΕΥΣΗ", "ΌΔΕΥΣΗ": "ΟΔΕΥΣΗ",
-                "BCP": "BCP", "BEP": "BEP", "BMO": "BMO", "FB": "FB",
-                "FLOOR BOX": "FB", "FLOORBOX": "FB",
-                "ΚΑΜΠΙΝΑ": "ΚΑΜΠΙΝΑ", "ΚΑΜΠΊΝΑ": "ΚΑΜΠΙΝΑ", "KAMPINA": "ΚΑΜΠΙΝΑ",
-                "Γ_ΦΑΣΗ": "Γ_ΦΑΣΗ", "Γ ΦΑΣΗ": "Γ_ΦΑΣΗ", "G_FASI": "Γ_ΦΑΣΗ", "Γ' ΦΑΣΗ": "Γ_ΦΑΣΗ", "Γ' ΦΆΣΗ": "Γ_ΦΑΣΗ",
-              };
+          const driveRes = await supabase.functions.invoke("google-drive-files", {
+            body: { action: "sr_folder", sr_id: assignment.sr_id },
+          });
 
-              const normalizeFolderName = (name: string): string => {
-                return name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().trim();
-              };
+          if (driveRes.data?.found && driveRes.data?.subfolders) {
+            const driveFolderToCategory: Record<string, string> = {
+              "ΣΚΑΜΑ": "ΣΚΑΜΑ", "ΣΚΑΜΜΑ": "ΣΚΑΜΑ", "SKAMA": "ΣΚΑΜΑ", "ΣΚΆΜΑ": "ΣΚΑΜΑ",
+              "ΟΔΕΥΣΗ": "ΟΔΕΥΣΗ", "ODEFSI": "ΟΔΕΥΣΗ", "ΌΔΕΥΣΗ": "ΟΔΕΥΣΗ",
+              "BCP": "BCP", "BEP": "BEP", "BMO": "BMO", "FB": "FB",
+              "FLOOR BOX": "FB", "FLOORBOX": "FB",
+              "ΚΑΜΠΙΝΑ": "ΚΑΜΠΙΝΑ", "ΚΑΜΠΊΝΑ": "ΚΑΜΠΙΝΑ", "KAMPINA": "ΚΑΜΠΙΝΑ",
+              "Γ_ΦΑΣΗ": "Γ_ΦΑΣΗ", "Γ ΦΑΣΗ": "Γ_ΦΑΣΗ", "G_FASI": "Γ_ΦΑΣΗ", "Γ' ΦΑΣΗ": "Γ_ΦΑΣΗ", "Γ' ΦΆΣΗ": "Γ_ΦΑΣΗ",
+            };
 
-              for (const [folderName, folderData] of Object.entries(driveRes.data.subfolders as Record<string, any>)) {
-                // Try exact match, then uppercase, then normalized (accent-stripped)
-                let categoryKey = driveFolderToCategory[folderName] || driveFolderToCategory[folderName.toUpperCase()];
-                if (!categoryKey) {
-                  const normalized = normalizeFolderName(folderName);
-                  categoryKey = Object.entries(driveFolderToCategory).find(
-                    ([k]) => normalizeFolderName(k) === normalized
-                  )?.[1] || "";
-                }
-                if (categoryKey && folderData.files?.length > 0) {
-                  const imageCount = folderData.files.filter((f: any) =>
-                    f.mimeType?.startsWith("image/")
-                  ).length;
-                  if (imageCount > 0) {
-                    photoCounts[categoryKey] = imageCount;
-                  }
-                }
+            const normalizeFolderName = (name: string): string => {
+              return name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().trim();
+            };
+
+            const newDriveUrls: Record<string, { url: string; thumb: string; name: string }[]> = {};
+
+            for (const [folderName, folderData] of Object.entries(driveRes.data.subfolders as Record<string, any>)) {
+              // Try exact match, then uppercase, then normalized (accent-stripped)
+              let categoryKey = driveFolderToCategory[folderName] || driveFolderToCategory[folderName.toUpperCase()];
+              if (!categoryKey) {
+                const normalized = normalizeFolderName(folderName);
+                categoryKey = Object.entries(driveFolderToCategory).find(
+                  ([k]) => normalizeFolderName(k) === normalized
+                )?.[1] || "";
               }
+              if (!categoryKey) continue;
 
-              // Save the discovered counts back to the construction record for future use
-              const drivePhotoCounts = { ...photoCounts };
-              if (Object.keys(drivePhotoCounts).length > 0) {
-                await supabase
-                  .from("constructions")
-                  .update({ photo_counts: drivePhotoCounts } as any)
-                  .eq("id", existingConstruction.id);
+              const imageFiles = (folderData.files || []).filter((f: any) =>
+                f.mimeType?.startsWith("image/")
+              );
+
+              if (imageFiles.length > 0) {
+                photoCounts[categoryKey] = imageFiles.length;
+                newDriveUrls[categoryKey] = imageFiles
+                  .slice(0, 12)
+                  .map((f: any) => ({
+                    thumb: f.thumbnailLink ? f.thumbnailLink.replace(/=s\d+/, "=s400") : "",
+                    url: f.webViewLink || "",
+                    name: f.name || "",
+                  }))
+                  .filter((f: any) => f.thumb);
               }
+            }
+
+            if (!cancelled) {
+              setDrivePhotoUrls(newDriveUrls);
+            }
+
+            // Save the discovered counts back to the construction record for future use
+            if (Object.keys(photoCounts).length > 0) {
+              await supabase
+                .from("constructions")
+                .update({ photo_counts: photoCounts } as any)
+                .eq("id", existingConstruction.id);
             }
           }
         } catch (driveErr) {
-          console.warn("Drive fallback for photo counts failed:", driveErr);
+          console.warn("Drive photo fetch failed:", driveErr);
         }
       }
 
