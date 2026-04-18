@@ -1792,6 +1792,21 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
       return;
     }
 
+    // 3-Phase technician mode: warn if requested quantity exceeds personal warehouse stock
+    if (phase && materialItems.length > 0) {
+      const insufficient = materialItems.filter((item) => {
+        const avail = techInventoryMap.get(item.material_id) || 0;
+        return item.quantity > avail;
+      });
+      if (insufficient.length > 0) {
+        const names = insufficient.map((i) => `${i.code} (${i.quantity}/${techInventoryMap.get(i.material_id) || 0})`).join(", ");
+        toast.warning(`⚠️ Ανεπαρκές απόθεμα: ${names}`, {
+          description: "Συνεχίζεται η αποθήκευση αλλά το απόθεμα θα γίνει αρνητικό.",
+          duration: 5000,
+        });
+      }
+    }
+
     // ═══════ CREW MODE BRANCH ═══════
     if (isCrewMode) {
       setSubmitting(true);
