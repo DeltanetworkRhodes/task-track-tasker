@@ -3724,18 +3724,23 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
       )}
 
       {/* Work Items - Category based */}
-      <Card className="p-4 space-y-2">
-        <div className="flex items-center justify-between">
-          <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+      <Card className="overflow-hidden">
+        <button
+          type="button"
+          onClick={() => toggleSection("works")}
+          className="w-full flex items-center justify-between p-4 hover:bg-muted/30 transition-colors"
+        >
+          <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5 pointer-events-none">
             <Wrench className="h-3.5 w-3.5" />
             Εργασίες <span className="text-destructive">*</span>
+            {workItems.length > 0 && (
+              <Badge variant="secondary" className="text-[10px] ml-1">{workItems.length} εργασίες</Badge>
+            )}
           </Label>
-          {workItems.length > 0 && (
-            <Badge variant="secondary" className="text-xs">
-              {workItems.length} επιλεγμένες
-            </Badge>
-          )}
-        </div>
+          <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${openSections.includes("works") ? "rotate-180" : ""}`} />
+        </button>
+        {openSections.includes("works") && (
+        <div className="px-4 pb-4 space-y-2 border-t border-border/50 pt-3">
 
         <div className="space-y-1">
           {WORK_CATEGORIES.map((cat) => {
