@@ -2449,10 +2449,36 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
 
   return (
     <div className="space-y-4 pb-8">
-      <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
-        <HardHat className="h-5 w-5" />
-        {isCrewMode ? "Κατασκευή – Η Δουλειά μου" : "Φόρμα Κατασκευής"}
-      </h2>
+      <div className="flex items-center justify-between gap-2">
+        <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
+          <HardHat className="h-5 w-5" />
+          {isCrewMode ? "Κατασκευή – Η Δουλειά μου" : "Φόρμα Κατασκευής"}
+        </h2>
+        <button
+          type="button"
+          onClick={() => {
+            const allIds = ["technical", "routes", "works", "materials", "photos", "otdr"];
+            setOpenSections(openSections.length === allIds.length ? [] : allIds);
+          }}
+          className="text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+        >
+          {openSections.length === 6 ? "Σύμπτυξη όλων ▲" : "Ανάπτυξη όλων ▼"}
+        </button>
+      </div>
+
+      {/* Progress bar */}
+      <div className="space-y-1">
+        <div className="flex justify-between text-[10px] text-muted-foreground">
+          <span>Πρόοδος</span>
+          <span>{progress}%</span>
+        </div>
+        <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+          <div
+            className="h-full bg-primary rounded-full transition-all duration-500"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+      </div>
 
       {/* Technical Details */}
       {!isCrewMode && <Card className="p-4 space-y-3">
