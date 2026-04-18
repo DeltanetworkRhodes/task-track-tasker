@@ -42,6 +42,40 @@ const assignmentStatusLabels: Record<string, string> = {
   rejected: "Απορρίφθηκε",
 };
 
+const PHASE_INFO: Record<1 | 2 | 3, { icon: string; title: string }> = {
+  1: { icon: "🚜", title: "Φάση 1 — Χωματουργικά" },
+  2: { icon: "🔧", title: "Φάση 2 — Οδεύσεις" },
+  3: { icon: "🔬", title: "Φάση 3 — Κόλληση" },
+};
+
+function PhaseProgress({
+  p1 = "pending",
+  p2 = "pending",
+  p3 = "pending",
+}: { p1?: string; p2?: string; p3?: string }) {
+  const dot = (s: string) =>
+    s === "completed"
+      ? "bg-green-500"
+      : s === "in_progress"
+      ? "bg-amber-500 animate-pulse"
+      : "bg-muted-foreground/20";
+  const phases = [
+    { label: "Φ1", s: p1 },
+    { label: "Φ2", s: p2 },
+    { label: "Φ3", s: p3 },
+  ];
+  return (
+    <div className="flex items-center gap-2">
+      {phases.map(({ label, s }) => (
+        <div key={label} className="flex items-center gap-1">
+          <div className={`h-2 w-2 rounded-full transition-colors ${dot(s)}`} />
+          <span className="text-[9px] text-muted-foreground font-medium">{label}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 const topTabs = [
   { key: "constructions", label: "Κατασκευές", icon: Wrench },
   { key: "submitted", label: "Παραδόθηκαν", icon: Radio },
@@ -117,6 +151,12 @@ const ConstructionPage = () => {
       pendingNote: (c as any).pending_note || '',
       assignmentId: (c as any).assignment_id || '',
       routes: (c as any).routes || [],
+      phase1Status: (c as any).phase1_status || 'pending',
+      phase2Status: (c as any).phase2_status || 'pending',
+      phase3Status: (c as any).phase3_status || 'pending',
+      phase1CompletedAt: (c as any).phase1_completed_at || null,
+      phase2CompletedAt: (c as any).phase2_completed_at || null,
+      phase3CompletedAt: (c as any).phase3_completed_at || null,
     }));
   }, [dbConstructions]);
 
