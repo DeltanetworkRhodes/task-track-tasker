@@ -730,6 +730,30 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
     },
   });
 
+  // Fetch technician's personal inventory (only used when phase is set = technician mode)
+  const { data: techInventory } = useQuery({
+    queryKey: ["tech-inventory", user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      const { data } = await supabase
+        .from("technician_inventory" as any)
+        .select("id, material_id, quantity")
+        .eq("technician_id", user.id)
+        .gt("quantity", 0);
+      return (data || []) as any[];
+    },
+    enabled: !!user && !!phase,
+  });
+
+  // Quick lookup map: material_id → quantity in technician's personal warehouse
+  const techInventoryMap = useMemo(() => {
+    const map = new Map<string, number>();
+    (techInventory || []).forEach((inv: any) => {
+      map.set(inv.material_id, Number(inv.quantity));
+    });
+    return map;
+  }, [techInventory]);
+
   // Fetch GIS data for this assignment
   const { data: gisData } = useQuery({
     queryKey: ["gis_data_for_construction", assignment.id],
