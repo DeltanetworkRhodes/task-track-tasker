@@ -739,6 +739,45 @@ const ConstructionPage = () => {
                   {/* AS-BUILD Export */}
                   <AsBuiltExporter srId={c.srId} variant="default" size="default" className="w-full" />
 
+                  {/* Phase Progress */}
+                  <Card className="p-4 space-y-3">
+                    <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Πρόοδος Φάσεων</h3>
+                    {[1, 2, 3].map((ph) => {
+                      const status = (c as any)[`phase${ph}Status`] || "pending";
+                      const completedAt = (c as any)[`phase${ph}CompletedAt`];
+                      const info = PHASE_INFO[ph as 1 | 2 | 3];
+                      return (
+                        <div key={ph} className="flex items-center gap-3">
+                          <span className="text-lg">{info.icon}</span>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-medium truncate">{info.title}</p>
+                            {completedAt && (
+                              <p className="text-[10px] text-muted-foreground">
+                                {new Date(completedAt).toLocaleDateString("el-GR")}
+                              </p>
+                            )}
+                          </div>
+                          <Badge
+                            variant="outline"
+                            className={`text-[10px] ${
+                              status === "completed"
+                                ? "border-green-500/30 text-green-600 bg-green-50"
+                                : status === "in_progress"
+                                ? "border-amber-500/30 text-amber-600 bg-amber-50"
+                                : "border-border text-muted-foreground"
+                            }`}
+                          >
+                            {status === "completed"
+                              ? "✅ Ολοκληρώθηκε"
+                              : status === "in_progress"
+                              ? "🔄 Σε εξέλιξη"
+                              : "⏳ Εκκρεμεί"}
+                          </Badge>
+                        </div>
+                      );
+                    })}
+                  </Card>
+
                   {/* Technical Details */}
                   <Card className="p-4 space-y-2 text-sm">
                     <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Τεχνικά Στοιχεία</h3>
