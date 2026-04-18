@@ -1120,6 +1120,109 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
     });
   }, [ballMarkerBep, section6?.ms_skamma, materials]);
 
+  // BCP → BEP υλικά
+  useEffect(() => {
+    if (!materials) return;
+    const bcpBepMeters = parseFloat(section6?.bcp_bep_ypogeia || "0");
+    // Αν δεν υπάρχει BCP → καθάρισε
+    const hasBcp = !!(
+      (gisData as any)?.new_bcp ||
+      (gisData as any)?.nearby_bcp ||
+      ((gisData as any)?.optical_paths as any[])?.some((p: any) =>
+        (p.type || p["OPTICAL PATH TYPE"] || "").toUpperCase().includes("BCP")
+      )
+    );
+    // Υλικά BCP→BEP
+    const spiral16 = materials.find(
+      (m: any) =>
+        m.code === "01-20250160" ||
+        (m.name?.toUpperCase().includes("ΣΠΙΡΑΛ") && m.name?.includes("16"))
+    );
+    const kolara16 = materials.find(
+      (m: any) =>
+        m.code === "01-41250160" ||
+        (m.name?.toUpperCase().includes("ΚΟΛΑΡΑ") && m.name?.includes("16"))
+    );
+    const microduct74 = materials.find(
+      (m: any) =>
+        m.code === "14026586" ||
+        (m.name?.toUpperCase().includes("MICRODUCT") && m.name?.includes("7/4"))
+    );
+    const fo4indoor = materials.find(
+      (m: any) =>
+        m.code === "14027437" ||
+        (m.name?.toUpperCase().includes("4 FO") &&
+          m.name?.toLowerCase().includes("indoor") &&
+          m.name?.toLowerCase().includes("micro"))
+    );
+    // ΚΟΛΑΡΑ Φ16 ανά 60εκ
+    const kolara16Qty = bcpBepMeters > 0 ? Math.ceil(bcpBepMeters / 0.6) : 0;
+    setMaterialItems((prev) => {
+      const updated = [...prev];
+      const upsert = (mat: any, qty: number) => {
+        if (!mat) return;
+        const i = updated.findIndex((m) => m.material_id === mat.id);
+        // Αν δεν υπάρχει BCP ή qty=0 → αφαίρεσε το υλικό
+        if (!hasBcp || qty <= 0) {
+          if (i >= 0) updated.splice(i, 1);
+          return;
+        }
+        if (i >= 0) {
+          updated[i] = { ...updated[i], quantity: qty };
+        } else {
+          updated.push({
+            material_id: mat.id,
+            code: mat.code,
+            name: mat.name,
+            unit: mat.unit,
+            price: mat.price,
+            source: mat.source,
+            quantity: qty,
+          });
+        }
+      };
+      // ΣΠΙΡΑΛ Φ16 = bcpBepMeters
+      upsert(spiral16, bcpBepMeters > 0 ? Math.ceil(bcpBepMeters) : 0);
+      // ΚΟΛΑΡΑ Φ16 = ceil(μέτρα / 0.60)
+      upsert(kolara16, kolara16Qty);
+      // Microduct 7/4 = bcpBepMeters
+      // ΠΡΟΣΟΧΗ: ο microduct 7/4 μπορεί να υπάρχει ήδη από BEP (Ball Marker)
+      // — δεν αντικαθιστούμε την υπάρχουσα ποσότητα
+      if (hasBcp && bcpBepMeters > 0 && microduct74) {
+        const existIdx = updated.findIndex((m) => m.material_id === microduct74.id);
+        if (existIdx < 0) {
+          updated.push({
+            material_id: microduct74.id,
+            code: microduct74.code,
+            name: microduct74.name,
+            unit: microduct74.unit,
+            price: microduct74.price,
+            source: microduct74.source,
+            quantity: bcpBepMeters,
+          });
+        }
+      }
+      // 4FO indoor = bcpBepMeters
+      // ΠΡΟΣΟΧΗ: ο 4FO indoor μπορεί να υπάρχει ήδη από INHOUSE
+      // — δεν τον αντικαθιστούμε
+      if (hasBcp && bcpBepMeters > 0 && fo4indoor) {
+        const existIdx = updated.findIndex((m) => m.material_id === fo4indoor.id);
+        if (existIdx < 0) {
+          updated.push({
+            material_id: fo4indoor.id,
+            code: fo4indoor.code,
+            name: fo4indoor.name,
+            unit: fo4indoor.unit,
+            price: fo4indoor.price,
+            source: fo4indoor.source,
+            quantity: bcpBepMeters,
+          });
+        }
+      }
+      return updated;
+    });
+  }, [section6?.bcp_bep_ypogeia, gisData, materials]);
+
   // Trigger: 4 FO outdoor — routes[0].koi
   const cabToBepKoiStr = routes[0]?.koi || "0";
   useEffect(() => {
