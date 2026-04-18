@@ -4650,8 +4650,8 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
         </div>
       </div>
 
-      {/* Mandatory photos warning (crew mode with splicing) */}
-      {isCrewMode && filterWorkPrefixes?.some(p => p === '1986') && !mandatoryPhotosValid && mandatoryPhotoKeys.size > 0 && (
+      {/* Mandatory photos warning (Phase 3 crew before completion) */}
+      {isCrewMode && phase === 3 && !mandatoryPhotosValid && mandatoryPhotoKeys.size > 0 && (
         <Alert className="border-destructive/30 bg-destructive/5">
           <AlertTriangle className="h-4 w-4 text-destructive" />
           <AlertTitle className="text-xs font-semibold text-destructive">Υποχρεωτικές φωτογραφίες</AlertTitle>
