@@ -341,6 +341,21 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
   const [submitProgress, setSubmitProgress] = useState("");
   const [showCompleteConfirm, setShowCompleteConfirm] = useState(false);
 
+  // Collapsible sections state (mobile UX)
+  const [openSections, setOpenSections] = useState<string[]>([
+    "technical",
+    "routes",
+    "works",
+    "materials",
+    "photos",
+    "otdr",
+  ]);
+  const toggleSection = (id: string) => {
+    setOpenSections((prev) =>
+      prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]
+    );
+  };
+
   // Load existing construction data when re-entering the form
   const { data: existingConstruction, isFetched: existingConstructionFetched } = useQuery({
     queryKey: ["existing_construction", assignment.id],
