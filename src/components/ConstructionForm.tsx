@@ -19,6 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 
 import { isOnline, enqueueConstruction, fileToOfflineFile, type OfflineConstructionPayload } from "@/lib/offlineQueue";
 
@@ -1557,6 +1558,9 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
   };
 
   // compressImage imported from shared utility
+
+  // Floating camera sheet state
+  const [showCameraSheet, setShowCameraSheet] = useState(false);
 
   // Photo handling per category with AI QA
   const handleCategoryPhotoSelect = async (category: string, e: React.ChangeEvent<HTMLInputElement>) => {
@@ -4134,13 +4138,13 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                       onChange={(e) => handleCategoryPhotoSelect(cat.key, e)}
                       className="hidden"
                     />
-                    <div className="flex gap-1">
+                    <div className="flex gap-1.5">
                         <Button
                           type="button"
                           variant="outline"
                           size="sm"
                           onClick={() => fileInputRefs.current[cat.key]?.click()}
-                          className="h-7 text-[11px] gap-1 px-2"
+                          className="h-9 text-xs gap-1.5 px-3"
                           title="Από γκαλερί"
                         >
                           📁
@@ -4150,24 +4154,24 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                           variant="outline"
                           size="sm"
                           onClick={() => fileInputRefs.current[`${cat.key}_camera`]?.click()}
-                          className="h-7 text-[11px] gap-1 px-2"
+                          className="h-9 text-xs gap-1.5 px-3"
                           title="Κάμερα"
                         >
-                          <Camera className="h-3 w-3" />
+                          <Camera className="h-4 w-4" />
                         </Button>
                       </div>
                   </div>
                 </div>
                 
                 {catPreviews.length > 0 && (
-                  <div className="grid grid-cols-4 gap-1.5">
+                  <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
                     {catPreviews.map((preview, i) => {
                       return (
                         <div key={i} className="relative group">
                           <img
                             src={preview}
                             alt={`${cat.label} ${i + 1}`}
-                            className="w-full h-16 object-cover rounded border border-border"
+                            className="w-full h-20 sm:h-16 object-cover rounded-lg border border-border"
                           />
                           <button
                             type="button"
