@@ -4094,6 +4094,11 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
 
                               <div className="flex-1 min-w-0" onClick={() => toggleMaterial(m)}>
                                 <span className="text-xs text-primary font-bold">{m.code}</span>
+                                {phase && techInventoryMap.has(m.id) && (
+                                  <span className={`text-[10px] ml-1.5 font-bold ${(techInventoryMap.get(m.id) || 0) <= 5 ? 'text-destructive' : 'text-muted-foreground'}`}>
+                                    (απόθεμα: {techInventoryMap.get(m.id)} {m.unit})
+                                  </span>
+                                )}
                                 <p className="text-[11px] text-muted-foreground leading-tight truncate">{m.name}</p>
                               </div>
 
