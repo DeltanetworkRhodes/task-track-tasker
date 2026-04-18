@@ -4548,8 +4548,8 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
             )}
           </Button>
 
-          {/* Completion button for responsible technician (non-crew) */}
-          {!isCrewMode && (
+          {/* Completion button — ONLY admin (no phase) or Phase 3 crew */}
+          {!isCrewMode && !phase && (
             <AlertDialog open={showCompleteConfirm} onOpenChange={setShowCompleteConfirm}>
               <AlertDialogTrigger asChild>
                 <Button
