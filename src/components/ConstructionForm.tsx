@@ -2566,6 +2566,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
             </select>
           </div>
         </div>
+        )}
       </Card>}
 
       {/* GIS: Δομή Κτιρίου */}
