@@ -277,6 +277,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
   const [existingPhotoCounts, setExistingPhotoCounts] = useState<Record<string, number>>({});
   const [existingOtdrCounts, setExistingOtdrCounts] = useState<Record<string, number>>({});
   const [existingPhotoUrls, setExistingPhotoUrls] = useState<Record<string, string[]>>({});
+  const [drivePhotoUrls, setDrivePhotoUrls] = useState<Record<string, { url: string; thumb: string; name: string }[]>>({});
   const [expandedPhotoCategory, setExpandedPhotoCategory] = useState<string | null>(null);
 
   // In crew mode, show filtered categories with alias support (fallback: show all)
@@ -621,62 +622,71 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
         }
       }
 
-      // Fallback 2: If still no photo counts and assignment has drive_folder_url, fetch from Google Drive
-      const hasAnyPhotoCounts = Object.values(photoCounts).some(c => c > 0);
-      if (!hasAnyPhotoCounts && assignment.drive_folder_url && !cancelled) {
+      // Fallback 2: ALWAYS fetch from Google Drive for thumbnails (regardless of existing counts)
+      if (assignment.drive_folder_url && !cancelled) {
         try {
-          const { data: sessionData } = await supabase.auth.getSession();
-          const token = sessionData?.session?.access_token;
-          if (token) {
-            const driveRes = await supabase.functions.invoke("google-drive-files", {
-              body: { action: "sr_folder", sr_id: assignment.sr_id },
-            });
-            
-            if (driveRes.data?.found && driveRes.data?.subfolders) {
-              const driveFolderToCategory: Record<string, string> = {
-                "ΣΚΑΜΑ": "ΣΚΑΜΑ", "ΣΚΑΜΜΑ": "ΣΚΑΜΑ", "SKAMA": "ΣΚΑΜΑ", "ΣΚΆΜΑ": "ΣΚΑΜΑ",
-                "ΟΔΕΥΣΗ": "ΟΔΕΥΣΗ", "ODEFSI": "ΟΔΕΥΣΗ", "ΌΔΕΥΣΗ": "ΟΔΕΥΣΗ",
-                "BCP": "BCP", "BEP": "BEP", "BMO": "BMO", "FB": "FB",
-                "FLOOR BOX": "FB", "FLOORBOX": "FB",
-                "ΚΑΜΠΙΝΑ": "ΚΑΜΠΙΝΑ", "ΚΑΜΠΊΝΑ": "ΚΑΜΠΙΝΑ", "KAMPINA": "ΚΑΜΠΙΝΑ",
-                "Γ_ΦΑΣΗ": "Γ_ΦΑΣΗ", "Γ ΦΑΣΗ": "Γ_ΦΑΣΗ", "G_FASI": "Γ_ΦΑΣΗ", "Γ' ΦΑΣΗ": "Γ_ΦΑΣΗ", "Γ' ΦΆΣΗ": "Γ_ΦΑΣΗ",
-              };
+          const driveRes = await supabase.functions.invoke("google-drive-files", {
+            body: { action: "sr_folder", sr_id: assignment.sr_id },
+          });
 
-              const normalizeFolderName = (name: string): string => {
-                return name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().trim();
-              };
+          if (driveRes.data?.found && driveRes.data?.subfolders) {
+            const driveFolderToCategory: Record<string, string> = {
+              "ΣΚΑΜΑ": "ΣΚΑΜΑ", "ΣΚΑΜΜΑ": "ΣΚΑΜΑ", "SKAMA": "ΣΚΑΜΑ", "ΣΚΆΜΑ": "ΣΚΑΜΑ",
+              "ΟΔΕΥΣΗ": "ΟΔΕΥΣΗ", "ODEFSI": "ΟΔΕΥΣΗ", "ΌΔΕΥΣΗ": "ΟΔΕΥΣΗ",
+              "BCP": "BCP", "BEP": "BEP", "BMO": "BMO", "FB": "FB",
+              "FLOOR BOX": "FB", "FLOORBOX": "FB",
+              "ΚΑΜΠΙΝΑ": "ΚΑΜΠΙΝΑ", "ΚΑΜΠΊΝΑ": "ΚΑΜΠΙΝΑ", "KAMPINA": "ΚΑΜΠΙΝΑ",
+              "Γ_ΦΑΣΗ": "Γ_ΦΑΣΗ", "Γ ΦΑΣΗ": "Γ_ΦΑΣΗ", "G_FASI": "Γ_ΦΑΣΗ", "Γ' ΦΑΣΗ": "Γ_ΦΑΣΗ", "Γ' ΦΆΣΗ": "Γ_ΦΑΣΗ",
+            };
 
-              for (const [folderName, folderData] of Object.entries(driveRes.data.subfolders as Record<string, any>)) {
-                // Try exact match, then uppercase, then normalized (accent-stripped)
-                let categoryKey = driveFolderToCategory[folderName] || driveFolderToCategory[folderName.toUpperCase()];
-                if (!categoryKey) {
-                  const normalized = normalizeFolderName(folderName);
-                  categoryKey = Object.entries(driveFolderToCategory).find(
-                    ([k]) => normalizeFolderName(k) === normalized
-                  )?.[1] || "";
-                }
-                if (categoryKey && folderData.files?.length > 0) {
-                  const imageCount = folderData.files.filter((f: any) =>
-                    f.mimeType?.startsWith("image/")
-                  ).length;
-                  if (imageCount > 0) {
-                    photoCounts[categoryKey] = imageCount;
-                  }
-                }
+            const normalizeFolderName = (name: string): string => {
+              return name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().trim();
+            };
+
+            const newDriveUrls: Record<string, { url: string; thumb: string; name: string }[]> = {};
+
+            for (const [folderName, folderData] of Object.entries(driveRes.data.subfolders as Record<string, any>)) {
+              // Try exact match, then uppercase, then normalized (accent-stripped)
+              let categoryKey = driveFolderToCategory[folderName] || driveFolderToCategory[folderName.toUpperCase()];
+              if (!categoryKey) {
+                const normalized = normalizeFolderName(folderName);
+                categoryKey = Object.entries(driveFolderToCategory).find(
+                  ([k]) => normalizeFolderName(k) === normalized
+                )?.[1] || "";
               }
+              if (!categoryKey) continue;
 
-              // Save the discovered counts back to the construction record for future use
-              const drivePhotoCounts = { ...photoCounts };
-              if (Object.keys(drivePhotoCounts).length > 0) {
-                await supabase
-                  .from("constructions")
-                  .update({ photo_counts: drivePhotoCounts } as any)
-                  .eq("id", existingConstruction.id);
+              const imageFiles = (folderData.files || []).filter((f: any) =>
+                f.mimeType?.startsWith("image/")
+              );
+
+              if (imageFiles.length > 0) {
+                photoCounts[categoryKey] = imageFiles.length;
+                newDriveUrls[categoryKey] = imageFiles
+                  .slice(0, 12)
+                  .map((f: any) => ({
+                    thumb: f.thumbnailLink ? f.thumbnailLink.replace(/=s\d+/, "=s400") : "",
+                    url: f.webViewLink || "",
+                    name: f.name || "",
+                  }))
+                  .filter((f: any) => f.thumb);
               }
+            }
+
+            if (!cancelled) {
+              setDrivePhotoUrls(newDriveUrls);
+            }
+
+            // Save the discovered counts back to the construction record for future use
+            if (Object.keys(photoCounts).length > 0) {
+              await supabase
+                .from("constructions")
+                .update({ photo_counts: photoCounts } as any)
+                .eq("id", existingConstruction.id);
             }
           }
         } catch (driveErr) {
-          console.warn("Drive fallback for photo counts failed:", driveErr);
+          console.warn("Drive photo fetch failed:", driveErr);
         }
       }
 
@@ -4194,59 +4204,90 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                   </div>
                 </div>
 
-                {/* Preview grid for existing photos */}
-                {expandedPhotoCategory === cat.key && existingPhotoUrls[cat.key]?.length > 0 && (
-                  <div className="mt-2 space-y-2">
-                    <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-4">
-                      {existingPhotoUrls[cat.key].map((url, i) => (
-                        <div key={i} className="relative group aspect-square">
-                          <img
-                            src={url}
-                            alt={`${cat.label} ${i + 1}`}
-                            className="w-full h-full object-cover rounded-lg border border-border cursor-pointer hover:opacity-90 transition-opacity"
-                            onClick={() => window.open(url, "_blank")}
-                            loading="lazy"
-                          />
-                          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                            <div className="bg-black/50 rounded-full p-1.5">
-                              <svg
-                                className="h-3 w-3 text-white"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"
-                                />
-                              </svg>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                    {existingPhotoCounts[cat.key] > (existingPhotoUrls[cat.key]?.length || 0) && (
-                      <p className="text-[10px] text-muted-foreground text-center">
-                        +{existingPhotoCounts[cat.key] - (existingPhotoUrls[cat.key]?.length || 0)} ακόμα
-                      </p>
-                    )}
-                  </div>
-                )}
+                {/* Preview grid: prefer Drive thumbnails, fallback to Storage signed URLs */}
+                {(() => {
+                  const drivePhotos = drivePhotoUrls[cat.key] || [];
+                  const storageUrls = existingPhotoUrls[cat.key] || [];
+                  const hasDrive = drivePhotos.length > 0;
+                  const hasStorage = storageUrls.length > 0;
+                  const isExpanded = expandedPhotoCategory === cat.key;
 
-                {/* Loading skeleton */}
-                {expandedPhotoCategory === cat.key &&
-                  existingPhotoCounts[cat.key] > 0 &&
-                  !existingPhotoUrls[cat.key] && (
-                    <div className="mt-2 grid grid-cols-3 gap-1.5 sm:grid-cols-4">
-                      {Array.from({
-                        length: Math.min(existingPhotoCounts[cat.key], 4),
-                      }).map((_, i) => (
-                        <div key={i} className="aspect-square bg-muted animate-pulse rounded-lg" />
-                      ))}
-                    </div>
-                  )}
+                  if (!isExpanded) return null;
+
+                  if (hasDrive) {
+                    return (
+                      <div className="mt-2 space-y-2">
+                        <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-4">
+                          {drivePhotos.map((photo, i) => (
+                            <div key={i} className="relative group aspect-square">
+                              <img
+                                src={photo.thumb}
+                                alt={photo.name || `${cat.label} ${i + 1}`}
+                                loading="lazy"
+                                className="w-full h-full object-cover rounded-lg border border-border cursor-pointer hover:opacity-80 transition-opacity"
+                                onClick={() => window.open(photo.url, "_blank")}
+                              />
+                              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                                <div className="bg-black/50 rounded-full p-1.5">
+                                  <Maximize2 className="h-3 w-3 text-white" />
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        {existingPhotoCounts[cat.key] > drivePhotos.length && (
+                          <p className="text-[10px] text-muted-foreground text-center">
+                            +{existingPhotoCounts[cat.key] - drivePhotos.length} ακόμα
+                          </p>
+                        )}
+                      </div>
+                    );
+                  }
+
+                  if (hasStorage) {
+                    return (
+                      <div className="mt-2 space-y-2">
+                        <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-4">
+                          {storageUrls.map((url, i) => (
+                            <div key={i} className="relative group aspect-square">
+                              <img
+                                src={url}
+                                alt={`${cat.label} ${i + 1}`}
+                                className="w-full h-full object-cover rounded-lg border border-border cursor-pointer hover:opacity-90 transition-opacity"
+                                onClick={() => window.open(url, "_blank")}
+                                loading="lazy"
+                              />
+                              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                                <div className="bg-black/50 rounded-full p-1.5">
+                                  <Maximize2 className="h-3 w-3 text-white" />
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        {existingPhotoCounts[cat.key] > storageUrls.length && (
+                          <p className="text-[10px] text-muted-foreground text-center">
+                            +{existingPhotoCounts[cat.key] - storageUrls.length} ακόμα
+                          </p>
+                        )}
+                      </div>
+                    );
+                  }
+
+                  // Loading skeleton when expanded but no URLs yet
+                  if (existingPhotoCounts[cat.key] > 0) {
+                    return (
+                      <div className="mt-2 grid grid-cols-3 gap-1.5 sm:grid-cols-4">
+                        {Array.from({ length: Math.min(existingPhotoCounts[cat.key], 4) }).map((_, i) => (
+                          <div key={i} className="aspect-square bg-muted animate-pulse rounded-lg" />
+                        ))}
+                      </div>
+                    );
+                  }
+
+                  return null;
+                })()}
+
 
                 {catPreviews.length > 0 && (
                   <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
