@@ -277,6 +277,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
   const [existingPhotoCounts, setExistingPhotoCounts] = useState<Record<string, number>>({});
   const [existingOtdrCounts, setExistingOtdrCounts] = useState<Record<string, number>>({});
   const [existingPhotoUrls, setExistingPhotoUrls] = useState<Record<string, string[]>>({});
+  const [drivePhotoUrls, setDrivePhotoUrls] = useState<Record<string, { url: string; thumb: string; name: string }[]>>({});
   const [expandedPhotoCategory, setExpandedPhotoCategory] = useState<string | null>(null);
 
   // In crew mode, show filtered categories with alias support (fallback: show all)
