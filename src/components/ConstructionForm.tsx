@@ -1005,17 +1005,12 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
 
     fb4Total += fbGenericTotal;
 
+    // Match by exact code first (14034172 = FB4, 14034173 = FB12), fallback to name match
     if (fb4Total > 0) {
-      addMaterial((m) => nameMatches(m.name, "FLOOR", "BOX", "4") || nameMatches(m.name, "FB", "4"), fb4Total);
-      if (!autoItems.some((a) => nameMatches(a.name, "FLOOR") || nameMatches(a.name, "FB"))) {
-        addMaterial((m) => nameMatches(m.name, "FLOOR", "BOX") || (nameMatches(m.name, "FB") && !nameMatches(m.name, "BEP")), fb4Total);
-      }
+      addMaterial((m) => m.code === "14034172" || nameMatches(m.name, "FLOOR", "BOX", "4") || nameMatches(m.name, "FB", "4"), fb4Total);
     }
     if (fb12Total > 0) {
-      addMaterial((m) => nameMatches(m.name, "FLOOR", "BOX", "12") || nameMatches(m.name, "FB", "12"), fb12Total);
-      if (!autoItems.some((a) => (nameMatches(a.name, "FLOOR") || nameMatches(a.name, "FB")) && a.name.includes("12"))) {
-        addMaterial((m) => nameMatches(m.name, "FLOOR", "BOX") || (nameMatches(m.name, "FB") && !nameMatches(m.name, "BEP")), fb12Total);
-      }
+      addMaterial((m) => m.code === "14034173" || nameMatches(m.name, "FLOOR", "BOX", "12") || nameMatches(m.name, "FB", "12"), fb12Total);
     }
 
     // 5. BCP
