@@ -90,6 +90,9 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
   // 3-Phase workflow context for the open assignment
   const { phase, isAdmin } = useMyPhase(selectedAssignment?.id ?? null);
   const { data: phaseStatus } = usePhaseStatus(selectedAssignment?.id ?? null);
+  // Ο Υπεύθυνος του SR ελέγχει τα πάντα → βλέπει τη φόρμα χωρίς phase filter
+  const isResponsible = !!user && !!selectedAssignment?.technician_id && selectedAssignment.technician_id === user.id;
+  const effectivePhase = (isAdmin || isResponsible) ? undefined : (phase ?? undefined);
 
   // Fetch existing survey for selected assignment
   const { data: existingSurvey } = useQuery({
