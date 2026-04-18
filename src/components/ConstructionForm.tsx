@@ -282,26 +282,23 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
   // In crew mode, show filtered categories with alias support (fallback: show all)
   // In normal mode, show categories based on selected works
   const visiblePhotoCategories = ALL_PHOTO_CATEGORIES.filter((cat) => {
-    if (isCrewMode) {
-      return crewFilteredPhotoCategories.some((c) => c.key === cat.key);
-    }
-    // Admin (no phase) sees all that match work prefixes
-    if (!phase) {
-      return (
-        cat.workPrefixes.length === 0 ||
-        cat.workPrefixes.some((p) => selectedWorkPrefixes.has(p)) ||
-        (existingPhotoCounts[cat.key] || 0) > 0
-      );
-    }
-    // Φάση 1 + 2: ΣΚΑΜΑ, ΟΔΕΥΣΗ
+    // Phase-based filtering (applies to both crew and non-crew when phase is set)
     if (phase === 1 || phase === 2) {
       return ["ΣΚΑΜΑ", "ΟΔΕΥΣΗ"].includes(cat.key);
     }
-    // Φάση 3: BEP, BMO, FB, ΚΑΜΠΙΝΑ
     if (phase === 3) {
       return ["BEP", "BMO", "FB", "ΚΑΜΠΙΝΑ", "Γ_ΦΑΣΗ"].includes(cat.key);
     }
-    return true;
+    // Crew mode without phase: use crew filter
+    if (isCrewMode) {
+      return crewFilteredPhotoCategories.some((c) => c.key === cat.key);
+    }
+    // Admin (no phase, no crew): show all matching work prefixes
+    return (
+      cat.workPrefixes.length === 0 ||
+      cat.workPrefixes.some((p) => selectedWorkPrefixes.has(p)) ||
+      (existingPhotoCounts[cat.key] || 0) > 0
+    );
   });
 
   // OTDR PDF measurement categories (FB is dynamic based on floors)
@@ -2714,7 +2711,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
       )}
 
       {/* GIS: Οδηγίες Κόλλησης ανά Όροφο */}
-      {!isCrewMode && (!phase || phase === 3) && gisData && Array.isArray(gisData.optical_paths) && (gisData.optical_paths as any[]).length > 0 && (
+      {(!phase || phase === 3) && gisData && Array.isArray(gisData.optical_paths) && (gisData.optical_paths as any[]).length > 0 && (
         <Card className="p-4 space-y-3 border-accent/30 bg-accent/5">
           <Label className="text-xs font-bold uppercase tracking-wider text-accent-foreground flex items-center gap-1.5">
             <Building2 className="h-3.5 w-3.5" /> Οδηγίες Κόλλησης — Ανά Όροφο
@@ -3298,7 +3295,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                      </div>
                    );
 
-                    return !isCrewMode ? (
+                    return (!phase || phase === 3) ? (
                       <div className="space-y-2 mt-3 pt-3 border-t border-border">
                        <div className="flex items-center gap-2">
                          <Badge variant="default" className="text-[10px]">🏷️ Labels</Badge>
@@ -3582,7 +3579,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
       </Card>
 
       {/* 📐 Μέτρα BMO→FB ανά Όροφο (collapsible) */}
-      {!isCrewMode && floorMeters.length > 0 && (!phase || phase === 2 || phase === 3) && (
+      {floorMeters.length > 0 && (!phase || phase === 2 || phase === 3) && (
         <Card className="p-4 space-y-2">
           <button
             type="button"
