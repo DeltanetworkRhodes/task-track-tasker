@@ -507,7 +507,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
     setGisFieldsFilled(true);
     setGisAutoFilled(true);
     setExistingConstructionLoaded(true);
-  }, [existingConstruction, existingConstructionLoaded, assignment.cab]);
+  }, [existingConstruction, existingConstructionFetched, existingConstructionLoaded, assignment.cab]);
 
   // Hydrate saved works
   useEffect(() => {
