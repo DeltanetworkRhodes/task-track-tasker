@@ -4204,46 +4204,89 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                   </div>
                 </div>
 
-                {/* Preview grid for existing photos */}
-                {expandedPhotoCategory === cat.key && existingPhotoUrls[cat.key]?.length > 0 && (
-                  <div className="mt-2 space-y-2">
-                    <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-4">
-                      {existingPhotoUrls[cat.key].map((url, i) => (
-                        <div key={i} className="relative group aspect-square">
-                          <img
-                            src={url}
-                            alt={`${cat.label} ${i + 1}`}
-                            className="w-full h-full object-cover rounded-lg border border-border cursor-pointer hover:opacity-90 transition-opacity"
-                            onClick={() => window.open(url, "_blank")}
-                            loading="lazy"
-                          />
-                          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                            <div className="bg-black/50 rounded-full p-1.5">
-                              <svg
-                                className="h-3 w-3 text-white"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"
-                                />
-                              </svg>
+                {/* Preview grid: prefer Drive thumbnails, fallback to Storage signed URLs */}
+                {(() => {
+                  const drivePhotos = drivePhotoUrls[cat.key] || [];
+                  const storageUrls = existingPhotoUrls[cat.key] || [];
+                  const hasDrive = drivePhotos.length > 0;
+                  const hasStorage = storageUrls.length > 0;
+                  const isExpanded = expandedPhotoCategory === cat.key;
+
+                  if (!isExpanded) return null;
+
+                  if (hasDrive) {
+                    return (
+                      <div className="mt-2 space-y-2">
+                        <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-4">
+                          {drivePhotos.map((photo, i) => (
+                            <div key={i} className="relative group aspect-square">
+                              <img
+                                src={photo.thumb}
+                                alt={photo.name || `${cat.label} ${i + 1}`}
+                                loading="lazy"
+                                className="w-full h-full object-cover rounded-lg border border-border cursor-pointer hover:opacity-80 transition-opacity"
+                                onClick={() => window.open(photo.url, "_blank")}
+                              />
+                              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                                <div className="bg-black/50 rounded-full p-1.5">
+                                  <Maximize2 className="h-3 w-3 text-white" />
+                                </div>
+                              </div>
                             </div>
-                          </div>
+                          ))}
                         </div>
-                      ))}
-                    </div>
-                    {existingPhotoCounts[cat.key] > (existingPhotoUrls[cat.key]?.length || 0) && (
-                      <p className="text-[10px] text-muted-foreground text-center">
-                        +{existingPhotoCounts[cat.key] - (existingPhotoUrls[cat.key]?.length || 0)} ακόμα
-                      </p>
-                    )}
-                  </div>
-                )}
+                        {existingPhotoCounts[cat.key] > drivePhotos.length && (
+                          <p className="text-[10px] text-muted-foreground text-center">
+                            +{existingPhotoCounts[cat.key] - drivePhotos.length} ακόμα
+                          </p>
+                        )}
+                      </div>
+                    );
+                  }
+
+                  if (hasStorage) {
+                    return (
+                      <div className="mt-2 space-y-2">
+                        <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-4">
+                          {storageUrls.map((url, i) => (
+                            <div key={i} className="relative group aspect-square">
+                              <img
+                                src={url}
+                                alt={`${cat.label} ${i + 1}`}
+                                className="w-full h-full object-cover rounded-lg border border-border cursor-pointer hover:opacity-90 transition-opacity"
+                                onClick={() => window.open(url, "_blank")}
+                                loading="lazy"
+                              />
+                              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                                <div className="bg-black/50 rounded-full p-1.5">
+                                  <Maximize2 className="h-3 w-3 text-white" />
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        {existingPhotoCounts[cat.key] > storageUrls.length && (
+                          <p className="text-[10px] text-muted-foreground text-center">
+                            +{existingPhotoCounts[cat.key] - storageUrls.length} ακόμα
+                          </p>
+                        )}
+                      </div>
+                    );
+                  }
+
+                  // Loading skeleton when expanded but no URLs yet
+                  if (existingPhotoCounts[cat.key] > 0) {
+                    return (
+                      <div className="mt-2 grid grid-cols-3 gap-1.5 sm:grid-cols-4">
+                        {Array.from({ length: Math.min(existingPhotoCounts[cat.key], 4) }).map((_, i) => (
+                          <div key={i} className="aspect-square bg-muted animate-pulse rounded-lg" />
+                        ))}
+                      </div>
+                    );
+                  }
+
+                  return null;
+                })()}
 
                 {/* Loading skeleton */}
                 {expandedPhotoCategory === cat.key &&
