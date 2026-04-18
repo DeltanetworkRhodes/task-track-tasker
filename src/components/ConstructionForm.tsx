@@ -2481,10 +2481,24 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
       </div>
 
       {/* Technical Details */}
-      {!isCrewMode && <Card className="p-4 space-y-3">
-        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          Τεχνικά Στοιχεία
-        </Label>
+      {!isCrewMode && <Card className="overflow-hidden">
+        <button
+          type="button"
+          onClick={() => toggleSection("technical")}
+          className="w-full flex items-center justify-between p-4 hover:bg-muted/30 transition-colors"
+        >
+          <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5 pointer-events-none">
+            Τεχνικά Στοιχεία
+            {(sesId || cab) && (
+              <Badge variant="secondary" className="text-[10px] ml-1">
+                {sesId || cab}
+              </Badge>
+            )}
+          </Label>
+          <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${openSections.includes("technical") ? "rotate-180" : ""}`} />
+        </button>
+        {openSections.includes("technical") && (
+        <div className="px-4 pb-4 space-y-3 border-t border-border/50 pt-3">
         <div className="grid grid-cols-2 gap-3">
           <div>
             <Label className="text-xs">SES ID</Label>
