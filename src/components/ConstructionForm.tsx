@@ -622,8 +622,10 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
         }
       }
 
-      // Fallback 2: ALWAYS fetch from Google Drive for thumbnails (regardless of existing counts)
-      if (assignment.drive_folder_url && !cancelled) {
+      // Fallback 2: ALWAYS fetch from Google Drive for thumbnails (by SR ID, regardless of drive_folder_url)
+      // The edge function searches the entire Shared Drive for the SR folder, so this works
+      // even for technicians whose assignment record doesn't have drive_folder_url set.
+      if (!cancelled) {
         try {
           const driveRes = await supabase.functions.invoke("google-drive-files", {
             body: { action: "sr_folder", sr_id: assignment.sr_id },
@@ -2696,30 +2698,37 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
             {gisData.building_id && <Badge variant="outline" className="text-[10px]">Building: {gisData.building_id}</Badge>}
           </div>
           <div className="space-y-1.5">
-            {(gisData.floor_details as any[]).map((f: any, idx: number) => (
-              <div key={idx} className="flex items-center justify-between p-2 border border-border rounded-md bg-background text-sm">
-                <div className="flex items-center gap-2">
-                  <span className="font-semibold text-foreground">Όροφος {f["ΟΡΟΦΟΣ"] || "-"}</span>
-                  <span className="text-xs text-muted-foreground">
-                    {f["ΔΙΑΜΕΡΙΣΜΑΤΑ"] || "0"} διαμ. / {f["ΚΑΤΑΣΤΗΜΑΤΑ"] || "0"} κατ.
-                  </span>
-                </div>
-                <div className="flex items-center gap-2 text-xs flex-wrap">
-                  {["FB01", "FB02", "FB03", "FB04"].map((fbKey) => {
-                    const count = parseInt(f[fbKey]) || 0;
-                    const type = f[`${fbKey} TYPE`] || "";
-                    if (count <= 0 && !type) return null;
-                    return (
-                      <div key={fbKey} className="flex items-center gap-1">
-                        <Badge variant="secondary" className="text-[10px]">{type || fbKey}</Badge>
-                        <span className="text-muted-foreground">×{count}</span>
+            {(() => {
+              // Override λογικής FB: 1 FB ανά όροφο για όλα τα κτίρια.
+              // Εξαίρεση: "Ξενίας Ζαχαριάδη" → 2 FB στο ΗΜ (Ημιόροφος).
+              const addr = `${assignment.address || ""} ${(assignment as any).street || ""}`
+                .normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
+              const isXeniasZachariadi = /XENIAS\s*ZAHARIADI|XENIAS\s*ZACHARIADI/.test(addr);
+
+              return (gisData.floor_details as any[]).map((f: any, idx: number) => {
+                const floorLabel = String(f["ΟΡΟΦΟΣ"] ?? "").trim();
+                const isHM = /^(\+?ΗΜ|HM)$/i.test(floorLabel) || /ΗΜ/i.test(floorLabel);
+                const fbCount = isXeniasZachariadi && isHM ? 2 : 1;
+
+                return (
+                  <div key={idx} className="flex items-center justify-between p-2 border border-border rounded-md bg-background text-sm">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-foreground">Όροφος {floorLabel || "-"}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {f["ΔΙΑΜΕΡΙΣΜΑΤΑ"] || "0"} διαμ. / {f["ΚΑΤΑΣΤΗΜΑΤΑ"] || "0"} κατ.
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs flex-wrap">
+                      <div className="flex items-center gap-1">
+                        <Badge variant="secondary" className="text-[10px]">FB</Badge>
+                        <span className="text-muted-foreground">×{fbCount}</span>
                       </div>
-                    );
-                  })}
-                  {f["FB ΠΕΛΑΤΗ"] && <span className="text-primary font-medium">👤 {f["FB ΠΕΛΑΤΗ"]}</span>}
-                </div>
-              </div>
-            ))}
+                      {f["FB ΠΕΛΑΤΗ"] && <span className="text-primary font-medium">👤 {f["FB ΠΕΛΑΤΗ"]}</span>}
+                    </div>
+                  </div>
+                );
+              });
+            })()}
           </div>
         </Card>
       )}
