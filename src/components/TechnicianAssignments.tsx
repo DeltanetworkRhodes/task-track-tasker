@@ -483,24 +483,17 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
     return (
       <div className="space-y-3">
         {[1, 2, 3].map((i) => (
-          <Card key={i} className="p-4 space-y-3">
-            <div className="flex items-start justify-between">
-              <div className="space-y-1.5">
-                <Skeleton className="h-4 w-24" />
-                <Skeleton className="h-3 w-16" />
+          <div key={i} className="rounded-xl border border-border overflow-hidden animate-pulse">
+            <div className="h-1 bg-muted" />
+            <div className="p-4 space-y-3">
+              <div className="flex justify-between">
+                <div className="h-4 w-32 bg-muted rounded" />
+                <div className="h-5 w-20 bg-muted rounded-full" />
               </div>
-              <Skeleton className="h-5 w-20 rounded-full" />
+              <div className="h-3 w-48 bg-muted rounded" />
+              <div className="h-3 w-36 bg-muted rounded" />
             </div>
-            <Skeleton className="h-3 w-48" />
-            <div className="flex gap-4">
-              <Skeleton className="h-3 w-28" />
-              <Skeleton className="h-3 w-20" />
-            </div>
-            <div className="flex justify-between pt-1">
-              <Skeleton className="h-3 w-20" />
-              <Skeleton className="h-3 w-12" />
-            </div>
-          </Card>
+          </div>
         ))}
       </div>
     );
@@ -508,9 +501,12 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
 
   if (assignments.length === 0) {
     return (
-      <div className="text-center py-12 text-muted-foreground">
-        <MapPin className="h-10 w-10 mx-auto mb-3 opacity-30" />
-        <p className="text-sm">Δεν υπάρχουν αναθέσεις</p>
+      <div className="flex flex-col items-center justify-center py-16 text-center space-y-3">
+        <div className="h-16 w-16 rounded-full bg-muted/50 flex items-center justify-center">
+          <CheckCircle className="h-8 w-8 text-muted-foreground/40" />
+        </div>
+        <p className="font-semibold text-foreground">Δεν υπάρχουν ενεργές αναθέσεις</p>
+        <p className="text-sm text-muted-foreground">Ωραία δουλειά! 🎉</p>
       </div>
     );
   }
