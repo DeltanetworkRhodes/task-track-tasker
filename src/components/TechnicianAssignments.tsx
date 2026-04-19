@@ -954,7 +954,7 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
                     className={`w-full py-2.5 text-xs font-bold rounded-xl flex items-center justify-center gap-2 transition-colors ${
                       myPhase && PHASE_BTN[myPhase]
                         ? PHASE_BTN[myPhase]
-                        : "bg-primary hover:bg-primary/90 text-primary-foreground"
+                        : "text-primary-foreground bg-accent"
                     }`}
                   >
                     <HardHat className="h-3.5 w-3.5" />
