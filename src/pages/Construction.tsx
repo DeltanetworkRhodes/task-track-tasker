@@ -133,6 +133,46 @@ const ConstructionPage = () => {
     }
   };
 
+  const handlePhaseStatusChange = async (
+    constructionId: string,
+    phase: 1 | 2 | 3,
+    newStatus: string,
+  ) => {
+    try {
+      const phaseField = `phase${phase}_status`;
+      const phaseDate = `phase${phase}_completed_at`;
+      const { error } = await supabase
+        .from("constructions")
+        .update({
+          [phaseField]: newStatus,
+          [phaseDate]: newStatus === "completed" ? new Date().toISOString() : null,
+        } as any)
+        .eq("id", constructionId);
+      if (error) throw error;
+      toast.success(
+        `Φάση ${phase} → ${
+          newStatus === "completed"
+            ? "✅ Ολοκληρώθηκε"
+            : newStatus === "in_progress"
+            ? "🔄 Σε εξέλιξη"
+            : "⏳ Εκκρεμεί"
+        }`,
+      );
+      if (selectedConstruction?.id === constructionId) {
+        setSelectedConstruction({
+          ...selectedConstruction,
+          [`phase${phase}Status`]: newStatus,
+          [`phase${phase}CompletedAt`]:
+            newStatus === "completed" ? new Date().toISOString() : null,
+        });
+      }
+      queryClient.invalidateQueries({ queryKey: ["constructions"] });
+      queryClient.invalidateQueries({ queryKey: ["phase-statuses"] });
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
+
   const constructions = useMemo(() => {
     if (!dbConstructions) return [];
     return dbConstructions.map(c => ({
@@ -807,7 +847,55 @@ const ConstructionPage = () => {
                     </div>
                   </Card>
 
-                  {/* Customer Info */}
+                  {/* Phase Progress */}
+                  <Card className="p-4 space-y-3">
+                    <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      Πρόοδος Φάσεων
+                    </h3>
+                    {([1, 2, 3] as const).map((ph) => {
+                      const phaseStatus = (c as any)[`phase${ph}Status`] || "pending";
+                      const completedAt = (c as any)[`phase${ph}CompletedAt`];
+                      const PHASE_INFO: Record<number, { icon: string; label: string }> = {
+                        1: { icon: "🚜", label: "Χωματουργικά" },
+                        2: { icon: "🔧", label: "Οδεύσεις" },
+                        3: { icon: "🔬", label: "Κόλληση" },
+                      };
+                      const info = PHASE_INFO[ph];
+                      return (
+                        <div key={ph} className="flex items-center gap-3">
+                          <span className="text-lg shrink-0">{info.icon}</span>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-medium">
+                              Φάση {ph} — {info.label}
+                            </p>
+                            {completedAt && phaseStatus === "completed" && (
+                              <p className="text-[10px] text-muted-foreground mt-0.5">
+                                {new Date(completedAt).toLocaleDateString("el-GR", {
+                                  day: "numeric",
+                                  month: "short",
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })}
+                              </p>
+                            )}
+                          </div>
+                          <Select
+                            value={phaseStatus}
+                            onValueChange={(val) => handlePhaseStatusChange(c.id, ph, val)}
+                          >
+                            <SelectTrigger className="w-[140px] h-8 text-xs shrink-0">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="pending">⏳ Εκκρεμεί</SelectItem>
+                              <SelectItem value="in_progress">🔄 Σε εξέλιξη</SelectItem>
+                              <SelectItem value="completed">✅ Ολοκληρώθηκε</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      );
+                    })}
+                  </Card>
                   {assignment && (
                     <Card className="p-4 space-y-2 text-sm">
                       <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Πελάτης</h3>
