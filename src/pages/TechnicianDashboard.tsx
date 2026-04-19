@@ -87,6 +87,43 @@ const TechnicianDashboard = () => {
     },
   });
 
+  // Fetch real appointments from `appointments` table (set via Calendar / Call popover)
+  // and merge them by sr_id so Dashboard widgets show the correct upcoming time.
+  const srIds = useMemo(
+    () => Array.from(new Set((assignments || []).map((a) => a.sr_id))).filter(Boolean),
+    [assignments]
+  );
+
+  const { data: apptMap } = useQuery({
+    queryKey: ["technician-appointments", user?.id, srIds.join(",")],
+    enabled: !!user && srIds.length > 0,
+    queryFn: async () => {
+      const nowIso = new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString();
+      const { data, error } = await supabase
+        .from("appointments")
+        .select("sr_id, appointment_at")
+        .in("sr_id", srIds)
+        .gte("appointment_at", nowIso)
+        .order("appointment_at", { ascending: true });
+      if (error) throw error;
+      // Keep earliest upcoming per sr_id
+      const map = new Map<string, string>();
+      for (const row of data || []) {
+        if (!map.has(row.sr_id)) map.set(row.sr_id, row.appointment_at);
+      }
+      return map;
+    },
+  });
+
+  // Merge appointments into assignments (overrides assignment.appointment_at when present)
+  const enrichedAssignments = useMemo(() => {
+    if (!assignments) return assignments;
+    return assignments.map((a) => {
+      const realAppt = apptMap?.get(a.sr_id);
+      return realAppt ? { ...a, appointment_at: realAppt } : a;
+    });
+  }, [assignments, apptMap]);
+
   const filteredAssignments = useMemo(() => {
     // Always hide cancelled and completed
     let list = (assignments || []).filter(a => !hiddenStatuses.includes(a.status));
