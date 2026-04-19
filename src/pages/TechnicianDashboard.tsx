@@ -169,8 +169,8 @@ const TechnicianDashboard = () => {
         <div className="flex items-center justify-between px-4 py-3">
           <div className="flex items-center gap-3">
             {/* Avatar */}
-            <div className="h-11 w-11 rounded-full bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center shrink-0 border-2 border-violet-200 dark:border-violet-700">
-              <span className="text-sm font-bold text-violet-700 dark:text-violet-300">
+            <div className="h-11 w-11 rounded-full bg-primary/15 flex items-center justify-center shrink-0 border-2 border-primary/30">
+              <span className="text-sm font-bold text-primary">
                 {initials}
               </span>
             </div>
