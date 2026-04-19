@@ -2693,6 +2693,83 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
         </div>
       </div>
 
+      {/* Phase Status Editor — visible to Responsible (technician_id of SR) or Admin in full form */}
+      {!phase && !isCrewMode && existingConstruction?.id && (
+        <Card className="p-4 space-y-3">
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+            <CheckCircle className="h-3.5 w-3.5" />
+            Πρόοδος Φάσεων (Υπεύθυνος)
+          </h3>
+          {([1, 2, 3] as const).map((ph) => {
+            const phaseStatusVal = (existingConstruction as any)[`phase${ph}_status`] || "pending";
+            const completedAt = (existingConstruction as any)[`phase${ph}_completed_at`];
+            const info = PHASE_INFO[ph];
+            return (
+              <div key={ph} className="flex items-center gap-3">
+                <span className="text-lg shrink-0">{info.icon}</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium truncate">
+                    {info.title.replace("Φάση ", "Φ").replace(" — ", " — ")}
+                  </p>
+                  {completedAt && phaseStatusVal === "completed" && (
+                    <p className="text-[10px] text-muted-foreground mt-0.5">
+                      {new Date(completedAt).toLocaleDateString("el-GR", {
+                        day: "numeric",
+                        month: "short",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </p>
+                  )}
+                </div>
+                <Select
+                  value={phaseStatusVal}
+                  onValueChange={async (val) => {
+                    try {
+                      const phaseField = `phase${ph}_status`;
+                      const phaseDate = `phase${ph}_completed_at`;
+                      const { error } = await supabase
+                        .from("constructions")
+                        .update({
+                          [phaseField]: val,
+                          [phaseDate]: val === "completed" ? new Date().toISOString() : null,
+                        } as any)
+                        .eq("id", existingConstruction.id);
+                      if (error) throw error;
+                      toast.success(
+                        `Φάση ${ph} → ${
+                          val === "completed"
+                            ? "✅ Ολοκληρώθηκε"
+                            : val === "in_progress"
+                            ? "🔄 Σε εξέλιξη"
+                            : "⏳ Εκκρεμεί"
+                        }`,
+                      );
+                      queryClient.invalidateQueries({ queryKey: ["existing_construction", assignment.id] });
+                      queryClient.invalidateQueries({ queryKey: ["constructions"] });
+                      queryClient.invalidateQueries({ queryKey: ["phase-statuses"] });
+                      queryClient.invalidateQueries({ queryKey: ["phase-status"] });
+                      queryClient.invalidateQueries({ queryKey: ["construction-phases"] });
+                    } catch (err: any) {
+                      toast.error(err.message);
+                    }
+                  }}
+                >
+                  <SelectTrigger className="w-[150px] h-8 text-xs shrink-0">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pending">⏳ Εκκρεμεί</SelectItem>
+                    <SelectItem value="in_progress">🔄 Σε εξέλιξη</SelectItem>
+                    <SelectItem value="completed">✅ Ολοκληρώθηκε</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            );
+          })}
+        </Card>
+      )}
+
       {/* Technical Details */}
       {!isCrewMode && (!phase || phase === 1 || phase === 2) && <Card className="overflow-hidden">
         <button
