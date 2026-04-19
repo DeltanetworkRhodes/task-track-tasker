@@ -246,6 +246,73 @@ const TechnicianDashboard = () => {
     return new Date(a.appointment_at).getTime() > Date.now() - 6 * 60 * 60 * 1000;
   }).length;
 
+  // ── Fuselab principles: hero + outliers ──
+  const nextUp = useMemo(() => {
+    const list = (enrichedAssignments || []).filter(
+      (a) => !hiddenStatuses.includes(a.status)
+    );
+    const cutoff = Date.now() - 6 * 60 * 60 * 1000;
+    const upcoming = list
+      .filter((a) => a.appointment_at && new Date(a.appointment_at).getTime() > cutoff)
+      .sort(
+        (a, b) =>
+          new Date(a.appointment_at!).getTime() -
+          new Date(b.appointment_at!).getTime()
+      );
+    if (upcoming.length > 0) return upcoming[0];
+    const sorted = [...list].sort(
+      (a, b) =>
+        new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+    );
+    return sorted[0] || null;
+  }, [enrichedAssignments]);
+
+  const outliers = useMemo(() => {
+    const list = (enrichedAssignments || []).filter(
+      (a) => !hiddenStatuses.includes(a.status)
+    );
+    const now = Date.now();
+    const sevenDays = 7 * 24 * 3600 * 1000;
+    const missedCutoff = 30 * 60 * 1000;
+    const missed = list.filter(
+      (a) =>
+        a.appointment_at &&
+        now - new Date(a.appointment_at).getTime() > missedCutoff &&
+        ["pending", "inspection", "pre_committed"].includes(a.status)
+    );
+    const stale = list.filter(
+      (a) =>
+        now - new Date(a.updated_at).getTime() > sevenDays &&
+        !missed.find((m) => m.id === a.id)
+    );
+    return { missed, stale };
+  }, [enrichedAssignments]);
+
+  useEffect(() => {
+    if (!isLoading && enrichedAssignments) setLastSyncedAt(Date.now());
+  }, [isLoading, enrichedAssignments]);
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["technician-assignments"] }),
+        queryClient.invalidateQueries({ queryKey: ["technician-appointments"] }),
+      ]);
+      setLastSyncedAt(Date.now());
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  const openAssignment = (a: any) => {
+    setActiveTab("assignments");
+    requestAnimationFrame(() => {
+      const el = document.querySelector(`[data-sr-id="${a.sr_id}"]`);
+      el?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+  };
+
   return (
     <div className="min-h-screen bg-background">
       {/* ── HEADER (Dark Industrial — admin palette) ── */}
