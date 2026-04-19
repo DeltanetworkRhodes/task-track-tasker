@@ -258,27 +258,27 @@ const TechnicianDashboard = () => {
 
             {/* Today banner */}
             {todayAppts.length > 0 && (
-              <div className="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800 rounded-2xl p-4 space-y-2">
-                <div className="flex items-center gap-2 text-xs font-bold text-emerald-700 dark:text-emerald-400">
-                  <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+              <div className="bg-accent/10 border border-accent/30 rounded-2xl p-4 space-y-2">
+                <div className="flex items-center gap-2 text-xs font-bold text-accent">
+                  <div className="h-2 w-2 rounded-full bg-accent animate-pulse" />
                   Σήμερα — {todayAppts.length} ραντεβού
                 </div>
                 {todayAppts.map((a) => (
                   <div
                     key={a.id}
-                    className="flex items-center justify-between text-xs bg-white/60 dark:bg-black/20 rounded-xl px-3 py-2 border border-emerald-100 dark:border-emerald-800/50"
+                    className="flex items-center justify-between text-xs bg-card/60 rounded-xl px-3 py-2 border border-accent/20"
                   >
                     <div>
-                      <span className="font-bold text-emerald-800 dark:text-emerald-300">
+                      <span className="font-bold text-accent">
                         {a.sr_id}
                       </span>
                       {a.address && (
-                        <span className="text-emerald-700/70 dark:text-emerald-400/70 ml-2">
+                        <span className="text-muted-foreground ml-2">
                           {a.address.split(",")[0]}
                         </span>
                       )}
                     </div>
-                    <span className="font-bold bg-emerald-600 text-white text-[10px] px-2 py-1 rounded-lg">
+                    <span className="font-bold bg-accent text-accent-foreground text-[10px] px-2 py-1 rounded-lg">
                       {new Date(a.appointment_at!).toLocaleTimeString("el-GR", {
                         hour: "2-digit",
                         minute: "2-digit",
