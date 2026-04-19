@@ -765,16 +765,16 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
 
   // Stripe colors per status
   const stripeColor: Record<string, string> = {
-    construction: "bg-violet-500",
-    inspection: "bg-amber-500",
-    pre_committed: "bg-blue-500",
+    construction: "bg-primary",
+    inspection: "bg-warning",
+    pre_committed: "bg-accent",
     pending: "bg-muted-foreground/30",
   };
   // Phase button colors
   const PHASE_BTN: Record<number, string> = {
-    1: "bg-amber-600 hover:bg-amber-700",
-    2: "bg-violet-600 hover:bg-violet-700",
-    3: "bg-emerald-600 hover:bg-emerald-700",
+    1: "bg-warning hover:bg-warning/90 text-warning-foreground",
+    2: "bg-primary hover:bg-primary/90 text-primary-foreground",
+    3: "bg-accent hover:bg-accent/90 text-accent-foreground",
   };
   const isToday = (dateStr: string) => {
     const d = new Date(dateStr);
