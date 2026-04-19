@@ -763,212 +763,230 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
     );
   };
 
+  // Stripe colors per status
+  const stripeColor: Record<string, string> = {
+    construction: "bg-violet-500",
+    inspection: "bg-amber-500",
+    pre_committed: "bg-blue-500",
+    pending: "bg-muted-foreground/30",
+  };
+  // Phase button colors
+  const PHASE_BTN: Record<number, string> = {
+    1: "bg-amber-600 hover:bg-amber-700",
+    2: "bg-violet-600 hover:bg-violet-700",
+    3: "bg-emerald-600 hover:bg-emerald-700",
+  };
+  const isToday = (dateStr: string) => {
+    const d = new Date(dateStr);
+    const t = new Date();
+    return (
+      d.getDate() === t.getDate() &&
+      d.getMonth() === t.getMonth() &&
+      d.getFullYear() === t.getFullYear()
+    );
+  };
+
   return (
     <>
       <div className="space-y-3">
-        {assignments.map((a) => (
-          <Card
-            key={a.id}
-            className="p-4 space-y-2 cursor-pointer hover:border-primary/30 transition-colors"
-            onClick={() => { setSelectedAssignment(a); setShowSurveyForm(false); setShowConstructionForm(false); setShowCrewPanel(false); }}
-            onMouseEnter={() => handleCardHover(a)}
-            onTouchStart={() => handleCardHover(a)}
-          >
-            <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0">
-                <p className="font-semibold text-sm text-foreground">SR {a.sr_id}</p>
-                <p className="text-xs text-muted-foreground">{a.area}</p>
-              </div>
-              <div className="flex-shrink-0 flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
-                {updating === a.id ? (
-                  <Badge variant="outline" className="gap-1">
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                  </Badge>
-                ) : (
-                  <Badge variant="outline" className={statusColors[a.status] || ""}>
-                    {statusLabels[a.status] || a.status}
-                  </Badge>
-                )}
-                {/* Quick next status button */}
-                {(() => {
-                  if (updating === a.id) return null;
-                  const flow = ["pending", "inspection", "pre_committed", "construction", "completed"];
-                  const idx = flow.indexOf(a.status);
-                  const next = flow[idx + 1];
-                  if (!next || a.status === "completed") return null;
-                  return (
-                    <button
-                      type="button"
-                      onClick={() => handleStatusChange(a.id, next, a.status)}
-                      className="flex items-center gap-1 text-[10px] font-bold text-muted-foreground hover:text-foreground bg-muted hover:bg-muted/80 px-2 py-1 rounded-full transition-colors whitespace-nowrap"
-                    >
-                      → {statusLabels[next]}
-                    </button>
-                  );
-                })()}
-              </div>
-            </div>
+        {assignments.map((a) => {
+          const ps = phaseStatusMap?.get(a.id);
+          const apptToday = a.appointment_at && isToday(a.appointment_at);
+          const hasGis = gisAssignmentIds?.includes(a.id);
+          return (
+            <div
+              key={a.id}
+              className={`bg-card rounded-2xl overflow-hidden border transition-all duration-200 active:scale-[0.98] cursor-pointer ${
+                apptToday
+                  ? "border-emerald-400/50 dark:border-emerald-600/50"
+                  : "border-border hover:border-border/80"
+              }`}
+              onClick={() => {
+                setSelectedAssignment(a);
+                setShowSurveyForm(false);
+                setShowConstructionForm(false);
+                setShowCrewPanel(false);
+              }}
+              onMouseEnter={() => handleCardHover(a)}
+              onTouchStart={() => handleCardHover(a)}
+            >
+              {/* Top color stripe */}
+              <div className={`h-1 ${stripeColor[a.status] || "bg-muted"}`} />
 
-            {a.address && (
-              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <MapPin className="h-3 w-3 shrink-0" />
-                <span className="truncate flex-1">{a.address}</span>
-                <a
-                  href={`https://maps.google.com/?q=${encodeURIComponent(a.address + ", " + (a.area || ""))}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={(e) => e.stopPropagation()}
-                  className="shrink-0 flex items-center gap-1 text-[10px] font-bold text-primary bg-primary/10 px-2 py-1 rounded-full hover:bg-primary/20 transition-colors"
-                >
-                  <Navigation className="h-3 w-3" />
-                  Πλοήγηση
-                </a>
-              </div>
-            )}
-
-            <div className="flex items-center gap-4 text-xs text-muted-foreground">
-              {a.customer_name && <span>{a.customer_name}</span>}
-              {a.phone && (
-                <a href={`tel:${a.phone}`} className="flex items-center gap-1 text-primary" onClick={(e) => e.stopPropagation()}>
-                  <Phone className="h-3 w-3" />
-                  {a.phone}
-                </a>
-              )}
-            </div>
-
-            {a.comments && (
-              <div className="flex items-start gap-1.5 text-xs text-muted-foreground">
-                <MessageSquare className="h-3 w-3 mt-0.5 shrink-0" />
-                <span className="line-clamp-2">{a.comments}</span>
-              </div>
-            )}
-
-            {/* Appointment info */}
-            {a.appointment_at && (
-              <div className="flex items-center gap-1.5 rounded-md bg-green-500/10 border border-green-500/20 px-2.5 py-1.5 text-xs text-green-600">
-                <CalendarClock className="h-3.5 w-3.5 shrink-0" />
-                <span className="font-medium">
-                  Ραντεβού: {new Date(a.appointment_at).toLocaleDateString("el-GR", { weekday: "short", day: "numeric", month: "numeric" })} στις {new Date(a.appointment_at).toLocaleTimeString("el-GR", { hour: "2-digit", minute: "2-digit" })}
-                </span>
-              </div>
-            )}
-
-            {/* GIS pending indicator for pre_committed */}
-            {a.status === "pre_committed" && !gisAssignmentIds?.includes(a.id) && (
-              <div className="flex items-center gap-1.5 rounded-md bg-amber-500/10 border border-amber-500/20 px-2.5 py-1.5 text-xs text-amber-600">
-                <FileSpreadsheet className="h-3.5 w-3.5 shrink-0" />
-                <span className="font-medium">Αναμονή GIS αρχείου</span>
-              </div>
-            )}
-
-            {/* Phase Progress (only when in construction) */}
-            {a.status === "construction" && (() => {
-              const ps = phaseStatusMap.get(a.id);
-              if (!ps) return null;
-              const isResponsible = a.technician_id === user?.id;
-              if (!isResponsible) {
-                return (
-                  <PhaseProgress
-                    p1={ps.phase1_status}
-                    p2={ps.phase2_status}
-                    p3={ps.phase3_status}
-                  />
-                );
-              }
-              // Editor for the Responsible technician
-              const phases = [
-                { ph: 1 as const, icon: "🚜", label: "Φ1", s: ps.phase1_status || "pending" },
-                { ph: 2 as const, icon: "🔧", label: "Φ2", s: ps.phase2_status || "pending" },
-                { ph: 3 as const, icon: "🔬", label: "Φ3", s: ps.phase3_status || "pending" },
-              ];
-              return (
-                <div
-                  className="flex flex-wrap items-center gap-1.5"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  {phases.map(({ ph, icon, label, s }) => (
-                    <Select
-                      key={ph}
-                      value={s}
-                      onValueChange={async (val) => {
-                        try {
-                          const phaseField = `phase${ph}_status`;
-                          const phaseDate = `phase${ph}_completed_at`;
-                          // Find construction id
-                          const { data: existing } = await supabase
-                            .from("constructions")
-                            .select("id")
-                            .eq("assignment_id", a.id)
-                            .maybeSingle();
-                          if (!existing?.id) {
-                            toast.error("Δεν υπάρχει εγγραφή κατασκευής ακόμα");
-                            return;
-                          }
-                          const { error } = await supabase
-                            .from("constructions")
-                            .update({
-                              [phaseField]: val,
-                              [phaseDate]: val === "completed" ? new Date().toISOString() : null,
-                            } as any)
-                            .eq("id", existing.id);
-                          if (error) throw error;
-                          toast.success(
-                            `Φάση ${ph} → ${
-                              val === "completed"
-                                ? "✅ Ολοκληρώθηκε"
-                                : val === "in_progress"
-                                ? "🔄 Σε εξέλιξη"
-                                : "⏳ Εκκρεμεί"
-                            }`,
-                          );
-                          queryClient.invalidateQueries({ queryKey: ["phase-statuses"] });
-                          queryClient.invalidateQueries({ queryKey: ["constructions"] });
-                          queryClient.invalidateQueries({ queryKey: ["existing_construction", a.id] });
-                        } catch (err: any) {
-                          toast.error(err.message);
-                        }
-                      }}
-                    >
-                      <SelectTrigger
-                        className={`h-7 w-auto min-w-[78px] px-2 text-[10px] font-bold border gap-1 ${
-                          s === "completed"
-                            ? "bg-green-500/15 text-green-700 border-green-500/30 dark:text-green-400"
-                            : s === "in_progress"
-                            ? "bg-amber-500/15 text-amber-700 border-amber-500/30 dark:text-amber-400"
-                            : "bg-muted/50 text-muted-foreground border-border/50"
-                        }`}
+              <div className="p-4 space-y-3">
+                {/* Row 1: SR + Status */}
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-sm font-bold text-violet-600 dark:text-violet-400">
+                        {a.sr_id}
+                      </span>
+                      {apptToday && (
+                        <span className="text-[10px] font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 px-2 py-0.5 rounded-full">
+                          ΣΗΜΕΡΑ{" "}
+                          {new Date(a.appointment_at!).toLocaleTimeString("el-GR", {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </span>
+                      )}
+                      {hasGis && (
+                        <span className="text-[10px] font-bold bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 px-2 py-0.5 rounded-full">
+                          GIS ✓
+                        </span>
+                      )}
+                    </div>
+                    {a.area && (
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        {a.area}
+                      </p>
+                    )}
+                  </div>
+                  <div onClick={(e) => e.stopPropagation()}>
+                    {updating === a.id ? (
+                      <Badge variant="outline" className="gap-1">
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      </Badge>
+                    ) : (
+                      <Badge
+                        variant="outline"
+                        className={`text-[10px] ${statusColors[a.status] || ""}`}
                       >
-                        <span className="flex items-center gap-1">
+                        {statusLabels[a.status] || a.status}
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+
+                {/* Row 2: Address + Nav */}
+                {a.address && (
+                  <div className="flex items-center gap-2">
+                    <MapPin className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                    <span className="text-xs text-muted-foreground flex-1 truncate">
+                      {a.address}
+                    </span>
+                    <a
+                      href={`https://maps.google.com/?q=${encodeURIComponent(a.address)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className="text-[10px] font-bold text-blue-600 bg-blue-50 dark:bg-blue-900/20 dark:text-blue-400 px-2.5 py-1 rounded-full shrink-0 hover:bg-blue-100 transition-colors"
+                    >
+                      Πλοήγηση
+                    </a>
+                  </div>
+                )}
+
+                {/* Row 3: Customer + Phone */}
+                {(a.customer_name || a.phone) && (
+                  <div className="flex items-center justify-between gap-2">
+                    {a.customer_name && (
+                      <span className="text-xs text-foreground truncate">
+                        {a.customer_name}
+                      </span>
+                    )}
+                    {a.phone && (
+                      <a
+                        href={`tel:${a.phone}`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="text-[11px] font-bold text-violet-600 dark:text-violet-400 flex items-center gap-1 shrink-0"
+                      >
+                        <Phone className="h-3 w-3" />
+                        Κλήση
+                      </a>
+                    )}
+                  </div>
+                )}
+
+                {/* Phase progress dots */}
+                {a.status === "construction" && ps && (
+                  <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+                    {[
+                      { n: 1, icon: "🚜", label: "Φ1" },
+                      { n: 2, icon: "🔧", label: "Φ2" },
+                      { n: 3, icon: "🔬", label: "Φ3" },
+                    ].map(({ n, icon, label }) => {
+                      const s = ps[`phase${n}_status`] || "pending";
+                      return (
+                        <div
+                          key={n}
+                          className={`flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1 rounded-full border ${
+                            s === "completed"
+                              ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-700"
+                              : s === "in_progress"
+                              ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-700"
+                              : "bg-muted/50 text-muted-foreground/50 border-border/50"
+                          }`}
+                        >
                           <span>{icon}</span>
                           <span>{label}</span>
                           {s === "completed" && <span>✓</span>}
-                        </span>
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="pending">⏳ Εκκρεμεί</SelectItem>
-                        <SelectItem value="in_progress">🔄 Σε εξέλιξη</SelectItem>
-                        <SelectItem value="completed">✅ Ολοκληρώθηκε</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  ))}
-                </div>
-              );
-            })()}
+                          {s === "in_progress" && (
+                            <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse inline-block" />
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
 
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <Calendar className="h-3 w-3" />
-                {new Date(a.created_at).toLocaleDateString("el-GR")}
+                {/* GIS missing warning */}
+                {a.status === "pre_committed" && !hasGis && (
+                  <div className="flex items-center gap-2 text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-xl px-3 py-2">
+                    <FileSpreadsheet className="h-3.5 w-3.5 shrink-0" />
+                    Αναμονή GIS αρχείου
+                  </div>
+                )}
+
+                {/* Action button */}
+                {a.status === "construction" && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedAssignment(a);
+                      const isResponsible = a.technician_id === user?.id;
+                      if (isResponsible) {
+                        setShowConstructionForm(true);
+                      } else {
+                        setShowCrewPanel(true);
+                      }
+                    }}
+                    className={`w-full py-2.5 text-xs font-bold text-white rounded-xl flex items-center justify-center gap-2 transition-colors ${
+                      myPhase && PHASE_BTN[myPhase]
+                        ? PHASE_BTN[myPhase]
+                        : "bg-violet-600 hover:bg-violet-700"
+                    }`}
+                  >
+                    <HardHat className="h-3.5 w-3.5" />
+                    {myPhase
+                      ? `Φάση ${myPhase} — ${
+                          myPhase === 1
+                            ? "Χωματουργικά"
+                            : myPhase === 2
+                            ? "Οδεύσεις"
+                            : "Κόλληση"
+                        }`
+                      : "Φόρμα Κατασκευής"}
+                  </button>
+                )}
+
+                {a.status === "inspection" && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedAssignment(a);
+                      setShowSurveyForm(true);
+                    }}
+                    className="w-full py-2.5 text-xs font-bold bg-amber-500 hover:bg-amber-600 text-white rounded-xl flex items-center justify-center gap-2 transition-colors"
+                  >
+                    <Eye className="h-3.5 w-3.5" />
+                    Αυτοψία
+                  </button>
+                )}
               </div>
-              {gisAssignmentIds?.includes(a.id) && (
-                <div className="flex items-center gap-1 text-xs text-blue-600">
-                  <FileSpreadsheet className="h-3.5 w-3.5" />
-                  <span className="font-medium">GIS</span>
-                </div>
-              )}
             </div>
-          </Card>
-        ))}
+          );
+        })}
       </div>
 
       {/* SR Detail Sheet */}
