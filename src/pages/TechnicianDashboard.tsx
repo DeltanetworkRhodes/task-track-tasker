@@ -461,26 +461,41 @@ const TechnicianDashboard = () => {
                 </p>
                 <p className="text-xs text-muted-foreground">Ωραία δουλειά! 🎉</p>
               </div>
-            ) : (
-              <TechnicianAssignments
-                assignments={filteredAssignments}
-                loading={isLoading}
-              />
-            )}
-          </div>
-        )}
+              ) : (
+                <TechnicianAssignments
+                  assignments={filteredAssignments}
+                  loading={isLoading}
+                />
+              )}
+            </motion.div>
+          )}
 
-        {activeTab === "inventory" && (
-          <div className="px-4 pt-4">
-            <TechnicianInventoryView />
-          </div>
-        )}
+          {activeTab === "inventory" && (
+            <motion.div
+              key="inventory"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+              className="px-4 pt-4"
+            >
+              <TechnicianInventoryView />
+            </motion.div>
+          )}
 
-        {activeTab === "map" && (
-          <div className="pt-0">
-            <TechnicianMap assignments={enrichedAssignments || []} />
-          </div>
-        )}
+          {activeTab === "map" && (
+            <motion.div
+              key="map"
+              initial={{ opacity: 0, scale: 0.98 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.98 }}
+              transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+              className="pt-0"
+            >
+              <TechnicianMap assignments={enrichedAssignments || []} />
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );
