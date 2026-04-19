@@ -846,6 +846,19 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
               </div>
             )}
 
+            {/* Phase Progress (only when in construction) */}
+            {a.status === "construction" && (() => {
+              const ps = phaseStatusMap.get(a.id);
+              if (!ps) return null;
+              return (
+                <PhaseProgress
+                  p1={ps.phase1_status}
+                  p2={ps.phase2_status}
+                  p3={ps.phase3_status}
+                />
+              );
+            })()}
+
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                 <Calendar className="h-3 w-3" />
