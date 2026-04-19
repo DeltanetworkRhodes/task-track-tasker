@@ -557,7 +557,7 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
 
     if (status === "cancelled") {
       return (
-        <div className="flex items-center gap-2 text-red-600 justify-center py-2">
+        <div className="flex items-center gap-2 text-destructive justify-center py-2">
           <Ban className="h-5 w-5" />
           <span className="text-sm font-medium">Ακυρωμένο</span>
         </div>
@@ -578,7 +578,7 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
             {existingSurvey ? "Συνέχεια Αυτοψίας" : "Έναρξη Αυτοψίας"}
           </Button>
           {checklistBlocks && (
-            <p className="text-[10px] text-amber-600 text-center">
+            <p className="text-[10px] text-warning text-center">
               ⚠️ Ολοκληρώστε τον Έλεγχο Πριν την Έναρξη για να συνεχίσετε
             </p>
           )}
@@ -713,7 +713,7 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
 
     if (status === "completed") {
       return (
-        <div className="flex items-center gap-2 text-green-600 justify-center py-2">
+        <div className="flex items-center gap-2 text-success justify-center py-2">
           <CheckCircle className="h-5 w-5" />
           <span className="text-sm font-medium">Ολοκληρωμένο</span>
         </div>
@@ -744,9 +744,9 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
             key={label}
             className={`flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold border transition-colors ${
               s === "completed"
-                ? "bg-green-500/15 text-green-700 border-green-500/30 dark:text-green-400"
+                ? "bg-success/15 text-success border-success/30"
                 : s === "in_progress"
-                ? "bg-amber-500/15 text-amber-700 border-amber-500/30 dark:text-amber-400"
+                ? "bg-warning/15 text-warning border-warning/30"
                 : "bg-muted/50 text-muted-foreground/50 border-border/50"
             }`}
           >
@@ -754,7 +754,7 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
             <span>{label}</span>
             {s === "completed" && <span>✓</span>}
             {s === "in_progress" && (
-              <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse inline-block" />
+              <span className="h-1.5 w-1.5 rounded-full bg-warning animate-pulse inline-block" />
             )}
           </div>
         ))}
@@ -1076,8 +1076,8 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
                     </p>
                     <Badge variant="outline" className={
                       existingSurvey.status === "ΕΛΛΙΠΗΣ ΑΥΤΟΨΙΑ"
-                        ? "bg-yellow-500/10 text-yellow-600 border-yellow-500/20"
-                        : "bg-green-500/10 text-green-600 border-green-500/20"
+                        ? "bg-warning/15 text-warning border-warning/30"
+                        : "bg-success/15 text-success border-success/30"
                     }>
                       {existingSurvey.status === "ΕΛΛΙΠΗΣ ΑΥΤΟΨΙΑ"
                         ? existingSurvey.status
