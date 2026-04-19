@@ -93,10 +93,10 @@ const NextUpHero = ({ assignments, onOpen }: Props) => {
       animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
       transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
       onClick={handleCardTap}
-      className="relative overflow-hidden rounded-3xl border border-border/40 bg-card/60 backdrop-blur-xl cursor-pointer select-none group"
+      className="relative overflow-hidden rounded-2xl border border-primary/15 bg-card/70 backdrop-blur-xl cursor-pointer select-none group"
       style={{
         boxShadow:
-          "0 0 0 1px hsl(var(--border) / 0.4), 0 20px 60px -20px hsl(0 0% 0% / 0.4), inset 0 1px 0 hsl(var(--foreground) / 0.04)",
+          "0 0 0 1px hsl(var(--primary) / 0.08), 0 12px 40px -16px hsl(var(--primary) / 0.18), inset 0 1px 0 hsl(var(--foreground) / 0.04)",
       }}
     >
       {/* Status accent bar — top edge */}
