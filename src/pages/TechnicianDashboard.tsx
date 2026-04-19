@@ -17,6 +17,7 @@ import TechnicianInventoryView from "@/components/TechnicianInventoryView";
 import NextUpHero from "@/components/technician/NextUpHero";
 import OutlierBanner from "@/components/technician/OutlierBanner";
 import FreshnessIndicator from "@/components/technician/FreshnessIndicator";
+import AmbientCanvas from "@/components/technician/AmbientCanvas";
 
 const FILTERS_STORAGE_KEY = "tech-dashboard-filters-v1";
 
