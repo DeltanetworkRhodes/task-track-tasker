@@ -317,11 +317,7 @@ const TechnicianDashboard = () => {
 
   return (
     <div className="relative min-h-screen bg-background">
-      {/* ── Ambient atmosphere: grain + grid + 3-layer glow ── */}
-      <AmbientCanvas
-        minutesUntilNext={minutesUntilNext}
-        status={nextUp?.status}
-      />
+      {/* Ambient canvas removed for clean light background */}
 
       {/* ── HEADER (Light, soft palette) ── */}
       <header className="sticky top-0 z-50 bg-card/85 text-foreground border-b border-border backdrop-blur-xl shadow-sm">
