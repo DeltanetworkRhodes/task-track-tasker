@@ -3718,8 +3718,11 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
         <div className="px-5 pb-5 space-y-3.5 border-t border-border/40 pt-4">
         <div className="space-y-2">
           {effectiveRoutes.map((route, idx) => {
-            // In crew mode, only show INHOUSE route (index 3)
-            if (isCrewMode && idx !== 3) return null;
+            // Crew visibility:
+            //  - Φάση 2: μόνο INHOUSE (idx 3)
+            //  - Φάση 3: όλες οι διαδρομές
+            //  - Admin: όλες
+            if (isCrewMode && phase === 2 && idx !== 3) return null;
             const isInhouse = idx === 3;
             return (
             <div key={idx} className="border border-border rounded-lg p-3 space-y-2">
