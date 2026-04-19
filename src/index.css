@@ -213,3 +213,76 @@
     padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 0.5rem);
   }
 }
+
+/* ─── 2026 Aurora + Glassmorphism System ─── */
+@layer utilities {
+  /* Aurora animated background — soft drifting gradient blobs */
+  .aurora-bg {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+  }
+  .aurora-bg::before,
+  .aurora-bg::after {
+    content: "";
+    position: absolute;
+    inset: -20%;
+    z-index: -1;
+    pointer-events: none;
+    filter: blur(80px);
+    opacity: 0.55;
+    background:
+      radial-gradient(35% 35% at 18% 22%, hsl(185 80% 55% / 0.55) 0%, transparent 70%),
+      radial-gradient(40% 40% at 82% 18%, hsl(160 70% 55% / 0.45) 0%, transparent 70%),
+      radial-gradient(45% 45% at 50% 95%, hsl(200 75% 55% / 0.40) 0%, transparent 70%),
+      radial-gradient(30% 30% at 90% 75%, hsl(140 65% 50% / 0.35) 0%, transparent 70%);
+    animation: aurora-drift 22s ease-in-out infinite alternate;
+  }
+  .aurora-bg::after {
+    opacity: 0.35;
+    animation-duration: 30s;
+    animation-direction: alternate-reverse;
+    filter: blur(110px);
+  }
+
+  @keyframes aurora-drift {
+    0%   { transform: translate3d(0%, 0%, 0) rotate(0deg) scale(1); }
+    50%  { transform: translate3d(-4%, 3%, 0) rotate(8deg) scale(1.08); }
+    100% { transform: translate3d(3%, -2%, 0) rotate(-6deg) scale(1.04); }
+  }
+
+  /* Frosted glass surfaces */
+  .glass {
+    background: hsl(var(--card) / 0.55);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid hsl(var(--border) / 0.5);
+    box-shadow:
+      0 1px 0 0 hsl(0 0% 100% / 0.6) inset,
+      0 8px 32px -8px hsl(215 30% 20% / 0.12);
+  }
+  .glass-dark {
+    background: hsl(215 22% 13% / 0.65);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border: 1px solid hsl(0 0% 100% / 0.08);
+    box-shadow:
+      0 1px 0 0 hsl(0 0% 100% / 0.06) inset,
+      0 12px 40px -12px hsl(0 0% 0% / 0.5);
+  }
+  .glass-strong {
+    background: hsl(var(--card) / 0.78);
+    backdrop-filter: blur(28px) saturate(200%);
+    -webkit-backdrop-filter: blur(28px) saturate(200%);
+    border: 1px solid hsl(var(--border) / 0.6);
+  }
+
+  /* Floating dock shadow */
+  .dock-shadow {
+    box-shadow:
+      0 1px 0 0 hsl(0 0% 100% / 0.08) inset,
+      0 -1px 0 0 hsl(0 0% 0% / 0.2) inset,
+      0 20px 50px -12px hsl(185 70% 30% / 0.35),
+      0 8px 20px -8px hsl(0 0% 0% / 0.4);
+  }
+}
