@@ -1118,7 +1118,7 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
                     </div>
                     
                     {existingGisData.warning && (
-                      <p className="text-xs text-amber-600">⚠ {existingGisData.warning}</p>
+                      <p className="text-xs text-warning">⚠ {existingGisData.warning}</p>
                     )}
                     {existingGisData.failure && (
                       <p className="text-xs text-destructive">✗ {existingGisData.failure}</p>
