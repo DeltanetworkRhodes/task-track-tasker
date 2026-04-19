@@ -977,7 +977,7 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
                       setSelectedAssignment(a);
                       setShowSurveyForm(true);
                     }}
-                    className="w-full py-2.5 text-xs font-bold bg-amber-500 hover:bg-amber-600 text-white rounded-xl flex items-center justify-center gap-2 transition-colors"
+                    className="w-full py-2.5 text-xs font-bold bg-warning hover:bg-warning/90 text-warning-foreground rounded-xl flex items-center justify-center gap-2 transition-colors"
                   >
                     <Eye className="h-3.5 w-3.5" />
                     Αυτοψία
