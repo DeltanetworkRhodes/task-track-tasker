@@ -213,6 +213,51 @@ const Index = () => {
       timeAgo: a.updatedAt ? getTimeAgo(a.updatedAt) : '',
     }));
 
+  // Next upcoming appointment org-wide (Fuselab "default view" hero)
+  const nextAppointment = useMemo(() => {
+    if (!dbAssignments) return null;
+    const now = Date.now();
+    const upcoming = (dbAssignments as any[])
+      .filter(a => a.appointment_at && new Date(a.appointment_at).getTime() > now - 30 * 60_000)
+      .filter(a => !["completed", "cancelled", "submitted", "paid", "rejected"].includes(a.status))
+      .sort((a, b) => new Date(a.appointment_at).getTime() - new Date(b.appointment_at).getTime());
+    return upcoming[0] || null;
+  }, [dbAssignments]);
+
+  // Outliers
+  const { staleAssignments, missedAppointments, unpaidLong } = useMemo(() => {
+    const now = Date.now();
+    const stale: any[] = [];
+    const missed: any[] = [];
+    const unpaid: any[] = [];
+    (dbAssignments || []).forEach((a: any) => {
+      const isActive = !["completed", "cancelled", "submitted", "paid", "rejected"].includes(a.status);
+      if (isActive) {
+        const updatedAge = now - new Date(a.updated_at).getTime();
+        if (updatedAge > 7 * 86400_000) stale.push(a);
+        if (a.appointment_at) {
+          const apptAge = now - new Date(a.appointment_at).getTime();
+          if (apptAge > 60 * 60_000) missed.push(a);
+        }
+      }
+      if (a.status === "submitted") {
+        const submittedAge = now - new Date(a.submitted_at || a.updated_at).getTime();
+        if (submittedAge > 30 * 86400_000) unpaid.push(a);
+      }
+    });
+    return {
+      staleAssignments: stale.slice(0, 5),
+      missedAppointments: missed.slice(0, 5),
+      unpaidLong: unpaid.slice(0, 5),
+    };
+  }, [dbAssignments]);
+
+  const handleRefresh = () => {
+    queryClient.invalidateQueries({ queryKey: ["assignments"] });
+    queryClient.invalidateQueries({ queryKey: ["constructions"] });
+    setLastRefresh(Date.now());
+  };
+
   return (
     <AppLayout>
       <div className="space-y-5 sm:space-y-6 w-full">
