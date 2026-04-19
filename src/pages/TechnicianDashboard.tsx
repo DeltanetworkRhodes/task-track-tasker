@@ -247,8 +247,9 @@ const TechnicianDashboard = () => {
     return new Date(a.appointment_at).getTime() > Date.now() - 6 * 60 * 60 * 1000;
   }).length;
 
-  // ── Fuselab principles: hero + outliers ──
-  const nextUp = useMemo(() => {
+  // ── Fuselab principles: hero list (cycleable) + outliers ──
+  // Build a *list* of upcoming/active SRs so the hero supports tap-to-cycle.
+  const heroList = useMemo(() => {
     const list = (enrichedAssignments || []).filter(
       (a) => !hiddenStatuses.includes(a.status)
     );
@@ -260,13 +261,17 @@ const TechnicianDashboard = () => {
           new Date(a.appointment_at!).getTime() -
           new Date(b.appointment_at!).getTime()
       );
-    if (upcoming.length > 0) return upcoming[0];
-    const sorted = [...list].sort(
-      (a, b) =>
-        new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
-    );
-    return sorted[0] || null;
+    const upcomingIds = new Set(upcoming.map((a) => a.id));
+    const rest = list
+      .filter((a) => !upcomingIds.has(a.id))
+      .sort(
+        (a, b) =>
+          new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+      );
+    return [...upcoming, ...rest];
   }, [enrichedAssignments]);
+
+  const nextUp = heroList[0] || null;
 
   const outliers = useMemo(() => {
     const list = (enrichedAssignments || []).filter(
