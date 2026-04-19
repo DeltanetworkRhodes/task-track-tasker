@@ -239,7 +239,7 @@ const TechnicianDashboard = () => {
               onClick={() => setActiveTab(tab.id)}
               className={`flex-1 flex flex-col items-center gap-1 py-2.5 text-[11px] font-medium transition-colors border-b-2 ${
                 activeTab === tab.id
-                  ? "border-violet-600 text-violet-600"
+                  ? "border-primary text-primary"
                   : "border-transparent text-muted-foreground hover:text-foreground"
               }`}
             >
