@@ -144,7 +144,20 @@ const TechnicianDashboard = () => {
         (a.building_id_hemd && a.building_id_hemd.toLowerCase().includes(q))
       );
     }
-    return list;
+
+    // Sort: upcoming appointments first (earliest first), then the rest by updated_at desc
+    const cutoff = Date.now() - 6 * 60 * 60 * 1000;
+    const sorted = [...list].sort((a, b) => {
+      const aTime = a.appointment_at ? new Date(a.appointment_at).getTime() : null;
+      const bTime = b.appointment_at ? new Date(b.appointment_at).getTime() : null;
+      const aUpcoming = aTime !== null && aTime > cutoff;
+      const bUpcoming = bTime !== null && bTime > cutoff;
+      if (aUpcoming && bUpcoming) return aTime! - bTime!;
+      if (aUpcoming) return -1;
+      if (bUpcoming) return 1;
+      return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+    });
+    return sorted;
   }, [enrichedAssignments, searchQuery, statusFilter]);
 
   // Count per status for chips
