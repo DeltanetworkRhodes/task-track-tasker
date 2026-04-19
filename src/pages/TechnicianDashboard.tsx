@@ -1,7 +1,7 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,11 @@ import TechnicianAssignments from "@/components/TechnicianAssignments";
 import TechnicianMap from "@/components/TechnicianMap";
 import GpsOnlineToggle from "@/components/GpsOnlineToggle";
 import TechnicianInventoryView from "@/components/TechnicianInventoryView";
+import NextUpHero from "@/components/technician/NextUpHero";
+import OutlierBanner from "@/components/technician/OutlierBanner";
+import FreshnessIndicator from "@/components/technician/FreshnessIndicator";
+
+const FILTERS_STORAGE_KEY = "tech-dashboard-filters-v1";
 
 const statusFilters = [
   { value: "all", label: "Όλα" },
