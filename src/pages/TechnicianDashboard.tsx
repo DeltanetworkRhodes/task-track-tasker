@@ -323,26 +323,26 @@ const TechnicianDashboard = () => {
         status={nextUp?.status}
       />
 
-      {/* ── HEADER (Dark Industrial — admin palette) ── */}
-      <header className="sticky top-0 z-50 bg-sidebar text-sidebar-foreground border-b border-sidebar-border shadow-xl">
+      {/* ── HEADER (Light, soft palette) ── */}
+      <header className="sticky top-0 z-50 bg-card/85 text-foreground border-b border-border backdrop-blur-xl shadow-sm">
         {/* Top row with subtle gradient */}
-        <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-sidebar via-sidebar to-sidebar-accent/40">
+        <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-card via-card to-primary/5">
           <div className="flex items-center gap-3">
             {/* Avatar — teal-to-green gradient ring */}
-            <div className="h-11 w-11 rounded-full bg-gradient-to-br from-primary to-accent p-[2px] shrink-0 shadow-[0_0_12px_hsl(185_70%_42%/0.4)]">
-              <div className="h-full w-full rounded-full bg-sidebar flex items-center justify-center">
+            <div className="h-11 w-11 rounded-full bg-gradient-to-br from-primary to-accent p-[2px] shrink-0 shadow-[0_0_12px_hsl(185_70%_42%/0.25)]">
+              <div className="h-full w-full rounded-full bg-card flex items-center justify-center">
                 <span className="text-sm font-bold bg-gradient-to-br from-primary to-accent bg-clip-text text-transparent">
                   {initials}
                 </span>
               </div>
             </div>
             <div>
-              <p className="text-sm font-bold text-sidebar-accent-foreground leading-tight">
+              <p className="text-sm font-bold text-foreground leading-tight">
                 {greeting}, {firstName}!
               </p>
               <div className="flex items-center gap-1.5 mt-1 flex-wrap">
                 {profile?.area && (
-                  <span className="text-[11px] text-sidebar-foreground/70 flex items-center gap-0.5">
+                  <span className="text-[11px] text-muted-foreground flex items-center gap-0.5">
                     <MapPin className="h-3 w-3" />
                     {profile.area}
                   </span>
@@ -364,7 +364,7 @@ const TechnicianDashboard = () => {
             <NotificationBell />
             <button
               onClick={signOut}
-              className="h-9 w-9 rounded-xl border border-sidebar-border bg-sidebar-accent/40 flex items-center justify-center text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
+              className="h-9 w-9 rounded-xl border border-border bg-muted/40 flex items-center justify-center text-foreground hover:bg-muted transition-colors"
             >
               <LogOut className="h-4 w-4" />
             </button>
@@ -372,7 +372,7 @@ const TechnicianDashboard = () => {
         </div>
 
         {/* Stats bar */}
-        <div className="grid grid-cols-3 divide-x divide-sidebar-border bg-sidebar-accent/30 border-t border-sidebar-border">
+        <div className="grid grid-cols-3 divide-x divide-border bg-muted/30 border-t border-border">
           {[
             { label: "Ενεργά", value: activeCount, color: "text-primary" },
             { label: "Κατασκευή", value: constructionCount, color: "text-accent" },
@@ -394,7 +394,7 @@ const TechnicianDashboard = () => {
               >
                 {s.value}
               </motion.p>
-              <p className="text-[10px] text-sidebar-foreground/60 mt-0.5 uppercase tracking-wider">
+              <p className="text-[10px] text-muted-foreground mt-0.5 uppercase tracking-wider">
                 {s.label}
               </p>
             </motion.div>
@@ -402,7 +402,7 @@ const TechnicianDashboard = () => {
         </div>
 
         {/* Tab bar */}
-        <div className="flex border-t border-sidebar-border bg-sidebar relative">
+        <div className="flex border-t border-border bg-card relative">
           {[
             { id: "assignments", label: "Αναθέσεις", icon: ClipboardList },
             { id: "inventory", label: "Αποθήκη", icon: Package },
@@ -414,7 +414,7 @@ const TechnicianDashboard = () => {
               className={`relative flex-1 flex flex-col items-center gap-1 py-2.5 text-[11px] font-medium transition-colors ${
                 activeTab === tab.id
                   ? "text-primary"
-                  : "text-sidebar-foreground/60 hover:text-sidebar-accent-foreground"
+                  : "text-muted-foreground hover:text-foreground"
               }`}
             >
               <tab.icon className="h-4 w-4" />
@@ -429,7 +429,7 @@ const TechnicianDashboard = () => {
               {activeTab === tab.id && (
                 <motion.div
                   layoutId="tech-tab-bg"
-                  className="absolute inset-0 bg-sidebar-accent/40 -z-0"
+                  className="absolute inset-0 bg-primary/5 -z-0"
                   transition={{ type: "spring", stiffness: 380, damping: 30 }}
                 />
               )}
