@@ -402,7 +402,7 @@ const SurveyForm = ({ assignments, prefillSrId, prefillArea, onComplete }: Props
   if (savedOffline) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center">
-        <WifiOff className="h-16 w-16 text-amber-500 mb-4" />
+        <WifiOff className="h-16 w-16 text-warning mb-4" />
         <h2 className="text-lg font-bold text-foreground">Αποθηκεύτηκε Τοπικά!</h2>
         <p className="text-sm text-muted-foreground mt-1">
           Θα συγχρονιστεί αυτόματα όταν επανέλθει η σύνδεση.
@@ -414,7 +414,7 @@ const SurveyForm = ({ assignments, prefillSrId, prefillArea, onComplete }: Props
   if (submitted) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center">
-        <CheckCircle className="h-16 w-16 text-green-500 mb-4" />
+        <CheckCircle className="h-16 w-16 text-success mb-4" />
         <h2 className="text-lg font-bold text-foreground">Επιτυχής Υποβολή!</h2>
         <p className="text-sm text-muted-foreground mt-1">Η αυτοψία καταχωρήθηκε.</p>
       </div>
