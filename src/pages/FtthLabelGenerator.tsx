@@ -371,22 +371,19 @@ export default function FtthLabelGenerator() {
                 <table className="border-collapse text-xs">
                   <thead>
                     <tr>
-                      <th className="border border-border bg-muted/50 w-10 h-8"></th>
+                      <th className="border border-border bg-muted/50 w-10 h-8 text-[10px] font-mono">BEP</th>
                       {Array.from({ length: 12 }, (_, i) => (
                         <th
                           key={i}
                           className="border border-border bg-muted/50 w-14 h-8 font-mono text-[10px]"
                         >
-                          {i + 1}
-                          {i === 0 && (
-                            <div className="text-[8px] opacity-60">CAB</div>
-                          )}
+                          {String(i + 1).padStart(2, "0")}
                         </th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
-                    {["A", "B", "C", "D"].map((row) => (
+                    {parsed.bepRows.map((row) => (
                       <tr key={row}>
                         <td className="border border-border bg-muted/50 text-center font-bold font-mono">
                           {row}
@@ -396,12 +393,12 @@ export default function FtthLabelGenerator() {
                           const cell = parsed.bepCells.find(
                             (c) => c.row === row && c.col === col,
                           );
-                          const isCAB = col === 1;
+                          const isLim = cell?.kind === "lim";
                           return (
                             <td
                               key={col}
                               className={`border border-border p-1 text-center align-middle ${
-                                isCAB ? "bg-amber-500/5" : ""
+                                isLim ? "bg-amber-500/5" : ""
                               }`}
                             >
                               {cell?.text ? (
