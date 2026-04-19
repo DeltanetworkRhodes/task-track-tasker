@@ -130,6 +130,31 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
     enabled: isDemo || (!!user && assignments.length > 0),
   });
 
+  // Fetch phase status for ALL assignments (only for construction-phase cards)
+  const assignmentIds = useMemo(
+    () => (assignments || []).map((a: any) => a.id),
+    [assignments]
+  );
+
+  const { data: phaseStatuses } = useQuery({
+    queryKey: ["phase-statuses", assignmentIds],
+    queryFn: async () => {
+      if (!assignmentIds.length) return [];
+      const { data } = await supabase
+        .from("constructions")
+        .select("assignment_id, phase1_status, phase2_status, phase3_status")
+        .in("assignment_id", assignmentIds);
+      return (data || []) as any[];
+    },
+    enabled: !isDemo && assignmentIds.length > 0,
+  });
+
+  const phaseStatusMap = useMemo(() => {
+    const map = new Map<string, any>();
+    (phaseStatuses || []).forEach((p: any) => map.set(p.assignment_id, p));
+    return map;
+  }, [phaseStatuses]);
+
   // Fetch GIS data for selected assignment
   const { data: existingGisData } = useQuery({
     queryKey: ["assignment-gis", selectedAssignment?.id, isDemo],
