@@ -762,12 +762,18 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
     );
   };
 
-  // Stripe colors per status — gradients for richness
-  const stripeColor: Record<string, string> = {
-    construction: "bg-gradient-to-r from-success via-accent to-primary",
-    inspection: "bg-gradient-to-r from-primary to-accent",
-    pre_committed: "bg-gradient-to-r from-accent to-success",
-    pending: "bg-gradient-to-r from-warning/70 to-warning",
+  // Status accent (left vertical bar) — 2026 minimal
+  const accentColor: Record<string, string> = {
+    construction: "bg-success",
+    inspection: "bg-primary",
+    pre_committed: "bg-accent",
+    pending: "bg-warning",
+  };
+  const accentGlow: Record<string, string> = {
+    construction: "shadow-[0_0_12px_hsl(var(--success)/0.5)]",
+    inspection: "shadow-[0_0_12px_hsl(var(--primary)/0.5)]",
+    pre_committed: "shadow-[0_0_12px_hsl(var(--accent)/0.5)]",
+    pending: "shadow-[0_0_12px_hsl(var(--warning)/0.4)]",
   };
   // Phase button colors
   const PHASE_BTN: Record<number, string> = {
