@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/contexts/OrganizationContext";
@@ -211,23 +212,43 @@ const Index = () => {
     <AppLayout>
       <div className="space-y-5 sm:space-y-6 w-full">
         {/* Hero Banner */}
-        <div className="relative rounded-2xl overflow-hidden shadow-xl bg-sidebar">
-          {/* Gradient background instead of image for better mobile performance */}
+        <motion.div
+          initial={{ opacity: 0, y: -16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+          className="relative rounded-2xl overflow-hidden shadow-xl bg-sidebar"
+        >
+          {/* Animated gradient background */}
           <div className="absolute inset-0 bg-gradient-to-br from-sidebar via-sidebar-accent to-sidebar opacity-90" />
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,hsl(330_100%_44%/0.15),transparent_60%)]" />
-          <div className="absolute bottom-0 right-0 w-64 h-64 bg-[radial-gradient(circle,hsl(152_60%_42%/0.08),transparent_70%)]" />
+          <motion.div
+            className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,hsl(330_100%_44%/0.18),transparent_60%)]"
+            animate={{ opacity: [0.6, 1, 0.6] }}
+            transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+          />
+          <motion.div
+            className="absolute bottom-0 right-0 w-64 h-64 bg-[radial-gradient(circle,hsl(152_60%_42%/0.1),transparent_70%)]"
+            animate={{ scale: [1, 1.15, 1], opacity: [0.6, 1, 0.6] }}
+            transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
+          />
 
           <div className="relative z-10 px-5 py-6 sm:px-8 sm:py-8">
             {/* Top row: logo + sync */}
             <div className="flex items-start justify-between gap-4">
               <div className="flex items-center gap-4 sm:gap-5">
-                <img
+                <motion.img
                   src={deltaLogoIcon}
                   alt="DeltaNetwork"
                   className="h-10 sm:h-12 w-auto object-contain drop-shadow-lg"
+                  initial={{ scale: 0.8, rotate: -8, opacity: 0 }}
+                  animate={{ scale: 1, rotate: 0, opacity: 1 }}
+                  transition={{ delay: 0.1, type: "spring", stiffness: 220, damping: 18 }}
                 />
                 <div className="h-8 sm:h-10 w-px bg-white/15" />
-                <div>
+                <motion.div
+                  initial={{ opacity: 0, x: -12 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.2, duration: 0.5 }}
+                >
                   <div className="flex items-center gap-2 mb-0.5">
                     <div className="h-0.5 w-5 rounded-full cosmote-gradient" />
                     <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-[0.2em] text-white/50">Fiber to the X</span>
@@ -238,32 +259,40 @@ const Index = () => {
                   <p className="text-[10px] sm:text-xs text-white/45 mt-0.5">
                     Διαχείριση δικτύου οπτικών ινών — Ρόδος & Κως
                   </p>
-                </div>
+                </motion.div>
               </div>
-            
+
             </div>
 
             {/* Quick stats row */}
-            <div className="mt-5 grid grid-cols-3 gap-3 sm:flex sm:items-center sm:gap-6 lg:gap-8">
-              <div className="text-center sm:text-left">
-                <p className="text-2xl sm:text-3xl font-extrabold text-white">{assignments.length}</p>
-                <p className="text-[9px] sm:text-[10px] uppercase tracking-wider text-white/40 mt-0.5">Αναθέσεις</p>
-              </div>
-              <div className="hidden sm:block h-8 w-px bg-white/10" />
-              <div className="text-center sm:text-left">
-                <p className="text-2xl sm:text-3xl font-extrabold text-white">{constructions.length}</p>
-                <p className="text-[9px] sm:text-[10px] uppercase tracking-wider text-white/40 mt-0.5">Κατασκευές</p>
-              </div>
-              <div className="hidden sm:block h-8 w-px bg-white/10" />
-              <div className="text-center sm:text-left">
-                <p className="text-2xl sm:text-3xl font-extrabold text-white">{totalProfit.toLocaleString('el-GR')}€</p>
-                <p className="text-[9px] sm:text-[10px] uppercase tracking-wider text-white/40 mt-0.5">Κέρδος</p>
-              </div>
-            </div>
+            <motion.div
+              className="mt-5 grid grid-cols-3 gap-3 sm:flex sm:items-center sm:gap-6 lg:gap-8"
+              initial="hidden"
+              animate="visible"
+              variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.1, delayChildren: 0.3 } } }}
+            >
+              {[
+                { value: assignments.length, label: "Αναθέσεις" },
+                { value: constructions.length, label: "Κατασκευές" },
+                { value: `${totalProfit.toLocaleString('el-GR')}€`, label: "Κέρδος" },
+              ].map((s, i) => (
+                <motion.div
+                  key={s.label}
+                  className="text-center sm:text-left"
+                  variants={{
+                    hidden: { opacity: 0, y: 12 },
+                    visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 280, damping: 22 } },
+                  }}
+                >
+                  <p className="text-2xl sm:text-3xl font-extrabold text-white tabular-nums">{s.value}</p>
+                  <p className="text-[9px] sm:text-[10px] uppercase tracking-wider text-white/40 mt-0.5">{s.label}</p>
+                </motion.div>
+              ))}
+            </motion.div>
 
-            
+
           </div>
-        </div>
+        </motion.div>
 
         {/* Setup Wizard */}
         {!wizardDismissed && !wizardCompleted && (
@@ -283,15 +312,33 @@ const Index = () => {
 
           <TabsContent value="overview" className="space-y-5">
         {/* Stat Cards - responsive grid */}
-        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-7">
-          <StatCard title="Ενεργές Αναθέσεις" value={activeAssignments} subtitle={`${completedAssignments} ολοκληρωμένες`} icon={ClipboardCheck} trend="up" trendValue={`${assignments.length} σύνολο`} />
-          <StatCard title="Προδεσμεύσεις" value={assignments.filter(a => a.status === 'pre_committed').length} subtitle="σε αναμονή GIS" icon={Timer} />
-          <StatCard title="Κατασκευές" value={activeConstructions} subtitle="σε εξέλιξη" icon={Wrench} accent />
-          <StatCard title="Έσοδα" value={`${totalRevenue.toLocaleString('el-GR')}€`} subtitle="κατασκευών" icon={Euro} trend="up" trendValue={`${totalProfit.toLocaleString('el-GR')}€ κέρδος`} />
-          <StatCard title="Καθαρό Κέρδος" value={`${totalProfit.toLocaleString('el-GR')}€`} subtitle={`${totalRevenue > 0 ? Math.round((totalProfit / totalRevenue) * 100) : 0}% margin`} icon={TrendingUp} trend={totalProfit > 0 ? 'up' : 'down'} trendValue={`${constructions.length} κατ.`} accent />
-          <StatCard title="Εκκρεμείς Πληρωμές" value={`${pendingPaymentTotal.toLocaleString('el-GR')}€`} subtitle={`${pendingPayments.length} SR`} icon={Wallet} accent />
-          <StatCard title="Εκκρεμείς Πληρωμές" value={`${pendingPaymentTotal.toLocaleString('el-GR')}€`} subtitle={`${pendingPayments.length} SR`} icon={Wallet} accent />
-        </div>
+        <motion.div
+          className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-7"
+          initial="hidden"
+          animate="visible"
+          variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.06 } } }}
+        >
+          {[
+            <StatCard key="1" title="Ενεργές Αναθέσεις" value={activeAssignments} subtitle={`${completedAssignments} ολοκληρωμένες`} icon={ClipboardCheck} trend="up" trendValue={`${assignments.length} σύνολο`} />,
+            <StatCard key="2" title="Προδεσμεύσεις" value={assignments.filter(a => a.status === 'pre_committed').length} subtitle="σε αναμονή GIS" icon={Timer} />,
+            <StatCard key="3" title="Κατασκευές" value={activeConstructions} subtitle="σε εξέλιξη" icon={Wrench} accent />,
+            <StatCard key="4" title="Έσοδα" value={`${totalRevenue.toLocaleString('el-GR')}€`} subtitle="κατασκευών" icon={Euro} trend="up" trendValue={`${totalProfit.toLocaleString('el-GR')}€ κέρδος`} />,
+            <StatCard key="5" title="Καθαρό Κέρδος" value={`${totalProfit.toLocaleString('el-GR')}€`} subtitle={`${totalRevenue > 0 ? Math.round((totalProfit / totalRevenue) * 100) : 0}% margin`} icon={TrendingUp} trend={totalProfit > 0 ? 'up' : 'down'} trendValue={`${constructions.length} κατ.`} accent />,
+            <StatCard key="6" title="Εκκρεμείς Πληρωμές" value={`${pendingPaymentTotal.toLocaleString('el-GR')}€`} subtitle={`${pendingPayments.length} SR`} icon={Wallet} accent />,
+            <StatCard key="7" title="Εκκρεμείς Πληρωμές" value={`${pendingPaymentTotal.toLocaleString('el-GR')}€`} subtitle={`${pendingPayments.length} SR`} icon={Wallet} accent />,
+          ].map((card, i) => (
+            <motion.div
+              key={i}
+              variants={{
+                hidden: { opacity: 0, y: 16, filter: "blur(4px)" },
+                visible: { opacity: 1, y: 0, filter: "blur(0px)", transition: { type: "spring", stiffness: 260, damping: 24 } },
+              }}
+              whileHover={{ y: -3, transition: { type: "spring", stiffness: 400, damping: 25 } }}
+            >
+              {card}
+            </motion.div>
+          ))}
+        </motion.div>
 
         {/* Charts Row - stack on mobile */}
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">

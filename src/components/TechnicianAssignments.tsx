@@ -1,4 +1,5 @@
 import { useState, useCallback, useMemo } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 
 import { MapPin, Phone, Calendar, MessageSquare, Loader2, Eye, FileEdit, CheckCircle, Clock, HardHat, XCircle, Ban, Upload, FileSpreadsheet, FileText, CalendarClock, Users, Navigation } from "lucide-react";
 import GisUploadCard from "@/components/GisUploadCard";
@@ -793,20 +794,40 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
 
   return (
     <>
-      <div className="space-y-3">
-        {assignments.map((a) => {
+      <motion.div
+        className="space-y-3"
+        initial="hidden"
+        animate="visible"
+        variants={{
+          hidden: {},
+          visible: { transition: { staggerChildren: 0.05, delayChildren: 0.05 } },
+        }}
+      >
+        {assignments.map((a, idx) => {
           const ps = phaseStatusMap?.get(a.id);
           const apptToday = a.appointment_at && isToday(a.appointment_at);
           const apptDate = a.appointment_at ? new Date(a.appointment_at) : null;
           const apptUpcoming = apptDate && apptDate.getTime() > Date.now() - 6 * 60 * 60 * 1000;
           const hasGis = gisAssignmentIds?.includes(a.id);
           return (
-            <div
+            <motion.div
               key={a.id}
-              className={`group relative bg-card rounded-2xl overflow-hidden border transition-all duration-300 active:scale-[0.985] cursor-pointer ${
+              layout
+              variants={{
+                hidden: { opacity: 0, y: 24, filter: "blur(6px)" },
+                visible: {
+                  opacity: 1,
+                  y: 0,
+                  filter: "blur(0px)",
+                  transition: { type: "spring", stiffness: 260, damping: 28 },
+                },
+              }}
+              whileHover={{ y: -2, transition: { type: "spring", stiffness: 400, damping: 25 } }}
+              whileTap={{ scale: 0.985 }}
+              className={`group relative bg-card rounded-2xl overflow-hidden border transition-colors duration-300 cursor-pointer ${
                 apptToday
                   ? "border-accent/40 shadow-[0_8px_24px_-12px_hsl(var(--accent)/0.5)]"
-                  : "border-border/50 hover:border-border"
+                  : "border-border/50 hover:border-border hover:shadow-[0_12px_32px_-16px_hsl(var(--primary)/0.35)]"
               }`}
               onClick={() => {
                 setSelectedAssignment(a);
@@ -817,11 +838,18 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
               onMouseEnter={() => handleCardHover(a)}
               onTouchStart={() => handleCardHover(a)}
             >
-              {/* Left vertical accent bar */}
-              <div
+              {/* Cinematic gradient sweep on hover */}
+              <div className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-gradient-to-br from-primary/[0.04] via-transparent to-accent/[0.06]" />
+
+              {/* Left vertical accent bar with reveal animation */}
+              <motion.div
                 className={`absolute left-0 top-0 bottom-0 w-1 ${accentColor[a.status] || "bg-muted"} ${
                   apptToday ? accentGlow[a.status] || "" : ""
                 }`}
+                initial={{ scaleY: 0 }}
+                animate={{ scaleY: 1 }}
+                transition={{ duration: 0.5, delay: idx * 0.04, ease: [0.22, 1, 0.36, 1] }}
+                style={{ originY: 0 }}
               />
 
               <div className="pl-4 pr-3 py-3.5 space-y-2.5">
@@ -1006,10 +1034,10 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
                   </div>
                 )}
               </div>
-            </div>
+            </motion.div>
           );
         })}
-      </div>
+      </motion.div>
 
       {/* SR Detail Sheet */}
       <Sheet open={!!selectedAssignment} onOpenChange={(open) => { if (!open) { setSelectedAssignment(null); setShowSurveyForm(false); setShowConstructionForm(false); setShowCrewPanel(false); } }}>
