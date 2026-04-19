@@ -803,10 +803,10 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
           return (
             <div
               key={a.id}
-              className={`group relative bg-card rounded-2xl overflow-hidden border transition-all duration-200 active:scale-[0.98] cursor-pointer shadow-sm hover:shadow-md ${
+              className={`group relative bg-card rounded-2xl overflow-hidden border transition-all duration-300 active:scale-[0.985] cursor-pointer ${
                 apptToday
-                  ? "border-accent/60 shadow-[0_0_0_1px_hsl(var(--accent)/0.3),0_8px_24px_-8px_hsl(var(--accent)/0.4)]"
-                  : "border-border/60 hover:border-primary/30"
+                  ? "border-accent/40 shadow-[0_8px_24px_-12px_hsl(var(--accent)/0.5)]"
+                  : "border-border/50 hover:border-border"
               }`}
               onClick={() => {
                 setSelectedAssignment(a);
@@ -817,130 +817,103 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
               onMouseEnter={() => handleCardHover(a)}
               onTouchStart={() => handleCardHover(a)}
             >
-              {/* Top gradient stripe */}
-              <div className={`h-1.5 ${stripeColor[a.status] || "bg-muted"}`} />
+              {/* Left vertical accent bar */}
+              <div
+                className={`absolute left-0 top-0 bottom-0 w-1 ${accentColor[a.status] || "bg-muted"} ${
+                  apptToday ? accentGlow[a.status] || "" : ""
+                }`}
+              />
 
-              <div className="p-4 space-y-3">
-                {/* Row 1: SR + Status */}
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-sm font-bold tracking-tight bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                        {a.sr_id}
+              <div className="pl-4 pr-3 py-3.5 space-y-2.5">
+                {/* Header: SR mono + status dot + time */}
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                    {/* Status dot */}
+                    <span
+                      className={`h-1.5 w-1.5 rounded-full ${accentColor[a.status] || "bg-muted"} ${
+                        a.status === "construction" || apptToday ? "animate-pulse" : ""
+                      }`}
+                    />
+                    {/* SR code in mono pill */}
+                    <span className="font-mono text-[13px] font-bold tracking-tight text-foreground truncate">
+                      {a.sr_id}
+                    </span>
+                    {hasGis && (
+                      <span className="text-[9px] font-bold bg-primary/10 text-primary border border-primary/20 px-1.5 py-0.5 rounded-md uppercase tracking-wider shrink-0">
+                        GIS
                       </span>
-                      {apptUpcoming && apptDate && (
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm ${
-                          apptToday
-                            ? "bg-gradient-to-r from-accent to-success text-accent-foreground ring-1 ring-accent/40"
-                            : "bg-success text-success-foreground"
-                        }`}>
-                          {apptToday ? "ΣΗΜΕΡΑ " : ""}
-                          {apptDate.toLocaleDateString("el-GR", {
-                            day: "2-digit",
-                            month: "2-digit",
-                          })}
-                          {" "}
-                          {apptDate.toLocaleTimeString("el-GR", {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                            hour12: false,
-                          })}
-                        </span>
-                      )}
-                      {hasGis && (
-                        <span className="text-[10px] font-bold bg-primary/15 text-primary border border-primary/30 px-2 py-0.5 rounded-full">
-                          GIS ✓
-                        </span>
-                      )}
+                    )}
+                  </div>
+                  {/* Time block — prominent, mono */}
+                  {apptUpcoming && apptDate ? (
+                    <div className={`flex flex-col items-end leading-tight shrink-0 ${apptToday ? "text-accent" : "text-foreground"}`}>
+                      <span className="font-mono text-sm font-bold tabular-nums">
+                        {apptDate.toLocaleTimeString("el-GR", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                          hour12: false,
+                        })}
+                      </span>
+                      <span className={`text-[9px] font-semibold uppercase tracking-wider ${apptToday ? "text-accent" : "text-muted-foreground"}`}>
+                        {apptToday
+                          ? "Σήμερα"
+                          : apptDate.toLocaleDateString("el-GR", {
+                              day: "2-digit",
+                              month: "short",
+                            })}
+                      </span>
                     </div>
-                    {a.area && (
-                      <p className="text-[11px] text-muted-foreground mt-1 uppercase tracking-wider font-medium">
-                        {a.area}
-                      </p>
-                    )}
-                  </div>
-                  <div onClick={(e) => e.stopPropagation()}>
-                    {updating === a.id ? (
-                      <Badge variant="outline" className="gap-1">
-                        <Loader2 className="h-3 w-3 animate-spin" />
-                      </Badge>
-                    ) : (
-                      <Badge
-                        variant="outline"
-                        className={`text-[10px] ${statusColors[a.status] || ""}`}
-                      >
-                        {statusLabels[a.status] || a.status}
-                      </Badge>
-                    )}
-                  </div>
+                  ) : (
+                    <span className="text-[10px] font-medium text-muted-foreground/70 uppercase tracking-wider shrink-0">
+                      {statusLabels[a.status] || a.status}
+                    </span>
+                  )}
                 </div>
 
-                {/* Row 2: Address + Nav */}
-                {a.address && (
-                  <div className="flex items-center gap-2">
-                    <MapPin className="h-3.5 w-3.5 text-accent shrink-0" />
-                    <span className="text-xs text-foreground/80 flex-1 truncate font-medium">
-                      {a.address}
-                    </span>
-                    <a
-                      href={`https://maps.google.com/?q=${encodeURIComponent(a.address)}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={(e) => e.stopPropagation()}
-                      className="inline-flex items-center gap-1 text-[10px] font-bold text-primary-foreground bg-gradient-to-r from-primary to-accent px-2.5 py-1 rounded-full shrink-0 shadow-sm hover:shadow-md hover:scale-105 transition-all"
-                    >
-                      <Navigation className="h-3 w-3" />
-                      Πλοήγηση
-                    </a>
+                {/* Customer name — primary text */}
+                {a.customer_name && (
+                  <div className="text-sm font-semibold text-foreground truncate">
+                    {a.customer_name}
                   </div>
                 )}
 
-                {/* Row 3: Customer + Phone */}
-                {(a.customer_name || a.phone) && (
-                  <div className="flex items-center justify-between gap-2 pt-1 border-t border-border/40">
-                    {a.customer_name && (
-                      <span className="text-xs font-semibold text-foreground truncate">
-                        {a.customer_name}
+                {/* Address row — subtle */}
+                {a.address && (
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <MapPin className="h-3 w-3 shrink-0" />
+                    <span className="truncate flex-1">{a.address}</span>
+                    {a.area && (
+                      <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground/60 shrink-0">
+                        · {a.area}
                       </span>
                     )}
-                    {a.phone && (
-                      <a
-                        href={`tel:${a.phone}`}
-                        onClick={(e) => e.stopPropagation()}
-                        className="inline-flex items-center gap-1 text-[11px] font-bold text-success bg-success/10 border border-success/30 px-2.5 py-1 rounded-full shrink-0 hover:bg-success/20 transition-colors"
-                      >
-                        <Phone className="h-3 w-3" />
-                        Κλήση
-                      </a>
-                    )}
                   </div>
                 )}
 
-                {/* Phase progress dots */}
+                {/* Phase progress dots — minimal pills */}
                 {a.status === "construction" && ps && (
-                  <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+                  <div className="flex gap-1.5" onClick={(e) => e.stopPropagation()}>
                     {[
-                      { n: 1, icon: "🚜", label: "Φ1" },
-                      { n: 2, icon: "🔧", label: "Φ2" },
-                      { n: 3, icon: "🔬", label: "Φ3" },
-                    ].map(({ n, icon, label }) => {
+                      { n: 1, label: "Φ1" },
+                      { n: 2, label: "Φ2" },
+                      { n: 3, label: "Φ3" },
+                    ].map(({ n, label }) => {
                       const s = ps[`phase${n}_status`] || "pending";
                       return (
                         <div
                           key={n}
-                          className={`flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1 rounded-full border ${
+                          className={`flex items-center gap-1 text-[9px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider transition-colors ${
                             s === "completed"
-                              ? "bg-success/15 text-success border-success/30"
+                              ? "bg-success/15 text-success"
                               : s === "in_progress"
-                              ? "bg-warning/15 text-warning border-warning/30"
-                              : "bg-muted/50 text-muted-foreground/50 border-border/50"
+                              ? "bg-warning/15 text-warning"
+                              : "bg-muted/60 text-muted-foreground/50"
                           }`}
                         >
-                          <span>{icon}</span>
                           <span>{label}</span>
                           {s === "completed" && <span>✓</span>}
                           {s === "in_progress" && (
-                            <span className="h-1.5 w-1.5 rounded-full bg-warning animate-pulse inline-block" />
+                            <span className="h-1 w-1 rounded-full bg-warning animate-pulse inline-block" />
                           )}
                         </div>
                       );
@@ -948,58 +921,89 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
                   </div>
                 )}
 
-                {/* GIS missing warning */}
+                {/* GIS missing — subtle warning chip */}
                 {a.status === "pre_committed" && !hasGis && (
-                  <div className="flex items-center gap-2 text-xs text-warning bg-warning/10 border border-warning/30 rounded-xl px-3 py-2">
-                    <FileSpreadsheet className="h-3.5 w-3.5 shrink-0" />
-                    Αναμονή GIS αρχείου
+                  <div className="flex items-center gap-1.5 text-[11px] text-warning bg-warning/8 border border-warning/20 rounded-lg px-2.5 py-1.5">
+                    <FileSpreadsheet className="h-3 w-3 shrink-0" />
+                    Αναμονή GIS
                   </div>
                 )}
 
-                {/* Action button */}
-                {a.status === "construction" && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedAssignment(a);
-                      const isResponsible = a.technician_id === user?.id;
-                      if (isResponsible) {
-                        setShowConstructionForm(true);
-                      } else {
-                        setShowCrewPanel(true);
-                      }
-                    }}
-                    className={`w-full py-2.5 text-xs font-bold rounded-xl flex items-center justify-center gap-2 transition-colors ${
-                      myPhase && PHASE_BTN[myPhase]
-                        ? PHASE_BTN[myPhase]
-                        : "text-primary-foreground bg-accent"
-                    }`}
-                  >
-                    <HardHat className="h-3.5 w-3.5" />
-                    {myPhase
-                      ? `Φάση ${myPhase} — ${
-                          myPhase === 1
-                            ? "Χωματουργικά"
-                            : myPhase === 2
-                            ? "Οδεύσεις"
-                            : "Κόλληση"
-                        }`
-                      : "Φόρμα Κατασκευής"}
-                  </button>
-                )}
+                {/* Bottom action bar — divided */}
+                <div className="flex items-center gap-1 pt-2 border-t border-border/40 -mx-1">
+                  {a.address && (
+                    <a
+                      href={`https://maps.google.com/?q=${encodeURIComponent(a.address)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className="flex-1 inline-flex items-center justify-center gap-1.5 text-[11px] font-semibold text-foreground/70 hover:text-primary hover:bg-primary/5 py-2 rounded-lg transition-colors"
+                    >
+                      <Navigation className="h-3.5 w-3.5" />
+                      Πλοήγηση
+                    </a>
+                  )}
+                  {a.phone && (
+                    <>
+                      <div className="h-5 w-px bg-border/60" />
+                      <a
+                        href={`tel:${a.phone}`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="flex-1 inline-flex items-center justify-center gap-1.5 text-[11px] font-semibold text-foreground/70 hover:text-success hover:bg-success/5 py-2 rounded-lg transition-colors"
+                      >
+                        <Phone className="h-3.5 w-3.5" />
+                        Κλήση
+                      </a>
+                    </>
+                  )}
+                  {/* Status-specific primary action */}
+                  {a.status === "construction" && (
+                    <>
+                      <div className="h-5 w-px bg-border/60" />
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedAssignment(a);
+                          const isResponsible = a.technician_id === user?.id;
+                          if (isResponsible) {
+                            setShowConstructionForm(true);
+                          } else {
+                            setShowCrewPanel(true);
+                          }
+                        }}
+                        className={`flex-1 inline-flex items-center justify-center gap-1.5 text-[11px] font-bold py-2 rounded-lg transition-colors ${
+                          myPhase && PHASE_BTN[myPhase]
+                            ? PHASE_BTN[myPhase]
+                            : "bg-success/15 text-success hover:bg-success/25"
+                        }`}
+                      >
+                        <HardHat className="h-3.5 w-3.5" />
+                        {myPhase ? `Φ${myPhase}` : "Κατασκευή"}
+                      </button>
+                    </>
+                  )}
+                  {a.status === "inspection" && (
+                    <>
+                      <div className="h-5 w-px bg-border/60" />
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedAssignment(a);
+                          setShowSurveyForm(true);
+                        }}
+                        className="flex-1 inline-flex items-center justify-center gap-1.5 text-[11px] font-bold bg-primary/15 text-primary hover:bg-primary/25 py-2 rounded-lg transition-colors"
+                      >
+                        <Eye className="h-3.5 w-3.5" />
+                        Αυτοψία
+                      </button>
+                    </>
+                  )}
+                </div>
 
-                {a.status === "inspection" && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedAssignment(a);
-                      setShowSurveyForm(true);
-                    }}
-                    className="w-full py-2.5 text-xs font-bold bg-warning hover:bg-warning/90 text-warning-foreground rounded-xl flex items-center justify-center gap-2 transition-colors"
-                  >
-                    <Eye className="h-3.5 w-3.5" />
-                    Αυτοψία
-                  </button>
+                {updating === a.id && (
+                  <div className="flex items-center justify-center text-muted-foreground">
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  </div>
                 )}
               </div>
             </div>
