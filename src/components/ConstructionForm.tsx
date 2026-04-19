@@ -3925,8 +3925,8 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
         );
       })()}
 
-      {/* 🗺️ Οριζοντογραφία AS-BUILD (collapsible) */}
-      {!isCrewMode && (
+      {/* 🗺️ Οριζοντογραφία AS-BUILD (collapsible) — admin + Φάση 2/3 */}
+      {(!isCrewMode || phase === 2 || phase === 3) && (
         <Card className="p-5 space-y-2.5">
           <button
             type="button"
