@@ -422,36 +422,45 @@ const SurveyForm = ({ assignments, prefillSrId, prefillArea, onComplete }: Props
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6 pb-8">
-      <h2 className="text-lg font-bold text-foreground">Νέα Αυτοψία</h2>
+    <form onSubmit={handleSubmit} className="space-y-5 pb-8">
+      <div className="flex items-center gap-2.5 px-1">
+        <span className="h-7 w-1 rounded-full bg-gradient-to-b from-primary to-accent" />
+        <h2 className="text-lg font-semibold text-foreground tracking-tight">Νέα Αυτοψία</h2>
+      </div>
 
       {/* ΠΕΡΙΟΧΗ */}
-      <Card className="p-4 space-y-3">
-        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          Περιοχή <span className="text-destructive">*</span>
-        </Label>
-        <RadioGroup value={area} onValueChange={setArea}>
-          <div className="flex items-center gap-3">
+      <Card className="p-5 space-y-3.5">
+        <div className="flex items-center gap-2">
+          <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+          <Label className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+            Περιοχή <span className="text-destructive">*</span>
+          </Label>
+        </div>
+        <RadioGroup value={area} onValueChange={setArea} className="gap-2">
+          <label htmlFor="rodos" className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-muted/40 hover:bg-muted/70 transition-colors cursor-pointer">
             <RadioGroupItem value="ΡΟΔΟΣ" id="rodos" />
-            <Label htmlFor="rodos" className="text-sm cursor-pointer">ΡΟΔΟΣ</Label>
-          </div>
-          <div className="flex items-center gap-3">
+            <span className="text-sm font-medium">ΡΟΔΟΣ</span>
+          </label>
+          <label htmlFor="kos" className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-muted/40 hover:bg-muted/70 transition-colors cursor-pointer">
             <RadioGroupItem value="ΚΩΣ" id="kos" />
-            <Label htmlFor="kos" className="text-sm cursor-pointer">ΚΩΣ</Label>
-          </div>
+            <span className="text-sm font-medium">ΚΩΣ</span>
+          </label>
         </RadioGroup>
       </Card>
 
       {/* SR ID */}
-      <Card className="p-4 space-y-3">
-        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          SR ID <span className="text-destructive">*</span>
-        </Label>
+      <Card className="p-5 space-y-3.5">
+        <div className="flex items-center gap-2">
+          <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+          <Label className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+            SR ID <span className="text-destructive">*</span>
+          </Label>
+        </div>
         <Input
           value={srId}
           onChange={(e) => setSrId(e.target.value)}
           placeholder="π.χ. 2-3399..."
-          className="text-sm"
+          className="text-sm h-11 rounded-xl bg-muted/30 border-border/60 focus-visible:bg-card transition-colors"
         />
       </Card>
 
@@ -467,7 +476,6 @@ const SurveyForm = ({ assignments, prefillSrId, prefillArea, onComplete }: Props
         capture
         isCompressing={compressing["building"]}
         compressionStats={compressionStats["building"]}
-        
       />
 
       {/* SCREENSHOTS */}
@@ -480,14 +488,16 @@ const SurveyForm = ({ assignments, prefillSrId, prefillArea, onComplete }: Props
         accept="image/*"
         isCompressing={compressing["screenshots"]}
         compressionStats={compressionStats["screenshots"]}
-        
       />
 
       {/* ΔΕΛΤΙΟ ΑΥΤΟΨΙΑΣ PDF */}
-      <Card className="p-4 space-y-3">
-        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          Δελτίο Αυτοψίας (PDF)
-        </Label>
+      <Card className="p-5 space-y-3.5">
+        <div className="flex items-center gap-2">
+          <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+          <Label className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+            Δελτίο Αυτοψίας (PDF)
+          </Label>
+        </div>
         <input
           ref={pdfRef}
           type="file"
@@ -504,38 +514,40 @@ const SurveyForm = ({ assignments, prefillSrId, prefillArea, onComplete }: Props
           }}
         />
         {inspectionPdf ? (
-          <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+          <div className="flex items-center gap-3 p-3 rounded-xl bg-primary/5 border border-primary/15">
             <FileText className="h-5 w-5 text-primary shrink-0" />
-            <span className="text-sm truncate flex-1">{inspectionPdf.name}</span>
+            <span className="text-sm truncate flex-1 font-medium">{inspectionPdf.name}</span>
             <Button
               type="button"
               variant="ghost"
               size="icon"
-              className="h-6 w-6"
+              className="h-7 w-7 hover:bg-destructive/10 hover:text-destructive"
               onClick={() => setInspectionPdf(null)}
             >
               <X className="h-4 w-4" />
             </Button>
           </div>
         ) : (
-          <Button
+          <button
             type="button"
-            variant="outline"
-            className="w-full gap-2"
             onClick={() => pdfRef.current?.click()}
+            className="w-full flex items-center justify-center gap-2 h-11 rounded-xl bg-primary/[0.08] text-primary text-sm font-medium hover:bg-primary/[0.12] transition-colors border border-primary/15"
           >
             <Upload className="h-4 w-4" />
             Ανέβασμα Δελτίου Αυτοψίας
-          </Button>
+          </button>
         )}
       </Card>
 
       {/* ΣΧΟΛΙΑ */}
-      <Card className="p-4 space-y-3">
-        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          Σχόλια
-        </Label>
-        <p className="text-xs text-muted-foreground italic">
+      <Card className="p-5 space-y-3.5">
+        <div className="flex items-center gap-2">
+          <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+          <Label className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+            Σχόλια
+          </Label>
+        </div>
+        <p className="text-[11px] text-muted-foreground italic leading-relaxed">
           "Αν δεν ανεβάσετε όλα τα αρχεία, πρέπει οπωσδήποτε να γράψετε τον λόγο στο πεδίο ΣΧΟΛΙΑ".
         </p>
         <Textarea
@@ -543,18 +555,18 @@ const SurveyForm = ({ assignments, prefillSrId, prefillArea, onComplete }: Props
           onChange={(e) => setComments(e.target.value)}
           placeholder="Σχόλια αυτοψίας..."
           rows={4}
-          className="text-sm"
+          className="text-sm rounded-xl bg-muted/30 border-border/60 focus-visible:bg-card transition-colors resize-none"
         />
       </Card>
 
       {/* Submit */}
-      <Button
+      <button
         type="submit"
         disabled={submitting}
-        className="w-full py-6 text-sm font-bold"
+        className="w-full h-12 rounded-xl bg-gradient-to-r from-primary to-accent text-primary-foreground text-sm font-semibold tracking-wide shadow-[0_4px_14px_-4px_hsl(var(--primary)/0.4)] hover:shadow-[0_6px_20px_-4px_hsl(var(--primary)/0.5)] transition-all disabled:opacity-60 disabled:cursor-not-allowed"
       >
         {submitting ? "Υποβολή..." : "Υποβολή Αυτοψίας"}
-      </Button>
+      </button>
     </form>
   );
 };
