@@ -827,7 +827,7 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
                         <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
                           apptToday
                             ? "bg-accent/15 text-accent"
-                            : "bg-warning/15 text-warning"
+                            : "text-primary-foreground bg-success"
                         }`}>
                           {apptToday ? "ΣΗΜΕΡΑ " : ""}
                           {apptDate.toLocaleDateString("el-GR", {
