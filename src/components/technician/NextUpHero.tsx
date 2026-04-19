@@ -223,7 +223,7 @@ const NextUpHero = ({ assignments, onOpen }: Props) => {
               target="_blank"
               rel="noopener noreferrer"
               onClick={() => hapticFeedback.light()}
-              className="flex items-center justify-center gap-1.5 h-9 rounded-lg border border-primary/20 bg-primary/5 text-primary text-[11px] font-medium hover:bg-primary/10 hover:border-primary/30 transition-all backdrop-blur-sm"
+              className="flex items-center justify-center gap-1.5 h-9 rounded-lg border border-primary/20 text-[11px] font-medium hover:border-primary/30 transition-all backdrop-blur-sm bg-destructive-foreground text-red-500"
             >
               <Navigation className="h-3.5 w-3.5" />
               Nav
@@ -235,7 +235,7 @@ const NextUpHero = ({ assignments, onOpen }: Props) => {
             <a
               href={`tel:${callUrl}`}
               onClick={() => hapticFeedback.light()}
-              className="flex items-center justify-center gap-1.5 h-9 rounded-lg border border-success/25 bg-success/5 text-success text-[11px] font-medium hover:bg-success/10 hover:border-success/40 transition-all backdrop-blur-sm"
+              className="flex items-center justify-center gap-1.5 h-9 rounded-lg border border-success/25 text-[11px] font-medium hover:border-success/40 transition-all backdrop-blur-sm text-secondary bg-success"
             >
               <Phone className="h-3.5 w-3.5" />
               Call
@@ -249,7 +249,7 @@ const NextUpHero = ({ assignments, onOpen }: Props) => {
               hapticFeedback.medium();
               onOpen(assignment);
             }}
-            className="flex items-center justify-center gap-1.5 h-9 rounded-lg bg-primary/90 text-primary-foreground text-[11px] font-semibold hover:bg-primary transition-all shadow-sm shadow-primary/20"
+            className="flex items-center justify-center gap-1.5 h-9 rounded-lg text-primary-foreground text-[11px] font-semibold transition-all shadow-sm shadow-primary/20 bg-accent"
           >
             Open
             <ArrowRight className="h-3.5 w-3.5" />
