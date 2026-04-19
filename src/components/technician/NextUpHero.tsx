@@ -215,44 +215,69 @@ const NextUpHero = ({ assignments, onOpen }: Props) => {
           </motion.div>
         </AnimatePresence>
 
-        {/* Actions — soft tinted ghost buttons */}
-        <div className="grid grid-cols-3 gap-1.5 pt-1">
+        {/* Actions — iOS app-icon style */}
+        <div className="grid grid-cols-3 gap-3 pt-2">
+          {/* Maps — Google Maps multi-color pin */}
           {navUrl ? (
             <a
               href={navUrl}
               target="_blank"
               rel="noopener noreferrer"
               onClick={() => hapticFeedback.light()}
-              className="flex items-center justify-center gap-1.5 h-9 rounded-lg border border-primary/20 text-[11px] font-medium hover:border-primary/30 transition-all backdrop-blur-sm bg-destructive-foreground text-red-500"
+              className="flex flex-col items-center gap-1.5 group"
             >
-              <Navigation className="h-3.5 w-3.5" />
-              Nav
+              <div className="h-14 w-14 rounded-[18px] bg-white flex items-center justify-center shadow-[0_2px_8px_rgba(0,0,0,0.08),0_1px_2px_rgba(0,0,0,0.06)] border border-black/5 group-active:scale-95 transition-transform">
+                <svg viewBox="0 0 24 24" className="h-7 w-7" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M19.5 8.5c0 4.5-7.5 12-7.5 12S4.5 13 4.5 8.5a7.5 7.5 0 1 1 15 0z" fill="#EA4335"/>
+                  <path d="M12 1a7.5 7.5 0 0 0-6.5 3.75L11 11l8-7A7.49 7.49 0 0 0 12 1z" fill="#FBBC04"/>
+                  <path d="M5.5 4.75A7.49 7.49 0 0 0 4.5 8.5c0 1.71 1.08 3.94 2.5 6.06L11 11 5.5 4.75z" fill="#34A853"/>
+                  <path d="M19 4l-8 7 3.5 4.21C16.91 12.33 19.5 9.95 19.5 8.5c0-1.79-.62-3.43-1.66-4.73L19 4z" fill="#4285F4"/>
+                  <circle cx="12" cy="8.5" r="2.5" fill="#fff"/>
+                </svg>
+              </div>
+              <span className="text-[10px] font-medium text-foreground/80">Maps</span>
             </a>
           ) : (
-            <div className="h-9" />
+            <div className="h-[76px]" />
           )}
+
+          {/* Phone — iOS green gradient with handset */}
           {callUrl ? (
             <a
               href={`tel:${callUrl}`}
               onClick={() => hapticFeedback.light()}
-              className="flex items-center justify-center gap-1.5 h-9 rounded-lg border border-success/25 text-[11px] font-medium hover:border-success/40 transition-all backdrop-blur-sm text-secondary bg-success"
+              className="flex flex-col items-center gap-1.5 group"
             >
-              <Phone className="h-3.5 w-3.5" />
-              Call
+              <div
+                className="h-14 w-14 rounded-[18px] flex items-center justify-center shadow-[0_2px_8px_rgba(52,199,89,0.25),0_1px_2px_rgba(0,0,0,0.06)] group-active:scale-95 transition-transform"
+                style={{ background: "linear-gradient(180deg, #4CD964 0%, #2FB94C 100%)" }}
+              >
+                <svg viewBox="0 0 24 24" className="h-7 w-7" fill="white" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M19.23 15.26l-2.54-.29a1.99 1.99 0 0 0-1.64.57l-1.84 1.84a15.045 15.045 0 0 1-6.59-6.59l1.85-1.85c.43-.43.64-1.03.57-1.64l-.29-2.52a2.001 2.001 0 0 0-1.99-1.77H5.03c-1.13 0-2.07.94-2 2.07.53 8.54 7.36 15.36 15.89 15.89 1.13.07 2.07-.87 2.07-2v-1.73c.01-1.01-.75-1.86-1.76-1.98z"/>
+                </svg>
+              </div>
+              <span className="text-[10px] font-medium text-foreground/80">Κλήση</span>
             </a>
           ) : (
-            <div className="h-9" />
+            <div className="h-[76px]" />
           )}
+
+          {/* Open — primary teal app icon */}
           <button
             onClick={(e) => {
               e.stopPropagation();
               hapticFeedback.medium();
               onOpen(assignment);
             }}
-            className="flex items-center justify-center gap-1.5 h-9 rounded-lg text-primary-foreground text-[11px] font-semibold transition-all shadow-sm shadow-primary/20 bg-accent"
+            className="flex flex-col items-center gap-1.5 group"
           >
-            Open
-            <ArrowRight className="h-3.5 w-3.5" />
+            <div
+              className="h-14 w-14 rounded-[18px] flex items-center justify-center shadow-[0_2px_8px_hsl(var(--primary)/0.3),0_1px_2px_rgba(0,0,0,0.06)] group-active:scale-95 transition-transform"
+              style={{ background: "linear-gradient(180deg, hsl(var(--primary)) 0%, hsl(var(--accent)) 100%)" }}
+            >
+              <ArrowRight className="h-7 w-7 text-primary-foreground" strokeWidth={2.5} />
+            </div>
+            <span className="text-[10px] font-medium text-foreground/80">Άνοιγμα</span>
           </button>
         </div>
 
