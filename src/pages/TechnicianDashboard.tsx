@@ -197,6 +197,11 @@ const TechnicianDashboard = () => {
       d.getFullYear() === t.getFullYear()
     );
   });
+  // Count all upcoming appointments (today + future) for stats
+  const upcomingApptsCount = (enrichedAssignments || []).filter((a) => {
+    if (!a.appointment_at) return false;
+    return new Date(a.appointment_at).getTime() > Date.now() - 6 * 60 * 60 * 1000;
+  }).length;
 
   return (
     <div className="min-h-screen bg-muted/30">
@@ -251,7 +256,7 @@ const TechnicianDashboard = () => {
           {[
             { label: "Ενεργά", value: activeCount, color: "text-primary" },
             { label: "Κατασκευή", value: constructionCount, color: "text-warning" },
-            { label: "Ραντεβού", value: todayAppts.length, color: "text-accent" },
+            { label: "Ραντεβού", value: upcomingApptsCount, color: "text-accent" },
           ].map((s) => (
             <div key={s.label} className="text-center py-2.5">
               <p className={`text-xl font-bold ${s.color} leading-tight`}>
