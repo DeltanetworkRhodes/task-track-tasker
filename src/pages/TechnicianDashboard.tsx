@@ -87,9 +87,46 @@ const TechnicianDashboard = () => {
     },
   });
 
+  // Fetch real appointments from `appointments` table (set via Calendar / Call popover)
+  // and merge them by sr_id so Dashboard widgets show the correct upcoming time.
+  const srIds = useMemo(
+    () => Array.from(new Set((assignments || []).map((a) => a.sr_id))).filter(Boolean),
+    [assignments]
+  );
+
+  const { data: apptMap } = useQuery({
+    queryKey: ["technician-appointments", user?.id, srIds.join(",")],
+    enabled: !!user && srIds.length > 0,
+    queryFn: async () => {
+      const nowIso = new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString();
+      const { data, error } = await supabase
+        .from("appointments")
+        .select("sr_id, appointment_at")
+        .in("sr_id", srIds)
+        .gte("appointment_at", nowIso)
+        .order("appointment_at", { ascending: true });
+      if (error) throw error;
+      // Keep earliest upcoming per sr_id
+      const map = new Map<string, string>();
+      for (const row of data || []) {
+        if (!map.has(row.sr_id)) map.set(row.sr_id, row.appointment_at);
+      }
+      return map;
+    },
+  });
+
+  // Merge appointments into assignments (overrides assignment.appointment_at when present)
+  const enrichedAssignments = useMemo(() => {
+    if (!assignments) return assignments;
+    return assignments.map((a) => {
+      const realAppt = apptMap?.get(a.sr_id);
+      return realAppt ? { ...a, appointment_at: realAppt } : a;
+    });
+  }, [assignments, apptMap]);
+
   const filteredAssignments = useMemo(() => {
     // Always hide cancelled and completed
-    let list = (assignments || []).filter(a => !hiddenStatuses.includes(a.status));
+    let list = (enrichedAssignments || []).filter(a => !hiddenStatuses.includes(a.status));
     
     // Status filter
     if (statusFilter !== "all") {
@@ -108,18 +145,18 @@ const TechnicianDashboard = () => {
       );
     }
     return list;
-  }, [assignments, searchQuery, statusFilter]);
+  }, [enrichedAssignments, searchQuery, statusFilter]);
 
   // Count per status for chips
   const statusCounts = useMemo(() => {
     const counts: Record<string, number> = {};
-    const activeList = (assignments || []).filter(a => !hiddenStatuses.includes(a.status));
+    const activeList = (enrichedAssignments || []).filter(a => !hiddenStatuses.includes(a.status));
     activeList.forEach(a => {
       counts[a.status] = (counts[a.status] || 0) + 1;
     });
     counts["all"] = activeList.length;
     return counts;
-  }, [assignments]);
+  }, [enrichedAssignments]);
 
   // Helper
   const hour = new Date().getHours();
@@ -144,13 +181,13 @@ const TechnicianDashboard = () => {
     3: "🔬 Κόλληση",
   };
 
-  const activeCount = (assignments || []).filter(
+  const activeCount = (enrichedAssignments || []).filter(
     (a) => !hiddenStatuses.includes(a.status)
   ).length;
-  const constructionCount = (assignments || []).filter(
+  const constructionCount = (enrichedAssignments || []).filter(
     (a) => a.status === "construction"
   ).length;
-  const todayAppts = (assignments || []).filter((a) => {
+  const todayAppts = (enrichedAssignments || []).filter((a) => {
     if (!a.appointment_at) return false;
     const d = new Date(a.appointment_at);
     const t = new Date();
@@ -375,7 +412,7 @@ const TechnicianDashboard = () => {
 
         {activeTab === "map" && (
           <div className="pt-0">
-            <TechnicianMap assignments={assignments || []} />
+            <TechnicianMap assignments={enrichedAssignments || []} />
           </div>
         )}
       </div>
