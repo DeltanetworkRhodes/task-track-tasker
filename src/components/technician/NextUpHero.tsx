@@ -93,10 +93,10 @@ const NextUpHero = ({ assignments, onOpen }: Props) => {
       animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
       transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
       onClick={handleCardTap}
-      className="relative overflow-hidden rounded-3xl border border-border/40 bg-card/60 backdrop-blur-xl cursor-pointer select-none group"
+      className="relative overflow-hidden rounded-2xl border border-primary/15 bg-card/70 backdrop-blur-xl cursor-pointer select-none group"
       style={{
         boxShadow:
-          "0 0 0 1px hsl(var(--border) / 0.4), 0 20px 60px -20px hsl(0 0% 0% / 0.4), inset 0 1px 0 hsl(var(--foreground) / 0.04)",
+          "0 0 0 1px hsl(var(--primary) / 0.08), 0 12px 40px -16px hsl(var(--primary) / 0.18), inset 0 1px 0 hsl(var(--foreground) / 0.04)",
       }}
     >
       {/* Status accent bar — top edge */}
@@ -119,10 +119,10 @@ const NextUpHero = ({ assignments, onOpen }: Props) => {
         }}
       />
 
-      <div className="relative p-6 space-y-5">
+      <div className="relative p-4 space-y-3">
         {/* Header: eyebrow + cycle indicator */}
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
+          <div className="flex items-center gap-2 text-[9px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
             <span
               className={`inline-block h-1 w-1 rounded-full ${
                 isOverdue
@@ -136,14 +136,14 @@ const NextUpHero = ({ assignments, onOpen }: Props) => {
           </div>
 
           {total > 1 && (
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1">
               {assignments.slice(0, Math.min(total, 6)).map((_, i) => (
                 <span
                   key={i}
                   className={`h-1 rounded-full transition-all duration-400 ${
                     i === idx % Math.min(total, 6)
-                      ? "w-4 bg-foreground/80"
-                      : "w-1 bg-foreground/20"
+                      ? "w-3 bg-primary/70"
+                      : "w-1 bg-primary/15"
                   }`}
                 />
               ))}
@@ -156,13 +156,13 @@ const NextUpHero = ({ assignments, onOpen }: Props) => {
           )}
         </div>
 
-        {/* THE CLOCK — 72px JetBrains Mono. Time IS the design. */}
-        <div className="flex items-baseline gap-2 -my-1">
+        {/* THE CLOCK — compact mono. */}
+        <div className="flex items-baseline gap-2">
           <h1
-            className="font-mono text-[72px] font-light leading-none tracking-tight text-foreground tabular-nums"
+            className="font-mono text-[44px] font-light leading-none tracking-tight text-foreground tabular-nums"
             style={{
               fontFeatureSettings: '"tnum" 1, "ss01" 1',
-              textShadow: "0 0 40px hsl(var(--primary) / 0.15)",
+              textShadow: "0 0 28px hsl(var(--primary) / 0.18)",
             }}
           >
             {apptAt
@@ -173,24 +173,24 @@ const NextUpHero = ({ assignments, onOpen }: Props) => {
                 })
               : clockStr}
           </h1>
-          <div className="font-mono text-xs text-muted-foreground tabular-nums pb-2">
+          <div className="font-mono text-[10px] text-muted-foreground tabular-nums pb-1">
             {apptAt ? null : `:${secondsStr}`}
           </div>
         </div>
 
         {/* Countdown + SR ID */}
-        <div className="flex items-center justify-between -mt-2">
-          <div className="font-mono text-xs text-muted-foreground tracking-wider">
+        <div className="flex items-center justify-between -mt-1">
+          <div className="font-mono text-[11px] text-muted-foreground tracking-wider">
             {assignment.sr_id}
           </div>
           {countdown && (
             <div
-              className={`font-mono text-xs font-semibold tabular-nums tracking-wider ${
+              className={`font-mono text-[11px] font-semibold tabular-nums tracking-wider ${
                 isOverdue
                   ? "text-destructive"
                   : isUrgent
                   ? "text-warning"
-                  : "text-muted-foreground"
+                  : "text-primary/80"
               }`}
             >
               {countdown}
@@ -202,19 +202,19 @@ const NextUpHero = ({ assignments, onOpen }: Props) => {
         <AnimatePresence mode="wait">
           <motion.div
             key={assignment.id}
-            initial={{ opacity: 0, y: 8, filter: "blur(4px)" }}
+            initial={{ opacity: 0, y: 6, filter: "blur(4px)" }}
             animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-            exit={{ opacity: 0, y: -8, filter: "blur(4px)" }}
+            exit={{ opacity: 0, y: -6, filter: "blur(4px)" }}
             transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-            className="space-y-1.5 min-h-[3rem]"
+            className="space-y-1 min-h-[2.5rem]"
           >
             {assignment.customer_name && (
-              <p className="text-base font-medium text-foreground/95 leading-tight truncate">
+              <p className="text-sm font-medium text-foreground/95 leading-tight truncate">
                 {assignment.customer_name}
               </p>
             )}
             {assignment.address && (
-              <p className="flex items-start gap-1.5 text-xs text-muted-foreground leading-snug">
+              <p className="flex items-start gap-1.5 text-[11px] text-muted-foreground leading-snug">
                 <MapPin className="h-3 w-3 mt-0.5 shrink-0 opacity-60" />
                 <span className="truncate">{assignment.address}</span>
               </p>
@@ -222,33 +222,33 @@ const NextUpHero = ({ assignments, onOpen }: Props) => {
           </motion.div>
         </AnimatePresence>
 
-        {/* Actions — Linear-style ghost buttons */}
-        <div className="grid grid-cols-3 gap-2 pt-2">
+        {/* Actions — soft tinted ghost buttons */}
+        <div className="grid grid-cols-3 gap-1.5 pt-1">
           {navUrl ? (
             <a
               href={navUrl}
               target="_blank"
               rel="noopener noreferrer"
               onClick={() => hapticFeedback.light()}
-              className="flex items-center justify-center gap-1.5 h-10 rounded-xl border border-border/60 bg-background/40 text-foreground text-xs font-medium hover:bg-background/80 hover:border-border transition-all backdrop-blur-sm"
+              className="flex items-center justify-center gap-1.5 h-9 rounded-lg border border-primary/20 bg-primary/5 text-primary text-[11px] font-medium hover:bg-primary/10 hover:border-primary/30 transition-all backdrop-blur-sm"
             >
               <Navigation className="h-3.5 w-3.5" />
               Nav
             </a>
           ) : (
-            <div className="h-10" />
+            <div className="h-9" />
           )}
           {callUrl ? (
             <a
               href={`tel:${callUrl}`}
               onClick={() => hapticFeedback.light()}
-              className="flex items-center justify-center gap-1.5 h-10 rounded-xl border border-border/60 bg-background/40 text-foreground text-xs font-medium hover:bg-background/80 hover:border-border transition-all backdrop-blur-sm"
+              className="flex items-center justify-center gap-1.5 h-9 rounded-lg border border-success/25 bg-success/5 text-success text-[11px] font-medium hover:bg-success/10 hover:border-success/40 transition-all backdrop-blur-sm"
             >
               <Phone className="h-3.5 w-3.5" />
               Call
             </a>
           ) : (
-            <div className="h-10" />
+            <div className="h-9" />
           )}
           <button
             onClick={(e) => {
@@ -256,7 +256,7 @@ const NextUpHero = ({ assignments, onOpen }: Props) => {
               hapticFeedback.medium();
               onOpen(assignment);
             }}
-            className="flex items-center justify-center gap-1.5 h-10 rounded-xl bg-foreground text-background text-xs font-semibold hover:bg-foreground/90 transition-all"
+            className="flex items-center justify-center gap-1.5 h-9 rounded-lg bg-primary/90 text-primary-foreground text-[11px] font-semibold hover:bg-primary transition-all shadow-sm shadow-primary/20"
           >
             Open
             <ArrowRight className="h-3.5 w-3.5" />
@@ -265,8 +265,8 @@ const NextUpHero = ({ assignments, onOpen }: Props) => {
 
         {/* Tap hint — only when there's more to cycle */}
         {total > 1 && (
-          <p className="text-center text-[10px] font-mono text-muted-foreground/50 tracking-widest uppercase pt-1">
-            Tap card to cycle · {idx + 1} / {total}
+          <p className="text-center text-[9px] font-mono text-muted-foreground/50 tracking-widest uppercase">
+            Tap · {idx + 1} / {total}
           </p>
         )}
       </div>
