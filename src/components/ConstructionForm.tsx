@@ -2695,7 +2695,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
 
       {/* Phase Status Editor — visible to Responsible (technician_id of SR) or Admin in full form */}
       {!phase && !isCrewMode && existingConstruction?.id && (
-        <Card className="p-4 space-y-3">
+        <Card className="p-5 space-y-3.5">
           <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
             <CheckCircle className="h-3.5 w-3.5" />
             Πρόοδος Φάσεων (Υπεύθυνος)
@@ -2775,9 +2775,9 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
         <button
           type="button"
           onClick={() => toggleSection("technical")}
-          className="w-full flex items-center justify-between p-4 hover:bg-muted/30 transition-colors"
+          className="w-full flex items-center justify-between p-5 hover:bg-muted/40 transition-colors rounded-2xl"
         >
-          <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5 pointer-events-none">
+          <Label className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground flex items-center gap-2 pointer-events-none"><span className="h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
             Τεχνικά Στοιχεία
             {(sesId || cab) && (
               <Badge variant="secondary" className="text-[10px] ml-1">
@@ -2788,7 +2788,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
           <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${openSections.includes("technical") ? "rotate-180" : ""}`} />
         </button>
         {openSections.includes("technical") && (
-        <div className="px-4 pb-4 space-y-3 border-t border-border/50 pt-3">
+        <div className="px-5 pb-5 space-y-3.5 border-t border-border/40 pt-4">
         <div className="grid grid-cols-2 gap-3">
           <div>
             <Label className="text-xs">SES ID</Label>
@@ -2862,7 +2862,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
 
       {/* GIS: Δομή Κτιρίου */}
       {(!phase || phase === 2 || phase === 3) && gisData && Array.isArray(gisData.floor_details) && (gisData.floor_details as any[]).length > 0 && (
-        <Card className="p-4 space-y-3 border-primary/20 bg-primary/5">
+        <Card className="p-5 space-y-3.5 border-primary/15 bg-primary/[0.04]">
           <Label className="text-xs font-bold uppercase tracking-wider text-primary flex items-center gap-1.5">
             🏢 Δομή Κτιρίου (GIS)
           </Label>
@@ -2912,7 +2912,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
 
       {/* GIS: Οδηγίες Κόλλησης ανά Όροφο */}
       {(!phase || phase === 3) && gisData && Array.isArray(gisData.optical_paths) && (gisData.optical_paths as any[]).length > 0 && (
-        <Card className="p-4 space-y-3 border-accent/30 bg-accent/5">
+        <Card className="p-5 space-y-3.5 border-accent/20 bg-accent/[0.04]">
           <Label className="text-xs font-bold uppercase tracking-wider text-accent-foreground flex items-center gap-1.5">
             <Building2 className="h-3.5 w-3.5" /> Οδηγίες Κόλλησης — Ανά Όροφο
           </Label>
@@ -3705,9 +3705,9 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
         <button
           type="button"
           onClick={() => toggleSection("routes")}
-          className="w-full flex items-center justify-between p-4 hover:bg-muted/30 transition-colors"
+          className="w-full flex items-center justify-between p-5 hover:bg-muted/40 transition-colors rounded-2xl"
         >
-          <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5 pointer-events-none">
+          <Label className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground flex items-center gap-2 pointer-events-none"><span className="h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
             <Route className="h-3.5 w-3.5" />
             Διαδρομές
             <Badge variant="secondary" className="text-[10px] ml-1">{totalKoi.toFixed(0)}μ</Badge>
@@ -3715,7 +3715,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
           <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${openSections.includes("routes") ? "rotate-180" : ""}`} />
         </button>
         {openSections.includes("routes") && (
-        <div className="px-4 pb-4 space-y-3 border-t border-border/50 pt-3">
+        <div className="px-5 pb-5 space-y-3.5 border-t border-border/40 pt-4">
         <div className="space-y-2">
           {effectiveRoutes.map((route, idx) => {
             // In crew mode, only show INHOUSE route (index 3)
@@ -3780,7 +3780,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
 
       {/* 📐 Μέτρα BMO→FB ανά Όροφο (collapsible) */}
       {floorMeters.length > 0 && (!phase || phase === 2 || phase === 3) && (
-        <Card className="p-4 space-y-2">
+        <Card className="p-5 space-y-2.5">
           <button
             type="button"
             onClick={() => setFloorMetersCardOpen((o) => !o)}
@@ -3854,7 +3854,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
 
       {/* 🗺️ Οριζοντογραφία AS-BUILD (collapsible) */}
       {!isCrewMode && (
-        <Card className="p-4 space-y-2">
+        <Card className="p-5 space-y-2.5">
           <button
             type="button"
             onClick={() => setAsbuiltCardOpen((o) => !o)}
@@ -4025,9 +4025,9 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
         <button
           type="button"
           onClick={() => toggleSection("works")}
-          className="w-full flex items-center justify-between p-4 hover:bg-muted/30 transition-colors"
+          className="w-full flex items-center justify-between p-5 hover:bg-muted/40 transition-colors rounded-2xl"
         >
-          <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5 pointer-events-none">
+          <Label className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground flex items-center gap-2 pointer-events-none"><span className="h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
             <Wrench className="h-3.5 w-3.5" />
             Εργασίες <span className="text-destructive">*</span>
             {workItems.length > 0 && (
@@ -4140,9 +4140,9 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
         <button
           type="button"
           onClick={() => toggleSection("materials")}
-          className="w-full flex items-center justify-between p-4 hover:bg-muted/30 transition-colors"
+          className="w-full flex items-center justify-between p-5 hover:bg-muted/40 transition-colors rounded-2xl"
         >
-          <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5 pointer-events-none">
+          <Label className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground flex items-center gap-2 pointer-events-none"><span className="h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
             <Package className="h-3.5 w-3.5" />
             Υλικά
             {materialItems.length > 0 && (
@@ -4301,9 +4301,9 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
         <button
           type="button"
           onClick={() => toggleSection("photos")}
-          className="w-full flex items-center justify-between p-4 hover:bg-muted/30 transition-colors"
+          className="w-full flex items-center justify-between p-5 hover:bg-muted/40 transition-colors rounded-2xl"
         >
-          <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5 pointer-events-none">
+          <Label className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground flex items-center gap-2 pointer-events-none"><span className="h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
             <Camera className="h-3.5 w-3.5" />
             Φωτογραφίες Κατασκευής
             {totalPhotos > 0 && (
@@ -4313,7 +4313,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
           <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${openSections.includes("photos") ? "rotate-180" : ""}`} />
         </button>
         {openSections.includes("photos") && (
-        <div className="px-4 pb-4 space-y-3 border-t border-border/50 pt-3">
+        <div className="px-5 pb-5 space-y-3.5 border-t border-border/40 pt-4">
 
         <div className="space-y-2">
           {visiblePhotoCategories.map((cat) => {
@@ -4513,9 +4513,9 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
         <button
           type="button"
           onClick={() => toggleSection("otdr")}
-          className="w-full flex items-center justify-between p-4 hover:bg-muted/30 transition-colors"
+          className="w-full flex items-center justify-between p-5 hover:bg-muted/40 transition-colors rounded-2xl"
         >
-          <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5 pointer-events-none">
+          <Label className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground flex items-center gap-2 pointer-events-none"><span className="h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
             📊 Μετρήσεις OTDR (PDF)
             {totalOtdrFiles > 0 && (
               <Badge variant="secondary" className="text-[10px] ml-1">{totalOtdrFiles} PDF</Badge>
@@ -4524,7 +4524,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
           <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${openSections.includes("otdr") ? "rotate-180" : ""}`} />
         </button>
         {openSections.includes("otdr") && (
-        <div className="px-4 pb-4 space-y-3 border-t border-border/50 pt-3">
+        <div className="px-5 pb-5 space-y-3.5 border-t border-border/40 pt-4">
 
         <div className="space-y-2">
           {OTDR_CATEGORIES.map((cat) => {

@@ -402,7 +402,7 @@ const SurveyForm = ({ assignments, prefillSrId, prefillArea, onComplete }: Props
   if (savedOffline) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center">
-        <WifiOff className="h-16 w-16 text-amber-500 mb-4" />
+        <WifiOff className="h-16 w-16 text-warning mb-4" />
         <h2 className="text-lg font-bold text-foreground">Αποθηκεύτηκε Τοπικά!</h2>
         <p className="text-sm text-muted-foreground mt-1">
           Θα συγχρονιστεί αυτόματα όταν επανέλθει η σύνδεση.
@@ -414,7 +414,7 @@ const SurveyForm = ({ assignments, prefillSrId, prefillArea, onComplete }: Props
   if (submitted) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center">
-        <CheckCircle className="h-16 w-16 text-green-500 mb-4" />
+        <CheckCircle className="h-16 w-16 text-success mb-4" />
         <h2 className="text-lg font-bold text-foreground">Επιτυχής Υποβολή!</h2>
         <p className="text-sm text-muted-foreground mt-1">Η αυτοψία καταχωρήθηκε.</p>
       </div>
@@ -422,36 +422,45 @@ const SurveyForm = ({ assignments, prefillSrId, prefillArea, onComplete }: Props
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6 pb-8">
-      <h2 className="text-lg font-bold text-foreground">Νέα Αυτοψία</h2>
+    <form onSubmit={handleSubmit} className="space-y-5 pb-8">
+      <div className="flex items-center gap-2.5 px-1">
+        <span className="h-7 w-1 rounded-full bg-gradient-to-b from-primary to-accent" />
+        <h2 className="text-lg font-semibold text-foreground tracking-tight">Νέα Αυτοψία</h2>
+      </div>
 
       {/* ΠΕΡΙΟΧΗ */}
-      <Card className="p-4 space-y-3">
-        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          Περιοχή <span className="text-destructive">*</span>
-        </Label>
-        <RadioGroup value={area} onValueChange={setArea}>
-          <div className="flex items-center gap-3">
+      <Card className="p-5 space-y-3.5">
+        <div className="flex items-center gap-2">
+          <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+          <Label className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+            Περιοχή <span className="text-destructive">*</span>
+          </Label>
+        </div>
+        <RadioGroup value={area} onValueChange={setArea} className="gap-2">
+          <label htmlFor="rodos" className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-muted/40 hover:bg-muted/70 transition-colors cursor-pointer">
             <RadioGroupItem value="ΡΟΔΟΣ" id="rodos" />
-            <Label htmlFor="rodos" className="text-sm cursor-pointer">ΡΟΔΟΣ</Label>
-          </div>
-          <div className="flex items-center gap-3">
+            <span className="text-sm font-medium">ΡΟΔΟΣ</span>
+          </label>
+          <label htmlFor="kos" className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-muted/40 hover:bg-muted/70 transition-colors cursor-pointer">
             <RadioGroupItem value="ΚΩΣ" id="kos" />
-            <Label htmlFor="kos" className="text-sm cursor-pointer">ΚΩΣ</Label>
-          </div>
+            <span className="text-sm font-medium">ΚΩΣ</span>
+          </label>
         </RadioGroup>
       </Card>
 
       {/* SR ID */}
-      <Card className="p-4 space-y-3">
-        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          SR ID <span className="text-destructive">*</span>
-        </Label>
+      <Card className="p-5 space-y-3.5">
+        <div className="flex items-center gap-2">
+          <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+          <Label className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+            SR ID <span className="text-destructive">*</span>
+          </Label>
+        </div>
         <Input
           value={srId}
           onChange={(e) => setSrId(e.target.value)}
           placeholder="π.χ. 2-3399..."
-          className="text-sm"
+          className="text-sm h-11 rounded-xl bg-muted/30 border-border/60 focus-visible:bg-card transition-colors"
         />
       </Card>
 
@@ -467,7 +476,6 @@ const SurveyForm = ({ assignments, prefillSrId, prefillArea, onComplete }: Props
         capture
         isCompressing={compressing["building"]}
         compressionStats={compressionStats["building"]}
-        
       />
 
       {/* SCREENSHOTS */}
@@ -480,14 +488,16 @@ const SurveyForm = ({ assignments, prefillSrId, prefillArea, onComplete }: Props
         accept="image/*"
         isCompressing={compressing["screenshots"]}
         compressionStats={compressionStats["screenshots"]}
-        
       />
 
       {/* ΔΕΛΤΙΟ ΑΥΤΟΨΙΑΣ PDF */}
-      <Card className="p-4 space-y-3">
-        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          Δελτίο Αυτοψίας (PDF)
-        </Label>
+      <Card className="p-5 space-y-3.5">
+        <div className="flex items-center gap-2">
+          <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+          <Label className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+            Δελτίο Αυτοψίας (PDF)
+          </Label>
+        </div>
         <input
           ref={pdfRef}
           type="file"
@@ -504,38 +514,40 @@ const SurveyForm = ({ assignments, prefillSrId, prefillArea, onComplete }: Props
           }}
         />
         {inspectionPdf ? (
-          <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+          <div className="flex items-center gap-3 p-3 rounded-xl bg-primary/5 border border-primary/15">
             <FileText className="h-5 w-5 text-primary shrink-0" />
-            <span className="text-sm truncate flex-1">{inspectionPdf.name}</span>
+            <span className="text-sm truncate flex-1 font-medium">{inspectionPdf.name}</span>
             <Button
               type="button"
               variant="ghost"
               size="icon"
-              className="h-6 w-6"
+              className="h-7 w-7 hover:bg-destructive/10 hover:text-destructive"
               onClick={() => setInspectionPdf(null)}
             >
               <X className="h-4 w-4" />
             </Button>
           </div>
         ) : (
-          <Button
+          <button
             type="button"
-            variant="outline"
-            className="w-full gap-2"
             onClick={() => pdfRef.current?.click()}
+            className="w-full flex items-center justify-center gap-2 h-11 rounded-xl bg-primary/[0.08] text-primary text-sm font-medium hover:bg-primary/[0.12] transition-colors border border-primary/15"
           >
             <Upload className="h-4 w-4" />
             Ανέβασμα Δελτίου Αυτοψίας
-          </Button>
+          </button>
         )}
       </Card>
 
       {/* ΣΧΟΛΙΑ */}
-      <Card className="p-4 space-y-3">
-        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          Σχόλια
-        </Label>
-        <p className="text-xs text-muted-foreground italic">
+      <Card className="p-5 space-y-3.5">
+        <div className="flex items-center gap-2">
+          <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+          <Label className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+            Σχόλια
+          </Label>
+        </div>
+        <p className="text-[11px] text-muted-foreground italic leading-relaxed">
           "Αν δεν ανεβάσετε όλα τα αρχεία, πρέπει οπωσδήποτε να γράψετε τον λόγο στο πεδίο ΣΧΟΛΙΑ".
         </p>
         <Textarea
@@ -543,18 +555,18 @@ const SurveyForm = ({ assignments, prefillSrId, prefillArea, onComplete }: Props
           onChange={(e) => setComments(e.target.value)}
           placeholder="Σχόλια αυτοψίας..."
           rows={4}
-          className="text-sm"
+          className="text-sm rounded-xl bg-muted/30 border-border/60 focus-visible:bg-card transition-colors resize-none"
         />
       </Card>
 
       {/* Submit */}
-      <Button
+      <button
         type="submit"
         disabled={submitting}
-        className="w-full py-6 text-sm font-bold"
+        className="w-full h-12 rounded-xl bg-gradient-to-r from-primary to-accent text-primary-foreground text-sm font-semibold tracking-wide shadow-[0_4px_14px_-4px_hsl(var(--primary)/0.4)] hover:shadow-[0_6px_20px_-4px_hsl(var(--primary)/0.5)] transition-all disabled:opacity-60 disabled:cursor-not-allowed"
       >
         {submitting ? "Υποβολή..." : "Υποβολή Αυτοψίας"}
-      </Button>
+      </button>
     </form>
   );
 };
@@ -592,17 +604,20 @@ const FileUploadSection = ({
     : 0;
 
   return (
-    <Card className="p-4 space-y-3">
-      <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-        {label} {required && <span className="text-destructive">*</span>}
-      </Label>
-      <p className="text-xs text-muted-foreground">
+    <Card className="p-5 space-y-3.5">
+      <div className="flex items-center gap-2">
+        <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+        <Label className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+          {label} {required && <span className="text-destructive">*</span>}
+        </Label>
+      </div>
+      <p className="text-[11px] text-muted-foreground">
         Ανεβάστε έως {MAX_FILES} αρχεία.
       </p>
 
       {/* Compression loading state */}
       {isCompressing && (
-        <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50 animate-pulse">
+        <div className="flex items-center gap-2 p-3 rounded-xl bg-primary/5 border border-primary/10">
           <Loader2 className="h-4 w-4 animate-spin text-primary" />
           <span className="text-xs font-medium text-muted-foreground">
             Συμπίεση φωτογραφιών...
@@ -610,15 +625,13 @@ const FileUploadSection = ({
         </div>
       )}
 
-
-
       {/* Compression stats */}
       {compressionStats && !isCompressing && (
-        <div className="flex items-center gap-2 p-2 rounded-lg bg-accent/30 text-xs text-muted-foreground">
-          <FileImage className="h-3.5 w-3.5 text-primary shrink-0" />
+        <div className="flex items-center gap-2 p-2.5 rounded-xl bg-accent/8 text-xs text-muted-foreground border border-accent/15">
+          <FileImage className="h-3.5 w-3.5 text-accent shrink-0" />
           <span>
             {formatFileSize(compressionStats.original)} → {formatFileSize(compressionStats.compressed)}{" "}
-            <span className="font-semibold text-primary">(-{savings}%)</span>
+            <span className="font-semibold text-accent">(-{savings}%)</span>
           </span>
         </div>
       )}
@@ -631,12 +644,12 @@ const FileUploadSection = ({
               <img
                 src={f.preview}
                 alt={f.file.name}
-                className="h-20 w-full object-cover rounded-lg border border-border"
+                className="h-20 w-full object-cover rounded-xl border border-border/60 shadow-sm"
               />
               <button
                 type="button"
                 onClick={() => onRemove(i)}
-                className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
               >
                 <X className="h-3 w-3" />
               </button>
@@ -647,22 +660,17 @@ const FileUploadSection = ({
 
       {files.length < MAX_FILES && !isCompressing && (
         <div className="flex gap-2">
-          <Button
+          <button
             type="button"
-            variant="outline"
-            size="sm"
-            className="gap-1.5 text-xs"
             onClick={() => inputRef.current?.click()}
+            className="flex-1 flex items-center justify-center gap-1.5 h-10 rounded-xl bg-primary/[0.08] text-primary text-xs font-medium hover:bg-primary/[0.12] transition-colors border border-primary/15"
           >
             <Upload className="h-3.5 w-3.5" />
             Προσθήκη αρχείου
-          </Button>
+          </button>
           {capture && (
-            <Button
+            <button
               type="button"
-              variant="outline"
-              size="sm"
-              className="gap-1.5 text-xs"
               onClick={() => {
                 const inp = document.createElement("input");
                 inp.type = "file";
@@ -671,10 +679,11 @@ const FileUploadSection = ({
                 inp.onchange = () => onAdd(inp.files);
                 inp.click();
               }}
+              className="flex-1 flex items-center justify-center gap-1.5 h-10 rounded-xl bg-accent/[0.08] text-accent text-xs font-medium hover:bg-accent/[0.12] transition-colors border border-accent/15"
             >
               <Camera className="h-3.5 w-3.5" />
               Κάμερα
-            </Button>
+            </button>
           )}
         </div>
       )}
