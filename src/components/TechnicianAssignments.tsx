@@ -709,6 +709,45 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
     return null;
   };
 
+  const PhaseProgress = ({
+    p1 = "pending",
+    p2 = "pending",
+    p3 = "pending",
+  }: {
+    p1?: string;
+    p2?: string;
+    p3?: string;
+  }) => {
+    const phases = [
+      { label: "Φ1", icon: "🚜", s: p1 },
+      { label: "Φ2", icon: "🔧", s: p2 },
+      { label: "Φ3", icon: "🔬", s: p3 },
+    ];
+    return (
+      <div className="flex items-center gap-2">
+        {phases.map(({ label, icon, s }) => (
+          <div
+            key={label}
+            className={`flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold border transition-colors ${
+              s === "completed"
+                ? "bg-green-500/15 text-green-700 border-green-500/30 dark:text-green-400"
+                : s === "in_progress"
+                ? "bg-amber-500/15 text-amber-700 border-amber-500/30 dark:text-amber-400"
+                : "bg-muted/50 text-muted-foreground/50 border-border/50"
+            }`}
+          >
+            <span>{icon}</span>
+            <span>{label}</span>
+            {s === "completed" && <span>✓</span>}
+            {s === "in_progress" && (
+              <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse inline-block" />
+            )}
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   return (
     <>
       <div className="space-y-3">
