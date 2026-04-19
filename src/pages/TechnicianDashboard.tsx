@@ -419,24 +419,36 @@ const TechnicianDashboard = () => {
                       statusFilter === s.value ||
                       (statusCounts[s.value] || 0) > 0
                   )
-                  .map((s) => {
+                  .map((s, i) => {
                     const isActive = statusFilter === s.value;
                     const count = statusCounts[s.value] || 0;
                     return (
-                      <button
+                      <motion.button
                         key={s.value}
+                        layout
+                        initial={{ opacity: 0, y: 6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.15 + i * 0.04, duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+                        whileTap={{ scale: 0.94 }}
                         onClick={() => setStatusFilter(s.value)}
-                        className={`flex-shrink-0 inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-xs font-semibold transition-all ${
+                        className={`relative flex-shrink-0 inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-xs font-semibold transition-colors ${
                           isActive
                             ? s.value === "all"
-                              ? "bg-gradient-to-r from-primary to-accent text-primary-foreground border-transparent shadow-md scale-105"
-                              : (s.color || "") + " shadow-sm scale-105"
+                              ? "bg-gradient-to-r from-primary to-accent text-primary-foreground border-transparent shadow-md"
+                              : (s.color || "") + " shadow-sm"
                             : "bg-card text-muted-foreground border-border/60 hover:bg-muted hover:border-border"
                         }`}
                       >
-                        {s.label}
+                        {isActive && (
+                          <motion.span
+                            layoutId="filter-active-glow"
+                            className="absolute inset-0 rounded-full ring-2 ring-primary/30"
+                            transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                          />
+                        )}
+                        <span className="relative">{s.label}</span>
                         <span
-                          className={`text-[10px] font-bold rounded-full px-1.5 py-0.5 min-w-[20px] text-center ${
+                          className={`relative text-[10px] font-bold rounded-full px-1.5 py-0.5 min-w-[20px] text-center ${
                             isActive
                               ? "bg-background/30 text-current"
                               : "bg-muted text-muted-foreground"
@@ -444,7 +456,7 @@ const TechnicianDashboard = () => {
                         >
                           {count}
                         </span>
-                      </button>
+                      </motion.button>
                     );
                   })}
               </div>
