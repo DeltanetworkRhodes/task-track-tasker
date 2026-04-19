@@ -319,8 +319,19 @@ const TechnicianDashboard = () => {
     });
   };
 
+  // Minutes until next appointment — drives ambient urgency layer
+  const minutesUntilNext = nextUp?.appointment_at
+    ? Math.round((new Date(nextUp.appointment_at).getTime() - Date.now()) / 60000)
+    : null;
+
   return (
-    <div className="min-h-screen bg-background">
+    <div className="relative min-h-screen bg-background">
+      {/* ── Ambient atmosphere: grain + grid + 3-layer glow ── */}
+      <AmbientCanvas
+        minutesUntilNext={minutesUntilNext}
+        status={nextUp?.status}
+      />
+
       {/* ── HEADER (Dark Industrial — admin palette) ── */}
       <header className="sticky top-0 z-50 bg-sidebar text-sidebar-foreground border-b border-sidebar-border shadow-xl">
         {/* Top row with subtle gradient */}
@@ -457,8 +468,8 @@ const TechnicianDashboard = () => {
                 isRefreshing={isRefreshing}
               />
 
-              {/* Next Up hero (Fuselab: role-based default view) */}
-              <NextUpHero assignment={nextUp} onOpen={openAssignment} />
+              {/* Next Up hero — Linear × iOS, tap-to-cycle */}
+              <NextUpHero assignments={heroList} onOpen={openAssignment} />
 
               {/* Outliers banner (Fuselab: surface outliers) */}
               <OutlierBanner
