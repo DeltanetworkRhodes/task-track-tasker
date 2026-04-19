@@ -152,7 +152,7 @@ const NextUpHero = ({ assignments, onOpen }: Props) => {
         {/* THE CLOCK — compact mono. */}
         <div className="flex items-baseline gap-2">
           <h1
-            className="font-mono text-[44px] font-light leading-none tracking-tight text-foreground tabular-nums"
+            className="text-[44px] leading-none tracking-tight text-foreground tabular-nums font-sans font-semibold"
             style={{
               fontFeatureSettings: '"tnum" 1, "ss01" 1',
               textShadow: "0 0 28px hsl(var(--primary) / 0.18)",
