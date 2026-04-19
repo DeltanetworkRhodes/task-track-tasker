@@ -1,4 +1,5 @@
 import { useState, useCallback, useMemo } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 
 import { MapPin, Phone, Calendar, MessageSquare, Loader2, Eye, FileEdit, CheckCircle, Clock, HardHat, XCircle, Ban, Upload, FileSpreadsheet, FileText, CalendarClock, Users, Navigation } from "lucide-react";
 import GisUploadCard from "@/components/GisUploadCard";
