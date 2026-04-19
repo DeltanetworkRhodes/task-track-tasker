@@ -792,6 +792,8 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
         {assignments.map((a) => {
           const ps = phaseStatusMap?.get(a.id);
           const apptToday = a.appointment_at && isToday(a.appointment_at);
+          const apptDate = a.appointment_at ? new Date(a.appointment_at) : null;
+          const apptUpcoming = apptDate && apptDate.getTime() > Date.now() - 6 * 60 * 60 * 1000;
           const hasGis = gisAssignmentIds?.includes(a.id);
           return (
             <div
