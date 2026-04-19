@@ -889,7 +889,7 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
                       <a
                         href={`tel:${a.phone}`}
                         onClick={(e) => e.stopPropagation()}
-                        className="text-[11px] font-bold text-violet-600 dark:text-violet-400 flex items-center gap-1 shrink-0"
+                        className="text-[11px] font-bold text-primary flex items-center gap-1 shrink-0"
                       >
                         <Phone className="h-3 w-3" />
                         Κλήση
