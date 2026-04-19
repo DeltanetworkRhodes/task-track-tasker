@@ -912,9 +912,9 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
                           key={n}
                           className={`flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1 rounded-full border ${
                             s === "completed"
-                              ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-700"
+                              ? "bg-success/15 text-success border-success/30"
                               : s === "in_progress"
-                              ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-700"
+                              ? "bg-warning/15 text-warning border-warning/30"
                               : "bg-muted/50 text-muted-foreground/50 border-border/50"
                           }`}
                         >
@@ -922,7 +922,7 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
                           <span>{label}</span>
                           {s === "completed" && <span>✓</span>}
                           {s === "in_progress" && (
-                            <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse inline-block" />
+                            <span className="h-1.5 w-1.5 rounded-full bg-warning animate-pulse inline-block" />
                           )}
                         </div>
                       );
