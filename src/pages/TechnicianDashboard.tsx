@@ -256,7 +256,7 @@ const TechnicianDashboard = () => {
           {[
             { label: "Ενεργά", value: activeCount, color: "text-primary" },
             { label: "Κατασκευή", value: constructionCount, color: "text-warning" },
-            { label: "Ραντεβού", value: todayAppts.length, color: "text-accent" },
+            { label: "Ραντεβού", value: upcomingApptsCount, color: "text-accent" },
           ].map((s) => (
             <div key={s.label} className="text-center py-2.5">
               <p className={`text-xl font-bold ${s.color} leading-tight`}>
