@@ -412,7 +412,7 @@ const TechnicianDashboard = () => {
 
         {activeTab === "map" && (
           <div className="pt-0">
-            <TechnicianMap assignments={assignments || []} />
+            <TechnicianMap assignments={enrichedAssignments || []} />
           </div>
         )}
       </div>
