@@ -765,16 +765,16 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
 
   // Stripe colors per status
   const stripeColor: Record<string, string> = {
-    construction: "bg-violet-500",
-    inspection: "bg-amber-500",
-    pre_committed: "bg-blue-500",
+    construction: "bg-primary",
+    inspection: "bg-warning",
+    pre_committed: "bg-accent",
     pending: "bg-muted-foreground/30",
   };
   // Phase button colors
   const PHASE_BTN: Record<number, string> = {
-    1: "bg-amber-600 hover:bg-amber-700",
-    2: "bg-violet-600 hover:bg-violet-700",
-    3: "bg-emerald-600 hover:bg-emerald-700",
+    1: "bg-warning hover:bg-warning/90 text-warning-foreground",
+    2: "bg-primary hover:bg-primary/90 text-primary-foreground",
+    3: "bg-accent hover:bg-accent/90 text-accent-foreground",
   };
   const isToday = (dateStr: string) => {
     const d = new Date(dateStr);
@@ -798,7 +798,7 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
               key={a.id}
               className={`bg-card rounded-2xl overflow-hidden border transition-all duration-200 active:scale-[0.98] cursor-pointer ${
                 apptToday
-                  ? "border-emerald-400/50 dark:border-emerald-600/50"
+                  ? "border-accent/50"
                   : "border-border hover:border-border/80"
               }`}
               onClick={() => {
@@ -818,11 +818,11 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-sm font-bold text-violet-600 dark:text-violet-400">
+                      <span className="text-sm font-bold text-primary">
                         {a.sr_id}
                       </span>
                       {apptToday && (
-                        <span className="text-[10px] font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 px-2 py-0.5 rounded-full">
+                        <span className="text-[10px] font-bold bg-accent/15 text-accent px-2 py-0.5 rounded-full">
                           ΣΗΜΕΡΑ{" "}
                           {new Date(a.appointment_at!).toLocaleTimeString("el-GR", {
                             hour: "2-digit",
@@ -831,7 +831,7 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
                         </span>
                       )}
                       {hasGis && (
-                        <span className="text-[10px] font-bold bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 px-2 py-0.5 rounded-full">
+                        <span className="text-[10px] font-bold bg-primary/15 text-primary px-2 py-0.5 rounded-full">
                           GIS ✓
                         </span>
                       )}
@@ -870,7 +870,7 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={(e) => e.stopPropagation()}
-                      className="text-[10px] font-bold text-blue-600 bg-blue-50 dark:bg-blue-900/20 dark:text-blue-400 px-2.5 py-1 rounded-full shrink-0 hover:bg-blue-100 transition-colors"
+                      className="text-[10px] font-bold text-primary bg-primary/10 px-2.5 py-1 rounded-full shrink-0 hover:bg-primary/20 transition-colors"
                     >
                       Πλοήγηση
                     </a>
@@ -889,7 +889,7 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
                       <a
                         href={`tel:${a.phone}`}
                         onClick={(e) => e.stopPropagation()}
-                        className="text-[11px] font-bold text-violet-600 dark:text-violet-400 flex items-center gap-1 shrink-0"
+                        className="text-[11px] font-bold text-primary flex items-center gap-1 shrink-0"
                       >
                         <Phone className="h-3 w-3" />
                         Κλήση
@@ -912,9 +912,9 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
                           key={n}
                           className={`flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1 rounded-full border ${
                             s === "completed"
-                              ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-700"
+                              ? "bg-success/15 text-success border-success/30"
                               : s === "in_progress"
-                              ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-700"
+                              ? "bg-warning/15 text-warning border-warning/30"
                               : "bg-muted/50 text-muted-foreground/50 border-border/50"
                           }`}
                         >
@@ -922,7 +922,7 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
                           <span>{label}</span>
                           {s === "completed" && <span>✓</span>}
                           {s === "in_progress" && (
-                            <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse inline-block" />
+                            <span className="h-1.5 w-1.5 rounded-full bg-warning animate-pulse inline-block" />
                           )}
                         </div>
                       );
@@ -932,7 +932,7 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
 
                 {/* GIS missing warning */}
                 {a.status === "pre_committed" && !hasGis && (
-                  <div className="flex items-center gap-2 text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-xl px-3 py-2">
+                  <div className="flex items-center gap-2 text-xs text-warning bg-warning/10 border border-warning/30 rounded-xl px-3 py-2">
                     <FileSpreadsheet className="h-3.5 w-3.5 shrink-0" />
                     Αναμονή GIS αρχείου
                   </div>
@@ -951,10 +951,10 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
                         setShowCrewPanel(true);
                       }
                     }}
-                    className={`w-full py-2.5 text-xs font-bold text-white rounded-xl flex items-center justify-center gap-2 transition-colors ${
+                    className={`w-full py-2.5 text-xs font-bold rounded-xl flex items-center justify-center gap-2 transition-colors ${
                       myPhase && PHASE_BTN[myPhase]
                         ? PHASE_BTN[myPhase]
-                        : "bg-violet-600 hover:bg-violet-700"
+                        : "bg-primary hover:bg-primary/90 text-primary-foreground"
                     }`}
                   >
                     <HardHat className="h-3.5 w-3.5" />
@@ -977,7 +977,7 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
                       setSelectedAssignment(a);
                       setShowSurveyForm(true);
                     }}
-                    className="w-full py-2.5 text-xs font-bold bg-amber-500 hover:bg-amber-600 text-white rounded-xl flex items-center justify-center gap-2 transition-colors"
+                    className="w-full py-2.5 text-xs font-bold bg-warning hover:bg-warning/90 text-warning-foreground rounded-xl flex items-center justify-center gap-2 transition-colors"
                   >
                     <Eye className="h-3.5 w-3.5" />
                     Αυτοψία

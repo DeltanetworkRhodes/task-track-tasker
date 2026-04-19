@@ -134,9 +134,9 @@ const TechnicianDashboard = () => {
   const firstName = profile?.full_name?.split(" ")[0] || "—";
 
   const PHASE_COLORS: Record<number, string> = {
-    1: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300",
-    2: "bg-violet-100 text-violet-800 dark:bg-violet-900/30 dark:text-violet-300",
-    3: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300",
+    1: "bg-warning/15 text-warning-foreground dark:bg-warning/20 dark:text-warning",
+    2: "bg-primary/15 text-primary dark:bg-primary/20 dark:text-primary",
+    3: "bg-accent/15 text-accent dark:bg-accent/20 dark:text-accent",
   };
   const PHASE_LABELS: Record<number, string> = {
     1: "🚜 Χωματουργικά",
@@ -169,8 +169,8 @@ const TechnicianDashboard = () => {
         <div className="flex items-center justify-between px-4 py-3">
           <div className="flex items-center gap-3">
             {/* Avatar */}
-            <div className="h-11 w-11 rounded-full bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center shrink-0 border-2 border-violet-200 dark:border-violet-700">
-              <span className="text-sm font-bold text-violet-700 dark:text-violet-300">
+            <div className="h-11 w-11 rounded-full bg-primary/15 flex items-center justify-center shrink-0 border-2 border-primary/30">
+              <span className="text-sm font-bold text-primary">
                 {initials}
               </span>
             </div>
@@ -212,9 +212,9 @@ const TechnicianDashboard = () => {
         {/* Stats bar */}
         <div className="grid grid-cols-3 divide-x divide-border border-t border-border/50">
           {[
-            { label: "Ενεργά", value: activeCount, color: "text-violet-600" },
-            { label: "Κατασκευή", value: constructionCount, color: "text-amber-600" },
-            { label: "Ραντεβού", value: todayAppts.length, color: "text-emerald-600" },
+            { label: "Ενεργά", value: activeCount, color: "text-primary" },
+            { label: "Κατασκευή", value: constructionCount, color: "text-warning" },
+            { label: "Ραντεβού", value: todayAppts.length, color: "text-accent" },
           ].map((s) => (
             <div key={s.label} className="text-center py-2.5">
               <p className={`text-xl font-bold ${s.color} leading-tight`}>
@@ -239,7 +239,7 @@ const TechnicianDashboard = () => {
               onClick={() => setActiveTab(tab.id)}
               className={`flex-1 flex flex-col items-center gap-1 py-2.5 text-[11px] font-medium transition-colors border-b-2 ${
                 activeTab === tab.id
-                  ? "border-violet-600 text-violet-600"
+                  ? "border-primary text-primary"
                   : "border-transparent text-muted-foreground hover:text-foreground"
               }`}
             >
@@ -258,27 +258,27 @@ const TechnicianDashboard = () => {
 
             {/* Today banner */}
             {todayAppts.length > 0 && (
-              <div className="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800 rounded-2xl p-4 space-y-2">
-                <div className="flex items-center gap-2 text-xs font-bold text-emerald-700 dark:text-emerald-400">
-                  <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+              <div className="bg-accent/10 border border-accent/30 rounded-2xl p-4 space-y-2">
+                <div className="flex items-center gap-2 text-xs font-bold text-accent">
+                  <div className="h-2 w-2 rounded-full bg-accent animate-pulse" />
                   Σήμερα — {todayAppts.length} ραντεβού
                 </div>
                 {todayAppts.map((a) => (
                   <div
                     key={a.id}
-                    className="flex items-center justify-between text-xs bg-white/60 dark:bg-black/20 rounded-xl px-3 py-2 border border-emerald-100 dark:border-emerald-800/50"
+                    className="flex items-center justify-between text-xs bg-card/60 rounded-xl px-3 py-2 border border-accent/20"
                   >
                     <div>
-                      <span className="font-bold text-emerald-800 dark:text-emerald-300">
+                      <span className="font-bold text-accent">
                         {a.sr_id}
                       </span>
                       {a.address && (
-                        <span className="text-emerald-700/70 dark:text-emerald-400/70 ml-2">
+                        <span className="text-muted-foreground ml-2">
                           {a.address.split(",")[0]}
                         </span>
                       )}
                     </div>
-                    <span className="font-bold bg-emerald-600 text-white text-[10px] px-2 py-1 rounded-lg">
+                    <span className="font-bold bg-accent text-accent-foreground text-[10px] px-2 py-1 rounded-lg">
                       {new Date(a.appointment_at!).toLocaleTimeString("el-GR", {
                         hour: "2-digit",
                         minute: "2-digit",
@@ -328,7 +328,7 @@ const TechnicianDashboard = () => {
                         className={`flex-shrink-0 inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-all ${
                           isActive
                             ? s.value === "all"
-                              ? "bg-violet-600 text-white border-violet-600"
+                              ? "bg-primary text-primary-foreground border-primary"
                               : (s.color || "") + " border-current"
                             : "bg-card text-muted-foreground border-border hover:bg-muted"
                         }`}
