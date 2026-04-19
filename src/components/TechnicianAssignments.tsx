@@ -870,7 +870,7 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={(e) => e.stopPropagation()}
-                      className="text-[10px] font-bold text-blue-600 bg-blue-50 dark:bg-blue-900/20 dark:text-blue-400 px-2.5 py-1 rounded-full shrink-0 hover:bg-blue-100 transition-colors"
+                      className="text-[10px] font-bold text-primary bg-primary/10 px-2.5 py-1 rounded-full shrink-0 hover:bg-primary/20 transition-colors"
                     >
                       Πλοήγηση
                     </a>
