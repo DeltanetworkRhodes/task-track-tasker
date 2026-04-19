@@ -22,7 +22,7 @@ import SurveyForm from "@/components/SurveyForm";
 import IncompleteSurveys from "@/components/IncompleteSurveys";
 import ConstructionForm from "@/components/ConstructionForm";
 import SRComments from "@/components/SRComments";
-import PreWorkChecklist from "@/components/PreWorkChecklist";
+
 import TimeTracker from "@/components/TimeTracker";
 
 const statusFlow: { value: string; label: string }[] = [
@@ -64,9 +64,6 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
   const [cancelling, setCancelling] = useState(false);
-  const [preWorkComplete, setPreWorkComplete] = useState(() => {
-    return false; // will be synced by query + PreWorkChecklist onMount
-  });
   const queryClient = useQueryClient();
 
   // Crew data for filtered ConstructionForm
@@ -186,26 +183,6 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
     },
     enabled: !!selectedAssignment && (isDemo || !!user),
   });
-
-  // Fetch pre-work checklist for selected assignment (to init blocker state)
-  const { data: preWorkChecklist } = useQuery({
-    queryKey: ["pre-work-checklist", selectedAssignment?.id],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("pre_work_checklists" as any)
-        .select("completed")
-        .eq("assignment_id", selectedAssignment!.id)
-        .maybeSingle();
-      return data;
-    },
-    enabled: !!selectedAssignment && !isDemo && !!user,
-  });
-
-  // Sync preWorkComplete from query result (avoids stale false init)
-  const preWorkCompleteFromDb = !!(preWorkChecklist as any)?.completed;
-  if (preWorkCompleteFromDb && !preWorkComplete) {
-    setPreWorkComplete(true);
-  }
 
   const handleGisUploadSuccess = async (result: any) => {
     if (!selectedAssignment) return;
@@ -566,23 +543,15 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
     }
 
     if (status === "pending" || status === "inspection") {
-      const checklistBlocks = status === "pending" && !preWorkComplete;
       return (
         <div className="space-y-3">
           <Button
             className={btnClass}
             onClick={() => handleStartSurvey(assignment)}
-            disabled={checklistBlocks}
-            title={checklistBlocks ? "Ολοκληρώστε πρώτα τον Έλεγχο Πριν την Έναρξη" : undefined}
           >
             <FileEdit className="h-4 w-4" />
             {existingSurvey ? "Συνέχεια Αυτοψίας" : "Έναρξη Αυτοψίας"}
           </Button>
-          {checklistBlocks && (
-            <p className="text-[10px] text-warning text-center">
-              ⚠️ Ολοκληρώστε τον Έλεγχο Πριν την Έναρξη για να συνεχίσετε
-            </p>
-          )}
           {existingSurvey && (
             <div className="flex gap-2 w-full">
               <Button
@@ -1095,14 +1064,6 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
                   </div>
                 </Card>
 
-
-                {/* Pre-Work Checklist - visible for pending assignments */}
-                {(selectedAssignment.status === "pending" || selectedAssignment.status === "inspection") && (
-                  <PreWorkChecklist
-                    assignment={selectedAssignment}
-                    onChecklistComplete={setPreWorkComplete}
-                  />
-                )}
 
                 {/* Existing survey info */}
                 {existingSurvey && (
