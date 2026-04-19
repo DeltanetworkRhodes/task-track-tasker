@@ -26,8 +26,8 @@ const GpsOnlineToggle = () => {
         disabled={loading}
         className={`relative flex items-center gap-2 rounded-full px-4 py-2 text-xs font-bold transition-all shadow-md ${
           isOnline
-            ? "bg-green-500 text-white hover:bg-green-600 ring-2 ring-green-400/30"
-            : "bg-muted text-muted-foreground hover:bg-muted-foreground/20 border border-border"
+            ? "bg-success text-success-foreground hover:bg-success/90 ring-2 ring-success/30"
+            : "bg-sidebar-accent/40 text-sidebar-foreground hover:bg-sidebar-accent border border-sidebar-border"
         }`}
       >
         {loading ? (
