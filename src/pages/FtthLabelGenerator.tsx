@@ -111,65 +111,70 @@ export default function FtthLabelGenerator() {
     const bepBmoPaths = optPaths.filter((p) => getType(p) === "BEP-BMO");
     const bmoFbPaths = optPaths.filter((p) => getType(p) === "BMO-FB");
 
-    // ── BEP Grid (A-D rows × 1-12 cols) ──
-    const splitterToRow: Record<string, string> = {
-      SB01: "A",
-      SB02: "B",
-      SB03: "C",
-      SB04: "D",
-    };
-
+    // ── BEP Grid: μία γραμμή ανά BEP, στήλες 1-12 = αριθμός ίνας στο BEP ──
+    // Row A = BEP01, Row B = BEP02, κτλ.
     interface GridCell {
       row: string;
       col: number;
       text: string;
+      kind?: "lim" | "floor" | "black";
     }
     const bepCells: GridCell[] = [];
 
-    // Col 1: CAB fiber limits
-    cabBepPaths.forEach((p: any, i: number) => {
+    // Helper: extract BEP index (e.g. "BEP01" → 1)
+    const getBepIdx = (path: string): number => {
+      const m = path.match(/BEP(\d+)/);
+      return m ? parseInt(m[1]) : 1;
+    };
+    const bepIdxToRow = (idx: number) => String.fromCharCode(64 + idx); // 1→A, 2→B…
+
+    // Step 1 — CAB-BEP: fiber number is the LAST _NN before _SBxx OR end
+    cabBepPaths.forEach((p: any) => {
       const path = getPath(p);
-      const limMatch = path.match(/B(\d+)\.(\d+)/) || path.match(/(\d+)-(\d+)/);
-      const row = ["A", "B", "C", "D"][i];
-      if (row) {
-        bepCells.push({ row, col: 1, text: limMatch ? limMatch[0] : "" });
-      }
+      const fiberMatch = path.match(/_(\d{2})(?:_SB|$)/);
+      const limMatch = path.match(/B(\d+)\.(\d+)/);
+      const bepIdx = getBepIdx(path);
+      const row = bepIdxToRow(bepIdx);
+      if (!fiberMatch) return;
+      const col = parseInt(fiberMatch[1]);
+      bepCells.push({
+        row,
+        col,
+        text: limMatch ? limMatch[0] : "",
+        kind: "lim",
+      });
     });
 
-    // Col 2+: BEP-BMO ports → όροφος
+    // Step 2 — BEP-BMO: fiber number is the middle _FF_ → όροφος από BMO→FB
     bepBmoPaths.forEach((p: any) => {
       const path = getPath(p);
-      const sbMatch = path.match(/_(SB\d+)\([^)]+\)\.(\d+)/);
-      if (!sbMatch) return;
+      // BEP01(b08)_SB01(1:8).PP_FF_BMO01_BB
+      const m = path.match(/_SB(\d+)\([^)]+\)\.(\d+)_(\d+)_BMO\d+_(\d+)/);
+      if (!m) return;
+      const fiber = parseInt(m[3]);
+      const bmoPort = parseInt(m[4]);
+      const bepIdx = getBepIdx(path);
+      const row = bepIdxToRow(bepIdx);
 
-      const splitter = sbMatch[1];
-      const port = parseInt(sbMatch[2]);
-      const row = splitterToRow[splitter];
-      if (!row) return;
-
-      const col = port + 1;
-
-      const bmoPortMatch = path.match(/BMO\d+_(\d+)$/);
-      const bmoPort = bmoPortMatch ? parseInt(bmoPortMatch[1]) : -1;
-
+      // Βρες όροφο από BMO→FB
       let floor = "";
-      if (bmoPort >= 0) {
-        const fbPath = bmoFbPaths.find((fb: any) => {
-          const s = getPath(fb);
-          return s.match(new RegExp(`BMO\\d+_${bmoPort}_`));
-        });
-        if (fbPath) {
-          const s = getPath(fbPath);
-          const fm = s.match(/FB\(([^)]+)\)/);
-          if (fm) floor = fm[1];
-        }
+      const fbPath = bmoFbPaths.find((fb: any) => {
+        const s = getPath(fb);
+        return s.match(new RegExp(`BMO\\d+_${bmoPort}_FB`));
+      });
+      if (fbPath) {
+        const s = getPath(fbPath);
+        const fm = s.match(/FB\(([^)]+)\)/);
+        if (fm) floor = fm[1];
       }
 
-      if (!bepCells.find((c) => c.row === row && c.col === col)) {
+      // Δεν αντικαθιστούμε υπάρχον CAB cell
+      if (!bepCells.find((c) => c.row === row && c.col === fiber)) {
         bepCells.push({
           row,
-          col,
+          col: fiber,
           text: floor ? floorLabel(floor) : "",
+          kind: "floor",
         });
       }
     });
@@ -208,18 +213,30 @@ export default function FtthLabelGenerator() {
         portTo: Math.max(...floorPortMap[floor]),
       }));
 
-    // CAB limits για BEP door
+    // CAB limits για BEP door — μόνο τα limit ranges (B1.1, B1.2…)
     const cabLimits = cabBepPaths
       .map((p: any) => {
         const path = getPath(p);
-        const m = path.match(/B(\d+)\.(\d+)/) || path.match(/(\d+)-(\d+)/);
+        const m = path.match(/B(\d+)\.(\d+)/);
         return m ? m[0] : "";
       })
       .filter(Boolean)
+      .sort()
       .join(", ");
 
-    return { bepCells, bmoPorts, fbGroups, cabLimits, cabBepPaths };
+    // Πόσα BEP rows χρειάζονται;
+    const bepRowsCount = Math.max(
+      1,
+      ...cabBepPaths.map((p: any) => getBepIdx(getPath(p))),
+      ...bepBmoPaths.map((p: any) => getBepIdx(getPath(p)))
+    );
+    const bepRows = Array.from({ length: Math.max(bepRowsCount, 1) }, (_, i) =>
+      String.fromCharCode(65 + i)
+    );
+
+    return { bepCells, bmoPorts, fbGroups, cabLimits, cabBepPaths, bepRows };
   }, [gisData]);
+
 
   return (
     <AppLayout>
