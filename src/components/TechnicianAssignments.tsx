@@ -823,10 +823,19 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
                       <span className="text-sm font-bold text-primary">
                         {a.sr_id}
                       </span>
-                      {apptToday && (
-                        <span className="text-[10px] font-bold bg-accent/15 text-accent px-2 py-0.5 rounded-full">
-                          ΣΗΜΕΡΑ{" "}
-                          {new Date(a.appointment_at!).toLocaleTimeString("el-GR", {
+                      {apptUpcoming && apptDate && (
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                          apptToday
+                            ? "bg-accent/15 text-accent"
+                            : "bg-warning/15 text-warning"
+                        }`}>
+                          {apptToday ? "ΣΗΜΕΡΑ " : ""}
+                          {apptDate.toLocaleDateString("el-GR", {
+                            day: "2-digit",
+                            month: "2-digit",
+                          })}
+                          {" "}
+                          {apptDate.toLocaleTimeString("el-GR", {
                             hour: "2-digit",
                             minute: "2-digit",
                           })}
