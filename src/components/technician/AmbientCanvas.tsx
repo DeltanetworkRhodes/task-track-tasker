@@ -76,7 +76,7 @@ const AmbientCanvas = ({ minutesUntilNext, status }: Props) => {
     >
       {/* Layer 1 — Time-of-day base glow (top-left) */}
       <div
-        className="absolute -top-1/4 -left-1/4 h-[80vh] w-[80vw] rounded-full blur-3xl opacity-[0.18] transition-all duration-[3000ms] ease-out"
+        className="absolute -top-1/4 -left-1/4 h-[80vh] w-[80vw] rounded-full blur-3xl opacity-[0.10] transition-all duration-[3000ms] ease-out"
         style={{
           background: `radial-gradient(circle, hsl(${baseHsl}) 0%, transparent 70%)`,
         }}
@@ -85,7 +85,7 @@ const AmbientCanvas = ({ minutesUntilNext, status }: Props) => {
       {/* Layer 2 — Urgency overlay (center, pulses) */}
       {urgencyHsl && (
         <div
-          className="absolute top-1/4 left-1/2 -translate-x-1/2 h-[60vh] w-[70vw] rounded-full blur-3xl opacity-[0.16] animate-pulse-glow transition-all duration-[2000ms]"
+          className="absolute top-1/4 left-1/2 -translate-x-1/2 h-[60vh] w-[70vw] rounded-full blur-3xl opacity-[0.10] animate-pulse-glow transition-all duration-[2000ms]"
           style={{
             background: `radial-gradient(circle, hsl(${urgencyHsl}) 0%, transparent 65%)`,
           }}
@@ -95,7 +95,7 @@ const AmbientCanvas = ({ minutesUntilNext, status }: Props) => {
       {/* Layer 3 — Status halo (bottom-right) */}
       {statusHsl && (
         <div
-          className="absolute -bottom-1/4 -right-1/4 h-[70vh] w-[70vw] rounded-full blur-3xl opacity-[0.15] transition-all duration-[2000ms] ease-out"
+          className="absolute -bottom-1/4 -right-1/4 h-[70vh] w-[70vw] rounded-full blur-3xl opacity-[0.09] transition-all duration-[2000ms] ease-out"
           style={{
             background: `radial-gradient(circle, hsl(${statusHsl}) 0%, transparent 70%)`,
           }}
@@ -104,7 +104,7 @@ const AmbientCanvas = ({ minutesUntilNext, status }: Props) => {
 
       {/* Linear.app horizontal grid lines */}
       <div
-        className="absolute inset-0 opacity-[0.12]"
+        className="absolute inset-0 opacity-[0.06]"
         style={{
           backgroundImage:
             "repeating-linear-gradient(0deg, hsl(var(--foreground) / 0.5) 0, hsl(var(--foreground) / 0.5) 1px, transparent 1px, transparent 96px)",
@@ -116,7 +116,7 @@ const AmbientCanvas = ({ minutesUntilNext, status }: Props) => {
       />
 
       {/* Animated film grain — SVG noise that drifts */}
-      <div className="absolute inset-0 opacity-[0.13] mix-blend-overlay film-grain-canvas" />
+      <div className="absolute inset-0 opacity-[0.06] mix-blend-multiply film-grain-canvas" />
     </div>
   );
 };
