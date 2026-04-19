@@ -313,20 +313,20 @@ const TechnicianDashboard = () => {
           <div className="px-4 pt-4 space-y-3">
             <NotificationPermissionCard />
 
-            {/* Today banner */}
+            {/* Today banner — gradient teal-to-green */}
             {todayAppts.length > 0 && (
-              <div className="bg-accent/10 border border-accent/30 rounded-2xl p-4 space-y-2">
-                <div className="flex items-center gap-2 text-xs font-bold text-accent">
-                  <div className="h-2 w-2 rounded-full bg-accent animate-pulse" />
+              <div className="bg-gradient-to-br from-primary/10 via-card to-accent/10 border border-accent/30 rounded-2xl p-4 space-y-2 shadow-md">
+                <div className="flex items-center gap-2 text-xs font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                  <div className="h-2 w-2 rounded-full bg-accent animate-pulse shadow-[0_0_8px_hsl(var(--accent))]" />
                   Σήμερα — {todayAppts.length} ραντεβού
                 </div>
                 {todayAppts.map((a) => (
                   <div
                     key={a.id}
-                    className="flex items-center justify-between text-xs bg-card/60 rounded-xl px-3 py-2 border border-accent/20"
+                    className="flex items-center justify-between text-xs bg-card/80 rounded-xl px-3 py-2 border border-border"
                   >
                     <div>
-                      <span className="font-bold text-accent">
+                      <span className="font-bold text-primary">
                         {a.sr_id}
                       </span>
                       {a.address && (
@@ -335,7 +335,7 @@ const TechnicianDashboard = () => {
                         </span>
                       )}
                     </div>
-                    <span className="font-bold bg-accent text-accent-foreground text-[10px] px-2 py-1 rounded-lg">
+                    <span className="font-bold bg-gradient-to-r from-primary to-accent text-primary-foreground text-[10px] px-2 py-1 rounded-lg shadow-sm">
                       {new Date(a.appointment_at!).toLocaleTimeString("el-GR", {
                         hour: "2-digit",
                         minute: "2-digit",
