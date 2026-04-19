@@ -276,20 +276,17 @@ const Index = () => {
                 { value: constructions.length, label: "Κατασκευές" },
                 { value: `${totalProfit.toLocaleString('el-GR')}€`, label: "Κέρδος" },
               ].map((s, i) => (
-                <>
-                  <motion.div
-                    key={s.label}
-                    className="text-center sm:text-left"
-                    variants={{
-                      hidden: { opacity: 0, y: 12 },
-                      visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 280, damping: 22 } },
-                    }}
-                  >
-                    <p className="text-2xl sm:text-3xl font-extrabold text-white tabular-nums">{s.value}</p>
-                    <p className="text-[9px] sm:text-[10px] uppercase tracking-wider text-white/40 mt-0.5">{s.label}</p>
-                  </motion.div>
-                  {i < 2 && <div key={`sep-${i}`} className="hidden sm:block h-8 w-px bg-white/10" />}
-                </>
+                <motion.div
+                  key={s.label}
+                  className="text-center sm:text-left"
+                  variants={{
+                    hidden: { opacity: 0, y: 12 },
+                    visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 280, damping: 22 } },
+                  }}
+                >
+                  <p className="text-2xl sm:text-3xl font-extrabold text-white tabular-nums">{s.value}</p>
+                  <p className="text-[9px] sm:text-[10px] uppercase tracking-wider text-white/40 mt-0.5">{s.label}</p>
+                </motion.div>
               ))}
             </motion.div>
 
