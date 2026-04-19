@@ -447,8 +447,8 @@ const TechnicianDashboard = () => {
         </div>
       </header>
 
-      {/* ── CONTENT ── */}
-      <div className="pb-6">
+      {/* ── CONTENT (relative so it sits above ambient canvas) ── */}
+      <div className="relative z-10 pb-6">
         <AnimatePresence mode="wait">
           {activeTab === "assignments" && (
             <motion.div
