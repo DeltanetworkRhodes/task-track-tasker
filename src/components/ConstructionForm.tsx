@@ -4608,54 +4608,48 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
             </AlertDialog>
           )}
 
-          {/* Completion button for crew member — ONLY Phase 3 */}
-          {isCrewMode && phase === 3 && (
-            <AlertDialog open={showCompleteConfirm} onOpenChange={setShowCompleteConfirm}>
-              <AlertDialogTrigger asChild>
-                <Button
-                  disabled={submitting || completing || (!mandatoryPhotosValid && mandatoryPhotoKeys.size > 0)}
-                  variant="default"
-                  className="flex-1 py-5 text-sm font-bold gap-2 bg-green-600 hover:bg-green-700 text-white"
-                >
-                  {completing ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      {submitProgress || "Ολοκλήρωση..."}
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle className="h-4 w-4" />
-                      ✅ Ολοκλήρωση
-                    </>
-                  )}
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Ολοκλήρωση Κατασκευής</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Είστε σίγουροι ότι θέλετε να ολοκληρώσετε την κατασκευή για το SR <strong>{assignment.sr_id}</strong>;
-                    <br /><br />
-                    Αν είστε ο τελευταίος τεχνικός, θα δημιουργηθεί ο φάκελος πελάτη και θα σταλεί email ολοκλήρωσης.
-                    <br /><br />
-                    <strong>Αυτή η ενέργεια δεν αναιρείται.</strong>
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Ακύρωση</AlertDialogCancel>
-                  <AlertDialogAction
-                    className="bg-green-600 hover:bg-green-700 text-white"
-                    onClick={() => {
-                      completingRef.current = true;
-                      setCompleting(true);
-                      handleSubmit();
-                    }}
-                  >
-                    Ναι, Ολοκλήρωση
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+          {/* Phase completion button — for any crew technician with a phase */}
+          {phase && (
+            <Button
+              onClick={async () => {
+                await handleSubmit();
+                const { data: existing } = await supabase
+                  .from("constructions")
+                  .select("id")
+                  .eq("assignment_id", assignment.id)
+                  .maybeSingle();
+                if (existing?.id) {
+                  const phaseField = `phase${phase}_status`;
+                  const phaseDate = `phase${phase}_completed_at`;
+                  await supabase
+                    .from("constructions")
+                    .update({
+                      [phaseField]: "completed",
+                      [phaseDate]: new Date().toISOString(),
+                    } as any)
+                    .eq("id", existing.id);
+                  toast.success(`✅ Φάση ${phase} ολοκληρώθηκε!`, {
+                    description: phase === 2 ? "Η Φάση 3 ξεκλειδώθηκε" : undefined,
+                    duration: 4000,
+                  });
+                  queryClient.invalidateQueries({ queryKey: ["phase-statuses"] });
+                  queryClient.invalidateQueries({ queryKey: ["construction-phases"] });
+                  queryClient.invalidateQueries({ queryKey: ["phase-status"] });
+                }
+              }}
+              disabled={submitting || completing}
+              className={`flex-1 py-5 text-sm font-bold gap-2 text-white ${
+                phase === 1
+                  ? "bg-amber-600 hover:bg-amber-700"
+                  : phase === 2
+                  ? "bg-blue-600 hover:bg-blue-700"
+                  : "bg-green-600 hover:bg-green-700"
+              }`}
+            >
+              <CheckCircle className="h-4 w-4" />
+              ✅ Ολοκλήρωση Φάσης {phase}
+              {phase === 1 ? " — Χωματουργικά" : phase === 2 ? " — Οδεύσεις" : " — Κόλληση"}
+            </Button>
           )}
         </div>
       </div>
