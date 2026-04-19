@@ -767,7 +767,7 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
   const stripeColor: Record<string, string> = {
     construction: "bg-primary",
     inspection: "bg-warning",
-    pre_committed: "bg-accent",
+    pre_committed: "bg-warning",
     pending: "bg-muted-foreground/30",
   };
   // Phase button colors
