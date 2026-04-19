@@ -1,5 +1,5 @@
 import { useLocationTracking } from "@/hooks/useLocationTracking";
-import { MapPin, MapPinOff, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useState } from "react";
 
 const GpsOnlineToggle = () => {
@@ -20,39 +20,38 @@ const GpsOnlineToggle = () => {
   };
 
   return (
-    <div className="flex flex-col items-center gap-1.5 w-full">
+    <div className="flex flex-col items-center gap-1 w-full">
       <button
         onClick={handleToggle}
         disabled={loading}
-        className={`group relative flex items-center justify-center gap-2 w-full max-w-[260px] rounded-2xl px-5 py-3 text-[13px] font-semibold transition-all active:scale-[0.97] ${
+        className={`group relative inline-flex items-center justify-center gap-1.5 rounded-full px-3.5 py-1.5 text-[11px] font-semibold transition-all active:scale-[0.96] backdrop-blur-xl ${
           isOnline
-            ? "bg-gradient-to-br from-emerald-500 to-emerald-600 text-white shadow-lg shadow-emerald-500/30 ring-1 ring-emerald-400/40"
-            : "bg-card text-foreground border border-border/70 shadow-sm hover:border-primary/40 hover:bg-muted/40"
+            ? "bg-emerald-500/90 text-white shadow-[0_2px_8px_rgba(16,185,129,0.35)] ring-1 ring-emerald-400/50"
+            : "bg-card/80 text-foreground/80 border border-border/60 shadow-sm hover:bg-muted/60"
         }`}
       >
         {loading ? (
           <>
-            <Loader2 className="h-4 w-4 animate-spin" />
-            <span>Σύνδεση...</span>
+            <Loader2 className="h-3 w-3 animate-spin" />
+            <span>...</span>
           </>
         ) : isOnline ? (
           <>
-            <span className="relative flex h-2.5 w-2.5">
-              <span className="absolute inline-flex h-full w-full rounded-full bg-white/70 animate-ping" />
-              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-white" />
+            <span className="relative flex h-1.5 w-1.5">
+              <span className="absolute inline-flex h-full w-full rounded-full bg-white/80 animate-ping" />
+              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-white" />
             </span>
-            <MapPin className="h-4 w-4" />
-            <span className="tracking-tight">Online — Ενεργό GPS</span>
+            <span className="tracking-tight">GPS Online</span>
           </>
         ) : (
           <>
-            <MapPinOff className="h-4 w-4 text-muted-foreground" />
-            <span className="tracking-tight">Πάτα για ενεργοποίηση GPS</span>
+            <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/50" />
+            <span className="tracking-tight">Ενεργοποίηση GPS</span>
           </>
         )}
       </button>
       {gpsError && (
-        <span className="text-[10px] text-destructive text-center max-w-[240px] leading-tight px-2">
+        <span className="text-[9px] text-destructive text-center max-w-[220px] leading-tight px-2">
           {gpsError}
         </span>
       )}
