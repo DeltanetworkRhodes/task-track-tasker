@@ -155,6 +155,21 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
     return map;
   }, [phaseStatuses]);
 
+  // Fetch current user's default_phase from profile
+  const { data: myProfile } = useQuery({
+    queryKey: ["profile-phase", user?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("default_phase")
+        .eq("user_id", user!.id)
+        .maybeSingle();
+      return data as any;
+    },
+    enabled: !!user && !isDemo,
+  });
+  const myPhase: number | undefined = (myProfile as any)?.default_phase ?? undefined;
+
   // Fetch GIS data for selected assignment
   const { data: existingGisData } = useQuery({
     queryKey: ["assignment-gis", selectedAssignment?.id, isDemo],
