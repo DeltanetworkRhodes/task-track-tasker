@@ -951,10 +951,10 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
                         setShowCrewPanel(true);
                       }
                     }}
-                    className={`w-full py-2.5 text-xs font-bold text-white rounded-xl flex items-center justify-center gap-2 transition-colors ${
+                    className={`w-full py-2.5 text-xs font-bold rounded-xl flex items-center justify-center gap-2 transition-colors ${
                       myPhase && PHASE_BTN[myPhase]
                         ? PHASE_BTN[myPhase]
-                        : "bg-violet-600 hover:bg-violet-700"
+                        : "bg-primary hover:bg-primary/90 text-primary-foreground"
                     }`}
                   >
                     <HardHat className="h-3.5 w-3.5" />
