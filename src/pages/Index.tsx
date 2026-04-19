@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import AppLayout from "@/components/AppLayout";
@@ -11,6 +11,9 @@ import AssignmentTable from "@/components/AssignmentTable";
 import SetupWizard from "@/components/SetupWizard";
 import PaymentTracker from "@/components/PaymentTracker";
 import CallDashboardWidget from "@/components/CallDashboardWidget";
+import AdminNextUpHero from "@/components/admin/AdminNextUpHero";
+import AdminOutlierBanner from "@/components/admin/AdminOutlierBanner";
+import FreshnessIndicator from "@/components/technician/FreshnessIndicator";
 import { useAssignments, useConstructions } from "@/hooks/useData";
 import { statusLabels } from "@/data/mockData";
 import { ClipboardCheck, Wrench, TrendingUp, Euro, Activity, Wifi, PieChartIcon, CalendarDays, Timer, Zap, Wallet } from "lucide-react";
