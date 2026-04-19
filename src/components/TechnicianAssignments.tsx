@@ -824,6 +824,7 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
               }}
               whileHover={{ y: -2, transition: { type: "spring", stiffness: 400, damping: 25 } }}
               whileTap={{ scale: 0.985 }}
+              data-sr-id={a.sr_id}
               className={`group relative bg-card rounded-2xl overflow-hidden border transition-colors duration-300 cursor-pointer ${
                 apptToday
                   ? "border-accent/40 shadow-[0_8px_24px_-12px_hsl(var(--accent)/0.5)]"

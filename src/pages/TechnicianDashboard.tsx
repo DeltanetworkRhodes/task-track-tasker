@@ -1,7 +1,7 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,11 @@ import TechnicianAssignments from "@/components/TechnicianAssignments";
 import TechnicianMap from "@/components/TechnicianMap";
 import GpsOnlineToggle from "@/components/GpsOnlineToggle";
 import TechnicianInventoryView from "@/components/TechnicianInventoryView";
+import NextUpHero from "@/components/technician/NextUpHero";
+import OutlierBanner from "@/components/technician/OutlierBanner";
+import FreshnessIndicator from "@/components/technician/FreshnessIndicator";
+
+const FILTERS_STORAGE_KEY = "tech-dashboard-filters-v1";
 
 const statusFilters = [
   { value: "all", label: "Όλα" },
@@ -25,10 +30,34 @@ const statusFilters = [
 
 const TechnicianDashboard = () => {
   const { user, signOut } = useAuth();
-  const [activeTab, setActiveTab] = useState("assignments");
+  const queryClient = useQueryClient();
+
+  // Persisted filter state (Fuselab: filters survive across navigation/reload)
+  const persisted = (() => {
+    try {
+      const raw = localStorage.getItem(FILTERS_STORAGE_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  })();
+  const [activeTab, setActiveTab] = useState<string>(persisted?.activeTab ?? "assignments");
   const [hideCancelled, setHideCancelled] = useState(true);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [searchQuery, setSearchQuery] = useState<string>(persisted?.searchQuery ?? "");
+  const [statusFilter, setStatusFilter] = useState<string>(persisted?.statusFilter ?? "all");
+  const [lastSyncedAt, setLastSyncedAt] = useState<number>(Date.now());
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        FILTERS_STORAGE_KEY,
+        JSON.stringify({ activeTab, searchQuery, statusFilter })
+      );
+    } catch {
+      /* noop */
+    }
+  }, [activeTab, searchQuery, statusFilter]);
 
   const hiddenStatuses = ["cancelled", "completed", "submitted", "paid", "rejected"];
 
@@ -217,6 +246,73 @@ const TechnicianDashboard = () => {
     return new Date(a.appointment_at).getTime() > Date.now() - 6 * 60 * 60 * 1000;
   }).length;
 
+  // ── Fuselab principles: hero + outliers ──
+  const nextUp = useMemo(() => {
+    const list = (enrichedAssignments || []).filter(
+      (a) => !hiddenStatuses.includes(a.status)
+    );
+    const cutoff = Date.now() - 6 * 60 * 60 * 1000;
+    const upcoming = list
+      .filter((a) => a.appointment_at && new Date(a.appointment_at).getTime() > cutoff)
+      .sort(
+        (a, b) =>
+          new Date(a.appointment_at!).getTime() -
+          new Date(b.appointment_at!).getTime()
+      );
+    if (upcoming.length > 0) return upcoming[0];
+    const sorted = [...list].sort(
+      (a, b) =>
+        new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+    );
+    return sorted[0] || null;
+  }, [enrichedAssignments]);
+
+  const outliers = useMemo(() => {
+    const list = (enrichedAssignments || []).filter(
+      (a) => !hiddenStatuses.includes(a.status)
+    );
+    const now = Date.now();
+    const sevenDays = 7 * 24 * 3600 * 1000;
+    const missedCutoff = 30 * 60 * 1000;
+    const missed = list.filter(
+      (a) =>
+        a.appointment_at &&
+        now - new Date(a.appointment_at).getTime() > missedCutoff &&
+        ["pending", "inspection", "pre_committed"].includes(a.status)
+    );
+    const stale = list.filter(
+      (a) =>
+        now - new Date(a.updated_at).getTime() > sevenDays &&
+        !missed.find((m) => m.id === a.id)
+    );
+    return { missed, stale };
+  }, [enrichedAssignments]);
+
+  useEffect(() => {
+    if (!isLoading && enrichedAssignments) setLastSyncedAt(Date.now());
+  }, [isLoading, enrichedAssignments]);
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["technician-assignments"] }),
+        queryClient.invalidateQueries({ queryKey: ["technician-appointments"] }),
+      ]);
+      setLastSyncedAt(Date.now());
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  const openAssignment = (a: any) => {
+    setActiveTab("assignments");
+    requestAnimationFrame(() => {
+      const el = document.querySelector(`[data-sr-id="${a.sr_id}"]`);
+      el?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+  };
+
   return (
     <div className="min-h-screen bg-background">
       {/* ── HEADER (Dark Industrial — admin palette) ── */}
@@ -347,6 +443,24 @@ const TechnicianDashboard = () => {
               className="px-4 pt-4 space-y-3"
             >
               <NotificationPermissionCard />
+
+              {/* Freshness indicator (Fuselab: data freshness) */}
+              <FreshnessIndicator
+                lastUpdatedAt={lastSyncedAt}
+                onRefresh={handleRefresh}
+                isRefreshing={isRefreshing}
+              />
+
+              {/* Next Up hero (Fuselab: role-based default view) */}
+              <NextUpHero assignment={nextUp} onOpen={openAssignment} />
+
+              {/* Outliers banner (Fuselab: surface outliers) */}
+              <OutlierBanner
+                staleAssignments={outliers.stale}
+                missedAppointments={outliers.missed}
+                onOpen={openAssignment}
+              />
+
 
               {/* Today banner — gradient teal-to-green */}
               {todayAppts.length > 0 && (
