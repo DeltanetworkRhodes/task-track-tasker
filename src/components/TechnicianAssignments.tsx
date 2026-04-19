@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 
 import { MapPin, Phone, Calendar, MessageSquare, Loader2, Eye, FileEdit, CheckCircle, Clock, HardHat, XCircle, Ban, Upload, FileSpreadsheet, FileText, CalendarClock, Users, Navigation } from "lucide-react";
 import GisUploadCard from "@/components/GisUploadCard";
@@ -129,6 +129,31 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
     },
     enabled: isDemo || (!!user && assignments.length > 0),
   });
+
+  // Fetch phase status for ALL assignments (only for construction-phase cards)
+  const assignmentIds = useMemo(
+    () => (assignments || []).map((a: any) => a.id),
+    [assignments]
+  );
+
+  const { data: phaseStatuses } = useQuery({
+    queryKey: ["phase-statuses", assignmentIds],
+    queryFn: async () => {
+      if (!assignmentIds.length) return [];
+      const { data } = await supabase
+        .from("constructions")
+        .select("assignment_id, phase1_status, phase2_status, phase3_status")
+        .in("assignment_id", assignmentIds);
+      return (data || []) as any[];
+    },
+    enabled: !isDemo && assignmentIds.length > 0,
+  });
+
+  const phaseStatusMap = useMemo(() => {
+    const map = new Map<string, any>();
+    (phaseStatuses || []).forEach((p: any) => map.set(p.assignment_id, p));
+    return map;
+  }, [phaseStatuses]);
 
   // Fetch GIS data for selected assignment
   const { data: existingGisData } = useQuery({
@@ -684,6 +709,45 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
     return null;
   };
 
+  const PhaseProgress = ({
+    p1 = "pending",
+    p2 = "pending",
+    p3 = "pending",
+  }: {
+    p1?: string;
+    p2?: string;
+    p3?: string;
+  }) => {
+    const phases = [
+      { label: "Φ1", icon: "🚜", s: p1 },
+      { label: "Φ2", icon: "🔧", s: p2 },
+      { label: "Φ3", icon: "🔬", s: p3 },
+    ];
+    return (
+      <div className="flex items-center gap-2">
+        {phases.map(({ label, icon, s }) => (
+          <div
+            key={label}
+            className={`flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold border transition-colors ${
+              s === "completed"
+                ? "bg-green-500/15 text-green-700 border-green-500/30 dark:text-green-400"
+                : s === "in_progress"
+                ? "bg-amber-500/15 text-amber-700 border-amber-500/30 dark:text-amber-400"
+                : "bg-muted/50 text-muted-foreground/50 border-border/50"
+            }`}
+          >
+            <span>{icon}</span>
+            <span>{label}</span>
+            {s === "completed" && <span>✓</span>}
+            {s === "in_progress" && (
+              <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse inline-block" />
+            )}
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   return (
     <>
       <div className="space-y-3">
@@ -781,6 +845,19 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
                 <span className="font-medium">Αναμονή GIS αρχείου</span>
               </div>
             )}
+
+            {/* Phase Progress (only when in construction) */}
+            {a.status === "construction" && (() => {
+              const ps = phaseStatusMap.get(a.id);
+              if (!ps) return null;
+              return (
+                <PhaseProgress
+                  p1={ps.phase1_status}
+                  p2={ps.phase2_status}
+                  p3={ps.phase3_status}
+                />
+              );
+            })()}
 
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
