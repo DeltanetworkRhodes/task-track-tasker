@@ -337,6 +337,7 @@ const TechnicianDashboard = () => {
                       {new Date(a.appointment_at!).toLocaleTimeString("el-GR", {
                         hour: "2-digit",
                         minute: "2-digit",
+                        hour12: false,
                       })}
                     </span>
                   </div>
