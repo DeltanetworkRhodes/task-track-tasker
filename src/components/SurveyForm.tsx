@@ -604,17 +604,20 @@ const FileUploadSection = ({
     : 0;
 
   return (
-    <Card className="p-4 space-y-3">
-      <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-        {label} {required && <span className="text-destructive">*</span>}
-      </Label>
-      <p className="text-xs text-muted-foreground">
+    <Card className="p-5 space-y-3.5">
+      <div className="flex items-center gap-2">
+        <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+        <Label className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+          {label} {required && <span className="text-destructive">*</span>}
+        </Label>
+      </div>
+      <p className="text-[11px] text-muted-foreground">
         Ανεβάστε έως {MAX_FILES} αρχεία.
       </p>
 
       {/* Compression loading state */}
       {isCompressing && (
-        <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50 animate-pulse">
+        <div className="flex items-center gap-2 p-3 rounded-xl bg-primary/5 border border-primary/10">
           <Loader2 className="h-4 w-4 animate-spin text-primary" />
           <span className="text-xs font-medium text-muted-foreground">
             Συμπίεση φωτογραφιών...
@@ -622,15 +625,13 @@ const FileUploadSection = ({
         </div>
       )}
 
-
-
       {/* Compression stats */}
       {compressionStats && !isCompressing && (
-        <div className="flex items-center gap-2 p-2 rounded-lg bg-accent/30 text-xs text-muted-foreground">
-          <FileImage className="h-3.5 w-3.5 text-primary shrink-0" />
+        <div className="flex items-center gap-2 p-2.5 rounded-xl bg-accent/8 text-xs text-muted-foreground border border-accent/15">
+          <FileImage className="h-3.5 w-3.5 text-accent shrink-0" />
           <span>
             {formatFileSize(compressionStats.original)} → {formatFileSize(compressionStats.compressed)}{" "}
-            <span className="font-semibold text-primary">(-{savings}%)</span>
+            <span className="font-semibold text-accent">(-{savings}%)</span>
           </span>
         </div>
       )}
@@ -643,12 +644,12 @@ const FileUploadSection = ({
               <img
                 src={f.preview}
                 alt={f.file.name}
-                className="h-20 w-full object-cover rounded-lg border border-border"
+                className="h-20 w-full object-cover rounded-xl border border-border/60 shadow-sm"
               />
               <button
                 type="button"
                 onClick={() => onRemove(i)}
-                className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
               >
                 <X className="h-3 w-3" />
               </button>
@@ -659,22 +660,17 @@ const FileUploadSection = ({
 
       {files.length < MAX_FILES && !isCompressing && (
         <div className="flex gap-2">
-          <Button
+          <button
             type="button"
-            variant="outline"
-            size="sm"
-            className="gap-1.5 text-xs"
             onClick={() => inputRef.current?.click()}
+            className="flex-1 flex items-center justify-center gap-1.5 h-10 rounded-xl bg-primary/[0.08] text-primary text-xs font-medium hover:bg-primary/[0.12] transition-colors border border-primary/15"
           >
             <Upload className="h-3.5 w-3.5" />
             Προσθήκη αρχείου
-          </Button>
+          </button>
           {capture && (
-            <Button
+            <button
               type="button"
-              variant="outline"
-              size="sm"
-              className="gap-1.5 text-xs"
               onClick={() => {
                 const inp = document.createElement("input");
                 inp.type = "file";
@@ -683,10 +679,11 @@ const FileUploadSection = ({
                 inp.onchange = () => onAdd(inp.files);
                 inp.click();
               }}
+              className="flex-1 flex items-center justify-center gap-1.5 h-10 rounded-xl bg-accent/[0.08] text-accent text-xs font-medium hover:bg-accent/[0.12] transition-colors border border-accent/15"
             >
               <Camera className="h-3.5 w-3.5" />
               Κάμερα
-            </Button>
+            </button>
           )}
         </div>
       )}
