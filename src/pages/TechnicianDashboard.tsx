@@ -328,7 +328,7 @@ const TechnicianDashboard = () => {
                         className={`flex-shrink-0 inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-all ${
                           isActive
                             ? s.value === "all"
-                              ? "bg-violet-600 text-white border-violet-600"
+                              ? "bg-primary text-primary-foreground border-primary"
                               : (s.color || "") + " border-current"
                             : "bg-card text-muted-foreground border-border hover:bg-muted"
                         }`}
