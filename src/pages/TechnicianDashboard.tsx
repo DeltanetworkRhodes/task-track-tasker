@@ -218,38 +218,34 @@ const TechnicianDashboard = () => {
   }).length;
 
   return (
-    <div className="min-h-screen aurora-bg bg-background">
-      {/* ── HEADER (Glassmorphism — calm refresh) ── */}
-      <header className="sticky top-0 z-40 glass border-b border-border/40 safe-top">
-        {/* Top row */}
-        <div className="flex items-center justify-between px-4 py-3">
-          <div className="flex items-center gap-3 min-w-0">
-            <motion.div
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ type: "spring", stiffness: 320, damping: 22 }}
-              className="h-11 w-11 rounded-full bg-gradient-to-br from-primary via-accent to-primary p-[1.5px] shrink-0 shadow-[0_0_20px_hsl(185_70%_50%/0.35)]"
-            >
-              <div className="h-full w-full rounded-full bg-card/80 backdrop-blur-xl flex items-center justify-center">
-                <span className="text-sm font-bold text-gradient-primary">
+    <div className="min-h-screen bg-background">
+      {/* ── HEADER (Dark Industrial — admin palette) ── */}
+      <header className="sticky top-0 z-50 bg-sidebar text-sidebar-foreground border-b border-sidebar-border shadow-xl">
+        {/* Top row with subtle gradient */}
+        <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-sidebar via-sidebar to-sidebar-accent/40">
+          <div className="flex items-center gap-3">
+            {/* Avatar — teal-to-green gradient ring */}
+            <div className="h-11 w-11 rounded-full bg-gradient-to-br from-primary to-accent p-[2px] shrink-0 shadow-[0_0_12px_hsl(185_70%_42%/0.4)]">
+              <div className="h-full w-full rounded-full bg-sidebar flex items-center justify-center">
+                <span className="text-sm font-bold bg-gradient-to-br from-primary to-accent bg-clip-text text-transparent">
                   {initials}
                 </span>
               </div>
-            </motion.div>
-            <div className="min-w-0">
-              <p className="text-[13px] font-semibold text-foreground/90 leading-tight truncate">
-                {greeting}, <span className="text-gradient-primary font-bold">{firstName}</span>
+            </div>
+            <div>
+              <p className="text-sm font-bold text-sidebar-accent-foreground leading-tight">
+                {greeting}, {firstName}!
               </p>
-              <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+              <div className="flex items-center gap-1.5 mt-1 flex-wrap">
                 {profile?.area && (
-                  <span className="text-[10.5px] text-muted-foreground flex items-center gap-0.5 font-medium">
+                  <span className="text-[11px] text-sidebar-foreground/70 flex items-center gap-0.5">
                     <MapPin className="h-3 w-3" />
                     {profile.area}
                   </span>
                 )}
                 {(profile as any)?.default_phase && (
                   <span
-                    className={`text-[10px] font-bold px-2 py-0.5 rounded-full backdrop-blur-md ${
+                    className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
                       PHASE_COLORS[(profile as any).default_phase as number]
                     }`}
                   >
@@ -259,77 +255,110 @@ const TechnicianDashboard = () => {
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-1.5 shrink-0">
+          <div className="flex items-center gap-1.5">
             <GpsOnlineToggle />
             <NotificationBell />
             <button
               onClick={signOut}
-              aria-label="Logout"
-              className="h-9 w-9 rounded-xl glass flex items-center justify-center text-foreground/70 hover:text-foreground hover:bg-card/80 transition-all"
+              className="h-9 w-9 rounded-xl border border-sidebar-border bg-sidebar-accent/40 flex items-center justify-center text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
             >
               <LogOut className="h-4 w-4" />
             </button>
           </div>
         </div>
 
-        {/* Stats — floating glass chips */}
-        <div className="grid grid-cols-3 gap-2 px-4 pb-3">
+        {/* Stats bar */}
+        <div className="grid grid-cols-3 divide-x divide-sidebar-border bg-sidebar-accent/30 border-t border-sidebar-border">
           {[
-            { label: "Ενεργά", value: activeCount, color: "from-primary/20 to-primary/5", text: "text-primary" },
-            { label: "Κατασκευή", value: constructionCount, color: "from-accent/20 to-accent/5", text: "text-accent" },
-            { label: "Ραντεβού", value: upcomingApptsCount, color: "from-warning/20 to-warning/5", text: "text-warning" },
+            { label: "Ενεργά", value: activeCount, color: "text-primary" },
+            { label: "Κατασκευή", value: constructionCount, color: "text-accent" },
+            { label: "Ραντεβού", value: upcomingApptsCount, color: "text-warning" },
           ].map((s, i) => (
             <motion.div
               key={s.label}
-              initial={{ opacity: 0, y: -6 }}
+              className="text-center py-2.5"
+              initial={{ opacity: 0, y: -8 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.08 + i * 0.06, duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-              className={`relative rounded-2xl p-2.5 bg-gradient-to-br ${s.color} border border-border/40 backdrop-blur-md overflow-hidden`}
+              transition={{ delay: 0.1 + i * 0.07, duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
             >
               <motion.p
                 key={s.value}
-                className={`text-xl font-bold ${s.text} leading-none tabular-nums`}
+                className={`text-xl font-bold ${s.color} leading-tight tabular-nums`}
                 initial={{ scale: 0.85, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
-                transition={{ type: "spring", stiffness: 400, damping: 22 }}
+                transition={{ type: "spring", stiffness: 380, damping: 22 }}
               >
                 {s.value}
               </motion.p>
-              <p className="text-[9.5px] text-muted-foreground mt-1 uppercase tracking-wider font-semibold">
+              <p className="text-[10px] text-sidebar-foreground/60 mt-0.5 uppercase tracking-wider">
                 {s.label}
               </p>
             </motion.div>
           ))}
         </div>
+
+        {/* Tab bar */}
+        <div className="flex border-t border-sidebar-border bg-sidebar relative">
+          {[
+            { id: "assignments", label: "Αναθέσεις", icon: ClipboardList },
+            { id: "inventory", label: "Αποθήκη", icon: Package },
+            { id: "map", label: "Χάρτης", icon: MapPin },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`relative flex-1 flex flex-col items-center gap-1 py-2.5 text-[11px] font-medium transition-colors ${
+                activeTab === tab.id
+                  ? "text-primary"
+                  : "text-sidebar-foreground/60 hover:text-sidebar-accent-foreground"
+              }`}
+            >
+              <tab.icon className="h-4 w-4" />
+              {tab.label}
+              {activeTab === tab.id && (
+                <motion.div
+                  layoutId="tech-tab-underline"
+                  className="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-primary via-accent to-primary"
+                  transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                />
+              )}
+              {activeTab === tab.id && (
+                <motion.div
+                  layoutId="tech-tab-bg"
+                  className="absolute inset-0 bg-sidebar-accent/40 -z-0"
+                  transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                />
+              )}
+            </button>
+          ))}
+        </div>
       </header>
 
       {/* ── CONTENT ── */}
-      <div className="pb-32">
+      <div className="pb-6">
         <AnimatePresence mode="wait">
           {activeTab === "assignments" && (
             <motion.div
               key="assignments"
-              initial={{ opacity: 0, y: 12, filter: "blur(4px)" }}
-              animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-              exit={{ opacity: 0, y: -8, filter: "blur(4px)" }}
-              transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
               className="px-4 pt-4 space-y-3"
             >
               <NotificationPermissionCard />
 
+              {/* Today banner — gradient teal-to-green */}
               {todayAppts.length > 0 && (
                 <motion.div
                   initial={{ opacity: 0, scale: 0.97 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: 0.1, duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-                  className="glass-strong rounded-3xl p-4 space-y-2 shadow-[0_8px_30px_-8px_hsl(185_70%_42%/0.25)] relative overflow-hidden"
+                  className="bg-gradient-to-br from-primary/10 via-card to-accent/10 border border-accent/30 rounded-2xl p-4 space-y-2 shadow-md"
                 >
-                  <div className="absolute -top-12 -right-12 h-32 w-32 rounded-full bg-gradient-to-br from-accent/40 to-primary/30 blur-3xl pointer-events-none" />
-                  <div className="relative flex items-center gap-2 text-xs font-bold">
-                    <div className="h-2 w-2 rounded-full bg-accent animate-pulse shadow-[0_0_10px_hsl(var(--accent))]" />
-                    <span className="text-gradient-primary">
-                      Σήμερα — {todayAppts.length} ραντεβού
-                    </span>
+                  <div className="flex items-center gap-2 text-xs font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                    <div className="h-2 w-2 rounded-full bg-accent animate-pulse shadow-[0_0_8px_hsl(var(--accent))]" />
+                    Σήμερα — {todayAppts.length} ραντεβού
                   </div>
                   {todayAppts.map((a, i) => (
                     <motion.div
@@ -337,19 +366,19 @@ const TechnicianDashboard = () => {
                       initial={{ opacity: 0, x: -8 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: 0.2 + i * 0.05 }}
-                      className="relative flex items-center justify-between text-xs bg-card/70 backdrop-blur-md rounded-2xl px-3 py-2 border border-border/40"
+                      className="flex items-center justify-between text-xs bg-card/80 rounded-xl px-3 py-2 border border-border"
                     >
-                      <div className="min-w-0">
-                        <span className="font-mono font-bold text-primary text-[12px]">
+                      <div>
+                        <span className="font-bold text-primary">
                           {a.sr_id}
                         </span>
                         {a.address && (
-                          <span className="text-muted-foreground ml-2 truncate">
+                          <span className="text-muted-foreground ml-2">
                             {a.address.split(",")[0]}
                           </span>
                         )}
                       </div>
-                      <span className="font-mono font-bold bg-gradient-to-r from-primary to-accent text-primary-foreground text-[10.5px] px-2 py-1 rounded-lg shadow-sm tabular-nums shrink-0">
+                      <span className="font-bold bg-gradient-to-r from-primary to-accent text-primary-foreground text-[10px] px-2 py-1 rounded-lg shadow-sm">
                         {new Date(a.appointment_at!).toLocaleTimeString("el-GR", {
                           hour: "2-digit",
                           minute: "2-digit",
@@ -361,86 +390,89 @@ const TechnicianDashboard = () => {
                 </motion.div>
               )}
 
-              {/* Search */}
-              <div className="relative">
-                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
-                <Input
-                  placeholder="Αναζήτηση SR, διεύθυνση..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 pr-10 h-12 text-sm rounded-2xl glass border-border/40 focus-visible:ring-2 focus-visible:ring-primary/40"
-                />
-                {searchQuery && (
-                  <button
-                    onClick={() => setSearchQuery("")}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 h-6 w-6 rounded-full bg-muted/80 hover:bg-muted-foreground/20 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors z-10"
-                  >
-                    <X className="h-3.5 w-3.5" />
-                  </button>
-                )}
-              </div>
+            {/* Search */}
+            <div className="relative">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Αναζήτηση SR, διεύθυνση..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 pr-10 h-12 text-sm rounded-2xl bg-card border-border/60 shadow-sm focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:border-primary/40"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 h-6 w-6 rounded-full bg-muted hover:bg-muted-foreground/20 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
 
-              {/* Filter chips */}
-              <ScrollArea className="w-full">
-                <div className="flex gap-2 pb-1">
-                  {statusFilters
-                    .filter(
-                      (s) =>
-                        s.value === "all" ||
-                        statusFilter === s.value ||
-                        (statusCounts[s.value] || 0) > 0
-                    )
-                    .map((s, i) => {
-                      const isActive = statusFilter === s.value;
-                      const count = statusCounts[s.value] || 0;
-                      return (
-                        <motion.button
-                          key={s.value}
-                          layout
-                          initial={{ opacity: 0, y: 6 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: 0.15 + i * 0.04, duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-                          whileTap={{ scale: 0.94 }}
-                          onClick={() => setStatusFilter(s.value)}
-                          className={`relative flex-shrink-0 inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-xs font-semibold backdrop-blur-md transition-colors ${
+            {/* Filter chips — modern pill style */}
+            <ScrollArea className="w-full">
+              <div className="flex gap-2 pb-1">
+                {statusFilters
+                  .filter(
+                    (s) =>
+                      s.value === "all" ||
+                      statusFilter === s.value ||
+                      (statusCounts[s.value] || 0) > 0
+                  )
+                  .map((s, i) => {
+                    const isActive = statusFilter === s.value;
+                    const count = statusCounts[s.value] || 0;
+                    return (
+                      <motion.button
+                        key={s.value}
+                        layout
+                        initial={{ opacity: 0, y: 6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.15 + i * 0.04, duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+                        whileTap={{ scale: 0.94 }}
+                        onClick={() => setStatusFilter(s.value)}
+                        className={`relative flex-shrink-0 inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-xs font-semibold transition-colors ${
+                          isActive
+                            ? s.value === "all"
+                              ? "bg-gradient-to-r from-primary to-accent text-primary-foreground border-transparent shadow-md"
+                              : (s.color || "") + " shadow-sm"
+                            : "bg-card text-muted-foreground border-border/60 hover:bg-muted hover:border-border"
+                        }`}
+                      >
+                        {isActive && (
+                          <motion.span
+                            layoutId="filter-active-glow"
+                            className="absolute inset-0 rounded-full ring-2 ring-primary/30"
+                            transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                          />
+                        )}
+                        <span className="relative">{s.label}</span>
+                        <span
+                          className={`relative text-[10px] font-bold rounded-full px-1.5 py-0.5 min-w-[20px] text-center ${
                             isActive
-                              ? s.value === "all"
-                                ? "bg-gradient-to-r from-primary to-accent text-primary-foreground border-transparent shadow-[0_4px_14px_-4px_hsl(185_70%_42%/0.5)]"
-                                : (s.color || "") + " shadow-sm"
-                              : "glass text-muted-foreground hover:text-foreground"
+                              ? "bg-background/30 text-current"
+                              : "bg-muted text-muted-foreground"
                           }`}
                         >
-                          <span className="relative">{s.label}</span>
-                          <span
-                            className={`relative text-[10px] font-bold rounded-full px-1.5 py-0.5 min-w-[20px] text-center ${
-                              isActive
-                                ? "bg-background/30 text-current"
-                                : "bg-muted/80 text-muted-foreground"
-                            }`}
-                          >
-                            {count}
-                          </span>
-                        </motion.button>
-                      );
-                    })}
-                </div>
-                <ScrollBar orientation="horizontal" />
-              </ScrollArea>
+                          {count}
+                        </span>
+                      </motion.button>
+                    );
+                  })}
+              </div>
+              <ScrollBar orientation="horizontal" />
+            </ScrollArea>
 
-              {filteredAssignments.length === 0 && !isLoading ? (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  className="flex flex-col items-center justify-center py-16 text-center space-y-3 glass rounded-3xl"
-                >
-                  <div className="h-16 w-16 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 backdrop-blur-md flex items-center justify-center">
-                    <ClipboardList className="h-8 w-8 text-primary/50" />
-                  </div>
-                  <p className="font-medium text-foreground text-sm">
-                    Δεν βρέθηκαν αναθέσεις
-                  </p>
-                  <p className="text-xs text-muted-foreground">Ωραία δουλειά! 🎉</p>
-                </motion.div>
+            {filteredAssignments.length === 0 && !isLoading ? (
+              <div className="flex flex-col items-center justify-center py-16 text-center space-y-3">
+                <div className="h-16 w-16 rounded-full bg-muted/50 flex items-center justify-center">
+                  <ClipboardList className="h-8 w-8 text-muted-foreground/30" />
+                </div>
+                <p className="font-medium text-foreground text-sm">
+                  Δεν βρέθηκαν αναθέσεις
+                </p>
+                <p className="text-xs text-muted-foreground">Ωραία δουλειά! 🎉</p>
+              </div>
               ) : (
                 <TechnicianAssignments
                   assignments={filteredAssignments}
@@ -453,10 +485,10 @@ const TechnicianDashboard = () => {
           {activeTab === "inventory" && (
             <motion.div
               key="inventory"
-              initial={{ opacity: 0, y: 12, filter: "blur(4px)" }}
-              animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-              exit={{ opacity: 0, y: -8, filter: "blur(4px)" }}
-              transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
               className="px-4 pt-4"
             >
               <TechnicianInventoryView />
@@ -477,46 +509,6 @@ const TechnicianDashboard = () => {
           )}
         </AnimatePresence>
       </div>
-
-      {/* ── FLOATING BOTTOM DOCK ── */}
-      <motion.nav
-        initial={{ y: 80, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ type: "spring", stiffness: 320, damping: 28, delay: 0.15 }}
-        className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 ios-safe-bottom"
-      >
-        <div className="glass-dark dock-shadow rounded-full px-1.5 py-1.5 flex items-center gap-0.5">
-          {[
-            { id: "assignments", label: "Αναθέσεις", icon: ClipboardList },
-            { id: "inventory", label: "Αποθήκη", icon: Package },
-            { id: "map", label: "Χάρτης", icon: MapPin },
-          ].map((tab) => {
-            const isActive = activeTab === tab.id;
-            return (
-              <motion.button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                whileTap={{ scale: 0.92 }}
-                className={`relative flex items-center gap-1.5 px-4 py-2.5 rounded-full text-[12px] font-semibold transition-colors ${
-                  isActive
-                    ? "text-primary-foreground"
-                    : "text-sidebar-foreground/70 hover:text-sidebar-accent-foreground"
-                }`}
-              >
-                {isActive && (
-                  <motion.div
-                    layoutId="dock-active-bg"
-                    className="absolute inset-0 rounded-full bg-gradient-to-r from-primary to-accent shadow-[0_4px_14px_-2px_hsl(185_70%_42%/0.6)]"
-                    transition={{ type: "spring", stiffness: 380, damping: 30 }}
-                  />
-                )}
-                <tab.icon className="relative h-4 w-4" />
-                <span className="relative">{tab.label}</span>
-              </motion.button>
-            );
-          })}
-        </div>
-      </motion.nav>
     </div>
   );
 };
