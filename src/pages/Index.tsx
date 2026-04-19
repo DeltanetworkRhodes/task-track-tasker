@@ -55,7 +55,9 @@ const GREEK_MONTHS: Record<number, string> = {
 
 const Index = () => {
   const [wizardDismissed, setWizardDismissed] = useState(false);
+  const [lastRefresh, setLastRefresh] = useState(Date.now());
   const { organizationId } = useOrganization();
+  const queryClient = useQueryClient();
   const { data: dbAssignments } = useAssignments();
   const { data: dbConstructions } = useConstructions();
 
