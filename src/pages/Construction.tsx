@@ -133,6 +133,46 @@ const ConstructionPage = () => {
     }
   };
 
+  const handlePhaseStatusChange = async (
+    constructionId: string,
+    phase: 1 | 2 | 3,
+    newStatus: string,
+  ) => {
+    try {
+      const phaseField = `phase${phase}_status`;
+      const phaseDate = `phase${phase}_completed_at`;
+      const { error } = await supabase
+        .from("constructions")
+        .update({
+          [phaseField]: newStatus,
+          [phaseDate]: newStatus === "completed" ? new Date().toISOString() : null,
+        } as any)
+        .eq("id", constructionId);
+      if (error) throw error;
+      toast.success(
+        `Φάση ${phase} → ${
+          newStatus === "completed"
+            ? "✅ Ολοκληρώθηκε"
+            : newStatus === "in_progress"
+            ? "🔄 Σε εξέλιξη"
+            : "⏳ Εκκρεμεί"
+        }`,
+      );
+      if (selectedConstruction?.id === constructionId) {
+        setSelectedConstruction({
+          ...selectedConstruction,
+          [`phase${phase}Status`]: newStatus,
+          [`phase${phase}CompletedAt`]:
+            newStatus === "completed" ? new Date().toISOString() : null,
+        });
+      }
+      queryClient.invalidateQueries({ queryKey: ["constructions"] });
+      queryClient.invalidateQueries({ queryKey: ["phase-statuses"] });
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
+
   const constructions = useMemo(() => {
     if (!dbConstructions) return [];
     return dbConstructions.map(c => ({
