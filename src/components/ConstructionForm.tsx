@@ -3779,8 +3779,16 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
       </Card>
 
       {/* 📐 Μέτρα BMO→FB ανά Όροφο (collapsible) — εμφανίζεται πάντα σε Φάση 2/3/admin */}
-      {(!phase || phase === 2 || phase === 3) && (
-        <Card className={`p-5 space-y-2.5 ${phase === 2 && floorMeters.length === 0 ? "border-blue-500/40 bg-blue-50/40 dark:bg-blue-950/20" : ""}`}>
+      {(!phase || phase === 2 || phase === 3) && (() => {
+        // Σε Φάση 2 ο τεχνικός συμπληρώνει μόνο μέτρα — δεν προσθέτει/διαγράφει ορόφους
+        // ούτε αλλάζει τύπο ίνας. Αυτά τα ορίζει ο υπεύθυνος έργου / GIS.
+        const isPhase2Crew = phase === 2;
+        const showOnlyMeters = isPhase2Crew;
+        const gridCols = showOnlyMeters
+          ? "grid-cols-[80px_1fr_70px]"
+          : "grid-cols-[70px_1fr_90px_36px]";
+        return (
+        <Card className={`p-5 space-y-2.5 ${isPhase2Crew && floorMeters.length === 0 ? "border-blue-500/40 bg-blue-50/40 dark:bg-blue-950/20" : ""}`}>
           <button
             type="button"
             onClick={() => setFloorMetersCardOpen((o) => !o)}
@@ -3789,9 +3797,9 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
             <span className="flex items-center gap-1.5">
               📐 Μέτρα BMO→FB ανά Όροφο
               <Badge variant="secondary" className="text-[10px]">{floorMeters.length}</Badge>
-              {phase === 2 && floorMeters.length === 0 && (
+              {isPhase2Crew && floorMeters.length === 0 && (
                 <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 normal-case tracking-normal">
-                  ⚠ Υποχρεωτικό για Φάση 2
+                  ⚠ Δεν έχουν οριστεί όροφοι από τον υπεύθυνο
                 </span>
               )}
             </span>
@@ -3805,29 +3813,35 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                 {inhouse12FoMeters > 0 && ` · 12FO: ${inhouse12FoMeters}μ`}
               </p>
               {floorMeters.length > 0 && (
-                <div className="grid grid-cols-[70px_1fr_90px_36px] gap-2 text-[10px] uppercase tracking-wider text-muted-foreground px-2">
+                <div className={`grid ${gridCols} gap-2 text-[10px] uppercase tracking-wider text-muted-foreground px-2`}>
                   <span>Όροφος</span>
                   <span>Μέτρα (BMO→FB)</span>
-                  <span>Τύπος Ίνας</span>
-                  <span></span>
+                  {showOnlyMeters ? <span className="text-right">Ίνα</span> : <><span>Τύπος Ίνας</span><span></span></>}
                 </div>
               )}
               {floorMeters.map((fm, idx) => (
-                <div key={idx} className="grid grid-cols-[70px_1fr_90px_36px] gap-2 items-center">
-                  <Input
-                    value={fm.floor}
-                    onChange={(e) =>
-                      setFloorMeters((prev) =>
-                        prev.map((p, i) => (i === idx ? { ...p, floor: e.target.value } : p))
-                      )
-                    }
-                    placeholder="ΙΣ"
-                    className="h-10 text-sm"
-                  />
+                <div key={idx} className={`grid ${gridCols} gap-2 items-center`}>
+                  {showOnlyMeters ? (
+                    <div className="h-10 flex items-center px-3 text-sm font-semibold text-foreground bg-muted/50 rounded-md">
+                      {fm.floor || "—"}
+                    </div>
+                  ) : (
+                    <Input
+                      value={fm.floor}
+                      onChange={(e) =>
+                        setFloorMeters((prev) =>
+                          prev.map((p, i) => (i === idx ? { ...p, floor: e.target.value } : p))
+                        )
+                      }
+                      placeholder="ΙΣ"
+                      className="h-10 text-sm"
+                    />
+                  )}
                   <Input
                     type="number"
                     min="0"
                     step="0.1"
+                    inputMode="decimal"
                     value={fm.meters}
                     onChange={(e) =>
                       setFloorMeters((prev) =>
@@ -3837,67 +3851,79 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                     placeholder="0"
                     className="h-10 text-sm"
                   />
-                  <select
-                    value={fm.fo_type || "4FO"}
-                    onChange={(e) => {
-                      const newFoType = e.target.value;
-                      const derivedPipe = newFoType === "12FO" ? '4"' : '2"';
-                      setFloorMeters((prev) =>
-                        prev.map((p, i) =>
-                          i === idx ? { ...p, fo_type: newFoType, pipe_type: derivedPipe } : p
-                        )
-                      );
-                    }}
-                    className="h-10 text-sm border border-border rounded-md px-2 bg-background text-foreground"
-                  >
-                    <option value="4FO">4 FO</option>
-                    <option value="12FO">12 FO</option>
-                  </select>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="h-10 w-9 text-destructive hover:text-destructive hover:bg-destructive/10"
-                    onClick={() =>
-                      setFloorMeters((prev) => prev.filter((_, i) => i !== idx))
-                    }
-                    aria-label="Διαγραφή ορόφου"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  {showOnlyMeters ? (
+                    <div className="h-10 flex items-center justify-end px-2 text-xs font-medium text-muted-foreground">
+                      {fm.fo_type || "4FO"}
+                    </div>
+                  ) : (
+                    <>
+                      <select
+                        value={fm.fo_type || "4FO"}
+                        onChange={(e) => {
+                          const newFoType = e.target.value;
+                          const derivedPipe = newFoType === "12FO" ? '4"' : '2"';
+                          setFloorMeters((prev) =>
+                            prev.map((p, i) =>
+                              i === idx ? { ...p, fo_type: newFoType, pipe_type: derivedPipe } : p
+                            )
+                          );
+                        }}
+                        className="h-10 text-sm border border-border rounded-md px-2 bg-background text-foreground"
+                      >
+                        <option value="4FO">4 FO</option>
+                        <option value="12FO">12 FO</option>
+                      </select>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-10 w-9 text-destructive hover:text-destructive hover:bg-destructive/10"
+                        onClick={() =>
+                          setFloorMeters((prev) => prev.filter((_, i) => i !== idx))
+                        }
+                        aria-label="Διαγραφή ορόφου"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </>
+                  )}
                 </div>
               ))}
               {floorMeters.length === 0 && (
                 <p className="text-xs text-muted-foreground italic px-2 py-3 text-center">
-                  Δεν έχουν καταχωρηθεί όροφοι. Πάτα «Προσθήκη Ορόφου» για να ξεκινήσεις.
+                  {showOnlyMeters
+                    ? "Δεν έχουν οριστεί όροφοι. Επικοινώνησε με τον υπεύθυνο έργου."
+                    : "Δεν έχουν καταχωρηθεί όροφοι. Πάτα «Προσθήκη Ορόφου» για να ξεκινήσεις."}
                 </p>
               )}
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="w-full mt-2"
-                onClick={() => {
-                  // Έξυπνο default επόμενου ορόφου: ΙΣ → 1ος → 2ος → ...
-                  const nextFloorLabel = (() => {
-                    const count = floorMeters.length;
-                    if (count === 0) return "ΙΣ";
-                    if (count === 1) return "1ος";
-                    return `${count}ος`;
-                  })();
-                  setFloorMeters((prev) => [
-                    ...prev,
-                    { floor: nextFloorLabel, meters: "", pipe_type: '2"', fo_type: "4FO" },
-                  ]);
-                }}
-              >
-                <Plus className="h-4 w-4 mr-1" />
-                Προσθήκη Ορόφου
-              </Button>
+              {!showOnlyMeters && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="w-full mt-2"
+                  onClick={() => {
+                    const nextFloorLabel = (() => {
+                      const count = floorMeters.length;
+                      if (count === 0) return "ΙΣ";
+                      if (count === 1) return "1ος";
+                      return `${count}ος`;
+                    })();
+                    setFloorMeters((prev) => [
+                      ...prev,
+                      { floor: nextFloorLabel, meters: "", pipe_type: '2"', fo_type: "4FO" },
+                    ]);
+                  }}
+                >
+                  <Plus className="h-4 w-4 mr-1" />
+                  Προσθήκη Ορόφου
+                </Button>
+              )}
             </div>
           )}
         </Card>
-      )}
+        );
+      })()}
 
       {/* 🗺️ Οριζοντογραφία AS-BUILD (collapsible) */}
       {!isCrewMode && (
