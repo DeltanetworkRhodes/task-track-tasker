@@ -217,25 +217,27 @@ const TechnicianDashboard = () => {
   }).length;
 
   return (
-    <div className="min-h-screen bg-muted/30">
-      {/* ── HEADER ── */}
-      <header className="sticky top-0 z-50 bg-card/95 backdrop-blur-md border-b border-border">
-        {/* Top row */}
-        <div className="flex items-center justify-between px-4 py-3">
+    <div className="min-h-screen bg-background">
+      {/* ── HEADER (Dark Industrial — admin palette) ── */}
+      <header className="sticky top-0 z-50 bg-sidebar text-sidebar-foreground border-b border-sidebar-border shadow-xl">
+        {/* Top row with subtle gradient */}
+        <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-sidebar via-sidebar to-sidebar-accent/40">
           <div className="flex items-center gap-3">
-            {/* Avatar */}
-            <div className="h-11 w-11 rounded-full bg-primary/15 flex items-center justify-center shrink-0 border-2 border-primary/30">
-              <span className="text-sm font-bold text-primary">
-                {initials}
-              </span>
+            {/* Avatar — teal-to-green gradient ring */}
+            <div className="h-11 w-11 rounded-full bg-gradient-to-br from-primary to-accent p-[2px] shrink-0 shadow-[0_0_12px_hsl(185_70%_42%/0.4)]">
+              <div className="h-full w-full rounded-full bg-sidebar flex items-center justify-center">
+                <span className="text-sm font-bold bg-gradient-to-br from-primary to-accent bg-clip-text text-transparent">
+                  {initials}
+                </span>
+              </div>
             </div>
             <div>
-              <p className="text-sm font-bold text-foreground leading-tight">
+              <p className="text-sm font-bold text-sidebar-accent-foreground leading-tight">
                 {greeting}, {firstName}!
               </p>
               <div className="flex items-center gap-1.5 mt-1 flex-wrap">
                 {profile?.area && (
-                  <span className="text-[11px] text-muted-foreground flex items-center gap-0.5">
+                  <span className="text-[11px] text-sidebar-foreground/70 flex items-center gap-0.5">
                     <MapPin className="h-3 w-3" />
                     {profile.area}
                   </span>
@@ -257,7 +259,7 @@ const TechnicianDashboard = () => {
             <NotificationBell />
             <button
               onClick={signOut}
-              className="h-9 w-9 rounded-xl border border-border flex items-center justify-center text-muted-foreground hover:bg-muted transition-colors"
+              className="h-9 w-9 rounded-xl border border-sidebar-border bg-sidebar-accent/40 flex items-center justify-center text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
             >
               <LogOut className="h-4 w-4" />
             </button>
@@ -265,17 +267,17 @@ const TechnicianDashboard = () => {
         </div>
 
         {/* Stats bar */}
-        <div className="grid grid-cols-3 divide-x divide-border border-t border-border/50">
+        <div className="grid grid-cols-3 divide-x divide-sidebar-border bg-sidebar-accent/30 border-t border-sidebar-border">
           {[
             { label: "Ενεργά", value: activeCount, color: "text-primary" },
-            { label: "Κατασκευή", value: constructionCount, color: "text-warning" },
-            { label: "Ραντεβού", value: upcomingApptsCount, color: "text-accent" },
+            { label: "Κατασκευή", value: constructionCount, color: "text-accent" },
+            { label: "Ραντεβού", value: upcomingApptsCount, color: "text-warning" },
           ].map((s) => (
             <div key={s.label} className="text-center py-2.5">
               <p className={`text-xl font-bold ${s.color} leading-tight`}>
                 {s.value}
               </p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">
+              <p className="text-[10px] text-sidebar-foreground/60 mt-0.5 uppercase tracking-wider">
                 {s.label}
               </p>
             </div>
@@ -283,7 +285,7 @@ const TechnicianDashboard = () => {
         </div>
 
         {/* Tab bar */}
-        <div className="flex border-t border-border/50">
+        <div className="flex border-t border-sidebar-border bg-sidebar">
           {[
             { id: "assignments", label: "Αναθέσεις", icon: ClipboardList },
             { id: "inventory", label: "Αποθήκη", icon: Package },
@@ -292,10 +294,10 @@ const TechnicianDashboard = () => {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex-1 flex flex-col items-center gap-1 py-2.5 text-[11px] font-medium transition-colors border-b-2 ${
+              className={`flex-1 flex flex-col items-center gap-1 py-2.5 text-[11px] font-medium transition-all border-b-2 ${
                 activeTab === tab.id
-                  ? "border-primary text-primary"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
+                  ? "border-primary text-primary bg-sidebar-accent/40"
+                  : "border-transparent text-sidebar-foreground/60 hover:text-sidebar-accent-foreground hover:bg-sidebar-accent/20"
               }`}
             >
               <tab.icon className="h-4 w-4" />
