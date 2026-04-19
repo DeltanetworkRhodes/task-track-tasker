@@ -444,6 +444,24 @@ const TechnicianDashboard = () => {
             >
               <NotificationPermissionCard />
 
+              {/* Freshness indicator (Fuselab: data freshness) */}
+              <FreshnessIndicator
+                lastUpdatedAt={lastSyncedAt}
+                onRefresh={handleRefresh}
+                isRefreshing={isRefreshing}
+              />
+
+              {/* Next Up hero (Fuselab: role-based default view) */}
+              <NextUpHero assignment={nextUp} onOpen={openAssignment} />
+
+              {/* Outliers banner (Fuselab: surface outliers) */}
+              <OutlierBanner
+                staleAssignments={outliers.stale}
+                missedAppointments={outliers.missed}
+                onOpen={openAssignment}
+              />
+
+
               {/* Today banner — gradient teal-to-green */}
               {todayAppts.length > 0 && (
                 <motion.div
