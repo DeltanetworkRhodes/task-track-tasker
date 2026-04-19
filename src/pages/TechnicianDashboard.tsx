@@ -181,13 +181,13 @@ const TechnicianDashboard = () => {
     3: "🔬 Κόλληση",
   };
 
-  const activeCount = (assignments || []).filter(
+  const activeCount = (enrichedAssignments || []).filter(
     (a) => !hiddenStatuses.includes(a.status)
   ).length;
-  const constructionCount = (assignments || []).filter(
+  const constructionCount = (enrichedAssignments || []).filter(
     (a) => a.status === "construction"
   ).length;
-  const todayAppts = (assignments || []).filter((a) => {
+  const todayAppts = (enrichedAssignments || []).filter((a) => {
     if (!a.appointment_at) return false;
     const d = new Date(a.appointment_at);
     const t = new Date();
