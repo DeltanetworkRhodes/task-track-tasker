@@ -30,10 +30,34 @@ const statusFilters = [
 
 const TechnicianDashboard = () => {
   const { user, signOut } = useAuth();
-  const [activeTab, setActiveTab] = useState("assignments");
+  const queryClient = useQueryClient();
+
+  // Persisted filter state (Fuselab: filters survive across navigation/reload)
+  const persisted = (() => {
+    try {
+      const raw = localStorage.getItem(FILTERS_STORAGE_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  })();
+  const [activeTab, setActiveTab] = useState<string>(persisted?.activeTab ?? "assignments");
   const [hideCancelled, setHideCancelled] = useState(true);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [searchQuery, setSearchQuery] = useState<string>(persisted?.searchQuery ?? "");
+  const [statusFilter, setStatusFilter] = useState<string>(persisted?.statusFilter ?? "all");
+  const [lastSyncedAt, setLastSyncedAt] = useState<number>(Date.now());
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        FILTERS_STORAGE_KEY,
+        JSON.stringify({ activeTab, searchQuery, statusFilter })
+      );
+    } catch {
+      /* noop */
+    }
+  }, [activeTab, searchQuery, statusFilter]);
 
   const hiddenStatuses = ["cancelled", "completed", "submitted", "paid", "rejected"];
 
