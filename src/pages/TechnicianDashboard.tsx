@@ -16,10 +16,10 @@ import TechnicianInventoryView from "@/components/TechnicianInventoryView";
 
 const statusFilters = [
   { value: "all", label: "Όλα" },
-  { value: "pending", label: "Αναμονή", color: "bg-yellow-500/10 text-yellow-600 border-yellow-500/20" },
-  { value: "inspection", label: "Αυτοψία", color: "bg-orange-500/10 text-orange-600 border-orange-500/20" },
-  { value: "pre_committed", label: "Προδέσμευση", color: "bg-blue-500/10 text-blue-600 border-blue-500/20" },
-  { value: "construction", label: "Κατασκευή", color: "bg-purple-500/10 text-purple-600 border-purple-500/20" },
+  { value: "pending", label: "Αναμονή", color: "bg-warning/15 text-warning border-warning/30" },
+  { value: "inspection", label: "Αυτοψία", color: "bg-primary/15 text-primary border-primary/30" },
+  { value: "pre_committed", label: "Προδέσμευση", color: "bg-accent/15 text-accent border-accent/30" },
+  { value: "construction", label: "Κατασκευή", color: "bg-success/15 text-success border-success/30" },
 ];
 
 const TechnicianDashboard = () => {
