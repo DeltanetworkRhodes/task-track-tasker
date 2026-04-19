@@ -213,3 +213,31 @@
     padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 0.5rem);
   }
 }
+
+/* ── Awwwards 2026 — Animated Film Grain ──
+   SVG noise texture that drifts continuously. Mix-blend-overlay
+   lets it interact with the underlying ambient glow without ever
+   becoming visual noise. */
+.film-grain-canvas {
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 1 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.85'/%3E%3C/svg%3E");
+  background-size: 180px 180px;
+  animation: grain-drift 8s steps(8) infinite;
+}
+
+@keyframes grain-drift {
+  0%   { background-position:   0px   0px; }
+  10%  { background-position: -20px  10px; }
+  20%  { background-position:  15px -25px; }
+  30%  { background-position: -30px  15px; }
+  40%  { background-position:  25px  20px; }
+  50%  { background-position: -10px -30px; }
+  60%  { background-position:  30px  10px; }
+  70%  { background-position: -25px -15px; }
+  80%  { background-position:  20px  25px; }
+  90%  { background-position: -15px -10px; }
+  100% { background-position:   0px   0px; }
+}
+
+/* Smooth crossfade for tap-to-cycle missions */
+.mission-fade-enter { opacity: 0; transform: translateY(8px); filter: blur(4px); }
+.mission-fade-enter-active { opacity: 1; transform: translateY(0); filter: blur(0); transition: all 420ms cubic-bezier(0.22, 1, 0.36, 1); }

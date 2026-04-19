@@ -17,6 +17,7 @@ import TechnicianInventoryView from "@/components/TechnicianInventoryView";
 import NextUpHero from "@/components/technician/NextUpHero";
 import OutlierBanner from "@/components/technician/OutlierBanner";
 import FreshnessIndicator from "@/components/technician/FreshnessIndicator";
+import AmbientCanvas from "@/components/technician/AmbientCanvas";
 
 const FILTERS_STORAGE_KEY = "tech-dashboard-filters-v1";
 
@@ -246,8 +247,9 @@ const TechnicianDashboard = () => {
     return new Date(a.appointment_at).getTime() > Date.now() - 6 * 60 * 60 * 1000;
   }).length;
 
-  // ── Fuselab principles: hero + outliers ──
-  const nextUp = useMemo(() => {
+  // ── Fuselab principles: hero list (cycleable) + outliers ──
+  // Build a *list* of upcoming/active SRs so the hero supports tap-to-cycle.
+  const heroList = useMemo(() => {
     const list = (enrichedAssignments || []).filter(
       (a) => !hiddenStatuses.includes(a.status)
     );
@@ -259,13 +261,17 @@ const TechnicianDashboard = () => {
           new Date(a.appointment_at!).getTime() -
           new Date(b.appointment_at!).getTime()
       );
-    if (upcoming.length > 0) return upcoming[0];
-    const sorted = [...list].sort(
-      (a, b) =>
-        new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
-    );
-    return sorted[0] || null;
+    const upcomingIds = new Set(upcoming.map((a) => a.id));
+    const rest = list
+      .filter((a) => !upcomingIds.has(a.id))
+      .sort(
+        (a, b) =>
+          new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+      );
+    return [...upcoming, ...rest];
   }, [enrichedAssignments]);
+
+  const nextUp = heroList[0] || null;
 
   const outliers = useMemo(() => {
     const list = (enrichedAssignments || []).filter(
@@ -313,8 +319,19 @@ const TechnicianDashboard = () => {
     });
   };
 
+  // Minutes until next appointment — drives ambient urgency layer
+  const minutesUntilNext = nextUp?.appointment_at
+    ? Math.round((new Date(nextUp.appointment_at).getTime() - Date.now()) / 60000)
+    : null;
+
   return (
-    <div className="min-h-screen bg-background">
+    <div className="relative min-h-screen bg-background">
+      {/* ── Ambient atmosphere: grain + grid + 3-layer glow ── */}
+      <AmbientCanvas
+        minutesUntilNext={minutesUntilNext}
+        status={nextUp?.status}
+      />
+
       {/* ── HEADER (Dark Industrial — admin palette) ── */}
       <header className="sticky top-0 z-50 bg-sidebar text-sidebar-foreground border-b border-sidebar-border shadow-xl">
         {/* Top row with subtle gradient */}
@@ -430,8 +447,8 @@ const TechnicianDashboard = () => {
         </div>
       </header>
 
-      {/* ── CONTENT ── */}
-      <div className="pb-6">
+      {/* ── CONTENT (relative so it sits above ambient canvas) ── */}
+      <div className="relative z-10 pb-6">
         <AnimatePresence mode="wait">
           {activeTab === "assignments" && (
             <motion.div
@@ -451,8 +468,8 @@ const TechnicianDashboard = () => {
                 isRefreshing={isRefreshing}
               />
 
-              {/* Next Up hero (Fuselab: role-based default view) */}
-              <NextUpHero assignment={nextUp} onOpen={openAssignment} />
+              {/* Next Up hero — Linear × iOS, tap-to-cycle */}
+              <NextUpHero assignments={heroList} onOpen={openAssignment} />
 
               {/* Outliers banner (Fuselab: surface outliers) */}
               <OutlierBanner
