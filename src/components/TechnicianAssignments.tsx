@@ -1034,10 +1034,10 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
                   </div>
                 )}
               </div>
-            </div>
+            </motion.div>
           );
         })}
-      </div>
+      </motion.div>
 
       {/* SR Detail Sheet */}
       <Sheet open={!!selectedAssignment} onOpenChange={(open) => { if (!open) { setSelectedAssignment(null); setShowSurveyForm(false); setShowConstructionForm(false); setShowCrewPanel(false); } }}>
