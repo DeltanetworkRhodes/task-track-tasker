@@ -376,7 +376,7 @@ const Index = () => {
           <TabsContent value="overview" className="space-y-5">
         {/* Stat Cards - responsive grid */}
         <motion.div
-          className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-7"
+          className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-6"
           initial="hidden"
           animate="visible"
           variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.06 } } }}
@@ -388,7 +388,6 @@ const Index = () => {
             <StatCard key="4" title="Έσοδα" value={`${totalRevenue.toLocaleString('el-GR')}€`} subtitle="κατασκευών" icon={Euro} trend="up" trendValue={`${totalProfit.toLocaleString('el-GR')}€ κέρδος`} />,
             <StatCard key="5" title="Καθαρό Κέρδος" value={`${totalProfit.toLocaleString('el-GR')}€`} subtitle={`${totalRevenue > 0 ? Math.round((totalProfit / totalRevenue) * 100) : 0}% margin`} icon={TrendingUp} trend={totalProfit > 0 ? 'up' : 'down'} trendValue={`${constructions.length} κατ.`} accent />,
             <StatCard key="6" title="Εκκρεμείς Πληρωμές" value={`${pendingPaymentTotal.toLocaleString('el-GR')}€`} subtitle={`${pendingPayments.length} SR`} icon={Wallet} accent />,
-            <StatCard key="7" title="Εκκρεμείς Πληρωμές" value={`${pendingPaymentTotal.toLocaleString('el-GR')}€`} subtitle={`${pendingPayments.length} SR`} icon={Wallet} accent />,
           ].map((card, i) => (
             <motion.div
               key={i}
