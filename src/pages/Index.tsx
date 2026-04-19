@@ -344,6 +344,19 @@ const Index = () => {
           </div>
         </motion.div>
 
+        {/* Freshness indicator */}
+        <FreshnessIndicator lastUpdatedAt={lastRefresh} onRefresh={handleRefresh} />
+
+        {/* Outliers banner */}
+        <AdminOutlierBanner
+          staleAssignments={staleAssignments}
+          missedAppointments={missedAppointments}
+          unpaidLong={unpaidLong}
+        />
+
+        {/* Next-up hero (org-wide next appointment) */}
+        {nextAppointment && <AdminNextUpHero assignment={nextAppointment} />}
+
         {/* Setup Wizard */}
         {!wizardDismissed && !wizardCompleted && (
           <SetupWizard onDismiss={() => setWizardDismissed(true)} />
