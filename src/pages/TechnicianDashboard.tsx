@@ -184,9 +184,9 @@ const TechnicianDashboard = () => {
   const firstName = profile?.full_name?.split(" ")[0] || "—";
 
   const PHASE_COLORS: Record<number, string> = {
-    1: "bg-warning/15 text-warning-foreground dark:bg-warning/20 dark:text-warning",
-    2: "bg-primary/15 text-primary dark:bg-primary/20 dark:text-primary",
-    3: "bg-accent/15 text-accent dark:bg-accent/20 dark:text-accent",
+    1: "bg-warning/20 text-warning border border-warning/30",
+    2: "bg-primary/20 text-primary border border-primary/30",
+    3: "bg-accent/20 text-accent border border-accent/30",
   };
   const PHASE_LABELS: Record<number, string> = {
     1: "🚜 Χωματουργικά",
