@@ -850,12 +850,93 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
             {a.status === "construction" && (() => {
               const ps = phaseStatusMap.get(a.id);
               if (!ps) return null;
+              const isResponsible = a.technician_id === user?.id;
+              if (!isResponsible) {
+                return (
+                  <PhaseProgress
+                    p1={ps.phase1_status}
+                    p2={ps.phase2_status}
+                    p3={ps.phase3_status}
+                  />
+                );
+              }
+              // Editor for the Responsible technician
+              const phases = [
+                { ph: 1 as const, icon: "🚜", label: "Φ1", s: ps.phase1_status || "pending" },
+                { ph: 2 as const, icon: "🔧", label: "Φ2", s: ps.phase2_status || "pending" },
+                { ph: 3 as const, icon: "🔬", label: "Φ3", s: ps.phase3_status || "pending" },
+              ];
               return (
-                <PhaseProgress
-                  p1={ps.phase1_status}
-                  p2={ps.phase2_status}
-                  p3={ps.phase3_status}
-                />
+                <div
+                  className="flex flex-wrap items-center gap-1.5"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {phases.map(({ ph, icon, label, s }) => (
+                    <Select
+                      key={ph}
+                      value={s}
+                      onValueChange={async (val) => {
+                        try {
+                          const phaseField = `phase${ph}_status`;
+                          const phaseDate = `phase${ph}_completed_at`;
+                          // Find construction id
+                          const { data: existing } = await supabase
+                            .from("constructions")
+                            .select("id")
+                            .eq("assignment_id", a.id)
+                            .maybeSingle();
+                          if (!existing?.id) {
+                            toast.error("Δεν υπάρχει εγγραφή κατασκευής ακόμα");
+                            return;
+                          }
+                          const { error } = await supabase
+                            .from("constructions")
+                            .update({
+                              [phaseField]: val,
+                              [phaseDate]: val === "completed" ? new Date().toISOString() : null,
+                            } as any)
+                            .eq("id", existing.id);
+                          if (error) throw error;
+                          toast.success(
+                            `Φάση ${ph} → ${
+                              val === "completed"
+                                ? "✅ Ολοκληρώθηκε"
+                                : val === "in_progress"
+                                ? "🔄 Σε εξέλιξη"
+                                : "⏳ Εκκρεμεί"
+                            }`,
+                          );
+                          queryClient.invalidateQueries({ queryKey: ["phase-statuses"] });
+                          queryClient.invalidateQueries({ queryKey: ["constructions"] });
+                          queryClient.invalidateQueries({ queryKey: ["existing_construction", a.id] });
+                        } catch (err: any) {
+                          toast.error(err.message);
+                        }
+                      }}
+                    >
+                      <SelectTrigger
+                        className={`h-7 w-auto min-w-[78px] px-2 text-[10px] font-bold border gap-1 ${
+                          s === "completed"
+                            ? "bg-green-500/15 text-green-700 border-green-500/30 dark:text-green-400"
+                            : s === "in_progress"
+                            ? "bg-amber-500/15 text-amber-700 border-amber-500/30 dark:text-amber-400"
+                            : "bg-muted/50 text-muted-foreground border-border/50"
+                        }`}
+                      >
+                        <span className="flex items-center gap-1">
+                          <span>{icon}</span>
+                          <span>{label}</span>
+                          {s === "completed" && <span>✓</span>}
+                        </span>
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="pending">⏳ Εκκρεμεί</SelectItem>
+                        <SelectItem value="in_progress">🔄 Σε εξέλιξη</SelectItem>
+                        <SelectItem value="completed">✅ Ολοκληρώθηκε</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  ))}
+                </div>
               );
             })()}
 
