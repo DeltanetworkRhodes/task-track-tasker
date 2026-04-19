@@ -762,12 +762,12 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
     );
   };
 
-  // Stripe colors per status
+  // Stripe colors per status — gradients for richness
   const stripeColor: Record<string, string> = {
-    construction: "bg-primary",
-    inspection: "bg-warning",
-    pre_committed: "bg-warning",
-    pending: "bg-muted-foreground/30",
+    construction: "bg-gradient-to-r from-success via-accent to-primary",
+    inspection: "bg-gradient-to-r from-primary to-accent",
+    pre_committed: "bg-gradient-to-r from-accent to-success",
+    pending: "bg-gradient-to-r from-warning/70 to-warning",
   };
   // Phase button colors
   const PHASE_BTN: Record<number, string> = {
@@ -797,10 +797,10 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
           return (
             <div
               key={a.id}
-              className={`bg-card rounded-2xl overflow-hidden border transition-all duration-200 active:scale-[0.98] cursor-pointer ${
+              className={`group relative bg-card rounded-2xl overflow-hidden border transition-all duration-200 active:scale-[0.98] cursor-pointer shadow-sm hover:shadow-md ${
                 apptToday
-                  ? "border-accent/50"
-                  : "border-border hover:border-border/80"
+                  ? "border-accent/60 shadow-[0_0_0_1px_hsl(var(--accent)/0.3),0_8px_24px_-8px_hsl(var(--accent)/0.4)]"
+                  : "border-border/60 hover:border-primary/30"
               }`}
               onClick={() => {
                 setSelectedAssignment(a);
@@ -811,22 +811,22 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
               onMouseEnter={() => handleCardHover(a)}
               onTouchStart={() => handleCardHover(a)}
             >
-              {/* Top color stripe */}
-              <div className={`h-1 ${stripeColor[a.status] || "bg-muted"}`} />
+              {/* Top gradient stripe */}
+              <div className={`h-1.5 ${stripeColor[a.status] || "bg-muted"}`} />
 
               <div className="p-4 space-y-3">
                 {/* Row 1: SR + Status */}
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-sm font-bold text-primary">
+                      <span className="text-sm font-bold tracking-tight bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
                         {a.sr_id}
                       </span>
                       {apptUpcoming && apptDate && (
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm ${
                           apptToday
-                            ? "bg-accent/15 text-accent"
-                            : "text-primary-foreground bg-success"
+                            ? "bg-gradient-to-r from-accent to-success text-accent-foreground ring-1 ring-accent/40"
+                            : "bg-success text-success-foreground"
                         }`}>
                           {apptToday ? "ΣΗΜΕΡΑ " : ""}
                           {apptDate.toLocaleDateString("el-GR", {
@@ -842,13 +842,13 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
                         </span>
                       )}
                       {hasGis && (
-                        <span className="text-[10px] font-bold bg-primary/15 text-primary px-2 py-0.5 rounded-full">
+                        <span className="text-[10px] font-bold bg-primary/15 text-primary border border-primary/30 px-2 py-0.5 rounded-full">
                           GIS ✓
                         </span>
                       )}
                     </div>
                     {a.area && (
-                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                      <p className="text-[11px] text-muted-foreground mt-1 uppercase tracking-wider font-medium">
                         {a.area}
                       </p>
                     )}
@@ -872,8 +872,8 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
                 {/* Row 2: Address + Nav */}
                 {a.address && (
                   <div className="flex items-center gap-2">
-                    <MapPin className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                    <span className="text-xs text-muted-foreground flex-1 truncate">
+                    <MapPin className="h-3.5 w-3.5 text-accent shrink-0" />
+                    <span className="text-xs text-foreground/80 flex-1 truncate font-medium">
                       {a.address}
                     </span>
                     <a
@@ -881,8 +881,9 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={(e) => e.stopPropagation()}
-                      className="text-[10px] font-bold text-primary bg-primary/10 px-2.5 py-1 rounded-full shrink-0 hover:bg-primary/20 transition-colors"
+                      className="inline-flex items-center gap-1 text-[10px] font-bold text-primary-foreground bg-gradient-to-r from-primary to-accent px-2.5 py-1 rounded-full shrink-0 shadow-sm hover:shadow-md hover:scale-105 transition-all"
                     >
+                      <Navigation className="h-3 w-3" />
                       Πλοήγηση
                     </a>
                   </div>
@@ -890,9 +891,9 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
 
                 {/* Row 3: Customer + Phone */}
                 {(a.customer_name || a.phone) && (
-                  <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center justify-between gap-2 pt-1 border-t border-border/40">
                     {a.customer_name && (
-                      <span className="text-xs text-foreground truncate">
+                      <span className="text-xs font-semibold text-foreground truncate">
                         {a.customer_name}
                       </span>
                     )}
@@ -900,7 +901,7 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
                       <a
                         href={`tel:${a.phone}`}
                         onClick={(e) => e.stopPropagation()}
-                        className="text-[11px] font-bold text-primary flex items-center gap-1 shrink-0"
+                        className="inline-flex items-center gap-1 text-[11px] font-bold text-success bg-success/10 border border-success/30 px-2.5 py-1 rounded-full shrink-0 hover:bg-success/20 transition-colors"
                       >
                         <Phone className="h-3 w-3" />
                         Κλήση
