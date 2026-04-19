@@ -798,7 +798,7 @@ const TechnicianAssignments = ({ assignments, loading }: Props) => {
               key={a.id}
               className={`bg-card rounded-2xl overflow-hidden border transition-all duration-200 active:scale-[0.98] cursor-pointer ${
                 apptToday
-                  ? "border-emerald-400/50 dark:border-emerald-600/50"
+                  ? "border-accent/50"
                   : "border-border hover:border-border/80"
               }`}
               onClick={() => {
