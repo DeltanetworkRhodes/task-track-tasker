@@ -126,7 +126,7 @@ const TechnicianDashboard = () => {
 
   const filteredAssignments = useMemo(() => {
     // Always hide cancelled and completed
-    let list = (assignments || []).filter(a => !hiddenStatuses.includes(a.status));
+    let list = (enrichedAssignments || []).filter(a => !hiddenStatuses.includes(a.status));
     
     // Status filter
     if (statusFilter !== "all") {
@@ -145,18 +145,18 @@ const TechnicianDashboard = () => {
       );
     }
     return list;
-  }, [assignments, searchQuery, statusFilter]);
+  }, [enrichedAssignments, searchQuery, statusFilter]);
 
   // Count per status for chips
   const statusCounts = useMemo(() => {
     const counts: Record<string, number> = {};
-    const activeList = (assignments || []).filter(a => !hiddenStatuses.includes(a.status));
+    const activeList = (enrichedAssignments || []).filter(a => !hiddenStatuses.includes(a.status));
     activeList.forEach(a => {
       counts[a.status] = (counts[a.status] || 0) + 1;
     });
     counts["all"] = activeList.length;
     return counts;
-  }, [assignments]);
+  }, [enrichedAssignments]);
 
   // Helper
   const hour = new Date().getHours();
