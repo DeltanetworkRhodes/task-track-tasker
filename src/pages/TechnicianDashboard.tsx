@@ -121,132 +121,264 @@ const TechnicianDashboard = () => {
     return counts;
   }, [assignments]);
 
+  // Helper
+  const hour = new Date().getHours();
+  const greeting =
+    hour < 12 ? "Καλημέρα" : hour < 17 ? "Καλησπέρα" : "Καλό βράδυ";
+  const initials = (profile?.full_name || "?")
+    .split(" ")
+    .map((n: string) => n[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+  const firstName = profile?.full_name?.split(" ")[0] || "—";
+
+  const PHASE_COLORS: Record<number, string> = {
+    1: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300",
+    2: "bg-violet-100 text-violet-800 dark:bg-violet-900/30 dark:text-violet-300",
+    3: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300",
+  };
+  const PHASE_LABELS: Record<number, string> = {
+    1: "🚜 Χωματουργικά",
+    2: "🔧 Οδεύσεις",
+    3: "🔬 Κόλληση",
+  };
+
+  const activeCount = (assignments || []).filter(
+    (a) => !hiddenStatuses.includes(a.status)
+  ).length;
+  const constructionCount = (assignments || []).filter(
+    (a) => a.status === "construction"
+  ).length;
+  const todayAppts = (assignments || []).filter((a) => {
+    if (!a.appointment_at) return false;
+    const d = new Date(a.appointment_at);
+    const t = new Date();
+    return (
+      d.getDate() === t.getDate() &&
+      d.getMonth() === t.getMonth() &&
+      d.getFullYear() === t.getFullYear()
+    );
+  });
+
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="sticky top-0 z-50 border-b border-border bg-card/80 backdrop-blur-md">
+    <div className="min-h-screen bg-muted/30">
+      {/* ── HEADER ── */}
+      <header className="sticky top-0 z-50 bg-card/95 backdrop-blur-md border-b border-border">
+        {/* Top row */}
         <div className="flex items-center justify-between px-4 py-3">
-          <div>
-            <h1 className="text-lg font-bold text-foreground">DeltaNet FTTH</h1>
-            <p className="text-xs text-muted-foreground">
-              {profile?.full_name || user?.email} · {profile?.area || "—"}
-            </p>
+          <div className="flex items-center gap-3">
+            {/* Avatar */}
+            <div className="h-11 w-11 rounded-full bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center shrink-0 border-2 border-violet-200 dark:border-violet-700">
+              <span className="text-sm font-bold text-violet-700 dark:text-violet-300">
+                {initials}
+              </span>
+            </div>
+            <div>
+              <p className="text-sm font-bold text-foreground leading-tight">
+                {greeting}, {firstName}!
+              </p>
+              <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                {profile?.area && (
+                  <span className="text-[11px] text-muted-foreground flex items-center gap-0.5">
+                    <MapPin className="h-3 w-3" />
+                    {profile.area}
+                  </span>
+                )}
+                {(profile as any)?.default_phase && (
+                  <span
+                    className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
+                      PHASE_COLORS[(profile as any).default_phase as number]
+                    }`}
+                  >
+                    {PHASE_LABELS[(profile as any).default_phase as number]}
+                  </span>
+                )}
+              </div>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <GpsOnlineToggle />
             <NotificationBell />
             <button
               onClick={signOut}
-              className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs text-muted-foreground hover:bg-muted transition-colors"
+              className="h-9 w-9 rounded-xl border border-border flex items-center justify-center text-muted-foreground hover:bg-muted transition-colors"
             >
-              <LogOut className="h-3.5 w-3.5" />
-              Έξοδος
+              <LogOut className="h-4 w-4" />
             </button>
           </div>
         </div>
+
+        {/* Stats bar */}
+        <div className="grid grid-cols-3 divide-x divide-border border-t border-border/50">
+          {[
+            { label: "Ενεργά", value: activeCount, color: "text-violet-600" },
+            { label: "Κατασκευή", value: constructionCount, color: "text-amber-600" },
+            { label: "Ραντεβού", value: todayAppts.length, color: "text-emerald-600" },
+          ].map((s) => (
+            <div key={s.label} className="text-center py-2.5">
+              <p className={`text-xl font-bold ${s.color} leading-tight`}>
+                {s.value}
+              </p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">
+                {s.label}
+              </p>
+            </div>
+          ))}
+        </div>
+
+        {/* Tab bar */}
+        <div className="flex border-t border-border/50">
+          {[
+            { id: "assignments", label: "Αναθέσεις", icon: ClipboardList },
+            { id: "inventory", label: "Αποθήκη", icon: Package },
+            { id: "map", label: "Χάρτης", icon: MapPin },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex-1 flex flex-col items-center gap-1 py-2.5 text-[11px] font-medium transition-colors border-b-2 ${
+                activeTab === tab.id
+                  ? "border-violet-600 text-violet-600"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <tab.icon className="h-4 w-4" />
+              {tab.label}
+            </button>
+          ))}
+        </div>
       </header>
 
-      {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="px-4 pt-4 pb-20">
-        <TabsList className="grid w-full grid-cols-3 mb-4">
-          <TabsTrigger value="assignments" className="gap-1.5 text-xs">
-            <ClipboardList className="h-3.5 w-3.5" />
-            Αναθέσεις
-          </TabsTrigger>
-          <TabsTrigger value="inventory" className="gap-1.5 text-xs">
-            <Package className="h-3.5 w-3.5" />
-            Αποθήκη
-          </TabsTrigger>
-          <TabsTrigger value="map" className="gap-1.5 text-xs">
-            <MapPin className="h-3.5 w-3.5" />
-            Χάρτης
-          </TabsTrigger>
-        </TabsList>
+      {/* ── CONTENT ── */}
+      <div className="pb-6">
+        {activeTab === "assignments" && (
+          <div className="px-4 pt-4 space-y-3">
+            <NotificationPermissionCard />
 
-        <TabsContent value="assignments">
-          <NotificationPermissionCard />
-          {/* Search Bar */}
-          <div className="relative mb-3">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Αναζήτηση SR, Διεύθυνση, Όνομα, Building ID..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 pr-9 h-10 text-sm"
-            />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            )}
-          </div>
-
-          {/* Status Filter Chips */}
-          <ScrollArea className="w-full mb-3">
-            <div className="flex gap-2 pb-2">
-              {statusFilters
-                .filter(s => s.value === "all" || statusFilter === s.value || (statusCounts[s.value] || 0) > 0)
-                .map(s => {
-                  const isActive = statusFilter === s.value;
-                  const count = statusCounts[s.value] || 0;
-                  return (
-                    <button
-                      key={s.value}
-                      onClick={() => setStatusFilter(s.value)}
-                      className={`flex-shrink-0 inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-all ${
-                        isActive
-                          ? s.value === "all"
-                            ? "bg-primary text-primary-foreground border-primary"
-                            : s.color + " border-current font-bold ring-1 ring-current/30"
-                          : "bg-muted/50 text-muted-foreground border-border hover:bg-muted"
-                      }`}
-                    >
-                      {s.label}
-                      <span className={`text-[10px] rounded-full px-1.5 py-0.5 min-w-[18px] text-center ${
-                        isActive ? "bg-background/20" : "bg-muted-foreground/10"
-                      }`}>
-                        {count}
+            {/* Today banner */}
+            {todayAppts.length > 0 && (
+              <div className="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800 rounded-2xl p-4 space-y-2">
+                <div className="flex items-center gap-2 text-xs font-bold text-emerald-700 dark:text-emerald-400">
+                  <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                  Σήμερα — {todayAppts.length} ραντεβού
+                </div>
+                {todayAppts.map((a) => (
+                  <div
+                    key={a.id}
+                    className="flex items-center justify-between text-xs bg-white/60 dark:bg-black/20 rounded-xl px-3 py-2 border border-emerald-100 dark:border-emerald-800/50"
+                  >
+                    <div>
+                      <span className="font-bold text-emerald-800 dark:text-emerald-300">
+                        {a.sr_id}
                       </span>
-                    </button>
-                  );
-                })}
-            </div>
-            <ScrollBar orientation="horizontal" />
-          </ScrollArea>
+                      {a.address && (
+                        <span className="text-emerald-700/70 dark:text-emerald-400/70 ml-2">
+                          {a.address.split(",")[0]}
+                        </span>
+                      )}
+                    </div>
+                    <span className="font-bold bg-emerald-600 text-white text-[10px] px-2 py-1 rounded-lg">
+                      {new Date(a.appointment_at!).toLocaleTimeString("el-GR", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
 
-          <div className="flex items-center mb-3">
-            {searchQuery && (
-              <span className="text-xs text-muted-foreground">
-                {filteredAssignments.length} αποτέλεσμα{filteredAssignments.length !== 1 ? "τα" : ""}
-              </span>
+            {/* Search */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Αναζήτηση SR, διεύθυνση..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9 pr-9 h-11 text-sm rounded-xl bg-card border-border"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+
+            {/* Filter chips */}
+            <ScrollArea className="w-full">
+              <div className="flex gap-2 pb-1">
+                {statusFilters
+                  .filter(
+                    (s) =>
+                      s.value === "all" ||
+                      statusFilter === s.value ||
+                      (statusCounts[s.value] || 0) > 0
+                  )
+                  .map((s) => {
+                    const isActive = statusFilter === s.value;
+                    const count = statusCounts[s.value] || 0;
+                    return (
+                      <button
+                        key={s.value}
+                        onClick={() => setStatusFilter(s.value)}
+                        className={`flex-shrink-0 inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-all ${
+                          isActive
+                            ? s.value === "all"
+                              ? "bg-violet-600 text-white border-violet-600"
+                              : (s.color || "") + " border-current"
+                            : "bg-card text-muted-foreground border-border hover:bg-muted"
+                        }`}
+                      >
+                        {s.label}
+                        <span
+                          className={`text-[10px] rounded-full px-1.5 py-0.5 min-w-[18px] text-center ${
+                            isActive ? "bg-white/20" : "bg-muted-foreground/10"
+                          }`}
+                        >
+                          {count}
+                        </span>
+                      </button>
+                    );
+                  })}
+              </div>
+              <ScrollBar orientation="horizontal" />
+            </ScrollArea>
+
+            {filteredAssignments.length === 0 && !isLoading ? (
+              <div className="flex flex-col items-center justify-center py-16 text-center space-y-3">
+                <div className="h-16 w-16 rounded-full bg-muted/50 flex items-center justify-center">
+                  <ClipboardList className="h-8 w-8 text-muted-foreground/30" />
+                </div>
+                <p className="font-medium text-foreground text-sm">
+                  Δεν βρέθηκαν αναθέσεις
+                </p>
+                <p className="text-xs text-muted-foreground">Ωραία δουλειά! 🎉</p>
+              </div>
+            ) : (
+              <TechnicianAssignments
+                assignments={filteredAssignments}
+                loading={isLoading}
+              />
             )}
           </div>
+        )}
 
-          {(searchQuery || statusFilter !== "all") && filteredAssignments.length === 0 && !isLoading ? (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <Search className="h-10 w-10 text-muted-foreground/40 mb-3" />
-              <p className="text-sm font-medium text-muted-foreground">Δεν βρέθηκαν έργα με αυτά τα κριτήρια</p>
-              <p className="text-xs text-muted-foreground/60 mt-1">Δοκιμάστε διαφορετικούς όρους ή φίλτρα</p>
-            </div>
-          ) : (
-            <TechnicianAssignments
-              assignments={filteredAssignments}
-              loading={isLoading}
-            />
-          )}
-        </TabsContent>
+        {activeTab === "inventory" && (
+          <div className="px-4 pt-4">
+            <TechnicianInventoryView />
+          </div>
+        )}
 
-        <TabsContent value="inventory">
-          <TechnicianInventoryView />
-        </TabsContent>
-
-        <TabsContent value="map">
-          <TechnicianMap assignments={assignments || []} />
-        </TabsContent>
-      </Tabs>
+        {activeTab === "map" && (
+          <div className="pt-0">
+            <TechnicianMap assignments={assignments || []} />
+          </div>
+        )}
+      </div>
     </div>
   );
 };
