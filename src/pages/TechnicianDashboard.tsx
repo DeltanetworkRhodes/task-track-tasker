@@ -349,24 +349,24 @@ const TechnicianDashboard = () => {
 
             {/* Search */}
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Αναζήτηση SR, διεύθυνση..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 pr-9 h-11 text-sm rounded-xl bg-card border-border"
+                className="pl-10 pr-10 h-12 text-sm rounded-2xl bg-card border-border/60 shadow-sm focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:border-primary/40"
               />
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 h-6 w-6 rounded-full bg-muted hover:bg-muted-foreground/20 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
                 >
-                  <X className="h-4 w-4" />
+                  <X className="h-3.5 w-3.5" />
                 </button>
               )}
             </div>
 
-            {/* Filter chips */}
+            {/* Filter chips — modern pill style */}
             <ScrollArea className="w-full">
               <div className="flex gap-2 pb-1">
                 {statusFilters
@@ -383,18 +383,20 @@ const TechnicianDashboard = () => {
                       <button
                         key={s.value}
                         onClick={() => setStatusFilter(s.value)}
-                        className={`flex-shrink-0 inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-all ${
+                        className={`flex-shrink-0 inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-xs font-semibold transition-all ${
                           isActive
                             ? s.value === "all"
-                              ? "bg-primary text-primary-foreground border-primary"
-                              : (s.color || "") + " border-current"
-                            : "bg-card text-muted-foreground border-border hover:bg-muted"
+                              ? "bg-gradient-to-r from-primary to-accent text-primary-foreground border-transparent shadow-md scale-105"
+                              : (s.color || "") + " shadow-sm scale-105"
+                            : "bg-card text-muted-foreground border-border/60 hover:bg-muted hover:border-border"
                         }`}
                       >
                         {s.label}
                         <span
-                          className={`text-[10px] rounded-full px-1.5 py-0.5 min-w-[18px] text-center ${
-                            isActive ? "bg-white/20" : "bg-muted-foreground/10"
+                          className={`text-[10px] font-bold rounded-full px-1.5 py-0.5 min-w-[20px] text-center ${
+                            isActive
+                              ? "bg-background/30 text-current"
+                              : "bg-muted text-muted-foreground"
                           }`}
                         >
                           {count}
