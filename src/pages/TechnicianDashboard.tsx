@@ -273,20 +273,32 @@ const TechnicianDashboard = () => {
             { label: "Ενεργά", value: activeCount, color: "text-primary" },
             { label: "Κατασκευή", value: constructionCount, color: "text-accent" },
             { label: "Ραντεβού", value: upcomingApptsCount, color: "text-warning" },
-          ].map((s) => (
-            <div key={s.label} className="text-center py-2.5">
-              <p className={`text-xl font-bold ${s.color} leading-tight`}>
+          ].map((s, i) => (
+            <motion.div
+              key={s.label}
+              className="text-center py-2.5"
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 + i * 0.07, duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+            >
+              <motion.p
+                key={s.value}
+                className={`text-xl font-bold ${s.color} leading-tight tabular-nums`}
+                initial={{ scale: 0.85, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ type: "spring", stiffness: 380, damping: 22 }}
+              >
                 {s.value}
-              </p>
+              </motion.p>
               <p className="text-[10px] text-sidebar-foreground/60 mt-0.5 uppercase tracking-wider">
                 {s.label}
               </p>
-            </div>
+            </motion.div>
           ))}
         </div>
 
         {/* Tab bar */}
-        <div className="flex border-t border-sidebar-border bg-sidebar">
+        <div className="flex border-t border-sidebar-border bg-sidebar relative">
           {[
             { id: "assignments", label: "Αναθέσεις", icon: ClipboardList },
             { id: "inventory", label: "Αποθήκη", icon: Package },
@@ -295,14 +307,28 @@ const TechnicianDashboard = () => {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex-1 flex flex-col items-center gap-1 py-2.5 text-[11px] font-medium transition-all border-b-2 ${
+              className={`relative flex-1 flex flex-col items-center gap-1 py-2.5 text-[11px] font-medium transition-colors ${
                 activeTab === tab.id
-                  ? "border-primary text-primary bg-sidebar-accent/40"
-                  : "border-transparent text-sidebar-foreground/60 hover:text-sidebar-accent-foreground hover:bg-sidebar-accent/20"
+                  ? "text-primary"
+                  : "text-sidebar-foreground/60 hover:text-sidebar-accent-foreground"
               }`}
             >
               <tab.icon className="h-4 w-4" />
               {tab.label}
+              {activeTab === tab.id && (
+                <motion.div
+                  layoutId="tech-tab-underline"
+                  className="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-primary via-accent to-primary"
+                  transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                />
+              )}
+              {activeTab === tab.id && (
+                <motion.div
+                  layoutId="tech-tab-bg"
+                  className="absolute inset-0 bg-sidebar-accent/40 -z-0"
+                  transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                />
+              )}
             </button>
           ))}
         </div>
@@ -310,43 +336,59 @@ const TechnicianDashboard = () => {
 
       {/* ── CONTENT ── */}
       <div className="pb-6">
-        {activeTab === "assignments" && (
-          <div className="px-4 pt-4 space-y-3">
-            <NotificationPermissionCard />
+        <AnimatePresence mode="wait">
+          {activeTab === "assignments" && (
+            <motion.div
+              key="assignments"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+              className="px-4 pt-4 space-y-3"
+            >
+              <NotificationPermissionCard />
 
-            {/* Today banner — gradient teal-to-green */}
-            {todayAppts.length > 0 && (
-              <div className="bg-gradient-to-br from-primary/10 via-card to-accent/10 border border-accent/30 rounded-2xl p-4 space-y-2 shadow-md">
-                <div className="flex items-center gap-2 text-xs font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                  <div className="h-2 w-2 rounded-full bg-accent animate-pulse shadow-[0_0_8px_hsl(var(--accent))]" />
-                  Σήμερα — {todayAppts.length} ραντεβού
-                </div>
-                {todayAppts.map((a) => (
-                  <div
-                    key={a.id}
-                    className="flex items-center justify-between text-xs bg-card/80 rounded-xl px-3 py-2 border border-border"
-                  >
-                    <div>
-                      <span className="font-bold text-primary">
-                        {a.sr_id}
-                      </span>
-                      {a.address && (
-                        <span className="text-muted-foreground ml-2">
-                          {a.address.split(",")[0]}
-                        </span>
-                      )}
-                    </div>
-                    <span className="font-bold bg-gradient-to-r from-primary to-accent text-primary-foreground text-[10px] px-2 py-1 rounded-lg shadow-sm">
-                      {new Date(a.appointment_at!).toLocaleTimeString("el-GR", {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                        hour12: false,
-                      })}
-                    </span>
+              {/* Today banner — gradient teal-to-green */}
+              {todayAppts.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.97 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.1, duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+                  className="bg-gradient-to-br from-primary/10 via-card to-accent/10 border border-accent/30 rounded-2xl p-4 space-y-2 shadow-md"
+                >
+                  <div className="flex items-center gap-2 text-xs font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                    <div className="h-2 w-2 rounded-full bg-accent animate-pulse shadow-[0_0_8px_hsl(var(--accent))]" />
+                    Σήμερα — {todayAppts.length} ραντεβού
                   </div>
-                ))}
-              </div>
-            )}
+                  {todayAppts.map((a, i) => (
+                    <motion.div
+                      key={a.id}
+                      initial={{ opacity: 0, x: -8 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.2 + i * 0.05 }}
+                      className="flex items-center justify-between text-xs bg-card/80 rounded-xl px-3 py-2 border border-border"
+                    >
+                      <div>
+                        <span className="font-bold text-primary">
+                          {a.sr_id}
+                        </span>
+                        {a.address && (
+                          <span className="text-muted-foreground ml-2">
+                            {a.address.split(",")[0]}
+                          </span>
+                        )}
+                      </div>
+                      <span className="font-bold bg-gradient-to-r from-primary to-accent text-primary-foreground text-[10px] px-2 py-1 rounded-lg shadow-sm">
+                        {new Date(a.appointment_at!).toLocaleTimeString("el-GR", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                          hour12: false,
+                        })}
+                      </span>
+                    </motion.div>
+                  ))}
+                </motion.div>
+              )}
 
             {/* Search */}
             <div className="relative">
