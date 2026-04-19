@@ -110,14 +110,7 @@ const NextUpHero = ({ assignments, onOpen }: Props) => {
         }`}
       />
 
-      {/* Subtle inner grid — Linear-style */}
-      <div
-        className="absolute inset-0 opacity-[0.05] pointer-events-none"
-        style={{
-          backgroundImage:
-            "repeating-linear-gradient(0deg, hsl(var(--foreground)) 0, hsl(var(--foreground)) 1px, transparent 1px, transparent 24px)",
-        }}
-      />
+      {/* Inner grid removed for clean light look */}
 
       <div className="relative p-4 space-y-3">
         {/* Header: eyebrow + cycle indicator */}
