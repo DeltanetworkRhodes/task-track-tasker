@@ -197,6 +197,11 @@ const TechnicianDashboard = () => {
       d.getFullYear() === t.getFullYear()
     );
   });
+  // Count all upcoming appointments (today + future) for stats
+  const upcomingApptsCount = (enrichedAssignments || []).filter((a) => {
+    if (!a.appointment_at) return false;
+    return new Date(a.appointment_at).getTime() > Date.now() - 6 * 60 * 60 * 1000;
+  }).length;
 
   return (
     <div className="min-h-screen bg-muted/30">
