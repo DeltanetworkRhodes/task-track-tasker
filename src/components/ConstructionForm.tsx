@@ -4595,16 +4595,57 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
             
             return (
               <div key={cat.key} className="border border-border rounded-lg p-3 space-y-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                    {/* Phase 3: status icon based on checklist */}
+                    {phase === 3 && checklistByCatKey.get(cat.key) && (() => {
+                      const item = checklistByCatKey.get(cat.key)!;
+                      if (item.is_satisfied) {
+                        return (
+                          <span className="flex h-4 w-4 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-600 shrink-0" title="Πληροί τις απαιτήσεις">
+                            <Check className="h-2.5 w-2.5" strokeWidth={3} />
+                          </span>
+                        );
+                      }
+                      if (item.is_required) {
+                        return (
+                          <span className="flex h-4 w-4 items-center justify-center rounded-full bg-destructive/20 text-destructive shrink-0" title="Λείπουν υποχρεωτικές">
+                            <X className="h-2.5 w-2.5" strokeWidth={3} />
+                          </span>
+                        );
+                      }
+                      return null;
+                    })()}
                     <span className="text-sm">{cat.icon}</span>
-                    <span className="text-xs font-medium">{cat.label}</span>
-                    {mandatoryPhotoKeys.has(cat.key) ? (
-                      <Badge variant="destructive" className="text-[9px] h-4 px-1">ΥΠΟΧΡ.</Badge>
-                    ) : (
-                      cat.workPrefixes.length > 0 && <span className="text-[10px] text-muted-foreground">(προαιρ.)</span>
-                    )}
+                    <div className="flex flex-col min-w-0">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-xs font-medium">{cat.label}</span>
+                        {phase === 3 && checklistByCatKey.get(cat.key) ? (
+                          checklistByCatKey.get(cat.key)!.is_required ? (
+                            <Badge variant="destructive" className="text-[9px] h-4 px-1">ΥΠΟΧΡ.</Badge>
+                          ) : (
+                            <span className="text-[10px] text-muted-foreground">(προαιρ.)</span>
+                          )
+                        ) : mandatoryPhotoKeys.has(cat.key) ? (
+                          <Badge variant="destructive" className="text-[9px] h-4 px-1">ΥΠΟΧΡ.</Badge>
+                        ) : (
+                          cat.workPrefixes.length > 0 && <span className="text-[10px] text-muted-foreground">(προαιρ.)</span>
+                        )}
+                      </div>
+                      {phase === 3 && checklistByCatKey.get(cat.key) && (() => {
+                        const item = checklistByCatKey.get(cat.key)!;
+                        return (
+                          <span className="text-[10px] text-muted-foreground tabular-nums">
+                            {item.current_count}/{item.min_count} φωτογραφίες
+                            {item.missing > 0 && item.is_required && (
+                              <span className="text-amber-600 font-semibold"> · λείπουν {item.missing}</span>
+                            )}
+                          </span>
+                        );
+                      })()}
+                    </div>
                   </div>
+
                   <div className="flex items-center gap-2">
                     {existingPhotoCounts[cat.key] > 0 && (
                       <button
