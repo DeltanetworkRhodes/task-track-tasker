@@ -5049,8 +5049,6 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-        </div>
-      </div>
 
       {/* Mandatory photos warning (Phase 3 crew before completion) */}
       {isCrewMode && phase === 3 && !mandatoryPhotosValid && mandatoryPhotoKeys.size > 0 && (
