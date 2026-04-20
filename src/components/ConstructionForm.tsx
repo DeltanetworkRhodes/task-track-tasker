@@ -24,6 +24,9 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 import { isOnline, enqueueConstruction, fileToOfflineFile, type OfflineConstructionPayload } from "@/lib/offlineQueue";
+import { usePhotoChecklist } from "@/hooks/usePhotoChecklist";
+import PhotoChecklist from "@/components/PhotoChecklist";
+import { useUserRole } from "@/hooks/useUserRole";
 
 interface WorkItem {
   work_pricing_id: string;
@@ -1770,6 +1773,31 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
     }
     return missing;
   }, [mandatoryPhotoKeys, categorizedPhotos, existingPhotoCounts]);
+
+  // ─── Photo Checklist (Phase 3 only — server-defined requirements) ───
+  const { data: userRole } = useUserRole();
+  const isAdminUser = userRole === "admin" || userRole === "super_admin";
+
+  const photoCountsForChecklist = useMemo(() => {
+    const merged: Record<string, number> = {};
+    for (const cat of ALL_PHOTO_CATEGORIES) {
+      const existing = existingPhotoCounts[cat.key] || 0;
+      const newPending = (categorizedPhotos[cat.key] || []).length;
+      merged[cat.key] = existing + newPending;
+      // Also expose under storageName for ASCII alias lookups
+      merged[cat.storageName] = existing + newPending;
+    }
+    return merged;
+  }, [existingPhotoCounts, categorizedPhotos]);
+
+  const { summary: photoChecklist } = usePhotoChecklist(
+    phase === 3 ? phase : null,
+    buildingType,
+    photoCountsForChecklist
+  );
+
+  const [showOverrideDialog, setShowOverrideDialog] = useState(false);
+  const [overrideReason, setOverrideReason] = useState("");
 
   // OTDR PDF handlers
   const handleOtdrSelect = (category: string, e: React.ChangeEvent<HTMLInputElement>) => {
@@ -4872,48 +4900,155 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
           )}
 
           {/* Phase completion button — for any crew technician with a phase */}
-          {phase && (
-            <Button
-              onClick={async () => {
-                await handleSubmit();
-                const { data: existing } = await supabase
-                  .from("constructions")
-                  .select("id")
-                  .eq("assignment_id", assignment.id)
-                  .maybeSingle();
-                if (existing?.id) {
-                  const phaseField = `phase${phase}_status`;
-                  const phaseDate = `phase${phase}_completed_at`;
-                  await supabase
+          {phase && (() => {
+            const blocked = phase === 3 && photoChecklist && !photoChecklist.all_required_satisfied && !isAdminUser;
+            const missingCount = photoChecklist?.missing_required.length ?? 0;
+            return (
+              <Button
+                onClick={async (e) => {
+                  if (blocked) {
+                    e.preventDefault();
+                    hapticFeedback.error();
+                    toast.error(`Λείπουν ${missingCount} υποχρεωτικές κατηγορίες φωτογραφιών`, {
+                      description: photoChecklist!.missing_required
+                        .map((i) => `${i.category_icon} ${i.category_label}`)
+                        .join(" · "),
+                    });
+                    return;
+                  }
+                  if (phase === 3 && photoChecklist && !photoChecklist.all_required_satisfied && isAdminUser) {
+                    setShowOverrideDialog(true);
+                    return;
+                  }
+                  await handleSubmit();
+                  const { data: existing } = await supabase
                     .from("constructions")
-                    .update({
-                      [phaseField]: "completed",
-                      [phaseDate]: new Date().toISOString(),
-                    } as any)
-                    .eq("id", existing.id);
-                  toast.success(`✅ Φάση ${phase} ολοκληρώθηκε!`, {
-                    description: phase === 2 ? "Η Φάση 3 ξεκλειδώθηκε" : undefined,
-                    duration: 4000,
+                    .select("id")
+                    .eq("assignment_id", assignment.id)
+                    .maybeSingle();
+                  if (existing?.id) {
+                    const phaseField = `phase${phase}_status`;
+                    const phaseDate = `phase${phase}_completed_at`;
+                    await supabase
+                      .from("constructions")
+                      .update({ [phaseField]: "completed", [phaseDate]: new Date().toISOString() } as any)
+                      .eq("id", existing.id);
+                    toast.success(`✅ Φάση ${phase} ολοκληρώθηκε!`, {
+                      description: phase === 2 ? "Η Φάση 3 ξεκλειδώθηκε" : undefined,
+                      duration: 4000,
+                    });
+                    queryClient.invalidateQueries({ queryKey: ["phase-statuses"] });
+                    queryClient.invalidateQueries({ queryKey: ["construction-phases"] });
+                    queryClient.invalidateQueries({ queryKey: ["phase-status"] });
+                  }
+                }}
+                disabled={submitting || completing || blocked}
+                className={`flex-1 py-5 text-sm font-bold gap-2 text-white ${
+                  blocked
+                    ? "bg-muted-foreground cursor-not-allowed opacity-60"
+                    : phase === 1
+                    ? "bg-amber-600 hover:bg-amber-700"
+                    : phase === 2
+                    ? "bg-blue-600 hover:bg-blue-700"
+                    : "bg-green-600 hover:bg-green-700"
+                }`}
+              >
+                {blocked ? (
+                  <><AlertTriangle className="h-4 w-4" /> Λείπουν {missingCount} φωτογραφίες</>
+                ) : (
+                  <><CheckCircle className="h-4 w-4" /> ✅ Ολοκλήρωση Φάσης {phase}{phase === 1 ? " — Χωματουργικά" : phase === 2 ? " — Οδεύσεις" : " — Κόλληση"}</>
+                )}
+              </Button>
+            );
+          })()}
+        </div>
+      </div>
+
+      {/* Photo Checklist — Phase 3 only */}
+      {phase === 3 && photoChecklist && (
+        <div className="px-3 mt-3 max-w-2xl mx-auto">
+          <PhotoChecklist summary={photoChecklist} phase={phase} />
+        </div>
+      )}
+
+      {/* Admin Override Dialog */}
+      <AlertDialog open={showOverrideDialog} onOpenChange={setShowOverrideDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-amber-600" />
+              Παράκαμψη Ελέγχου Φωτογραφιών
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                <p>Λείπουν υποχρεωτικές φωτογραφίες. Ως admin μπορείς να ολοκληρώσεις τη φάση παρά ταύτα — η ενέργεια θα καταγραφεί στο audit log.</p>
+                {photoChecklist && (
+                  <div className="rounded-lg bg-amber-500/10 border border-amber-500/30 p-3 space-y-1">
+                    {photoChecklist.missing_required.map((i) => (
+                      <p key={i.id} className="text-xs text-amber-700">• {i.category_icon} {i.category_label} — λείπουν {i.missing}</p>
+                    ))}
+                  </div>
+                )}
+                <div>
+                  <Label className="text-xs">Λόγος παράκαμψης (υποχρεωτικός)</Label>
+                  <Textarea
+                    value={overrideReason}
+                    onChange={(e) => setOverrideReason(e.target.value)}
+                    placeholder="π.χ. Φωτογραφίες έχουν ήδη παραδοθεί χειροκίνητα στον πελάτη..."
+                    rows={3}
+                    className="mt-1"
+                  />
+                </div>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setOverrideReason("")}>Ακύρωση</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={overrideReason.trim().length < 5}
+              className="bg-amber-600 hover:bg-amber-700 text-white"
+              onClick={async () => {
+                try {
+                  const { data: existing } = await supabase
+                    .from("constructions")
+                    .select("id")
+                    .eq("assignment_id", assignment.id)
+                    .maybeSingle();
+                  await supabase.from("completion_overrides").insert({
+                    organization_id: organizationId,
+                    construction_id: existing?.id || null,
+                    assignment_id: assignment.id,
+                    sr_id: assignment.sr_id,
+                    phase: phase!,
+                    overridden_by: (await supabase.auth.getUser()).data.user?.id!,
+                    reason: overrideReason.trim(),
+                    missing_categories: photoChecklist?.missing_required.map((i) => ({
+                      key: i.category_key,
+                      label: i.category_label,
+                      missing: i.missing,
+                    })) || [],
                   });
+                  await handleSubmit();
+                  if (existing?.id) {
+                    await supabase
+                      .from("constructions")
+                      .update({ [`phase${phase}_status`]: "completed", [`phase${phase}_completed_at`]: new Date().toISOString() } as any)
+                      .eq("id", existing.id);
+                  }
+                  toast.success(`Φάση ${phase} ολοκληρώθηκε με παράκαμψη`, { description: "Καταγράφηκε στο audit log" });
                   queryClient.invalidateQueries({ queryKey: ["phase-statuses"] });
-                  queryClient.invalidateQueries({ queryKey: ["construction-phases"] });
-                  queryClient.invalidateQueries({ queryKey: ["phase-status"] });
+                  setShowOverrideDialog(false);
+                  setOverrideReason("");
+                } catch (err: any) {
+                  toast.error(err.message || "Σφάλμα παράκαμψης");
                 }
               }}
-              disabled={submitting || completing}
-              className={`flex-1 py-5 text-sm font-bold gap-2 text-white ${
-                phase === 1
-                  ? "bg-amber-600 hover:bg-amber-700"
-                  : phase === 2
-                  ? "bg-blue-600 hover:bg-blue-700"
-                  : "bg-green-600 hover:bg-green-700"
-              }`}
             >
-              <CheckCircle className="h-4 w-4" />
-              ✅ Ολοκλήρωση Φάσης {phase}
-              {phase === 1 ? " — Χωματουργικά" : phase === 2 ? " — Οδεύσεις" : " — Κόλληση"}
-            </Button>
-          )}
+              Ολοκλήρωση με παράκαμψη
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
         </div>
       </div>
 

@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, ClipboardCheck, Wrench, Package, LogOut, FileText, TrendingUp, Search, UserCog, X, BarChart3, Settings, Sun, Moon, CalendarDays, GripVertical, Check, FileSpreadsheet, Banknote } from "lucide-react";
+import { LayoutDashboard, ClipboardCheck, Wrench, Package, LogOut, FileText, TrendingUp, Search, UserCog, X, BarChart3, Settings, Sun, Moon, CalendarDays, GripVertical, Check, FileSpreadsheet, Banknote, ShieldCheck } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import NotificationBell from "@/components/NotificationBell";
 import deltaLogoIcon from "@/assets/delta-logo-icon.png";
@@ -15,6 +15,7 @@ const DEFAULT_NAV_ITEMS = [
   { to: '/materials', label: 'Αποθήκη', icon: Package },
   { to: '/work-pricing', label: 'Τιμοκατάλογος', icon: FileText },
   { to: '/earnings-pricing', label: 'Αμοιβές Κτιρίων', icon: Banknote },
+  { to: '/photo-requirements', label: 'Έλεγχος Φωτο', icon: ShieldCheck },
   { to: '/profit', label: 'Κέρδος/SR', icon: TrendingUp },
   
   { to: '/kpis', label: 'KPIs Τεχνικών', icon: BarChart3 },
@@ -32,6 +33,7 @@ const ICON_MAP: Record<string, React.ElementType> = {
   '/materials': Package,
   '/work-pricing': FileText,
   '/earnings-pricing': Banknote,
+  '/photo-requirements': ShieldCheck,
   '/profit': TrendingUp,
   
   '/kpis': BarChart3,
