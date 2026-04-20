@@ -3763,36 +3763,75 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                            <LabelCard color="accent-foreground" icon="📡" title="Labels BMO">
 
                             {/* B. Εσωτερικά BMO — feed + range + departures */}
-                             <LabelBox label="B. Εσωτερικά BMO">
-                               <div className="space-y-1">
-                                 {/* Feed source + range */}
-                                 {(() => {
-                                   const feedLine = `${cabName} - ${fiberCount}`;
-                                   const rangeLine = fiberRange ? fiberRange.replace("-", " - ") : "";
-                                   const fbLines = Object.entries(fbGroups).sort(([a], [b]) => a.localeCompare(b)).map(([, fb]) => {
-                                     const fl = fb.floor.startsWith("+") || fb.floor.startsWith("-") ? fb.floor : `+${fb.floor}`;
-                                     return `FB(${fl}) ${floorFO(fb.floor)}`;
-                                   });
-                                   const allLines = [feedLine, ...(rangeLine ? [rangeLine] : []), "", ...fbLines];
-                                   return (
-                                     <div className="relative group font-mono text-[11px] font-semibold bg-muted/50 rounded-md px-3 py-1.5 border border-border text-center space-y-0.5">
-                                       <div>{feedLine}</div>
-                                       {rangeLine && <div>{rangeLine}</div>}
-                                       <div className="border-t border-border my-1" />
-                                       {fbLines.map((line, i) => <div key={i}>{line}</div>)}
-                                       <button
-                                         type="button"
-                                         onClick={() => { navigator.clipboard.writeText(allLines.filter(l => l !== "").join("\n")); toast.success("Copied!"); }}
-                                         className="absolute right-1 top-1 opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded hover:bg-muted"
-                                       >
-                                         <Copy className="h-3 w-3 text-muted-foreground" />
-                                       </button>
-                                     </div>
-                                   );
-                                 })()}
-                               </div>
-                             </LabelBox>
-                          </LabelCard>
+                              <LabelBox label="B. Εσωτερικά BMO">
+                                <div className="space-y-1">
+                                  {/* Feed source + range */}
+                                  {(() => {
+                                    const feedLine = `${cabName} - ${fiberCount}`;
+                                    const rangeLine = fiberRange ? fiberRange.replace("-", " - ") : "";
+                                    const fbLines = Object.entries(fbGroups).sort(([a], [b]) => a.localeCompare(b)).map(([, fb]) => {
+                                      const fl = fb.floor.startsWith("+") || fb.floor.startsWith("-") ? fb.floor : `+${fb.floor}`;
+                                      return `FB(${fl}) ${floorFO(fb.floor)}`;
+                                    });
+                                    const allLines = [feedLine, ...(rangeLine ? [rangeLine] : []), "", ...fbLines];
+                                    return (
+                                      <div className="relative group font-mono text-[11px] font-semibold bg-muted/50 rounded-md px-3 py-1.5 border border-border text-center space-y-0.5">
+                                        <div>{feedLine}</div>
+                                        {rangeLine && <div>{rangeLine}</div>}
+                                        <div className="border-t border-border my-1" />
+                                        {fbLines.map((line, i) => <div key={i}>{line}</div>)}
+                                        <button
+                                          type="button"
+                                          onClick={() => { navigator.clipboard.writeText(allLines.filter(l => l !== "").join("\n")); toast.success("Copied!"); }}
+                                          className="absolute right-1 top-1 opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded hover:bg-muted"
+                                        >
+                                          <Copy className="h-3 w-3 text-muted-foreground" />
+                                        </button>
+                                      </div>
+                                    );
+                                  })()}
+                                </div>
+                              </LabelBox>
+
+                              {/* C. Ports → Όροφος (από GIS BMO-FB paths) */}
+                              {(() => {
+                                const optPaths = ((gisData as any)?.optical_paths as any[]) || [];
+                                const portFloorMap = new Map<number, string>();
+                                optPaths.forEach((p: any) => {
+                                  const path = p.path || p["OPTICAL PATH"] || "";
+                                  const type = (p.type || p["OPTICAL PATH TYPE"] || "").toUpperCase();
+                                  if (type !== "BMO-FB") return;
+                                  const m = path.match(/BMO\d+_(\d+)_FB\(([^)]+)\)/);
+                                  if (!m) return;
+                                  const port = parseInt(m[1], 10);
+                                  if (!portFloorMap.has(port)) portFloorMap.set(port, m[2]);
+                                });
+                                const ports = Array.from(portFloorMap.entries()).sort((a, b) => a[0] - b[0]);
+                                if (ports.length === 0) return null;
+                                return (
+                                  <LabelBox label="C. Ports → Όροφος (BMO κουτί)">
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-1.5">
+                                      {ports.map(([port, floor]) => {
+                                        const fl = floor.startsWith("+") || floor.startsWith("-") ? floor : `+${floor}`;
+                                        const text = `Port ${port} · ${floorFO(floor) || fl}`;
+                                        return (
+                                          <button
+                                            key={port}
+                                            type="button"
+                                            onClick={() => { navigator.clipboard.writeText(text); toast.success("Copied!"); }}
+                                            className="relative group font-mono text-[10px] font-semibold bg-muted/50 hover:bg-muted rounded px-2 py-1 border border-border text-center transition-colors"
+                                          >
+                                            <span className="text-muted-foreground">Port {port}</span>
+                                            <span className="mx-1 opacity-40">·</span>
+                                            <span className="text-foreground font-bold">{floorFO(floor) || fl}</span>
+                                          </button>
+                                        );
+                                      })}
+                                    </div>
+                                  </LabelBox>
+                                );
+                              })()}
+                           </LabelCard>
                           );
                         })()}
 
