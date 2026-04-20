@@ -121,22 +121,28 @@ const MyEarnings = () => {
       );
       if (ids.length === 0) return [];
 
-      // Γ) Constructions για αυτά τα assignments
+      // Γ) Φόρτωσε ΜΟΝΟ ενεργές αναθέσεις (σε εξέλιξη ή αναμονή — όχι completed/cancelled)
+      const ACTIVE = ["pending", "pre_committed", "inspection", "construction"];
+      const { data: activeAssignments } = await supabase
+        .from("assignments")
+        .select("id, sr_id, status, building_type")
+        .in("id", ids)
+        .in("status", ACTIVE);
+
+      if (!activeAssignments || activeAssignments.length === 0) return [];
+
+      // Δ) Constructions για να δούμε ποια φάση έχει ήδη ολοκληρωθεί
       const { data: cons } = await supabase
         .from("constructions")
         .select(
           "id, sr_id, building_type, assignment_id, phase2_status, phase3_status"
         )
-        .in("assignment_id", ids);
+        .in("assignment_id", activeAssignments.map((a: any) => a.id));
 
-      // Κρατάμε όσα δεν έχουν ολοκληρωθεί στη φάση μας (ακόμα κι αν λείπει το building_type)
-      const incompleteCons = (cons || []).filter((c: any) => {
-        const phaseField = myPhase === 2 ? c.phase2_status : c.phase3_status;
-        return phaseField !== "completed";
-      });
-      if (incompleteCons.length === 0) return [];
+      const consByAssignment = new Map<string, any>();
+      (cons || []).forEach((c: any) => consByAssignment.set(c.assignment_id, c));
 
-      // Δ) Φόρτωση όλου του pricing του οργανισμού (για default fallback)
+      // Ε) Φόρτωση pricing του οργανισμού
       const { data: pricing } = await supabase
         .from("building_pricing")
         .select("building_type, building_label, phase2_price, phase3_price")
@@ -145,29 +151,36 @@ const MyEarnings = () => {
       const priceMap = new Map<string, any>();
       (pricing || []).forEach((p: any) => priceMap.set(p.building_type, p));
 
-      // Default fallback: Πολυκατοικία ή το πρώτο διαθέσιμο
       const defaultPrice =
         priceMap.get("poly") ||
         (pricing && pricing.length > 0 ? pricing[0] : null);
 
       const result: PendingItem[] = [];
-      for (const c of incompleteCons) {
-        const p = c.building_type ? priceMap.get(c.building_type) : null;
-        const priceRow = p || defaultPrice;
+      for (const a of activeAssignments as any[]) {
+        const c = consByAssignment.get(a.id);
+        // Αν υπάρχει construction και η φάση μου είναι ήδη completed → skip
+        if (c) {
+          const phaseField = myPhase === 2 ? c.phase2_status : c.phase3_status;
+          if (phaseField === "completed") continue;
+        }
+
+        const btype = c?.building_type || a.building_type || null;
+        const priceRow = (btype && priceMap.get(btype)) || defaultPrice;
         if (!priceRow) continue;
         const amount =
           Number(myPhase === 2 ? priceRow.phase2_price : priceRow.phase3_price) || 0;
         if (amount <= 0) continue;
+
         result.push({
-          key: c.id,
-          sr_id: c.sr_id,
-          building_label: c.building_type
+          key: c?.id || a.id,
+          sr_id: a.sr_id,
+          building_label: btype
             ? priceRow.building_label
             : `${priceRow.building_label} (εκτίμηση)`,
-          building_type: c.building_type || priceRow.building_type,
+          building_type: btype || priceRow.building_type,
           amount,
           phase: myPhase,
-          assignment_id: c.assignment_id,
+          assignment_id: a.id,
         });
       }
       return result;
