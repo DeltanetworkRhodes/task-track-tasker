@@ -24,6 +24,9 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 import { isOnline, enqueueConstruction, fileToOfflineFile, type OfflineConstructionPayload } from "@/lib/offlineQueue";
+import { usePhotoChecklist } from "@/hooks/usePhotoChecklist";
+import PhotoChecklist from "@/components/PhotoChecklist";
+import { useUserRole } from "@/hooks/useUserRole";
 
 interface WorkItem {
   work_pricing_id: string;
