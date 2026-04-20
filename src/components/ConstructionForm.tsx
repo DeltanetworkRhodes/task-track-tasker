@@ -1774,6 +1774,31 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
     return missing;
   }, [mandatoryPhotoKeys, categorizedPhotos, existingPhotoCounts]);
 
+  // ─── Photo Checklist (Phase 3 only — server-defined requirements) ───
+  const { data: userRole } = useUserRole();
+  const isAdminUser = userRole === "admin" || userRole === "super_admin";
+
+  const photoCountsForChecklist = useMemo(() => {
+    const merged: Record<string, number> = {};
+    for (const cat of ALL_PHOTO_CATEGORIES) {
+      const existing = existingPhotoCounts[cat.key] || 0;
+      const newPending = (categorizedPhotos[cat.key] || []).length;
+      merged[cat.key] = existing + newPending;
+      // Also expose under storageName for ASCII alias lookups
+      merged[cat.storageName] = existing + newPending;
+    }
+    return merged;
+  }, [existingPhotoCounts, categorizedPhotos]);
+
+  const { summary: photoChecklist } = usePhotoChecklist(
+    phase === 3 ? phase : null,
+    buildingType,
+    photoCountsForChecklist
+  );
+
+  const [showOverrideDialog, setShowOverrideDialog] = useState(false);
+  const [overrideReason, setOverrideReason] = useState("");
+
   // OTDR PDF handlers
   const handleOtdrSelect = (category: string, e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []).filter((f) => f.type === "application/pdf");
