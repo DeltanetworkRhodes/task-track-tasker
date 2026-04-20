@@ -3793,37 +3793,52 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                                 </div>
                               </LabelBox>
 
-                              {/* C. Ports → Όροφος (από GIS BMO-FB paths) */}
+                              {/* C. Ports → Όροφος (μόνο ΕΝΕΡΓΑ ports από BEP→BMO, ομαδοποιημένα ανά όροφο) */}
                               {(() => {
-                                const optPaths = ((gisData as any)?.optical_paths as any[]) || [];
-                                const portFloorMap = new Map<number, string>();
-                                optPaths.forEach((p: any) => {
-                                  const path = p.path || p["OPTICAL PATH"] || "";
-                                  const type = (p.type || p["OPTICAL PATH TYPE"] || "").toUpperCase();
-                                  if (type !== "BMO-FB") return;
-                                  const m = path.match(/BMO\d+_(\d+)_FB\(([^)]+)\)/);
-                                  if (!m) return;
-                                  const port = parseInt(m[1], 10);
-                                  if (!portFloorMap.has(port)) portFloorMap.set(port, m[2]);
-                                });
-                                const ports = Array.from(portFloorMap.entries()).sort((a, b) => a[0] - b[0]);
-                                if (ports.length === 0) return null;
+                                // Map BMO port → floor (από όλα τα BMO-FB paths)
+                                const portToFloor = new Map<number, string>();
+                                for (const [, fb] of Object.entries(fbGroups)) {
+                                  for (const { mobPort } of fb.ports) {
+                                    if (!portToFloor.has(mobPort)) portToFloor.set(mobPort, fb.floor);
+                                  }
+                                }
+                                // Κρατάμε μόνο τα ports που είναι ενεργά από BEP→BMO
+                                const activePairs = bepBmoPorts
+                                  .map((port) => [port, portToFloor.get(port)] as const)
+                                  .filter(([, floor]) => !!floor) as Array<readonly [number, string]>;
+                                if (activePairs.length === 0) return null;
+
+                                // Ομαδοποίηση ανά όροφο για συμπαγή προβολή
+                                const byFloor = new Map<string, number[]>();
+                                for (const [port, floor] of activePairs) {
+                                  if (!byFloor.has(floor)) byFloor.set(floor, []);
+                                  byFloor.get(floor)!.push(port);
+                                }
+                                const floorEntries = Array.from(byFloor.entries()).sort(
+                                  ([a], [b]) => a.localeCompare(b)
+                                );
+
                                 return (
-                                  <LabelBox label="C. Ports → Όροφος (BMO κουτί)">
-                                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-1.5">
-                                      {ports.map(([port, floor]) => {
+                                  <LabelBox label="C. Ενεργά Ports → Όροφος (BMO κουτί)">
+                                    <div className="text-[10px] text-muted-foreground mb-1.5 px-0.5">
+                                      Μόνο τα ports με ενεργή σύνδεση BEP→BMO
+                                    </div>
+                                    <div className="space-y-1.5">
+                                      {floorEntries.map(([floor, ports]) => {
                                         const fl = floor.startsWith("+") || floor.startsWith("-") ? floor : `+${floor}`;
-                                        const text = `Port ${port} · ${floorFO(floor) || fl}`;
+                                        const floorLbl = floorFO(floor) || fl;
+                                        const portsTxt = ports.sort((a, b) => a - b).join(", ");
+                                        const text = `${floorLbl} · Port ${portsTxt}`;
                                         return (
                                           <button
-                                            key={port}
+                                            key={floor}
                                             type="button"
                                             onClick={() => { navigator.clipboard.writeText(text); toast.success("Copied!"); }}
-                                            className="relative group font-mono text-[10px] font-semibold bg-muted/50 hover:bg-muted rounded px-2 py-1 border border-border text-center transition-colors"
+                                            className="relative group w-full flex items-center justify-between gap-2 font-mono text-[11px] font-semibold bg-muted/50 hover:bg-muted rounded-md px-3 py-1.5 border border-border transition-colors"
                                           >
-                                            <span className="text-muted-foreground">Port {port}</span>
-                                            <span className="mx-1 opacity-40">·</span>
-                                            <span className="text-foreground font-bold">{floorFO(floor) || fl}</span>
+                                            <span className="text-foreground font-bold">{floorLbl}</span>
+                                            <span className="text-muted-foreground">Port {portsTxt}</span>
+                                            <Copy className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity absolute right-1 top-1" />
                                           </button>
                                         );
                                       })}
