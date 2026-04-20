@@ -5065,12 +5065,8 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
         </div>
       </div>
 
-      {/* Photo Checklist — Phase 3 only */}
-      {phase === 3 && photoChecklist && (
-        <div className="px-3 mt-3 max-w-2xl mx-auto">
-          <PhotoChecklist summary={photoChecklist} phase={phase} />
-        </div>
-      )}
+      {/* Photo Checklist UI is now embedded in the "Φωτογραφίες Κατασκευής" section header + rows above */}
+
 
       {/* Admin Override Dialog */}
       <AlertDialog open={showOverrideDialog} onOpenChange={setShowOverrideDialog}>
