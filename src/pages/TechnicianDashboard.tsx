@@ -258,12 +258,13 @@ const TechnicianDashboard = () => {
     return new Date(a.appointment_at).getTime() > Date.now() - 6 * 60 * 60 * 1000;
   }).length;
 
-  // ── Hero list: ΜΟΝΟ SRs με ραντεβού από το ΗΜΕΡΟΛΟΓΙΟ (πίνακας appointments).
-  // Αγνοούμε τη legacy στήλη assignments.appointment_at — μετράει μόνο πραγματικό ραντεβού.
+  // ── Hero list: ΜΟΝΟ SRs με ραντεβού από το ΗΜΕΡΟΛΟΓΙΟ (πίνακας appointments)
+  // ΚΑΙ μόνο για τον υπεύθυνο τεχνικό (technician_id). Τα μέλη crew δεν βλέπουν hero.
   const heroList = useMemo(() => {
     if (!apptMap || apptMap.size === 0) return [];
+    if (!user?.id) return [];
     const list = (enrichedAssignments || []).filter(
-      (a) => !hiddenStatuses.includes(a.status)
+      (a) => !hiddenStatuses.includes(a.status) && a.technician_id === user.id
     );
     const cutoff = Date.now() - 6 * 60 * 60 * 1000;
     return list
