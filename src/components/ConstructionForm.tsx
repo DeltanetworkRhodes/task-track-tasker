@@ -332,8 +332,17 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
       .reduce((sum, m) => sum + m.quantity, 0);
   }, [materialItems]);
 
+  // Effective FB count: max of (charged FBs, FB rows from GIS floor_meters, floor count)
+  // Ensures FB OTDR rows appear even if technician hasn't charged FB materials yet.
+  const effectiveFbCount = useMemo(() => {
+    const charged = Math.max(0, Math.round(totalFbCharged));
+    const fromFloorMeters = floorMeters.length;
+    const fromFloors = floorCount;
+    return Math.max(charged, fromFloorMeters, fromFloors);
+  }, [totalFbCharged, floorMeters.length, floorCount]);
+
   const fbOtdrCategories = useMemo(() => {
-    const count = Math.max(0, Math.round(totalFbCharged));
+    const count = effectiveFbCount;
     const cats = [];
     for (let i = 1; i <= count; i++) {
       const fbLabel = i.toString().padStart(2, "0");
@@ -344,7 +353,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
       });
     }
     return cats;
-  }, [totalFbCharged]);
+  }, [effectiveFbCount]);
 
   const OTDR_CATEGORIES = useMemo(() => {
     const allOtdr = [
