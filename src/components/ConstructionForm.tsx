@@ -9,7 +9,8 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useTimeTracking } from "@/hooks/useTimeTracking";
-import { Trash2, Loader2, CheckCircle, HardHat, Package, Wrench, Camera, X, ChevronDown, ChevronRight, Plus, Minus, MapPin, Route, AlertTriangle, Save, GitMerge, Building2, Copy, LogOut, RefreshCw, Maximize2 } from "lucide-react";
+import { Trash2, Loader2, CheckCircle, HardHat, Package, Wrench, Camera, X, ChevronDown, ChevronRight, Plus, Minus, MapPin, Route, AlertTriangle, Save, GitMerge, Building2, Copy, LogOut, RefreshCw, Maximize2, Check, TrendingUp } from "lucide-react";
+import { motion } from "framer-motion";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -117,6 +118,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
   const [floors, setFloors] = useState("0");
   const [routingType, setRoutingType] = useState("");
   const [pendingNote, setPendingNote] = useState("");
+  const [buildingType, setBuildingType] = useState<string | null>(null);
 
   // ── AS-BUILD extra fields ──
   const [koiTypeCabBep, setKoiTypeCabBep] = useState("4' μ cable");
@@ -452,6 +454,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
     setFloors(String(existingConstruction.floors ?? 0));
     setRoutingType(existingConstruction.routing_type || "");
     setPendingNote(existingConstruction.pending_note || "");
+    setBuildingType((existingConstruction as any).building_type || (assignment as any).building_type || null);
 
 
 
