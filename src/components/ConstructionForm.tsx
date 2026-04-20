@@ -2966,6 +2966,10 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
           </div>
         )}
         </div>
+        )}
+      </Card>}
+
+      {/* GIS: Δομή Κτιρίου */}
       {(!phase || phase === 2 || phase === 3) && gisData && Array.isArray(gisData.floor_details) && (gisData.floor_details as any[]).length > 0 && (
         <Card className="p-5 space-y-3.5 border-primary/15 bg-primary/[0.04]">
           <Label className="text-xs font-bold uppercase tracking-wider text-primary flex items-center gap-1.5">
