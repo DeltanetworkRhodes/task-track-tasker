@@ -427,7 +427,7 @@ export default function FtthLabelGenerator() {
               📡 <span>BMO — Labels ανά Port</span>
             </h2>
             <div className="text-xs text-muted-foreground">
-              Κολλάς στην ίνα κάθε port
+              Κολλάς στην ίνα κάθε port — κάθε port αντιστοιχεί σε όροφο
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
               {parsed.bmoPorts.length === 0 && (
@@ -438,12 +438,17 @@ export default function FtthLabelGenerator() {
               {parsed.bmoPorts.map((bp) => (
                 <div
                   key={bp.port}
-                  className="flex items-center gap-2 p-2 rounded border border-border bg-muted/20"
+                  className="flex flex-col gap-1.5 p-2 rounded border border-border bg-muted/20"
                 >
-                  <Badge variant="secondary" className="font-mono">
-                    Port {bp.port}
-                  </Badge>
-                  <LabelChip text={floorLabel(bp.floor)} />
+                  <div className="flex items-center justify-between gap-2">
+                    <Badge variant="secondary" className="font-mono text-[10px]">
+                      Port {bp.port}
+                    </Badge>
+                    <span className="text-[10px] font-bold text-primary uppercase tracking-wider">
+                      {floorLabel(bp.floor)}
+                    </span>
+                  </div>
+                  <LabelChip text={`Port ${bp.port} · ${floorLabel(bp.floor)}`} />
                 </div>
               ))}
             </div>
