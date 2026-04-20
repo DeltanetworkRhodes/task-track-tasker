@@ -129,37 +129,42 @@ const MyEarnings = () => {
         )
         .in("assignment_id", ids);
 
+      // Κρατάμε όσα δεν έχουν ολοκληρωθεί στη φάση μας (ακόμα κι αν λείπει το building_type)
       const incompleteCons = (cons || []).filter((c: any) => {
-        if (!c.building_type) return false;
         const phaseField = myPhase === 2 ? c.phase2_status : c.phase3_status;
         return phaseField !== "completed";
       });
       if (incompleteCons.length === 0) return [];
 
-      // Δ) Building pricing για να βρούμε τιμές
-      const buildingTypes = Array.from(
-        new Set(incompleteCons.map((c: any) => c.building_type))
-      );
+      // Δ) Φόρτωση όλου του pricing του οργανισμού (για default fallback)
       const { data: pricing } = await supabase
         .from("building_pricing")
         .select("building_type, building_label, phase2_price, phase3_price")
-        .eq("organization_id", profile!.organization_id!)
-        .in("building_type", buildingTypes as any);
+        .eq("organization_id", profile!.organization_id!);
 
       const priceMap = new Map<string, any>();
       (pricing || []).forEach((p: any) => priceMap.set(p.building_type, p));
 
+      // Default fallback: Πολυκατοικία ή το πρώτο διαθέσιμο
+      const defaultPrice =
+        priceMap.get("poly") ||
+        (pricing && pricing.length > 0 ? pricing[0] : null);
+
       const result: PendingItem[] = [];
       for (const c of incompleteCons) {
-        const p = priceMap.get(c.building_type);
-        if (!p) continue;
-        const amount = Number(myPhase === 2 ? p.phase2_price : p.phase3_price) || 0;
+        const p = c.building_type ? priceMap.get(c.building_type) : null;
+        const priceRow = p || defaultPrice;
+        if (!priceRow) continue;
+        const amount =
+          Number(myPhase === 2 ? priceRow.phase2_price : priceRow.phase3_price) || 0;
         if (amount <= 0) continue;
         result.push({
           key: c.id,
           sr_id: c.sr_id,
-          building_label: p.building_label,
-          building_type: c.building_type,
+          building_label: c.building_type
+            ? priceRow.building_label
+            : `${priceRow.building_label} (εκτίμηση)`,
+          building_type: c.building_type || priceRow.building_type,
           amount,
           phase: myPhase,
           assignment_id: c.assignment_id,
