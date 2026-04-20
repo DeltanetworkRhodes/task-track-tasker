@@ -158,6 +158,9 @@ export type Database = {
           appointment_at: string | null
           area: string
           building_id_hemd: string | null
+          building_type:
+            | Database["public"]["Enums"]["building_type_enum"]
+            | null
           cab: string | null
           call_count: number | null
           call_notes: string | null
@@ -203,6 +206,9 @@ export type Database = {
           appointment_at?: string | null
           area: string
           building_id_hemd?: string | null
+          building_type?:
+            | Database["public"]["Enums"]["building_type_enum"]
+            | null
           cab?: string | null
           call_count?: number | null
           call_notes?: string | null
@@ -248,6 +254,9 @@ export type Database = {
           appointment_at?: string | null
           area?: string
           building_id_hemd?: string | null
+          building_type?:
+            | Database["public"]["Enums"]["building_type_enum"]
+            | null
           cab?: string | null
           call_count?: number | null
           call_notes?: string | null
@@ -335,6 +344,53 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "audit_logs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      building_pricing: {
+        Row: {
+          building_icon: string | null
+          building_label: string
+          building_type: Database["public"]["Enums"]["building_type_enum"]
+          created_at: string
+          id: string
+          organization_id: string
+          phase2_price: number
+          phase3_price: number
+          sort_order: number | null
+          updated_at: string
+        }
+        Insert: {
+          building_icon?: string | null
+          building_label: string
+          building_type: Database["public"]["Enums"]["building_type_enum"]
+          created_at?: string
+          id?: string
+          organization_id: string
+          phase2_price?: number
+          phase3_price?: number
+          sort_order?: number | null
+          updated_at?: string
+        }
+        Update: {
+          building_icon?: string | null
+          building_label?: string
+          building_type?: Database["public"]["Enums"]["building_type_enum"]
+          created_at?: string
+          id?: string
+          organization_id?: string
+          phase2_price?: number
+          phase3_price?: number
+          sort_order?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "building_pricing_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
@@ -524,6 +580,9 @@ export type Database = {
           assignment_id: string | null
           ball_marker_bep: number | null
           bep_placement_floor: string | null
+          building_type:
+            | Database["public"]["Enums"]["building_type_enum"]
+            | null
           cab: string | null
           created_at: string
           floor_meters: Json | null
@@ -561,6 +620,9 @@ export type Database = {
           assignment_id?: string | null
           ball_marker_bep?: number | null
           bep_placement_floor?: string | null
+          building_type?:
+            | Database["public"]["Enums"]["building_type_enum"]
+            | null
           cab?: string | null
           created_at?: string
           floor_meters?: Json | null
@@ -598,6 +660,9 @@ export type Database = {
           assignment_id?: string | null
           ball_marker_bep?: number | null
           bep_placement_floor?: string | null
+          building_type?:
+            | Database["public"]["Enums"]["building_type_enum"]
+            | null
           cab?: string | null
           created_at?: string
           floor_meters?: Json | null
@@ -1627,6 +1692,7 @@ export type Database = {
           measurements: Json | null
           notes: string | null
           organization_id: string
+          phase: number | null
           saved_at: string | null
           saved_by: string | null
           status: string | null
@@ -1639,6 +1705,7 @@ export type Database = {
           measurements?: Json | null
           notes?: string | null
           organization_id: string
+          phase?: number | null
           saved_at?: string | null
           saved_by?: string | null
           status?: string | null
@@ -1651,6 +1718,7 @@ export type Database = {
           measurements?: Json | null
           notes?: string | null
           organization_id?: string
+          phase?: number | null
           saved_at?: string | null
           saved_by?: string | null
           status?: string | null
@@ -1863,6 +1931,79 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "surveys_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      technician_earnings: {
+        Row: {
+          amount: number
+          assignment_id: string | null
+          building_label: string | null
+          building_type:
+            | Database["public"]["Enums"]["building_type_enum"]
+            | null
+          completed_at: string
+          construction_id: string | null
+          created_at: string
+          id: string
+          organization_id: string
+          phase: number
+          sr_id: string
+          technician_id: string
+        }
+        Insert: {
+          amount?: number
+          assignment_id?: string | null
+          building_label?: string | null
+          building_type?:
+            | Database["public"]["Enums"]["building_type_enum"]
+            | null
+          completed_at?: string
+          construction_id?: string | null
+          created_at?: string
+          id?: string
+          organization_id: string
+          phase: number
+          sr_id: string
+          technician_id: string
+        }
+        Update: {
+          amount?: number
+          assignment_id?: string | null
+          building_label?: string | null
+          building_type?:
+            | Database["public"]["Enums"]["building_type_enum"]
+            | null
+          completed_at?: string
+          construction_id?: string | null
+          created_at?: string
+          id?: string
+          organization_id?: string
+          phase?: number
+          sr_id?: string
+          technician_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "technician_earnings_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "assignments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "technician_earnings_construction_id_fkey"
+            columns: ["construction_id"]
+            isOneToOne: false
+            referencedRelation: "constructions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "technician_earnings_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
@@ -2180,6 +2321,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "technician" | "super_admin"
+      building_type_enum: "poly" | "mono" | "mez" | "complex" | "biz"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2308,6 +2450,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "technician", "super_admin"],
+      building_type_enum: ["poly", "mono", "mez", "complex", "biz"],
     },
   },
 } as const
