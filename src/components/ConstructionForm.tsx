@@ -1907,7 +1907,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
           vertical_infra: verticalInfra,
           bep_placement_floor: bepPlacementFloor,
           vertical_infra_type: verticalInfraType,
-          floor_meters: floorMeters,
+          building_type: buildingType,
           asbuilt_section6: { ...section6, ball_marker_bep: ballMarkerBep, bcp_ball_marker: ballMarkerBcp },
           // 3-Phase workflow: mark this phase as in-progress while saving in crew mode
           ...(phase === 1 && { phase1_status: "in_progress" }),
@@ -2366,7 +2366,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
         vertical_infra: verticalInfra,
         bep_placement_floor: bepPlacementFloor,
         vertical_infra_type: verticalInfraType,
-        floor_meters: floorMeters,
+        building_type: buildingType,
         asbuilt_section6: { ...section6, ball_marker_bep: ballMarkerBep, bcp_ball_marker: ballMarkerBcp },
         // 3-Phase workflow: mark this phase's status (in_progress on save, completed when finishing)
         ...(phase === 1 && (isCompleting
