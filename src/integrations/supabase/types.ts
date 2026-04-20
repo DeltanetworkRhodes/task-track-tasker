@@ -1260,6 +1260,84 @@ export type Database = {
           },
         ]
       }
+      label_print_jobs: {
+        Row: {
+          construction_id: string | null
+          content: string
+          content_lines: Json | null
+          created_at: string
+          id: string
+          label_type: Database["public"]["Enums"]["label_type_enum"]
+          location: Database["public"]["Enums"]["label_location_enum"]
+          organization_id: string
+          print_order: number
+          printed_at: string | null
+          quantity: number
+          reprint_count: number | null
+          section_code: string
+          section_title: string
+          sr_id: string
+          status: string
+          tape_width_mm: number
+          technician_id: string | null
+        }
+        Insert: {
+          construction_id?: string | null
+          content: string
+          content_lines?: Json | null
+          created_at?: string
+          id?: string
+          label_type: Database["public"]["Enums"]["label_type_enum"]
+          location: Database["public"]["Enums"]["label_location_enum"]
+          organization_id: string
+          print_order: number
+          printed_at?: string | null
+          quantity?: number
+          reprint_count?: number | null
+          section_code: string
+          section_title: string
+          sr_id: string
+          status?: string
+          tape_width_mm?: number
+          technician_id?: string | null
+        }
+        Update: {
+          construction_id?: string | null
+          content?: string
+          content_lines?: Json | null
+          created_at?: string
+          id?: string
+          label_type?: Database["public"]["Enums"]["label_type_enum"]
+          location?: Database["public"]["Enums"]["label_location_enum"]
+          organization_id?: string
+          print_order?: number
+          printed_at?: string | null
+          quantity?: number
+          reprint_count?: number | null
+          section_code?: string
+          section_title?: string
+          sr_id?: string
+          status?: string
+          tape_width_mm?: number
+          technician_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "label_print_jobs_construction_id_fkey"
+            columns: ["construction_id"]
+            isOneToOne: false
+            referencedRelation: "constructions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "label_print_jobs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       material_stock_history: {
         Row: {
           change_amount: number
@@ -2410,6 +2488,10 @@ export type Database = {
         Returns: boolean
       }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
+      location_print_order: {
+        Args: { loc: Database["public"]["Enums"]["label_location_enum"] }
+        Returns: number
+      }
       search_buildings: {
         Args: { org_id?: string; search_term: string }
         Returns: {
@@ -2442,6 +2524,8 @@ export type Database = {
     Enums: {
       app_role: "admin" | "technician" | "super_admin"
       building_type_enum: "poly" | "mono" | "mez" | "complex" | "biz"
+      label_location_enum: "kampina" | "bep" | "bmo" | "fb"
+      label_type_enum: "flag" | "flat"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2571,6 +2655,8 @@ export const Constants = {
     Enums: {
       app_role: ["admin", "technician", "super_admin"],
       building_type_enum: ["poly", "mono", "mez", "complex", "biz"],
+      label_location_enum: ["kampina", "bep", "bmo", "fb"],
+      label_type_enum: ["flag", "flat"],
     },
   },
 } as const
