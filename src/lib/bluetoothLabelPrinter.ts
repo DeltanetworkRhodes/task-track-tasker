@@ -28,19 +28,44 @@ export interface PrintOptions {
   onError?: (err: Error) => void;
 }
 
+// Minimal Web Bluetooth typings (avoid full @types/web-bluetooth dep)
+type BTDevice = {
+  gatt?: {
+    connected: boolean;
+    connect: () => Promise<BTServer>;
+    disconnect: () => void;
+  };
+  addEventListener: (ev: string, fn: () => void) => void;
+};
+type BTServer = {
+  getPrimaryService: (uuid: string) => Promise<BTService>;
+};
+type BTService = {
+  getCharacteristic: (uuid: string) => Promise<BTChar>;
+};
+type BTChar = {
+  writeValue: (data: BufferSource) => Promise<void>;
+};
+type BTRequest = {
+  requestDevice: (opts: {
+    filters?: Array<{ namePrefix?: string; name?: string }>;
+    optionalServices?: string[];
+  }) => Promise<BTDevice>;
+};
+
 // Brother SPP / P-touch BLE service & characteristic
 const BROTHER_SERVICE_UUID = "0000fff0-0000-1000-8000-00805f9b34fb";
 const BROTHER_WRITE_CHAR_UUID = "0000fff1-0000-1000-8000-00805f9b34fb";
 
-let connectedDevice: BluetoothDevice | null = null;
-let writeCharacteristic: BluetoothRemoteGATTCharacteristic | null = null;
+let connectedDevice: BTDevice | null = null;
+let writeCharacteristic: BTChar | null = null;
 
 // 12mm tape στο PT-E550W = 70 printable dots ύψος (πρακτικό safe value)
 const TAPE_PRINT_HEIGHT_DOTS = 70;
 const PRINT_DPI = 180;
 
 export async function connectToPrinter(): Promise<void> {
-  const nav = navigator as Navigator & { bluetooth?: Bluetooth };
+  const nav = navigator as Navigator & { bluetooth?: BTRequest };
   if (!nav.bluetooth) {
     throw new Error(
       "Ο browser δεν υποστηρίζει Web Bluetooth. Χρησιμοποίησε Chrome/Edge σε Android ή desktop."
