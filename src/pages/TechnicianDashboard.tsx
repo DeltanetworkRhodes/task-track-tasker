@@ -125,26 +125,35 @@ const TechnicianDashboard = () => {
     [assignments]
   );
 
-  const { data: apptMap } = useQuery({
+  const { data: apptData } = useQuery({
     queryKey: ["technician-appointments", user?.id, srIds.join(",")],
     enabled: !!user && srIds.length > 0,
     queryFn: async () => {
-      const nowIso = new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString();
       const { data, error } = await supabase
         .from("appointments")
-        .select("sr_id, appointment_at")
+        .select("sr_id, appointment_at, status")
         .in("sr_id", srIds)
-        .gte("appointment_at", nowIso)
         .order("appointment_at", { ascending: true });
       if (error) throw error;
-      // Keep earliest upcoming per sr_id
-      const map = new Map<string, string>();
+      // Earliest upcoming per sr_id (for hero/sort)
+      const upcomingMap = new Map<string, string>();
+      // SR IDs that have at least one done/cancelled appointment (so we don't flag them as missed)
+      const handledSet = new Set<string>();
+      const cutoff = Date.now() - 6 * 60 * 60 * 1000;
       for (const row of data || []) {
-        if (!map.has(row.sr_id)) map.set(row.sr_id, row.appointment_at);
+        const t = new Date(row.appointment_at).getTime();
+        if (t >= cutoff && row.status !== "done" && row.status !== "cancelled") {
+          if (!upcomingMap.has(row.sr_id)) upcomingMap.set(row.sr_id, row.appointment_at);
+        }
+        if (row.status === "done" || row.status === "cancelled") {
+          handledSet.add(row.sr_id);
+        }
       }
-      return map;
+      return { upcomingMap, handledSet };
     },
   });
+  const apptMap = apptData?.upcomingMap;
+  const handledApptSrs = apptData?.handledSet;
 
   // Merge appointments into assignments (overrides assignment.appointment_at when present)
   const enrichedAssignments = useMemo(() => {
@@ -275,7 +284,8 @@ const TechnicianDashboard = () => {
       (a) =>
         a.appointment_at &&
         now - new Date(a.appointment_at).getTime() > missedCutoff &&
-        ["pending", "inspection", "pre_committed"].includes(a.status)
+        ["pending", "inspection", "pre_committed"].includes(a.status) &&
+        !handledApptSrs?.has(a.sr_id)
     );
     const stale = list.filter(
       (a) =>
@@ -283,7 +293,7 @@ const TechnicianDashboard = () => {
         !missed.find((m) => m.id === a.id)
     );
     return { missed, stale };
-  }, [enrichedAssignments]);
+  }, [enrichedAssignments, handledApptSrs]);
 
   useEffect(() => {
     if (!isLoading && enrichedAssignments) setLastSyncedAt(Date.now());
