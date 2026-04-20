@@ -765,6 +765,40 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
     return map;
   }, [techInventory]);
 
+  // Fetch building types & pricing for selector
+  const { data: buildingTypes } = useQuery({
+    queryKey: ["building-pricing-options", organizationId],
+    enabled: !!organizationId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("building_pricing")
+        .select("building_type, building_label, building_icon, phase2_price, phase3_price, sort_order")
+        .eq("organization_id", organizationId!)
+        .order("sort_order", { ascending: true });
+      if (error) throw error;
+      return (data || []) as Array<{
+        building_type: string;
+        building_label: string;
+        building_icon: string | null;
+        phase2_price: number;
+        phase3_price: number;
+        sort_order: number | null;
+      }>;
+    },
+    staleTime: 1000 * 60 * 5,
+  });
+
+  const selectedBuilding = useMemo(
+    () => buildingTypes?.find((b) => b.building_type === buildingType) ?? null,
+    [buildingTypes, buildingType]
+  );
+  const currentPhasePrice = useMemo(() => {
+    if (!selectedBuilding || !phase) return 0;
+    if (phase === 2) return Number(selectedBuilding.phase2_price) || 0;
+    if (phase === 3) return Number(selectedBuilding.phase3_price) || 0;
+    return 0;
+  }, [selectedBuilding, phase]);
+
   // Fetch GIS data for this assignment
   const { data: gisData } = useQuery({
     queryKey: ["gis_data_for_construction", assignment.id],
