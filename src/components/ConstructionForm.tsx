@@ -3762,27 +3762,21 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                            return (
                            <LabelCard color="accent-foreground" icon="📡" title="Labels BMO">
 
-                            {/* B. Εσωτερικά BMO — feed + range + departures */}
+                            {/* B. Εσωτερικά BMO — feed + range + ξεχωριστά FB labels ανά όροφο */}
                               <LabelBox label="B. Εσωτερικά BMO">
-                                <div className="space-y-1">
-                                  {/* Feed source + range */}
+                                <div className="space-y-2">
+                                  {/* Feed source + range (ένα block) */}
                                   {(() => {
                                     const feedLine = `${cabName} - ${fiberCount}`;
                                     const rangeLine = fiberRange ? fiberRange.replace("-", " - ") : "";
-                                    const fbLines = Object.entries(fbGroups).sort(([a], [b]) => a.localeCompare(b)).map(([, fb]) => {
-                                      const fl = fb.floor.startsWith("+") || fb.floor.startsWith("-") ? fb.floor : `+${fb.floor}`;
-                                      return `FB(${fl}) ${floorFO(fb.floor)}`;
-                                    });
-                                    const allLines = [feedLine, ...(rangeLine ? [rangeLine] : []), "", ...fbLines];
+                                    const feedBlock = [feedLine, ...(rangeLine ? [rangeLine] : [])].join("\n");
                                     return (
                                       <div className="relative group font-mono text-[11px] font-semibold bg-muted/50 rounded-md px-3 py-1.5 border border-border text-center space-y-0.5">
                                         <div>{feedLine}</div>
                                         {rangeLine && <div>{rangeLine}</div>}
-                                        <div className="border-t border-border my-1" />
-                                        {fbLines.map((line, i) => <div key={i}>{line}</div>)}
                                         <button
                                           type="button"
-                                          onClick={() => { navigator.clipboard.writeText(allLines.filter(l => l !== "").join("\n")); toast.success("Copied!"); }}
+                                          onClick={() => { navigator.clipboard.writeText(feedBlock); toast.success("Copied!"); }}
                                           className="absolute right-1 top-1 opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded hover:bg-muted"
                                         >
                                           <Copy className="h-3 w-3 text-muted-foreground" />
@@ -3790,6 +3784,30 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                                       </div>
                                     );
                                   })()}
+
+                                  {/* FB ανά όροφο — κάθε γραμμή ξεχωριστή ⇒ ξεχωριστό copy */}
+                                  <div className="space-y-1">
+                                    <div className="text-[10px] text-muted-foreground px-0.5">
+                                      FB labels (κλικ ανά όροφο για copy)
+                                    </div>
+                                    {Object.entries(fbGroups)
+                                      .sort(([a], [b]) => a.localeCompare(b))
+                                      .map(([key, fb]) => {
+                                        const fl = fb.floor.startsWith("+") || fb.floor.startsWith("-") ? fb.floor : `+${fb.floor}`;
+                                        const text = `FB(${fl}) ${floorFO(fb.floor)}`;
+                                        return (
+                                          <button
+                                            key={key}
+                                            type="button"
+                                            onClick={() => { navigator.clipboard.writeText(text); toast.success("Copied!"); }}
+                                            className="relative group w-full font-mono text-[11px] font-semibold bg-muted/50 hover:bg-muted rounded-md px-3 py-1.5 border border-border text-center transition-colors"
+                                          >
+                                            {text}
+                                            <Copy className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity absolute right-1 top-1.5" />
+                                          </button>
+                                        );
+                                      })}
+                                  </div>
                                 </div>
                               </LabelBox>
 
