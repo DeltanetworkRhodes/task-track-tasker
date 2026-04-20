@@ -3793,41 +3793,27 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                                 </div>
                               </LabelBox>
 
-                              {/* C. Ports → Όροφος (μόνο ΕΝΕΡΓΑ ports από BEP→BMO, ομαδοποιημένα ανά όροφο) */}
+                              {/* C. Ports → Όροφος (ΟΛΑ τα BMO ports από BMO-FB, ομαδοποιημένα ανά όροφο) */}
                               {(() => {
-                                // Map BMO port → floor (από όλα τα BMO-FB paths)
-                                const portToFloor = new Map<number, string>();
-                                for (const [, fb] of Object.entries(fbGroups)) {
-                                  for (const { mobPort } of fb.ports) {
-                                    if (!portToFloor.has(mobPort)) portToFloor.set(mobPort, fb.floor);
-                                  }
-                                }
-                                // Κρατάμε μόνο τα ports που είναι ενεργά από BEP→BMO
-                                const activePairs = bepBmoPorts
-                                  .map((port) => [port, portToFloor.get(port)] as const)
-                                  .filter(([, floor]) => !!floor) as Array<readonly [number, string]>;
-                                if (activePairs.length === 0) return null;
-
-                                // Ομαδοποίηση ανά όροφο για συμπαγή προβολή
-                                const byFloor = new Map<string, number[]>();
-                                for (const [port, floor] of activePairs) {
-                                  if (!byFloor.has(floor)) byFloor.set(floor, []);
-                                  byFloor.get(floor)!.push(port);
-                                }
-                                const floorEntries = Array.from(byFloor.entries()).sort(
-                                  ([a], [b]) => a.localeCompare(b)
-                                );
+                                const floorEntries = Object.entries(fbGroups)
+                                  .map(([, fb]) => {
+                                    const ports = Array.from(new Set(fb.ports.map((p) => p.mobPort))).sort((a, b) => a - b);
+                                    return [fb.floor, ports] as const;
+                                  })
+                                  .filter(([, ports]) => ports.length > 0)
+                                  .sort(([a], [b]) => a.localeCompare(b));
+                                if (floorEntries.length === 0) return null;
 
                                 return (
-                                  <LabelBox label="C. Ενεργά Ports → Όροφος (BMO κουτί)">
+                                  <LabelBox label="C. Ports → Όροφος (BMO κουτί)">
                                     <div className="text-[10px] text-muted-foreground mb-1.5 px-0.5">
-                                      Μόνο τα ports με ενεργή σύνδεση BEP→BMO
+                                      Όλα τα BMO ports ανά όροφο (από BMO-FB)
                                     </div>
                                     <div className="space-y-1.5">
                                       {floorEntries.map(([floor, ports]) => {
                                         const fl = floor.startsWith("+") || floor.startsWith("-") ? floor : `+${floor}`;
                                         const floorLbl = floorFO(floor) || fl;
-                                        const portsTxt = ports.sort((a, b) => a - b).join(", ");
+                                        const portsTxt = ports.join(", ");
                                         const text = `${floorLbl} · Port ${portsTxt}`;
                                         return (
                                           <button
