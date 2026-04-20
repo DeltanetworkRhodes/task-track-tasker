@@ -32,6 +32,7 @@ import WatermarkTest from "./pages/WatermarkTest";
 import Landing from "./pages/Landing";
 import Terms from "./pages/Terms";
 import FtthLabelGenerator from "./pages/FtthLabelGenerator";
+import MyEarnings from "./pages/MyEarnings";
 
 import NotFound from "./pages/NotFound";
 import HelpChatBot from "./components/HelpChatBot";
@@ -135,6 +136,7 @@ const App = () => (
                   <Route path="/calendar" element={<ProtectedRoute><RoleGate><AdminRoute><Calendar /></AdminRoute></RoleGate></ProtectedRoute>} />
                   <Route path="/documents" element={<ProtectedRoute><RoleGate><AdminRoute><DocumentGenerator /></AdminRoute></RoleGate></ProtectedRoute>} />
                   <Route path="/labels" element={<ProtectedRoute><RoleGate><FtthLabelGenerator /></RoleGate></ProtectedRoute>} />
+                  <Route path="/my-earnings" element={<ProtectedRoute><RoleGate><MyEarnings /></RoleGate></ProtectedRoute>} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </BrowserRouter>
