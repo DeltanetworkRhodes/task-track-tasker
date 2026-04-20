@@ -257,19 +257,25 @@ const TechnicianDashboard = () => {
   }).length;
 
   // ── Hero list: ΜΟΝΟ SRs με ραντεβού (upcoming, sorted earliest first) ──
+  // Εξαιρούμε SRs με ραντεβού που έχει ήδη ολοκληρωθεί ή ακυρωθεί.
   const heroList = useMemo(() => {
     const list = (enrichedAssignments || []).filter(
       (a) => !hiddenStatuses.includes(a.status)
     );
     const cutoff = Date.now() - 6 * 60 * 60 * 1000;
     return list
-      .filter((a) => a.appointment_at && new Date(a.appointment_at).getTime() > cutoff)
+      .filter(
+        (a) =>
+          a.appointment_at &&
+          new Date(a.appointment_at).getTime() > cutoff &&
+          !handledApptSrs?.has(a.sr_id)
+      )
       .sort(
         (a, b) =>
           new Date(a.appointment_at!).getTime() -
           new Date(b.appointment_at!).getTime()
       );
-  }, [enrichedAssignments]);
+  }, [enrichedAssignments, handledApptSrs]);
 
   const nextUp = heroList[0] || null;
 
