@@ -293,7 +293,7 @@ const TechnicianDashboard = () => {
         !missed.find((m) => m.id === a.id)
     );
     return { missed, stale };
-  }, [enrichedAssignments]);
+  }, [enrichedAssignments, handledApptSrs]);
 
   useEffect(() => {
     if (!isLoading && enrichedAssignments) setLastSyncedAt(Date.now());
