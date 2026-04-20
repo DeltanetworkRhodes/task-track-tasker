@@ -23,7 +23,10 @@ type Earning = {
 
 const MyEarnings = () => {
   const { user } = useAuth();
+  const { data: role, isLoading: roleLoading } = useUserRole();
+  const navigate = useNavigate();
   const [period, setPeriod] = useState<"week" | "month" | "all">("month");
+  const isTechnician = role === "technician";
 
   const { data: earnings = [], isLoading } = useQuery({
     queryKey: ["my-earnings", user?.id],
