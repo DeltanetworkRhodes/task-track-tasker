@@ -4542,19 +4542,51 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
         <button
           type="button"
           onClick={() => toggleSection("photos")}
-          className="w-full flex items-center justify-between p-5 hover:bg-muted/40 transition-colors rounded-2xl"
+          className="w-full flex flex-col gap-2 p-5 hover:bg-muted/40 transition-colors rounded-2xl"
         >
-          <Label className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground flex items-center gap-2 pointer-events-none"><span className="h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
-            <Camera className="h-3.5 w-3.5" />
-            Φωτογραφίες Κατασκευής
-            {totalPhotos > 0 && (
-              <Badge variant="secondary" className="text-[10px] ml-1">{totalPhotos} φωτο</Badge>
-            )}
-          </Label>
-          <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${openSections.includes("photos") ? "rotate-180" : ""}`} />
+          <div className="w-full flex items-center justify-between">
+            <Label className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground flex items-center gap-2 pointer-events-none flex-wrap">
+              <span className="h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
+              <Camera className="h-3.5 w-3.5" />
+              Φωτογραφίες Κατασκευής
+              {totalPhotos > 0 && (
+                <Badge variant="secondary" className="text-[10px] ml-1">{totalPhotos} φωτο</Badge>
+              )}
+              {phase === 3 && photoChecklist && photoChecklist.total_required > 0 && (
+                photoChecklist.all_required_satisfied ? (
+                  <Badge className="text-[10px] ml-1 bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20">
+                    ✅ Έτοιμο
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="text-[10px] ml-1 border-amber-500/40 text-amber-700 dark:text-amber-400 bg-amber-500/10">
+                    ⚠️ Λείπουν {photoChecklist.missing_required.length} υποχρ.
+                  </Badge>
+                )
+              )}
+            </Label>
+            <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${openSections.includes("photos") ? "rotate-180" : ""}`} />
+          </div>
+          {phase === 3 && photoChecklist && photoChecklist.total_required > 0 && (() => {
+            const pct = Math.round((photoChecklist.total_satisfied / photoChecklist.total_required) * 100);
+            const ready = photoChecklist.all_required_satisfied;
+            return (
+              <div className="w-full flex items-center gap-2 pointer-events-none">
+                <div className="h-1.5 flex-1 rounded-full bg-muted overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all duration-500 ${ready ? "bg-emerald-500" : "bg-amber-500"}`}
+                    style={{ width: `${pct}%` }}
+                  />
+                </div>
+                <span className={`text-[10px] font-bold tabular-nums shrink-0 ${ready ? "text-emerald-600" : "text-amber-600"}`}>
+                  {photoChecklist.total_satisfied}/{photoChecklist.total_required} · {pct}%
+                </span>
+              </div>
+            );
+          })()}
         </button>
         {openSections.includes("photos") && (
         <div className="px-5 pb-5 space-y-3.5 border-t border-border/40 pt-4">
+
 
         <div className="space-y-2">
           {visiblePhotoCategories.map((cat) => {
