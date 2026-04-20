@@ -279,7 +279,7 @@ const TechnicianDashboard = () => {
           new Date(apptMap.get(a.sr_id)!).getTime() -
           new Date(apptMap.get(b.sr_id)!).getTime()
       );
-  }, [enrichedAssignments, apptMap, handledApptSrs]);
+  }, [enrichedAssignments, apptMap, handledApptSrs, user?.id]);
 
   const nextUp = heroList[0] || null;
 
