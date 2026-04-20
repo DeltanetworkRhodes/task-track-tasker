@@ -466,6 +466,67 @@ export type Database = {
           },
         ]
       }
+      completion_overrides: {
+        Row: {
+          assignment_id: string | null
+          construction_id: string | null
+          created_at: string
+          id: string
+          missing_categories: Json
+          organization_id: string
+          overridden_by: string
+          phase: number
+          reason: string
+          sr_id: string
+        }
+        Insert: {
+          assignment_id?: string | null
+          construction_id?: string | null
+          created_at?: string
+          id?: string
+          missing_categories?: Json
+          organization_id: string
+          overridden_by: string
+          phase: number
+          reason: string
+          sr_id: string
+        }
+        Update: {
+          assignment_id?: string | null
+          construction_id?: string | null
+          created_at?: string
+          id?: string
+          missing_categories?: Json
+          organization_id?: string
+          overridden_by?: string
+          phase?: number
+          reason?: string
+          sr_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "completion_overrides_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "assignments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "completion_overrides_construction_id_fkey"
+            columns: ["construction_id"]
+            isOneToOne: false
+            referencedRelation: "constructions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "completion_overrides_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       construction_materials: {
         Row: {
           construction_id: string
@@ -1461,6 +1522,65 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      photo_requirements: {
+        Row: {
+          building_type:
+            | Database["public"]["Enums"]["building_type_enum"]
+            | null
+          category_icon: string | null
+          category_key: string
+          category_label: string
+          created_at: string
+          id: string
+          is_required: boolean
+          min_count: number
+          organization_id: string
+          phase: number
+          sort_order: number | null
+          updated_at: string
+        }
+        Insert: {
+          building_type?:
+            | Database["public"]["Enums"]["building_type_enum"]
+            | null
+          category_icon?: string | null
+          category_key: string
+          category_label: string
+          created_at?: string
+          id?: string
+          is_required?: boolean
+          min_count?: number
+          organization_id: string
+          phase: number
+          sort_order?: number | null
+          updated_at?: string
+        }
+        Update: {
+          building_type?:
+            | Database["public"]["Enums"]["building_type_enum"]
+            | null
+          category_icon?: string | null
+          category_key?: string
+          category_label?: string
+          created_at?: string
+          id?: string
+          is_required?: boolean
+          min_count?: number
+          organization_id?: string
+          phase?: number
+          sort_order?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "photo_requirements_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       pre_work_checklists: {
         Row: {
