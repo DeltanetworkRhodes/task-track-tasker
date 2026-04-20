@@ -258,26 +258,27 @@ const TechnicianDashboard = () => {
     return new Date(a.appointment_at).getTime() > Date.now() - 6 * 60 * 60 * 1000;
   }).length;
 
-  // ── Hero list: ΜΟΝΟ SRs με ραντεβού (upcoming, sorted earliest first) ──
-  // Εξαιρούμε SRs με ραντεβού που έχει ήδη ολοκληρωθεί ή ακυρωθεί.
+  // ── Hero list: ΜΟΝΟ SRs με ραντεβού από το ΗΜΕΡΟΛΟΓΙΟ (πίνακας appointments).
+  // Αγνοούμε τη legacy στήλη assignments.appointment_at — μετράει μόνο πραγματικό ραντεβού.
   const heroList = useMemo(() => {
+    if (!apptMap || apptMap.size === 0) return [];
     const list = (enrichedAssignments || []).filter(
       (a) => !hiddenStatuses.includes(a.status)
     );
     const cutoff = Date.now() - 6 * 60 * 60 * 1000;
     return list
-      .filter(
-        (a) =>
-          a.appointment_at &&
-          new Date(a.appointment_at).getTime() > cutoff &&
-          !handledApptSrs?.has(a.sr_id)
-      )
+      .filter((a) => {
+        const calendarAppt = apptMap.get(a.sr_id);
+        if (!calendarAppt) return false;
+        if (handledApptSrs?.has(a.sr_id)) return false;
+        return new Date(calendarAppt).getTime() > cutoff;
+      })
       .sort(
         (a, b) =>
-          new Date(a.appointment_at!).getTime() -
-          new Date(b.appointment_at!).getTime()
+          new Date(apptMap.get(a.sr_id)!).getTime() -
+          new Date(apptMap.get(b.sr_id)!).getTime()
       );
-  }, [enrichedAssignments, handledApptSrs]);
+  }, [enrichedAssignments, apptMap, handledApptSrs]);
 
   const nextUp = heroList[0] || null;
 
