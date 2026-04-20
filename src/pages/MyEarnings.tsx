@@ -1,9 +1,11 @@
 import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import AppLayout from "@/components/AppLayout";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { Banknote, TrendingUp, Calendar as CalendarIcon, Trophy, Sparkles } from "lucide-react";
+import { useUserRole } from "@/hooks/useUserRole";
+import { Banknote, TrendingUp, Calendar as CalendarIcon, Trophy, Sparkles, ArrowLeft } from "lucide-react";
 import { motion } from "framer-motion";
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, subMonths } from "date-fns";
 import { el } from "date-fns/locale";
