@@ -1805,6 +1805,25 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
     photoCountsForChecklist
   );
 
+  // Map category key (UI: ΣΚΑΜΑ, ΟΔΕΥΣΗ, BEP, ...) → checklist item.
+  // The hook keys items by DB category_key (SKAMA, ODEFSI, BEP, ...), so we map back via aliases.
+  const checklistByCatKey = useMemo(() => {
+    const map = new Map<string, typeof photoChecklist extends { items: infer I } ? I extends Array<infer T> ? T : never : never>();
+    if (!photoChecklist) return map;
+    const aliases: Record<string, string[]> = {
+      SKAMA: ["ΣΚΑΜΑ", "SKAMA"],
+      ODEFSI: ["ΟΔΕΥΣΗ", "ODEFSI"],
+      KAMPINA: ["ΚΑΜΠΙΝΑ", "KAMPINA"],
+      G_FASI: ["Γ_ΦΑΣΗ", "G_FASI"],
+      BEP: ["BEP"], BMO: ["BMO"], FB: ["FB"], BCP: ["BCP"],
+    };
+    for (const item of photoChecklist.items) {
+      const keys = aliases[item.category_key] || [item.category_key];
+      for (const k of keys) map.set(k, item);
+    }
+    return map;
+  }, [photoChecklist]);
+
   const [showOverrideDialog, setShowOverrideDialog] = useState(false);
   const [overrideReason, setOverrideReason] = useState("");
 
