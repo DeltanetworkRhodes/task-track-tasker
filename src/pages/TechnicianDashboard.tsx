@@ -284,7 +284,8 @@ const TechnicianDashboard = () => {
       (a) =>
         a.appointment_at &&
         now - new Date(a.appointment_at).getTime() > missedCutoff &&
-        ["pending", "inspection", "pre_committed"].includes(a.status)
+        ["pending", "inspection", "pre_committed"].includes(a.status) &&
+        !handledApptSrs?.has(a.sr_id)
     );
     const stale = list.filter(
       (a) =>
