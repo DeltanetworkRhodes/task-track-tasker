@@ -9,7 +9,8 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useTimeTracking } from "@/hooks/useTimeTracking";
-import { Trash2, Loader2, CheckCircle, HardHat, Package, Wrench, Camera, X, ChevronDown, ChevronRight, Plus, Minus, MapPin, Route, AlertTriangle, Save, GitMerge, Building2, Copy, LogOut, RefreshCw, Maximize2 } from "lucide-react";
+import { Trash2, Loader2, CheckCircle, HardHat, Package, Wrench, Camera, X, ChevronDown, ChevronRight, Plus, Minus, MapPin, Route, AlertTriangle, Save, GitMerge, Building2, Copy, LogOut, RefreshCw, Maximize2, Check, TrendingUp } from "lucide-react";
+import { motion } from "framer-motion";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -117,6 +118,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
   const [floors, setFloors] = useState("0");
   const [routingType, setRoutingType] = useState("");
   const [pendingNote, setPendingNote] = useState("");
+  const [buildingType, setBuildingType] = useState<string | null>(null);
 
   // ── AS-BUILD extra fields ──
   const [koiTypeCabBep, setKoiTypeCabBep] = useState("4' μ cable");
@@ -452,6 +454,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
     setFloors(String(existingConstruction.floors ?? 0));
     setRoutingType(existingConstruction.routing_type || "");
     setPendingNote(existingConstruction.pending_note || "");
+    setBuildingType((existingConstruction as any).building_type || (assignment as any).building_type || null);
 
 
 
@@ -761,6 +764,40 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
     });
     return map;
   }, [techInventory]);
+
+  // Fetch building types & pricing for selector
+  const { data: buildingTypes } = useQuery({
+    queryKey: ["building-pricing-options", organizationId],
+    enabled: !!organizationId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("building_pricing")
+        .select("building_type, building_label, building_icon, phase2_price, phase3_price, sort_order")
+        .eq("organization_id", organizationId!)
+        .order("sort_order", { ascending: true });
+      if (error) throw error;
+      return (data || []) as Array<{
+        building_type: string;
+        building_label: string;
+        building_icon: string | null;
+        phase2_price: number;
+        phase3_price: number;
+        sort_order: number | null;
+      }>;
+    },
+    staleTime: 1000 * 60 * 5,
+  });
+
+  const selectedBuilding = useMemo(
+    () => buildingTypes?.find((b) => b.building_type === buildingType) ?? null,
+    [buildingTypes, buildingType]
+  );
+  const currentPhasePrice = useMemo(() => {
+    if (!selectedBuilding || !phase) return 0;
+    if (phase === 2) return Number(selectedBuilding.phase2_price) || 0;
+    if (phase === 3) return Number(selectedBuilding.phase3_price) || 0;
+    return 0;
+  }, [selectedBuilding, phase]);
 
   // Fetch GIS data for this assignment
   const { data: gisData } = useQuery({
@@ -1870,7 +1907,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
           vertical_infra: verticalInfra,
           bep_placement_floor: bepPlacementFloor,
           vertical_infra_type: verticalInfraType,
-          floor_meters: floorMeters,
+          building_type: buildingType,
           asbuilt_section6: { ...section6, ball_marker_bep: ballMarkerBep, bcp_ball_marker: ballMarkerBcp },
           // 3-Phase workflow: mark this phase as in-progress while saving in crew mode
           ...(phase === 1 && { phase1_status: "in_progress" }),
@@ -2329,7 +2366,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
         vertical_infra: verticalInfra,
         bep_placement_floor: bepPlacementFloor,
         vertical_infra_type: verticalInfraType,
-        floor_meters: floorMeters,
+        building_type: buildingType,
         asbuilt_section6: { ...section6, ball_marker_bep: ballMarkerBep, bcp_ball_marker: ballMarkerBcp },
         // 3-Phase workflow: mark this phase's status (in_progress on save, completed when finishing)
         ...(phase === 1 && (isCompleting
@@ -2856,6 +2893,78 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
             </select>
           </div>
         </div>
+
+        {/* === Building Type Selector & Earnings Preview === */}
+        {buildingTypes && buildingTypes.length > 0 && (
+          <div className="pt-3 border-t border-border/40">
+            <Label className="text-xs flex items-center gap-1.5">
+              <Building2 className="h-3.5 w-3.5 text-primary" />
+              Τύπος Κτιρίου <span className="text-destructive">*</span>
+            </Label>
+
+            {/* Editable selector — for phase 1/2 admins or no-phase mode */}
+            {(!phase || phase === 1 || phase === 2) ? (
+              <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 mt-2">
+                {buildingTypes.map((bt) => {
+                  const active = buildingType === bt.building_type;
+                  return (
+                    <button
+                      key={bt.building_type}
+                      type="button"
+                      onClick={() => setBuildingType(bt.building_type)}
+                      className={`relative flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all ${
+                        active
+                          ? "border-primary bg-primary/5 shadow-md scale-[1.03]"
+                          : "border-border bg-card hover:border-primary/40"
+                      }`}
+                    >
+                      <span className="text-2xl leading-none">{bt.building_icon || "🏢"}</span>
+                      <span className={`text-[11px] font-semibold leading-tight text-center ${active ? "text-primary" : "text-foreground"}`}>
+                        {bt.building_label}
+                      </span>
+                      {active && (
+                        <span className="absolute -top-1.5 -right-1.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground shadow">
+                          <Check className="h-3 w-3" />
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              // Read-only για phase 3
+              <div className="mt-2 inline-flex items-center gap-2 rounded-xl border border-border bg-muted/40 px-3 py-2">
+                <span className="text-xl">{selectedBuilding?.building_icon || "🏢"}</span>
+                <span className="text-sm font-semibold text-foreground">
+                  {selectedBuilding?.building_label || "—"}
+                </span>
+              </div>
+            )}
+
+            {/* Earnings Preview Card — μόνο για Φ2 / Φ3 */}
+            {buildingType && phase && (phase === 2 || phase === 3) && currentPhasePrice > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 8, scale: 0.97 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{ duration: 0.25 }}
+                className="mt-3 rounded-2xl border border-emerald-500/30 bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/30 p-4 shadow-sm"
+              >
+                <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-400">
+                  <TrendingUp className="h-4 w-4" />
+                  <span className="text-[11px] font-bold uppercase tracking-wider">
+                    Θα κερδίσεις για αυτό το SR
+                  </span>
+                </div>
+                <div className="mt-1.5 text-3xl font-extrabold tabular-nums text-emerald-700 dark:text-emerald-400">
+                  €{currentPhasePrice.toLocaleString("el-GR")}
+                </div>
+                <div className="mt-1 text-xs text-emerald-700/80 dark:text-emerald-400/80">
+                  Μόλις ολοκληρώσεις τη Φάση {phase} αυτού του SR
+                </div>
+              </motion.div>
+            )}
+          </div>
+        )}
         </div>
         )}
       </Card>}
