@@ -1805,6 +1805,25 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
     photoCountsForChecklist
   );
 
+  // Map category key (UI: ΣΚΑΜΑ, ΟΔΕΥΣΗ, BEP, ...) → checklist item.
+  // The hook keys items by DB category_key (SKAMA, ODEFSI, BEP, ...), so we map back via aliases.
+  const checklistByCatKey = useMemo(() => {
+    const map = new Map<string, typeof photoChecklist extends { items: infer I } ? I extends Array<infer T> ? T : never : never>();
+    if (!photoChecklist) return map;
+    const aliases: Record<string, string[]> = {
+      SKAMA: ["ΣΚΑΜΑ", "SKAMA"],
+      ODEFSI: ["ΟΔΕΥΣΗ", "ODEFSI"],
+      KAMPINA: ["ΚΑΜΠΙΝΑ", "KAMPINA"],
+      G_FASI: ["Γ_ΦΑΣΗ", "G_FASI"],
+      BEP: ["BEP"], BMO: ["BMO"], FB: ["FB"], BCP: ["BCP"],
+    };
+    for (const item of photoChecklist.items) {
+      const keys = aliases[item.category_key] || [item.category_key];
+      for (const k of keys) map.set(k, item);
+    }
+    return map;
+  }, [photoChecklist]);
+
   const [showOverrideDialog, setShowOverrideDialog] = useState(false);
   const [overrideReason, setOverrideReason] = useState("");
 
@@ -4523,19 +4542,51 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
         <button
           type="button"
           onClick={() => toggleSection("photos")}
-          className="w-full flex items-center justify-between p-5 hover:bg-muted/40 transition-colors rounded-2xl"
+          className="w-full flex flex-col gap-2 p-5 hover:bg-muted/40 transition-colors rounded-2xl"
         >
-          <Label className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground flex items-center gap-2 pointer-events-none"><span className="h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
-            <Camera className="h-3.5 w-3.5" />
-            Φωτογραφίες Κατασκευής
-            {totalPhotos > 0 && (
-              <Badge variant="secondary" className="text-[10px] ml-1">{totalPhotos} φωτο</Badge>
-            )}
-          </Label>
-          <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${openSections.includes("photos") ? "rotate-180" : ""}`} />
+          <div className="w-full flex items-center justify-between">
+            <Label className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground flex items-center gap-2 pointer-events-none flex-wrap">
+              <span className="h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
+              <Camera className="h-3.5 w-3.5" />
+              Φωτογραφίες Κατασκευής
+              {totalPhotos > 0 && (
+                <Badge variant="secondary" className="text-[10px] ml-1">{totalPhotos} φωτο</Badge>
+              )}
+              {phase === 3 && photoChecklist && photoChecklist.total_required > 0 && (
+                photoChecklist.all_required_satisfied ? (
+                  <Badge className="text-[10px] ml-1 bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20">
+                    ✅ Έτοιμο
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="text-[10px] ml-1 border-amber-500/40 text-amber-700 dark:text-amber-400 bg-amber-500/10">
+                    ⚠️ Λείπουν {photoChecklist.missing_required.length} υποχρ.
+                  </Badge>
+                )
+              )}
+            </Label>
+            <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${openSections.includes("photos") ? "rotate-180" : ""}`} />
+          </div>
+          {phase === 3 && photoChecklist && photoChecklist.total_required > 0 && (() => {
+            const pct = Math.round((photoChecklist.total_satisfied / photoChecklist.total_required) * 100);
+            const ready = photoChecklist.all_required_satisfied;
+            return (
+              <div className="w-full flex items-center gap-2 pointer-events-none">
+                <div className="h-1.5 flex-1 rounded-full bg-muted overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all duration-500 ${ready ? "bg-emerald-500" : "bg-amber-500"}`}
+                    style={{ width: `${pct}%` }}
+                  />
+                </div>
+                <span className={`text-[10px] font-bold tabular-nums shrink-0 ${ready ? "text-emerald-600" : "text-amber-600"}`}>
+                  {photoChecklist.total_satisfied}/{photoChecklist.total_required} · {pct}%
+                </span>
+              </div>
+            );
+          })()}
         </button>
         {openSections.includes("photos") && (
         <div className="px-5 pb-5 space-y-3.5 border-t border-border/40 pt-4">
+
 
         <div className="space-y-2">
           {visiblePhotoCategories.map((cat) => {
@@ -4544,16 +4595,57 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
             
             return (
               <div key={cat.key} className="border border-border rounded-lg p-3 space-y-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                    {/* Phase 3: status icon based on checklist */}
+                    {phase === 3 && checklistByCatKey.get(cat.key) && (() => {
+                      const item = checklistByCatKey.get(cat.key)!;
+                      if (item.is_satisfied) {
+                        return (
+                          <span className="flex h-4 w-4 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-600 shrink-0" title="Πληροί τις απαιτήσεις">
+                            <Check className="h-2.5 w-2.5" strokeWidth={3} />
+                          </span>
+                        );
+                      }
+                      if (item.is_required) {
+                        return (
+                          <span className="flex h-4 w-4 items-center justify-center rounded-full bg-destructive/20 text-destructive shrink-0" title="Λείπουν υποχρεωτικές">
+                            <X className="h-2.5 w-2.5" strokeWidth={3} />
+                          </span>
+                        );
+                      }
+                      return null;
+                    })()}
                     <span className="text-sm">{cat.icon}</span>
-                    <span className="text-xs font-medium">{cat.label}</span>
-                    {mandatoryPhotoKeys.has(cat.key) ? (
-                      <Badge variant="destructive" className="text-[9px] h-4 px-1">ΥΠΟΧΡ.</Badge>
-                    ) : (
-                      cat.workPrefixes.length > 0 && <span className="text-[10px] text-muted-foreground">(προαιρ.)</span>
-                    )}
+                    <div className="flex flex-col min-w-0">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-xs font-medium">{cat.label}</span>
+                        {phase === 3 && checklistByCatKey.get(cat.key) ? (
+                          checklistByCatKey.get(cat.key)!.is_required ? (
+                            <Badge variant="destructive" className="text-[9px] h-4 px-1">ΥΠΟΧΡ.</Badge>
+                          ) : (
+                            <span className="text-[10px] text-muted-foreground">(προαιρ.)</span>
+                          )
+                        ) : mandatoryPhotoKeys.has(cat.key) ? (
+                          <Badge variant="destructive" className="text-[9px] h-4 px-1">ΥΠΟΧΡ.</Badge>
+                        ) : (
+                          cat.workPrefixes.length > 0 && <span className="text-[10px] text-muted-foreground">(προαιρ.)</span>
+                        )}
+                      </div>
+                      {phase === 3 && checklistByCatKey.get(cat.key) && (() => {
+                        const item = checklistByCatKey.get(cat.key)!;
+                        return (
+                          <span className="text-[10px] text-muted-foreground tabular-nums">
+                            {item.current_count}/{item.min_count} φωτογραφίες
+                            {item.missing > 0 && item.is_required && (
+                              <span className="text-amber-600 font-semibold"> · λείπουν {item.missing}</span>
+                            )}
+                          </span>
+                        );
+                      })()}
+                    </div>
                   </div>
+
                   <div className="flex items-center gap-2">
                     {existingPhotoCounts[cat.key] > 0 && (
                       <button
@@ -4973,12 +5065,8 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
         </div>
       </div>
 
-      {/* Photo Checklist — Phase 3 only */}
-      {phase === 3 && photoChecklist && (
-        <div className="px-3 mt-3 max-w-2xl mx-auto">
-          <PhotoChecklist summary={photoChecklist} phase={phase} />
-        </div>
-      )}
+      {/* Photo Checklist UI is now embedded in the "Φωτογραφίες Κατασκευής" section header + rows above */}
+
 
       {/* Admin Override Dialog */}
       <AlertDialog open={showOverrideDialog} onOpenChange={setShowOverrideDialog}>
