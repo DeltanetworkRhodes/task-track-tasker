@@ -3795,6 +3795,20 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
 
                               {/* C. Ports → Όροφος (ΟΛΑ τα BMO ports από BMO-FB, ομαδοποιημένα ανά όροφο) */}
                               {(() => {
+                                // Helper: μετατροπή floor id σε ΙΣ/1ος/2ος/ΗΜ/Υπόγειο
+                                const floorShort = (floor: string): string => {
+                                  const raw = (floor || "").trim().replace(/^\+/, "");
+                                  if (/ΗΜ|HM/i.test(raw)) return "ΗΜ";
+                                  if (/ΥΠ|YP|^-Η?Υ$/i.test(raw)) return "Υπόγ";
+                                  const num = parseInt(raw, 10);
+                                  if (!isNaN(num)) {
+                                    if (num === 0) return "ΙΣ";
+                                    if (num < 0) return `Υπόγ ${num}`;
+                                    return `${num}ος`;
+                                  }
+                                  return raw;
+                                };
+
                                 const floorEntries = Object.entries(fbGroups)
                                   .map(([, fb]) => {
                                     const ports = Array.from(new Set(fb.ports.map((p) => p.mobPort))).sort((a, b) => a - b);
@@ -3811,8 +3825,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                                     </div>
                                     <div className="space-y-1.5">
                                       {floorEntries.map(([floor, ports]) => {
-                                        const fl = floor.startsWith("+") || floor.startsWith("-") ? floor : `+${floor}`;
-                                        const floorLbl = floorFO(floor) || fl;
+                                        const floorLbl = floorShort(floor);
                                         const portsTxt = ports.join(", ");
                                         const text = `${floorLbl} · Port ${portsTxt}`;
                                         return (
