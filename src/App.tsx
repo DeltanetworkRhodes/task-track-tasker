@@ -137,6 +137,7 @@ const App = () => (
                   <Route path="/calendar" element={<ProtectedRoute><RoleGate><AdminRoute><Calendar /></AdminRoute></RoleGate></ProtectedRoute>} />
                   <Route path="/documents" element={<ProtectedRoute><RoleGate><AdminRoute><DocumentGenerator /></AdminRoute></RoleGate></ProtectedRoute>} />
                   <Route path="/labels" element={<ProtectedRoute><RoleGate><FtthLabelGenerator /></RoleGate></ProtectedRoute>} />
+                  <Route path="/labels/:srId" element={<ProtectedRoute><RoleGate><FtthLabelGenerator /></RoleGate></ProtectedRoute>} />
                   <Route path="/my-earnings" element={<ProtectedRoute><RoleGate><MyEarnings /></RoleGate></ProtectedRoute>} />
                   <Route path="/photo-requirements" element={<ProtectedRoute><RoleGate><AdminRoute><PhotoRequirements /></AdminRoute></RoleGate></ProtectedRoute>} />
                   <Route path="*" element={<NotFound />} />

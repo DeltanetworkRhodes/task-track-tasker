@@ -2745,7 +2745,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
       {/* Phase Banner — visible only when current user is bound to a specific phase */}
       {phase && (
         <div
-          className={`rounded-xl p-4 border-2 flex items-center gap-3 ${
+          className={`rounded-xl p-4 border-2 flex flex-wrap items-center gap-3 ${
             phase === 1
               ? "border-amber-500/30 bg-amber-50 dark:bg-amber-950/20"
               : phase === 2
@@ -2754,10 +2754,27 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
           }`}
         >
           <span className="text-3xl">{PHASE_INFO[phase].icon}</span>
-          <div className="flex-1">
+          <div className="flex-1 min-w-[140px]">
             <p className="font-bold text-sm">{PHASE_INFO[phase].title}</p>
             <p className="text-xs text-muted-foreground">{PHASE_INFO[phase].sub}</p>
           </div>
+          {phase === 3 && assignment?.sr_id && (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              asChild
+              className="gap-1.5 border-green-500/40 hover:bg-green-500/10 text-green-700 dark:text-green-400"
+            >
+              <a
+                href={`/labels/${encodeURIComponent(assignment.sr_id)}`}
+                target="_blank"
+                rel="noreferrer"
+              >
+                🏷️ Labels Printer
+              </a>
+            </Button>
+          )}
           <div
             className={`h-3 w-3 rounded-full ${
               (phaseStatus as any)?.[`phase${phase}_status`] === "completed"
