@@ -3682,22 +3682,16 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                        <div className="flex items-center gap-2 flex-wrap">
                          <Badge variant="default" className="text-[10px]">🏷️ Labels</Badge>
                          <span className="text-[10px] text-muted-foreground">Αυτοκόλλητα — COSMOTE specs</span>
-                         {assignment?.sr_id && (
-                           <Button
-                             type="button"
-                             size="sm"
-                             asChild
-                             className="ml-auto h-7 gap-1.5 bg-gradient-to-r from-primary to-accent text-primary-foreground shadow-md shadow-primary/20"
-                           >
-                             <a
-                               href={`/labels/${encodeURIComponent(assignment.sr_id)}`}
-                               target="_blank"
-                               rel="noreferrer"
-                             >
-                               🖨️ Bluetooth Printer
-                             </a>
-                           </Button>
-                         )}
+                          {assignment?.sr_id && (
+                            <Button
+                              type="button"
+                              size="sm"
+                              onClick={() => setLabelPrinterOpen(true)}
+                              className="ml-auto h-7 gap-1.5 bg-gradient-to-r from-primary to-accent text-primary-foreground shadow-md shadow-primary/20"
+                            >
+                              🖨️ Εκτύπωση (Bluetooth)
+                            </Button>
+                          )}
                        </div>
 
                        {/* ═══ 2. ΚΑΜΠΙΝΑ ΠΑΛΑΙΟΥ ΤΥΠΟΥ ═══ */}
