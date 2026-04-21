@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
@@ -6,7 +6,20 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Tag, Copy, Check, Printer, RefreshCw, Bluetooth, History } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import {
+  Tag,
+  Copy,
+  Check,
+  Printer,
+  RefreshCw,
+  Bluetooth,
+  BluetoothConnected,
+  BluetoothOff,
+  History,
+  Loader2,
+  Power,
+} from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { el } from "date-fns/locale";
@@ -16,7 +29,13 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import {
   printLabelQueue,
+  connectToPrinter,
+  disconnectPrinter,
+  subscribePrinterState,
+  setDemoMode,
+  getPrinterState,
   type PrintableLabel,
+  type ConnectionStatus,
 } from "@/lib/bluetoothLabelPrinter";
 import { PrintProgressDialog } from "@/components/PrintProgressDialog";
 
