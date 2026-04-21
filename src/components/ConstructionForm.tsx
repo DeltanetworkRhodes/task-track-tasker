@@ -9,7 +9,15 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useTimeTracking } from "@/hooks/useTimeTracking";
-import { Trash2, Loader2, CheckCircle, HardHat, Package, Wrench, Camera, X, ChevronDown, ChevronRight, Plus, Minus, MapPin, Route, AlertTriangle, Save, GitMerge, Building2, Copy, LogOut, RefreshCw, Maximize2, Check, TrendingUp } from "lucide-react";
+import { Trash2, Loader2, CheckCircle, HardHat, Package, Wrench, Camera, X, ChevronDown, ChevronRight, Plus, Minus, MapPin, Route, AlertTriangle, Save, GitMerge, Building2, Copy, LogOut, RefreshCw, Maximize2, Check, TrendingUp, Bluetooth, BluetoothConnected, BluetoothOff, Printer } from "lucide-react";
+import {
+  printLabelQueue,
+  connectToPrinter,
+  disconnectPrinter,
+  subscribePrinterState,
+  setDemoMode,
+  getPrinterState,
+} from "@/lib/bluetoothLabelPrinter";
 import { motion } from "framer-motion";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
