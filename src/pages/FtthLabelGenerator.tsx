@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
@@ -6,7 +6,20 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Tag, Copy, Check, Printer, RefreshCw, Bluetooth, History } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import {
+  Tag,
+  Copy,
+  Check,
+  Printer,
+  RefreshCw,
+  Bluetooth,
+  BluetoothConnected,
+  BluetoothOff,
+  History,
+  Loader2,
+  Power,
+} from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { el } from "date-fns/locale";
@@ -16,7 +29,13 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import {
   printLabelQueue,
+  connectToPrinter,
+  disconnectPrinter,
+  subscribePrinterState,
+  setDemoMode,
+  getPrinterState,
   type PrintableLabel,
+  type ConnectionStatus,
 } from "@/lib/bluetoothLabelPrinter";
 import { PrintProgressDialog } from "@/components/PrintProgressDialog";
 
@@ -120,6 +139,16 @@ function LabelTypeBadge({ type }: { type: LabelType }) {
   );
 }
 
+function PrinterStatusIcon({ status }: { status: ConnectionStatus }) {
+  if (status === "connected")
+    return <BluetoothConnected className="h-5 w-5 text-emerald-500" />;
+  if (status === "demo")
+    return <Bluetooth className="h-5 w-5 text-amber-500" />;
+  if (status === "connecting")
+    return <Loader2 className="h-5 w-5 text-primary animate-spin" />;
+  return <BluetoothOff className="h-5 w-5 text-muted-foreground" />;
+}
+
 // ─── Main Page ───
 export default function FtthLabelGenerator() {
   const params = useParams<{ srId?: string }>();
@@ -141,6 +170,47 @@ export default function FtthLabelGenerator() {
   const [printQueue, setPrintQueue] = useState<PrintableLabel[]>([]);
   const [currentPrintingIdx, setCurrentPrintingIdx] = useState<number | null>(null);
   const [printingOpen, setPrintingOpen] = useState(false);
+
+  // ─── Bluetooth printer connection state (persistent via subscribe) ───
+  const [printerState, setPrinterState] = useState(() => getPrinterState());
+  const [connecting, setConnecting] = useState(false);
+
+  useEffect(() => {
+    const unsub = subscribePrinterState(setPrinterState);
+    return unsub;
+  }, []);
+
+  const handleConnect = useCallback(async () => {
+    setConnecting(true);
+    try {
+      await connectToPrinter();
+      const s = getPrinterState();
+      if (s.status === "demo") {
+        toast.success("🧪 Demo printer ενεργό");
+      } else {
+        toast.success(`✅ Συνδέθηκε: ${s.deviceName || "Printer"}`);
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Σφάλμα σύνδεσης";
+      toast.error(msg);
+    } finally {
+      setConnecting(false);
+    }
+  }, []);
+
+  const handleDisconnect = useCallback(async () => {
+    await disconnectPrinter();
+    toast.info("Αποσυνδέθηκε");
+  }, []);
+
+  const handleDemoToggle = useCallback((on: boolean) => {
+    setDemoMode(on);
+    if (on) {
+      toast.info("🧪 Demo mode ON — προσομοίωση εκτύπωσης");
+    } else {
+      toast.info("Demo mode OFF — απαιτείται πραγματικός printer");
+    }
+  }, []);
 
   const loadSr = useCallback(async () => {
     if (!srId.trim()) return;
@@ -561,14 +631,77 @@ export default function FtthLabelGenerator() {
           )}
         </Card>
 
+        {/* Printer Connection Bar — always visible */}
+        <Card className="p-4 space-y-3 print:hidden">
+          <div className="flex flex-wrap items-center gap-3">
+            <PrinterStatusIcon status={printerState.status} />
+            <div className="flex-1 min-w-[180px]">
+              <div className="text-sm font-bold">
+                {printerState.status === "connected" && "Συνδεδεμένος"}
+                {printerState.status === "demo" && "Demo Mode"}
+                {printerState.status === "connecting" && "Σύνδεση..."}
+                {printerState.status === "disconnected" && "Αποσυνδεδεμένος"}
+              </div>
+              <div className="text-[11px] text-muted-foreground">
+                {printerState.deviceName ||
+                  "Brother PT-E550W · Σειρά: ΚΑΜΠΙΝΑ → BEP → BMO → FB"}
+              </div>
+            </div>
+
+            {printerState.status === "connected" ||
+            printerState.status === "demo" ? (
+              <Button
+                onClick={handleDisconnect}
+                size="sm"
+                variant="outline"
+                className="gap-1.5"
+                disabled={printerState.status === "demo"}
+              >
+                <Power className="h-3.5 w-3.5" />
+                Αποσύνδεση
+              </Button>
+            ) : (
+              <Button
+                onClick={handleConnect}
+                size="sm"
+                disabled={connecting || printerState.demoMode}
+                className="gap-1.5"
+              >
+                {connecting ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Bluetooth className="h-3.5 w-3.5" />
+                )}
+                Σύνδεση Bluetooth
+              </Button>
+            )}
+          </div>
+
+          <div className="flex items-center justify-between gap-3 pt-2 border-t border-border">
+            <div className="flex items-center gap-2">
+              <Switch
+                id="demo-mode"
+                checked={printerState.demoMode}
+                onCheckedChange={handleDemoToggle}
+              />
+              <Label
+                htmlFor="demo-mode"
+                className="text-[11px] text-muted-foreground cursor-pointer"
+              >
+                🧪 Demo mode (προσομοίωση χωρίς printer)
+              </Label>
+            </div>
+          </div>
+        </Card>
+
         {/* Bluetooth print bar */}
         {parsed && srData && (
           <Card className="p-4 flex flex-wrap items-center gap-3 print:hidden bg-gradient-to-br from-primary/5 to-accent/5 border-primary/20">
-            <Bluetooth className="h-5 w-5 text-primary" />
+            <Printer className="h-5 w-5 text-primary" />
             <div className="flex-1 min-w-[180px]">
-              <div className="text-sm font-bold">Bluetooth Printer</div>
+              <div className="text-sm font-bold">Έτοιμα για εκτύπωση</div>
               <div className="text-[11px] text-muted-foreground">
-                Brother PT-E550W · Σειρά: ΚΑΜΠΙΝΑ → BEP → BMO → FB
+                {buildPrintQueue().length} labels · 12mm tape
               </div>
             </div>
             <Button

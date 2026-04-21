@@ -8,6 +8,9 @@
  *
  * Για πραγματική ποιότητα και υποστήριξη Ελληνικών, κάνουμε
  * client-side rendering σε canvas → 1bpp bitmap → ESC/P raster bytes.
+ *
+ * DEMO MODE: Αν ενεργοποιηθεί (toggle / localStorage flag), προσομοιώνει
+ * τη σύνδεση και την εκτύπωση χωρίς πραγματικό printer (για development).
  */
 
 export interface PrintableLabel {
@@ -30,6 +33,7 @@ export interface PrintOptions {
 
 // Minimal Web Bluetooth typings (avoid full @types/web-bluetooth dep)
 type BTDevice = {
+  name?: string;
   gatt?: {
     connected: boolean;
     connect: () => Promise<BTServer>;
@@ -57,20 +61,89 @@ type BTRequest = {
 const BROTHER_SERVICE_UUID = "0000fff0-0000-1000-8000-00805f9b34fb";
 const BROTHER_WRITE_CHAR_UUID = "0000fff1-0000-1000-8000-00805f9b34fb";
 
-let connectedDevice: BTDevice | null = null;
-let writeCharacteristic: BTChar | null = null;
-
 // 12mm tape στο PT-E550W = 70 printable dots ύψος (πρακτικό safe value)
 const TAPE_PRINT_HEIGHT_DOTS = 70;
 const PRINT_DPI = 180;
+const DEMO_FLAG_KEY = "label_printer_demo_mode";
+
+// ─── Connection state (persistent across components) ───
+export type ConnectionStatus = "disconnected" | "connecting" | "connected" | "demo";
+
+interface PrinterState {
+  status: ConnectionStatus;
+  deviceName: string | null;
+  demoMode: boolean;
+}
+
+let connectedDevice: BTDevice | null = null;
+let writeCharacteristic: BTChar | null = null;
+
+const state: PrinterState = {
+  status: "disconnected",
+  deviceName: null,
+  demoMode:
+    typeof window !== "undefined" &&
+    window.localStorage?.getItem(DEMO_FLAG_KEY) === "1",
+};
+
+if (state.demoMode) state.status = "demo";
+
+type Listener = (s: PrinterState) => void;
+const listeners = new Set<Listener>();
+
+function emit() {
+  listeners.forEach((l) => l({ ...state }));
+}
+
+export function subscribePrinterState(l: Listener): () => void {
+  listeners.add(l);
+  l({ ...state });
+  return () => {
+    listeners.delete(l);
+  };
+}
+
+export function getPrinterState(): PrinterState {
+  return { ...state };
+}
+
+export function setDemoMode(on: boolean): void {
+  state.demoMode = on;
+  try {
+    if (on) localStorage.setItem(DEMO_FLAG_KEY, "1");
+    else localStorage.removeItem(DEMO_FLAG_KEY);
+  } catch {
+    // ignore storage errors
+  }
+  if (on) {
+    state.status = "demo";
+    state.deviceName = "Demo Printer (PT-E550W simulation)";
+    connectedDevice = null;
+    writeCharacteristic = null;
+  } else if (state.status === "demo") {
+    state.status = "disconnected";
+    state.deviceName = null;
+  }
+  emit();
+}
 
 export async function connectToPrinter(): Promise<void> {
+  if (state.demoMode) {
+    state.status = "demo";
+    state.deviceName = "Demo Printer (PT-E550W simulation)";
+    emit();
+    return;
+  }
+
   const nav = navigator as Navigator & { bluetooth?: BTRequest };
   if (!nav.bluetooth) {
     throw new Error(
       "Ο browser δεν υποστηρίζει Web Bluetooth. Χρησιμοποίησε Chrome/Edge σε Android ή desktop."
     );
   }
+
+  state.status = "connecting";
+  emit();
 
   try {
     const device = await nav.bluetooth.requestDevice({
@@ -86,18 +159,29 @@ export async function connectToPrinter(): Promise<void> {
     const service = await server.getPrimaryService(BROTHER_SERVICE_UUID);
     writeCharacteristic = await service.getCharacteristic(BROTHER_WRITE_CHAR_UUID);
     connectedDevice = device;
+    state.status = "connected";
+    state.deviceName = device.name || "Brother PT-E550W";
+    emit();
 
     device.addEventListener("gattserverdisconnected", () => {
       connectedDevice = null;
       writeCharacteristic = null;
+      state.status = state.demoMode ? "demo" : "disconnected";
+      state.deviceName = state.demoMode
+        ? "Demo Printer (PT-E550W simulation)"
+        : null;
+      emit();
     });
   } catch (err: unknown) {
+    state.status = state.demoMode ? "demo" : "disconnected";
+    emit();
     const msg = err instanceof Error ? err.message : String(err);
     throw new Error(`Σύνδεση απέτυχε: ${msg}`);
   }
 }
 
 export function isConnected(): boolean {
+  if (state.demoMode) return true;
   return connectedDevice !== null && connectedDevice.gatt?.connected === true;
 }
 
@@ -105,13 +189,19 @@ export async function disconnectPrinter(): Promise<void> {
   if (connectedDevice?.gatt?.connected) {
     connectedDevice.gatt.disconnect();
   }
+  connectedDevice = null;
+  writeCharacteristic = null;
+  state.status = state.demoMode ? "demo" : "disconnected";
+  state.deviceName = state.demoMode
+    ? "Demo Printer (PT-E550W simulation)"
+    : null;
+  emit();
 }
 
 /**
  * Render label σε 1bpp bitmap (rotated 90°: το printer feed direction
  * είναι το X axis, το tape height είναι το Y axis).
  *
- * Επιστρέφει { width (= μήκος label σε dots), heightBytes (= 16 bytes per col για 128 dots) }
  * Standard Brother raster mode: 16 bytes per column = 128 dots ύψος.
  */
 function renderLabelToRaster(label: PrintableLabel): {
@@ -122,18 +212,13 @@ function renderLabelToRaster(label: PrintableLabel): {
     ? label.content_lines
     : label.content.split("\n");
 
-  // Canvas dimensions (rotated): X = μήκος label (variable), Y = ύψος tape
-  // Brother raster head = 128 dots για compact alignment, αλλά μόνο 70 πρώτα
-  // είναι printable σε 12mm tape. Centered.
   const headDots = 128;
   const bytesPerColumn = headDots / 8; // = 16
 
-  // Decide font size & total length από το πιο μακρύ line
   const fontPx = lines.length > 2 ? 18 : lines.length === 2 ? 26 : 36;
   const lineGap = 4;
   const blockHeight = lines.length * fontPx + (lines.length - 1) * lineGap;
 
-  // Measure width
   const measureCanvas = document.createElement("canvas");
   const mctx = measureCanvas.getContext("2d")!;
   mctx.font = `bold ${fontPx}px "Helvetica", "Arial", sans-serif`;
@@ -142,7 +227,6 @@ function renderLabelToRaster(label: PrintableLabel): {
   let labelWidth = Math.ceil(longest) + padding * 2;
   if (labelWidth < 80) labelWidth = 80;
 
-  // Flag mode: διπλό περιεχόμενο + κενό 30px στη μέση για δίπλωμα
   const flagGap = 30;
   const totalWidth =
     label.label_type === "flag" ? labelWidth * 2 + flagGap : labelWidth;
@@ -157,7 +241,6 @@ function renderLabelToRaster(label: PrintableLabel): {
   ctx.font = `bold ${fontPx}px "Helvetica", "Arial", sans-serif`;
   ctx.textBaseline = "top";
 
-  // Y centered στο printable area (πρώτα 70 dots από 128)
   const startY = Math.max(0, Math.floor((TAPE_PRINT_HEIGHT_DOTS - blockHeight) / 2));
 
   const drawText = (offsetX: number) => {
@@ -171,11 +254,9 @@ function renderLabelToRaster(label: PrintableLabel): {
 
   drawText(0);
   if (label.label_type === "flag") {
-    // Δεύτερο αντίγραφο για το flag (ίδιο κείμενο)
     drawText(labelWidth + flagGap);
   }
 
-  // Convert to columns of 16 bytes (1 = black)
   const imgData = ctx.getImageData(0, 0, totalWidth, headDots);
   const columns: Uint8Array[] = [];
   for (let x = 0; x < totalWidth; x++) {
@@ -200,39 +281,25 @@ function renderLabelToRaster(label: PrintableLabel): {
 
 /**
  * Build full ESC/P + raster command stream για ένα label.
- * Reference: Brother P-touch raster command reference.
  */
 function buildPrintCommand(label: PrintableLabel): Uint8Array {
   const { bytesPerColumn, columns } = renderLabelToRaster(label);
 
   const cmd: number[] = [];
 
-  // Invalidate (100 null bytes — required reset)
   for (let i = 0; i < 100; i++) cmd.push(0x00);
+  cmd.push(0x1b, 0x40); // ESC @ — Initialize
+  cmd.push(0x1b, 0x69, 0x61, 0x01); // ESC i a 01 — raster mode
+  cmd.push(0x1b, 0x69, 0x4d, 0x40); // ESC i M — mode settings
+  cmd.push(0x1b, 0x69, 0x64, 0x0e, 0x00); // ESC i d — feed margin
+  cmd.push(0x4d, 0x00); // M 02 — no compression
 
-  // ESC @ — Initialize
-  cmd.push(0x1b, 0x40);
-
-  // ESC i a 01 — Switch to raster mode
-  cmd.push(0x1b, 0x69, 0x61, 0x01);
-
-  // ESC i M — Mode settings (auto cut OFF between, mirror off)
-  cmd.push(0x1b, 0x69, 0x4d, 0x40);
-
-  // ESC i d — Margin (feed) 14 dots
-  cmd.push(0x1b, 0x69, 0x64, 0x0e, 0x00);
-
-  // M 02 — No compression mode
-  cmd.push(0x4d, 0x00);
-
-  // Send each column: 'G' nn nn data...
   for (const col of columns) {
     cmd.push(0x47, bytesPerColumn, 0x00);
     for (let i = 0; i < col.length; i++) cmd.push(col[i]);
   }
 
-  // 0x1A = print + cut command (έξοδος label)
-  cmd.push(0x1a);
+  cmd.push(0x1a); // print + cut
 
   return new Uint8Array(cmd);
 }
@@ -252,19 +319,24 @@ export async function printLabelQueue(
     options.onItemStart?.(i, label);
 
     try {
-      const cmd = buildPrintCommand(label);
-
-      // Στείλε σε chunks των ~180 bytes (ασφαλές για BLE MTU)
-      const CHUNK_SIZE = 180;
-      for (let offset = 0; offset < cmd.length; offset += CHUNK_SIZE) {
-        const end = Math.min(offset + CHUNK_SIZE, cmd.length);
-        const chunk = cmd.slice(offset, end);
-        await writeCharacteristic!.writeValue(chunk);
-        await new Promise((r) => setTimeout(r, 25));
+      if (state.demoMode) {
+        // Demo: γρήγορη προσομοίωση εκτύπωσης
+        // eslint-disable-next-line no-console
+        console.info(
+          `[Demo Printer] Label #${label.print_order} (${label.label_type}) @ ${label.location}: ${label.content}`
+        );
+        await new Promise((r) => setTimeout(r, 600));
+      } else {
+        const cmd = buildPrintCommand(label);
+        const CHUNK_SIZE = 180;
+        for (let offset = 0; offset < cmd.length; offset += CHUNK_SIZE) {
+          const end = Math.min(offset + CHUNK_SIZE, cmd.length);
+          const chunk = cmd.slice(offset, end);
+          await writeCharacteristic!.writeValue(chunk);
+          await new Promise((r) => setTimeout(r, 25));
+        }
+        await new Promise((r) => setTimeout(r, 2000));
       }
-
-      // Περίμενε ~2s για να βγει το label από τον cutter
-      await new Promise((r) => setTimeout(r, 2000));
 
       printed.push(label);
       options.onItemComplete?.(i, label);
