@@ -389,6 +389,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
   const [submitted, setSubmitted] = useState(false);
   const [submitProgress, setSubmitProgress] = useState("");
   const [showCompleteConfirm, setShowCompleteConfirm] = useState(false);
+  const [labelPrinterOpen, setLabelPrinterOpen] = useState(false);
 
   // Collapsible sections state (mobile UX)
   const [openSections, setOpenSections] = useState<string[]>([
@@ -3682,22 +3683,16 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                        <div className="flex items-center gap-2 flex-wrap">
                          <Badge variant="default" className="text-[10px]">🏷️ Labels</Badge>
                          <span className="text-[10px] text-muted-foreground">Αυτοκόλλητα — COSMOTE specs</span>
-                         {assignment?.sr_id && (
-                           <Button
-                             type="button"
-                             size="sm"
-                             asChild
-                             className="ml-auto h-7 gap-1.5 bg-gradient-to-r from-primary to-accent text-primary-foreground shadow-md shadow-primary/20"
-                           >
-                             <a
-                               href={`/labels/${encodeURIComponent(assignment.sr_id)}`}
-                               target="_blank"
-                               rel="noreferrer"
-                             >
-                               🖨️ Bluetooth Printer
-                             </a>
-                           </Button>
-                         )}
+                          {assignment?.sr_id && (
+                            <Button
+                              type="button"
+                              size="sm"
+                              onClick={() => setLabelPrinterOpen(true)}
+                              className="ml-auto h-7 gap-1.5 bg-gradient-to-r from-primary to-accent text-primary-foreground shadow-md shadow-primary/20"
+                            >
+                              🖨️ Εκτύπωση (Bluetooth)
+                            </Button>
+                          )}
                        </div>
 
                        {/* ═══ 2. ΚΑΜΠΙΝΑ ΠΑΛΑΙΟΥ ΤΥΠΟΥ ═══ */}
@@ -5322,6 +5317,29 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
             </SheetContent>
           </Sheet>
         </>
+      )}
+
+      {/* ─── Inline Bluetooth Label Printer (no new tab) ─── */}
+      {assignment?.sr_id && (
+        <Sheet open={labelPrinterOpen} onOpenChange={setLabelPrinterOpen}>
+          <SheetContent side="right" className="w-full sm:max-w-3xl p-0 flex flex-col">
+            <SheetHeader className="p-3 border-b border-border">
+              <SheetTitle className="flex items-center gap-2 text-sm">
+                🖨️ Bluetooth Printer — SR {assignment.sr_id}
+              </SheetTitle>
+            </SheetHeader>
+            <div className="flex-1 overflow-hidden">
+              {labelPrinterOpen && (
+                <iframe
+                  src={`/labels/${encodeURIComponent(assignment.sr_id)}?embed=1`}
+                  className="w-full h-full border-0"
+                  title="Label Printer"
+                  allow="bluetooth"
+                />
+              )}
+            </div>
+          </SheetContent>
+        </Sheet>
       )}
     </div>
   );
