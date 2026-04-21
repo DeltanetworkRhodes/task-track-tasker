@@ -161,6 +161,47 @@ export default function FtthLabelGenerator() {
   const [currentPrintingIdx, setCurrentPrintingIdx] = useState<number | null>(null);
   const [printingOpen, setPrintingOpen] = useState(false);
 
+  // ─── Bluetooth printer connection state (persistent via subscribe) ───
+  const [printerState, setPrinterState] = useState(() => getPrinterState());
+  const [connecting, setConnecting] = useState(false);
+
+  useEffect(() => {
+    const unsub = subscribePrinterState(setPrinterState);
+    return unsub;
+  }, []);
+
+  const handleConnect = useCallback(async () => {
+    setConnecting(true);
+    try {
+      await connectToPrinter();
+      const s = getPrinterState();
+      if (s.status === "demo") {
+        toast.success("🧪 Demo printer ενεργό");
+      } else {
+        toast.success(`✅ Συνδέθηκε: ${s.deviceName || "Printer"}`);
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Σφάλμα σύνδεσης";
+      toast.error(msg);
+    } finally {
+      setConnecting(false);
+    }
+  }, []);
+
+  const handleDisconnect = useCallback(async () => {
+    await disconnectPrinter();
+    toast.info("Αποσυνδέθηκε");
+  }, []);
+
+  const handleDemoToggle = useCallback((on: boolean) => {
+    setDemoMode(on);
+    if (on) {
+      toast.info("🧪 Demo mode ON — προσομοίωση εκτύπωσης");
+    } else {
+      toast.info("Demo mode OFF — απαιτείται πραγματικός printer");
+    }
+  }, []);
+
   const loadSr = useCallback(async () => {
     if (!srId.trim()) return;
     setLoading(true);
