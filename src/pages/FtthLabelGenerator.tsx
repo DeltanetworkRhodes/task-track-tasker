@@ -621,14 +621,77 @@ export default function FtthLabelGenerator() {
           )}
         </Card>
 
+        {/* Printer Connection Bar — always visible */}
+        <Card className="p-4 space-y-3 print:hidden">
+          <div className="flex flex-wrap items-center gap-3">
+            <PrinterStatusIcon status={printerState.status} />
+            <div className="flex-1 min-w-[180px]">
+              <div className="text-sm font-bold">
+                {printerState.status === "connected" && "Συνδεδεμένος"}
+                {printerState.status === "demo" && "Demo Mode"}
+                {printerState.status === "connecting" && "Σύνδεση..."}
+                {printerState.status === "disconnected" && "Αποσυνδεδεμένος"}
+              </div>
+              <div className="text-[11px] text-muted-foreground">
+                {printerState.deviceName ||
+                  "Brother PT-E550W · Σειρά: ΚΑΜΠΙΝΑ → BEP → BMO → FB"}
+              </div>
+            </div>
+
+            {printerState.status === "connected" ||
+            printerState.status === "demo" ? (
+              <Button
+                onClick={handleDisconnect}
+                size="sm"
+                variant="outline"
+                className="gap-1.5"
+                disabled={printerState.status === "demo"}
+              >
+                <Power className="h-3.5 w-3.5" />
+                Αποσύνδεση
+              </Button>
+            ) : (
+              <Button
+                onClick={handleConnect}
+                size="sm"
+                disabled={connecting || printerState.demoMode}
+                className="gap-1.5"
+              >
+                {connecting ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Bluetooth className="h-3.5 w-3.5" />
+                )}
+                Σύνδεση Bluetooth
+              </Button>
+            )}
+          </div>
+
+          <div className="flex items-center justify-between gap-3 pt-2 border-t border-border">
+            <div className="flex items-center gap-2">
+              <Switch
+                id="demo-mode"
+                checked={printerState.demoMode}
+                onCheckedChange={handleDemoToggle}
+              />
+              <Label
+                htmlFor="demo-mode"
+                className="text-[11px] text-muted-foreground cursor-pointer"
+              >
+                🧪 Demo mode (προσομοίωση χωρίς printer)
+              </Label>
+            </div>
+          </div>
+        </Card>
+
         {/* Bluetooth print bar */}
         {parsed && srData && (
           <Card className="p-4 flex flex-wrap items-center gap-3 print:hidden bg-gradient-to-br from-primary/5 to-accent/5 border-primary/20">
-            <Bluetooth className="h-5 w-5 text-primary" />
+            <Printer className="h-5 w-5 text-primary" />
             <div className="flex-1 min-w-[180px]">
-              <div className="text-sm font-bold">Bluetooth Printer</div>
+              <div className="text-sm font-bold">Έτοιμα για εκτύπωση</div>
               <div className="text-[11px] text-muted-foreground">
-                Brother PT-E550W · Σειρά: ΚΑΜΠΙΝΑ → BEP → BMO → FB
+                {buildPrintQueue().length} labels · 12mm tape
               </div>
             </div>
             <Button
