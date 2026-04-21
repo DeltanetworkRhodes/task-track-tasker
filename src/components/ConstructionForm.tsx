@@ -389,6 +389,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
   const [submitted, setSubmitted] = useState(false);
   const [submitProgress, setSubmitProgress] = useState("");
   const [showCompleteConfirm, setShowCompleteConfirm] = useState(false);
+  const [labelPrinterOpen, setLabelPrinterOpen] = useState(false);
 
   // Collapsible sections state (mobile UX)
   const [openSections, setOpenSections] = useState<string[]>([
