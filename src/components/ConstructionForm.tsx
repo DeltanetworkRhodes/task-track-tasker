@@ -3721,32 +3721,59 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                      </div>
                    );
 
-                   const LabelLine = ({ text, bold }: { text: string; bold?: boolean }) => (
-                     <div className={`relative group text-center text-xs whitespace-pre-line ${bold ? "font-bold" : ""} text-foreground bg-muted/50 rounded px-2 py-1.5 border border-border`}>
+                   const LabelLine = ({ text, bold, type }: { text: string; bold?: boolean; type?: "flag" | "flat" }) => (
+                     <div className={`relative group text-center text-xs whitespace-pre-line ${bold ? "font-bold" : ""} text-foreground bg-muted/50 rounded px-2 py-1.5 pr-14 border border-border`}>
                        {text}
-                       <button
-                         type="button"
-                         onClick={() => { navigator.clipboard.writeText(text); toast.success("Copied!"); }}
-                         className="absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded hover:bg-muted"
-                       >
-                         <Copy className="h-3 w-3 text-muted-foreground" />
-                       </button>
+                       <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center gap-0.5">
+                         <button
+                           type="button"
+                           onClick={() => handlePrintSingleLabel(text, { type })}
+                           disabled={printingLabel === text}
+                           title="Εκτύπωση Bluetooth"
+                           className="p-1 rounded hover:bg-primary/10 text-primary disabled:opacity-50"
+                         >
+                           {printingLabel === text ? <Loader2 className="h-3 w-3 animate-spin" /> : <Printer className="h-3 w-3" />}
+                         </button>
+                         <button
+                           type="button"
+                           onClick={() => { navigator.clipboard.writeText(text); toast.success("Copied!"); }}
+                           title="Αντιγραφή"
+                           className="p-1 rounded hover:bg-muted"
+                         >
+                           <Copy className="h-3 w-3 text-muted-foreground" />
+                         </button>
+                       </div>
                      </div>
                    );
 
                    // Multi-line label with copy
-                   const LabelBlock = ({ lines }: { lines: string[] }) => (
-                     <div className="relative group space-y-0.5 text-center text-xs font-bold text-foreground bg-muted/50 rounded px-2 py-2 border border-border">
+                   const LabelBlock = ({ lines, type }: { lines: string[]; type?: "flag" | "flat" }) => {
+                     const text = lines.join("\n");
+                     return (
+                     <div className="relative group space-y-0.5 text-center text-xs font-bold text-foreground bg-muted/50 rounded px-2 py-2 pr-14 border border-border">
                        {lines.map((line, i) => <div key={i}>{line}</div>)}
-                       <button
-                         type="button"
-                         onClick={() => { navigator.clipboard.writeText(lines.join("\n")); toast.success("Copied!"); }}
-                         className="absolute right-1 top-1 opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded hover:bg-muted"
-                       >
-                         <Copy className="h-3 w-3 text-muted-foreground" />
-                       </button>
+                       <div className="absolute right-1 top-1 flex items-center gap-0.5">
+                         <button
+                           type="button"
+                           onClick={() => handlePrintSingleLabel(text, { type })}
+                           disabled={printingLabel === text}
+                           title="Εκτύπωση Bluetooth"
+                           className="p-1 rounded hover:bg-primary/10 text-primary disabled:opacity-50"
+                         >
+                           {printingLabel === text ? <Loader2 className="h-3 w-3 animate-spin" /> : <Printer className="h-3 w-3" />}
+                         </button>
+                         <button
+                           type="button"
+                           onClick={() => { navigator.clipboard.writeText(text); toast.success("Copied!"); }}
+                           title="Αντιγραφή"
+                           className="p-1 rounded hover:bg-muted"
+                         >
+                           <Copy className="h-3 w-3 text-muted-foreground" />
+                         </button>
+                       </div>
                      </div>
-                   );
+                     );
+                   };
 
                      return (!phase || phase === 3) ? (
                       <div className="space-y-2 mt-3 pt-3 border-t border-border">
