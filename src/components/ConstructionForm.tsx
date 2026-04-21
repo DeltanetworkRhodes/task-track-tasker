@@ -5319,28 +5319,6 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
         </>
       )}
 
-      {/* ─── Inline Bluetooth Label Printer (no new tab) ─── */}
-      {assignment?.sr_id && (
-        <Sheet open={labelPrinterOpen} onOpenChange={setLabelPrinterOpen}>
-          <SheetContent side="right" className="w-full sm:max-w-3xl p-0 flex flex-col">
-            <SheetHeader className="p-3 border-b border-border">
-              <SheetTitle className="flex items-center gap-2 text-sm">
-                🖨️ Bluetooth Printer — SR {assignment.sr_id}
-              </SheetTitle>
-            </SheetHeader>
-            <div className="flex-1 overflow-hidden">
-              {labelPrinterOpen && (
-                <iframe
-                  src={`/labels/${encodeURIComponent(assignment.sr_id)}?embed=1`}
-                  className="w-full h-full border-0"
-                  title="Label Printer"
-                  allow="bluetooth"
-                />
-              )}
-            </div>
-          </SheetContent>
-        </Sheet>
-      )}
     </div>
   );
 };
