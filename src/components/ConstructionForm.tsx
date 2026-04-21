@@ -9,7 +9,15 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useTimeTracking } from "@/hooks/useTimeTracking";
-import { Trash2, Loader2, CheckCircle, HardHat, Package, Wrench, Camera, X, ChevronDown, ChevronRight, Plus, Minus, MapPin, Route, AlertTriangle, Save, GitMerge, Building2, Copy, LogOut, RefreshCw, Maximize2, Check, TrendingUp } from "lucide-react";
+import { Trash2, Loader2, CheckCircle, HardHat, Package, Wrench, Camera, X, ChevronDown, ChevronRight, Plus, Minus, MapPin, Route, AlertTriangle, Save, GitMerge, Building2, Copy, LogOut, RefreshCw, Maximize2, Check, TrendingUp, Bluetooth, BluetoothConnected, BluetoothOff, Printer } from "lucide-react";
+import {
+  printLabelQueue,
+  connectToPrinter,
+  disconnectPrinter,
+  subscribePrinterState,
+  setDemoMode,
+  getPrinterState,
+} from "@/lib/bluetoothLabelPrinter";
 import { motion } from "framer-motion";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -389,7 +397,69 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
   const [submitted, setSubmitted] = useState(false);
   const [submitProgress, setSubmitProgress] = useState("");
   const [showCompleteConfirm, setShowCompleteConfirm] = useState(false);
-  const [labelPrinterOpen, setLabelPrinterOpen] = useState(false);
+
+  // ─── Bluetooth Label Printer (inline) ───
+  const [printerState, setPrinterState] = useState(() => getPrinterState());
+  const [printerConnecting, setPrinterConnecting] = useState(false);
+  const [printingLabel, setPrintingLabel] = useState<string | null>(null);
+
+  useEffect(() => {
+    const unsub = subscribePrinterState(setPrinterState);
+    return unsub;
+  }, []);
+
+  const handlePrinterConnect = useCallback(async () => {
+    if (printerState.status === "connected" || printerState.status === "demo") {
+      await disconnectPrinter();
+      toast.info("Αποσυνδέθηκε");
+      return;
+    }
+    setPrinterConnecting(true);
+    try {
+      await connectToPrinter();
+      const s = getPrinterState();
+      toast.success(s.status === "demo" ? "🧪 Demo printer ενεργό" : `✅ ${s.deviceName}`);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Σφάλμα σύνδεσης";
+      toast.error(msg);
+    } finally {
+      setPrinterConnecting(false);
+    }
+  }, [printerState.status]);
+
+  const handleToggleDemo = useCallback(() => {
+    const next = !printerState.demoMode;
+    setDemoMode(next);
+    toast.info(next ? "🧪 Demo mode ON" : "Demo mode OFF");
+  }, [printerState.demoMode]);
+
+  const handlePrintSingleLabel = useCallback(async (text: string, opts?: { type?: "flag" | "flat"; section?: string }) => {
+    if (printerState.status !== "connected" && printerState.status !== "demo") {
+      toast.error("Συνδέστε πρώτα τον εκτυπωτή (κουμπί Bluetooth)");
+      return;
+    }
+    const lines = text.split("\n").filter(Boolean);
+    setPrintingLabel(text);
+    try {
+      await printLabelQueue([{
+        section_code: opts?.section || "INLINE",
+        location: "bep",
+        label_type: opts?.type || "flat",
+        section_title: opts?.section || "Label",
+        content: text,
+        content_lines: lines,
+        tape_width_mm: 12,
+        print_order: 1,
+      }]);
+      toast.success("✅ Εκτυπώθηκε");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Σφάλμα εκτύπωσης";
+      toast.error(msg);
+    } finally {
+      setPrintingLabel(null);
+    }
+  }, [printerState.status]);
+
 
   // Collapsible sections state (mobile UX)
   const [openSections, setOpenSections] = useState<string[]>([
@@ -3651,49 +3721,117 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                      </div>
                    );
 
-                   const LabelLine = ({ text, bold }: { text: string; bold?: boolean }) => (
-                     <div className={`relative group text-center text-xs whitespace-pre-line ${bold ? "font-bold" : ""} text-foreground bg-muted/50 rounded px-2 py-1.5 border border-border`}>
+                   const LabelLine = ({ text, bold, type }: { text: string; bold?: boolean; type?: "flag" | "flat" }) => (
+                     <div className={`relative group text-center text-xs whitespace-pre-line ${bold ? "font-bold" : ""} text-foreground bg-muted/50 rounded px-2 py-1.5 pr-14 border border-border`}>
                        {text}
-                       <button
-                         type="button"
-                         onClick={() => { navigator.clipboard.writeText(text); toast.success("Copied!"); }}
-                         className="absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded hover:bg-muted"
-                       >
-                         <Copy className="h-3 w-3 text-muted-foreground" />
-                       </button>
+                       <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center gap-0.5">
+                         <button
+                           type="button"
+                           onClick={() => handlePrintSingleLabel(text, { type })}
+                           disabled={printingLabel === text}
+                           title="Εκτύπωση Bluetooth"
+                           className="p-1 rounded hover:bg-primary/10 text-primary disabled:opacity-50"
+                         >
+                           {printingLabel === text ? <Loader2 className="h-3 w-3 animate-spin" /> : <Printer className="h-3 w-3" />}
+                         </button>
+                         <button
+                           type="button"
+                           onClick={() => { navigator.clipboard.writeText(text); toast.success("Copied!"); }}
+                           title="Αντιγραφή"
+                           className="p-1 rounded hover:bg-muted"
+                         >
+                           <Copy className="h-3 w-3 text-muted-foreground" />
+                         </button>
+                       </div>
                      </div>
                    );
 
                    // Multi-line label with copy
-                   const LabelBlock = ({ lines }: { lines: string[] }) => (
-                     <div className="relative group space-y-0.5 text-center text-xs font-bold text-foreground bg-muted/50 rounded px-2 py-2 border border-border">
+                   const LabelBlock = ({ lines, type }: { lines: string[]; type?: "flag" | "flat" }) => {
+                     const text = lines.join("\n");
+                     return (
+                     <div className="relative group space-y-0.5 text-center text-xs font-bold text-foreground bg-muted/50 rounded px-2 py-2 pr-14 border border-border">
                        {lines.map((line, i) => <div key={i}>{line}</div>)}
-                       <button
-                         type="button"
-                         onClick={() => { navigator.clipboard.writeText(lines.join("\n")); toast.success("Copied!"); }}
-                         className="absolute right-1 top-1 opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded hover:bg-muted"
-                       >
-                         <Copy className="h-3 w-3 text-muted-foreground" />
-                       </button>
+                       <div className="absolute right-1 top-1 flex items-center gap-0.5">
+                         <button
+                           type="button"
+                           onClick={() => handlePrintSingleLabel(text, { type })}
+                           disabled={printingLabel === text}
+                           title="Εκτύπωση Bluetooth"
+                           className="p-1 rounded hover:bg-primary/10 text-primary disabled:opacity-50"
+                         >
+                           {printingLabel === text ? <Loader2 className="h-3 w-3 animate-spin" /> : <Printer className="h-3 w-3" />}
+                         </button>
+                         <button
+                           type="button"
+                           onClick={() => { navigator.clipboard.writeText(text); toast.success("Copied!"); }}
+                           title="Αντιγραφή"
+                           className="p-1 rounded hover:bg-muted"
+                         >
+                           <Copy className="h-3 w-3 text-muted-foreground" />
+                         </button>
+                       </div>
                      </div>
-                   );
+                     );
+                   };
 
                      return (!phase || phase === 3) ? (
                       <div className="space-y-2 mt-3 pt-3 border-t border-border">
                        <div className="flex items-center gap-2 flex-wrap">
                          <Badge variant="default" className="text-[10px]">🏷️ Labels</Badge>
                          <span className="text-[10px] text-muted-foreground">Αυτοκόλλητα — COSMOTE specs</span>
-                          {assignment?.sr_id && (
-                            <Button
-                              type="button"
-                              size="sm"
-                              onClick={() => setLabelPrinterOpen(true)}
-                              className="ml-auto h-7 gap-1.5 bg-gradient-to-r from-primary to-accent text-primary-foreground shadow-md shadow-primary/20"
-                            >
-                              🖨️ Εκτύπωση (Bluetooth)
-                            </Button>
-                          )}
+                         <div className="ml-auto flex items-center gap-1.5">
+                           {/* Demo toggle */}
+                           <button
+                             type="button"
+                             onClick={handleToggleDemo}
+                             title="Demo mode (προσομοίωση εκτύπωσης χωρίς πραγματικό printer)"
+                             className={`h-7 px-2 rounded text-[10px] font-semibold border transition-colors ${
+                               printerState.demoMode
+                                 ? "bg-amber-500/15 text-amber-600 border-amber-500/40"
+                                 : "bg-muted/50 text-muted-foreground border-border hover:bg-muted"
+                             }`}
+                           >
+                             🧪 Demo
+                           </button>
+                           {/* Bluetooth connect button */}
+                           <Button
+                             type="button"
+                             size="sm"
+                             onClick={handlePrinterConnect}
+                             disabled={printerConnecting}
+                             className={`h-7 gap-1.5 text-xs ${
+                               printerState.status === "connected"
+                                 ? "bg-emerald-500 hover:bg-emerald-600 text-white"
+                                 : printerState.status === "demo"
+                                 ? "bg-amber-500 hover:bg-amber-600 text-white"
+                                 : "bg-gradient-to-r from-primary to-accent text-primary-foreground"
+                             }`}
+                           >
+                             {printerConnecting ? (
+                               <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                             ) : printerState.status === "connected" ? (
+                               <BluetoothConnected className="h-3.5 w-3.5" />
+                             ) : printerState.status === "demo" ? (
+                               <Bluetooth className="h-3.5 w-3.5" />
+                             ) : (
+                               <BluetoothOff className="h-3.5 w-3.5" />
+                             )}
+                             {printerState.status === "connected"
+                               ? `Συνδεδεμένος: ${printerState.deviceName?.slice(0, 14) || "Printer"}`
+                               : printerState.status === "demo"
+                               ? "Demo Printer"
+                               : printerConnecting
+                               ? "Σύνδεση..."
+                               : "Σύνδεση Bluetooth"}
+                           </Button>
+                         </div>
                        </div>
+                       {printerState.status !== "connected" && printerState.status !== "demo" && (
+                         <div className="text-[10px] text-muted-foreground italic px-1">
+                           💡 Πατήστε <strong>Σύνδεση Bluetooth</strong> για να συνδεθείτε στον Brother PT-E550W. Μετά πατήστε το <Printer className="inline h-3 w-3" /> δίπλα σε κάθε label.
+                         </div>
+                       )}
 
                        {/* ═══ 2. ΚΑΜΠΙΝΑ ΠΑΛΑΙΟΥ ΤΥΠΟΥ ═══ */}
                        {hasCabLabel && (
@@ -5319,28 +5457,6 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
         </>
       )}
 
-      {/* ─── Inline Bluetooth Label Printer (no new tab) ─── */}
-      {assignment?.sr_id && (
-        <Sheet open={labelPrinterOpen} onOpenChange={setLabelPrinterOpen}>
-          <SheetContent side="right" className="w-full sm:max-w-3xl p-0 flex flex-col">
-            <SheetHeader className="p-3 border-b border-border">
-              <SheetTitle className="flex items-center gap-2 text-sm">
-                🖨️ Bluetooth Printer — SR {assignment.sr_id}
-              </SheetTitle>
-            </SheetHeader>
-            <div className="flex-1 overflow-hidden">
-              {labelPrinterOpen && (
-                <iframe
-                  src={`/labels/${encodeURIComponent(assignment.sr_id)}?embed=1`}
-                  className="w-full h-full border-0"
-                  title="Label Printer"
-                  allow="bluetooth"
-                />
-              )}
-            </div>
-          </SheetContent>
-        </Sheet>
-      )}
     </div>
   );
 };
