@@ -139,6 +139,16 @@ function LabelTypeBadge({ type }: { type: LabelType }) {
   );
 }
 
+function PrinterStatusIcon({ status }: { status: ConnectionStatus }) {
+  if (status === "connected")
+    return <BluetoothConnected className="h-5 w-5 text-emerald-500" />;
+  if (status === "demo")
+    return <Bluetooth className="h-5 w-5 text-amber-500" />;
+  if (status === "connecting")
+    return <Loader2 className="h-5 w-5 text-primary animate-spin" />;
+  return <BluetoothOff className="h-5 w-5 text-muted-foreground" />;
+}
+
 // ─── Main Page ───
 export default function FtthLabelGenerator() {
   const params = useParams<{ srId?: string }>();
