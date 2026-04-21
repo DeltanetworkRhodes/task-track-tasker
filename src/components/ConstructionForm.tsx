@@ -389,7 +389,69 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
   const [submitted, setSubmitted] = useState(false);
   const [submitProgress, setSubmitProgress] = useState("");
   const [showCompleteConfirm, setShowCompleteConfirm] = useState(false);
-  const [labelPrinterOpen, setLabelPrinterOpen] = useState(false);
+
+  // ─── Bluetooth Label Printer (inline) ───
+  const [printerState, setPrinterState] = useState(() => getPrinterState());
+  const [printerConnecting, setPrinterConnecting] = useState(false);
+  const [printingLabel, setPrintingLabel] = useState<string | null>(null);
+
+  useEffect(() => {
+    const unsub = subscribePrinterState(setPrinterState);
+    return unsub;
+  }, []);
+
+  const handlePrinterConnect = useCallback(async () => {
+    if (printerState.status === "connected" || printerState.status === "demo") {
+      await disconnectPrinter();
+      toast.info("Αποσυνδέθηκε");
+      return;
+    }
+    setPrinterConnecting(true);
+    try {
+      await connectToPrinter();
+      const s = getPrinterState();
+      toast.success(s.status === "demo" ? "🧪 Demo printer ενεργό" : `✅ ${s.deviceName}`);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Σφάλμα σύνδεσης";
+      toast.error(msg);
+    } finally {
+      setPrinterConnecting(false);
+    }
+  }, [printerState.status]);
+
+  const handleToggleDemo = useCallback(() => {
+    const next = !printerState.demoMode;
+    setDemoMode(next);
+    toast.info(next ? "🧪 Demo mode ON" : "Demo mode OFF");
+  }, [printerState.demoMode]);
+
+  const handlePrintSingleLabel = useCallback(async (text: string, opts?: { type?: "flag" | "flat"; section?: string }) => {
+    if (printerState.status !== "connected" && printerState.status !== "demo") {
+      toast.error("Συνδέστε πρώτα τον εκτυπωτή (κουμπί Bluetooth)");
+      return;
+    }
+    const lines = text.split("\n").filter(Boolean);
+    setPrintingLabel(text);
+    try {
+      await printLabelQueue([{
+        section_code: opts?.section || "INLINE",
+        location: "bep",
+        label_type: opts?.type || "flat",
+        section_title: opts?.section || "Label",
+        content: text,
+        content_lines: lines,
+        tape_width_mm: 12,
+        print_order: 1,
+      }]);
+      toast.success("✅ Εκτυπώθηκε");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Σφάλμα εκτύπωσης";
+      toast.error(msg);
+    } finally {
+      setPrintingLabel(null);
+    }
+  }, [printerState.status]);
+
 
   // Collapsible sections state (mobile UX)
   const [openSections, setOpenSections] = useState<string[]>([
