@@ -3780,17 +3780,58 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                        <div className="flex items-center gap-2 flex-wrap">
                          <Badge variant="default" className="text-[10px]">🏷️ Labels</Badge>
                          <span className="text-[10px] text-muted-foreground">Αυτοκόλλητα — COSMOTE specs</span>
-                          {assignment?.sr_id && (
-                            <Button
-                              type="button"
-                              size="sm"
-                              onClick={() => setLabelPrinterOpen(true)}
-                              className="ml-auto h-7 gap-1.5 bg-gradient-to-r from-primary to-accent text-primary-foreground shadow-md shadow-primary/20"
-                            >
-                              🖨️ Εκτύπωση (Bluetooth)
-                            </Button>
-                          )}
+                         <div className="ml-auto flex items-center gap-1.5">
+                           {/* Demo toggle */}
+                           <button
+                             type="button"
+                             onClick={handleToggleDemo}
+                             title="Demo mode (προσομοίωση εκτύπωσης χωρίς πραγματικό printer)"
+                             className={`h-7 px-2 rounded text-[10px] font-semibold border transition-colors ${
+                               printerState.demoMode
+                                 ? "bg-amber-500/15 text-amber-600 border-amber-500/40"
+                                 : "bg-muted/50 text-muted-foreground border-border hover:bg-muted"
+                             }`}
+                           >
+                             🧪 Demo
+                           </button>
+                           {/* Bluetooth connect button */}
+                           <Button
+                             type="button"
+                             size="sm"
+                             onClick={handlePrinterConnect}
+                             disabled={printerConnecting}
+                             className={`h-7 gap-1.5 text-xs ${
+                               printerState.status === "connected"
+                                 ? "bg-emerald-500 hover:bg-emerald-600 text-white"
+                                 : printerState.status === "demo"
+                                 ? "bg-amber-500 hover:bg-amber-600 text-white"
+                                 : "bg-gradient-to-r from-primary to-accent text-primary-foreground"
+                             }`}
+                           >
+                             {printerConnecting ? (
+                               <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                             ) : printerState.status === "connected" ? (
+                               <BluetoothConnected className="h-3.5 w-3.5" />
+                             ) : printerState.status === "demo" ? (
+                               <Bluetooth className="h-3.5 w-3.5" />
+                             ) : (
+                               <BluetoothOff className="h-3.5 w-3.5" />
+                             )}
+                             {printerState.status === "connected"
+                               ? `Συνδεδεμένος: ${printerState.deviceName?.slice(0, 14) || "Printer"}`
+                               : printerState.status === "demo"
+                               ? "Demo Printer"
+                               : printerConnecting
+                               ? "Σύνδεση..."
+                               : "Σύνδεση Bluetooth"}
+                           </Button>
+                         </div>
                        </div>
+                       {printerState.status !== "connected" && printerState.status !== "demo" && (
+                         <div className="text-[10px] text-muted-foreground italic px-1">
+                           💡 Πατήστε <strong>Σύνδεση Bluetooth</strong> για να συνδεθείτε στον Brother PT-E550W. Μετά πατήστε το <Printer className="inline h-3 w-3" /> δίπλα σε κάθε label.
+                         </div>
+                       )}
 
                        {/* ═══ 2. ΚΑΜΠΙΝΑ ΠΑΛΑΙΟΥ ΤΥΠΟΥ ═══ */}
                        {hasCabLabel && (
