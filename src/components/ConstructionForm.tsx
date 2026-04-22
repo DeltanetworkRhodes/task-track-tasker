@@ -5333,7 +5333,9 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                     : "bg-green-600 hover:bg-green-700"
                 }`}
               >
-                {blocked ? (
+                {buildingTypeBlocked ? (
+                  <><AlertTriangle className="h-4 w-4" /> Επίλεξε τύπο κτιρίου</>
+                ) : photosBlocked ? (
                   <><AlertTriangle className="h-4 w-4" /> Λείπουν {missingCount} φωτογραφίες</>
                 ) : (
                   <><CheckCircle className="h-4 w-4" /> ✅ Ολοκλήρωση Φάσης {phase}{phase === 1 ? " — Χωματουργικά" : phase === 2 ? " — Οδεύσεις" : " — Κόλληση"}</>
