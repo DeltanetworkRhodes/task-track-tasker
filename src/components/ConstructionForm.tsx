@@ -1771,6 +1771,24 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
     if (isCrewMode) return; // crew δεν τιμολογεί
     if (!workPricing) return; // περιμένουμε να φορτώσει το catalog
 
+    // Σωστή επιλογή μέτρων εισαγωγής βάσει type — ΟΧΙ fallback ||
+    // (αλλιώς όταν αλλάζει type μένουν τα παλιά μέτρα και βγαίνει λάθος tier κωδικός)
+    let eisagogiMeters = 0;
+    switch (section6?.eisagogi_type) {
+      case "ΝΕΑ ΥΠΟΔΟΜΗ":
+        eisagogiMeters = parseFloat(section6?.ms_skamma || "0") || 0;
+        break;
+      case "ΕΣΚΑΛΗΤ":
+        eisagogiMeters =
+          parseFloat(section6?.eskalit_solienosi_eisagogis || "0") ||
+          parseFloat(section6?.eskalit_ms || "0") ||
+          0;
+        break;
+      case "ΕΣΚΑΛΗΤ Β1":
+        eisagogiMeters = parseFloat(section6?.eskalit_b1_bep || "0") || 0;
+        break;
+    }
+
     const billingInput: AutoBillingInput = {
       sr_id: assignment?.sr_id,
       building_type: buildingType,
@@ -1781,13 +1799,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
       route_inhouse_meters: inhouseKoiSum,
       floor_meters_count: floorMeters.filter((fm) => parseFloat(fm.meters) > 0).length,
       eisagogi_type: section6?.eisagogi_type || null,
-      eisagogi_meters:
-        parseFloat(
-          section6?.eskalit_solienosi_eisagogis ||
-            section6?.eskalit_nea_solienosi ||
-            section6?.ms_skamma ||
-            "0",
-        ) || 0,
+      eisagogi_meters: eisagogiMeters,
       bcp_eidos: section6?.bcp_eidos || null,
       bcp_meters: parseFloat(section6?.bcp_ms || "0") || 0,
       fb_same_level_as_bep: Boolean((section6 as any)?.fb_same_level_as_bep),
@@ -1796,11 +1808,16 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
     };
 
     const computed = computeAutoBilling(billingInput, oteArticlesRaw);
-    if (computed.length === 0) return;
 
     setWorkItems((prev) => {
-      const { items, added, updated } = mergeAutoBilling(prev, computed, oteArticlesRaw);
-      if (added.length === 0 && updated.length === 0) return prev;
+      const { items, added, updated, removed, nextAutoAddedCodes } = mergeAutoBilling(
+        prev,
+        computed,
+        oteArticlesRaw,
+        { autoAddedCodes: autoAddedCodesRef.current },
+      );
+      autoAddedCodesRef.current = nextAutoAddedCodes;
+      if (added.length === 0 && updated.length === 0 && removed.length === 0) return prev;
       setLastAutoBillingSummary({ added: added.length, updated: updated.length });
       return items;
     });
