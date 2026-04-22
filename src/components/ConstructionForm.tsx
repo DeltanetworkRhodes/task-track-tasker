@@ -1861,10 +1861,6 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
       console.log("[AutoBilling] ⏸ no OTE articles loaded yet");
       return;
     }
-    if (isCrewMode) {
-      console.log("[AutoBilling] ⏸ crew mode — skip");
-      return;
-    }
     if (!workPricing) {
       console.log("[AutoBilling] ⏸ work_pricing not loaded");
       return;
@@ -2022,16 +2018,22 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
   };
 
   // Check if work is selected
-  const isWorkSelected = (id: string) => workItems.some((w) => w.work_pricing_id === id);
-  const getWorkQty = (id: string) => workItems.find((w) => w.work_pricing_id === id)?.quantity || 0;
+  const findSelectedWork = (work: { id?: string; code?: string } | string) => {
+    const id = typeof work === "string" ? work : work.id;
+    const code = typeof work === "string" ? undefined : work.code;
+    return workItems.find((w) => w.work_pricing_id === id || (!!code && w.code === code));
+  };
+  const isWorkSelected = (work: { id?: string; code?: string } | string) => Boolean(findSelectedWork(work));
+  const getWorkQty = (work: { id?: string; code?: string } | string) => findSelectedWork(work)?.quantity || 0;
   
   const isMaterialSelected = (id: string) => materialItems.some((m) => m.material_id === id);
   const getMaterialQty = (id: string) => materialItems.find((m) => m.material_id === id)?.quantity || 0;
 
   // Toggle work item
   const toggleWork = (w: any) => {
-    if (isWorkSelected(w.id)) {
-      setWorkItems((prev) => prev.filter((wi) => wi.work_pricing_id !== w.id));
+    const selected = findSelectedWork(w);
+    if (selected) {
+      setWorkItems((prev) => prev.filter((wi) => wi.work_pricing_id !== selected.work_pricing_id && wi.code !== selected.code));
     } else {
       setWorkItems((prev) => [
         ...prev,
@@ -2068,9 +2070,9 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
   };
 
   // Update quantities
-  const updateWorkQty = (id: string, qty: number) => {
+  const updateWorkQty = (id: string, qty: number, code?: string) => {
     if (qty < 1) qty = 1;
-    setWorkItems((prev) => prev.map((w) => (w.work_pricing_id === id ? { ...w, quantity: qty } : w)));
+    setWorkItems((prev) => prev.map((w) => (w.work_pricing_id === id || (!!code && w.code === code) ? { ...w, quantity: qty } : w)));
   };
   const updateMaterialQty = (id: string, qty: number) => {
     if (qty < 1) qty = 1;
@@ -3178,7 +3180,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
   // Count selected items per category
   const selectedWorkCount = (prefix: string) => {
     const catWorks = worksByCategory[prefix] || [];
-    return catWorks.filter((w) => isWorkSelected(w.id)).length;
+    return catWorks.filter((w) => isWorkSelected(w)).length;
   };
 
   const selectedMaterialCount = (source: string, catLabel: string) => {
@@ -4945,8 +4947,8 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
         </Card>
       )}
 
-      {/* Work Items - Category based (hidden for all crew members) */}
-      {!isCrewMode && lastAutoBillingSummary && (lastAutoBillingSummary.added > 0 || lastAutoBillingSummary.updated > 0) && (
+      {/* Work Items - Category based */}
+      {lastAutoBillingSummary && (lastAutoBillingSummary.added > 0 || lastAutoBillingSummary.updated > 0) && (
         <div className="rounded-xl border border-primary/30 bg-gradient-to-r from-primary/10 via-primary/5 to-transparent p-3 flex items-center gap-3">
           <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center text-base shrink-0">✨</div>
           <div className="flex-1 min-w-0 text-sm">
@@ -4960,7 +4962,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
         </div>
       )}
 
-      {!isCrewMode && <Card className="overflow-hidden">
+      <Card className="overflow-hidden">
         <button
           type="button"
           onClick={() => toggleSection("works")}
@@ -5056,7 +5058,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                               const qty = calculateDefaultQuantity(suggestedItem.code, suggestionInput) || 1;
                               toggleWork(suggestedItem);
                               if (qty > 1) {
-                                setTimeout(() => updateWorkQty(suggestedItem.id, qty), 0);
+                                setTimeout(() => updateWorkQty(suggestedItem.id, qty, suggestedItem.code), 0);
                               }
                               hapticFeedback.success();
                             }}
@@ -5069,8 +5071,8 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                     )}
 
                     {catWorks.map((w: any) => {
-                      const selected = isWorkSelected(w.id);
-                      const qty = getWorkQty(w.id);
+                      const selected = isWorkSelected(w);
+                      const qty = getWorkQty(w);
                       const shortLabel = w._short_label || w.description;
                       const annotation = w._user_annotation;
                       const isDefault = w._is_default;
@@ -5117,7 +5119,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                             <div className="flex items-center gap-1 shrink-0">
                               <button
                                 type="button"
-                                onClick={() => updateWorkQty(w.id, qty - 1)}
+                                onClick={() => updateWorkQty(w.id, qty - 1, w.code)}
                                 className="w-7 h-7 rounded bg-muted flex items-center justify-center hover:bg-muted-foreground/20 active:scale-95"
                               >
                                 <Minus className="h-3 w-3" />
@@ -5126,12 +5128,12 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                                 type="number"
                                 min="1"
                                 value={qty}
-                                onChange={(e) => updateWorkQty(w.id, parseFloat(e.target.value) || 1)}
+                                onChange={(e) => updateWorkQty(w.id, parseFloat(e.target.value) || 1, w.code)}
                                 className="w-12 h-7 text-xs text-center p-0"
                               />
                               <button
                                 type="button"
-                                onClick={() => updateWorkQty(w.id, qty + 1)}
+                                onClick={() => updateWorkQty(w.id, qty + 1, w.code)}
                                 className="w-7 h-7 rounded bg-muted flex items-center justify-center hover:bg-muted-foreground/20 active:scale-95"
                               >
                                 <Plus className="h-3 w-3" />
@@ -5149,7 +5151,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
         </div>
         </div>
         )}
-      </Card>}
+      </Card>
       {(!phase || phase === 1 || phase === 2) && <Card className="overflow-hidden">
         <button
           type="button"
