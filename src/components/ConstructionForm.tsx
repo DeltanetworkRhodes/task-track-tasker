@@ -1826,9 +1826,9 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
         (parseFloat(section6?.bcp_ms || "0") || 0) +
         (parseFloat(section6?.bcp_bep_ypogeia || "0") || 0) +
         (parseFloat(section6?.bcp_bep_enaeria || "0") || 0),
-      fb_same_level_as_bep: Boolean((section6 as any)?.fb_same_level_as_bep),
-      horizontal_meters: parseFloat((section6 as any)?.horizontal_meters || "0") || 0,
-      cab_to_bep_damaged: Boolean((section6 as any)?.cab_to_bep_damaged),
+      fb_same_level_as_bep: Boolean(section6?.fb_same_level_as_bep),
+      horizontal_meters: parseFloat(String(section6?.horizontal_meters || "0")) || 0,
+      cab_to_bep_damaged: Boolean(section6?.cab_to_bep_damaged),
     };
 
     const computed = computeAutoBilling(billingInput, oteArticlesRaw);
@@ -4786,12 +4786,68 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                   </div>
                 </div>
               )}
+
+              {/* ΣΤ — FB & Οριζόντια όδευση + Κατειλημμένη υποδομή Cab→BEP */}
+              <div className="border-t border-border pt-3 space-y-3">
+                <Label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  FB & Οριζόντια όδευση
+                </Label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <label className="flex items-center gap-2 text-sm cursor-pointer select-none p-2 rounded-md border border-border bg-muted/30 hover:bg-muted/50 transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={Boolean(section6?.fb_same_level_as_bep)}
+                      onChange={(e) =>
+                        setSection6((s) => ({ ...s, fb_same_level_as_bep: e.target.checked as unknown as string }))
+                      }
+                      className="h-4 w-4 accent-primary"
+                    />
+                    <span>FB στο ίδιο επίπεδο με BEP</span>
+                  </label>
+                  <div>
+                    <Label className="text-xs">Οριζόντια μέτρα FB→BEP (m)</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      step="0.1"
+                      value={(section6?.horizontal_meters as string) || ""}
+                      onChange={(e) => setSection6((s) => ({ ...s, horizontal_meters: e.target.value }))}
+                      className="h-10 text-sm mt-1"
+                      placeholder="0"
+                    />
+                  </div>
+                  <label className="flex items-center gap-2 text-sm cursor-pointer select-none p-2 rounded-md border border-border bg-muted/30 hover:bg-muted/50 transition-colors md:col-span-2">
+                    <input
+                      type="checkbox"
+                      checked={Boolean(section6?.cab_to_bep_damaged)}
+                      onChange={(e) =>
+                        setSection6((s) => ({ ...s, cab_to_bep_damaged: e.target.checked as unknown as string }))
+                      }
+                      className="h-4 w-4 accent-primary"
+                    />
+                    <span>Κατειλημμένη υποδομή Cab→BEP <span className="text-muted-foreground">(χρεώνει 1980.2 αντί 1980.1)</span></span>
+                  </label>
+                </div>
+              </div>
             </div>
           )}
         </Card>
       )}
 
       {/* Work Items - Category based (hidden for all crew members) */}
+      {!isCrewMode && lastAutoBillingSummary && (lastAutoBillingSummary.added > 0 || lastAutoBillingSummary.updated > 0) && (
+        <div className="rounded-xl border border-primary/30 bg-gradient-to-r from-primary/10 via-primary/5 to-transparent p-3 flex items-center gap-3">
+          <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center text-base shrink-0">✨</div>
+          <div className="flex-1 min-w-0 text-sm">
+            <div className="font-semibold text-foreground">Αυτόματη καταχώρηση εργασιών</div>
+            <div className="text-xs text-muted-foreground">
+              {lastAutoBillingSummary.added > 0 && `${lastAutoBillingSummary.added} προστέθηκαν`}
+              {lastAutoBillingSummary.added > 0 && lastAutoBillingSummary.updated > 0 && " · "}
+              {lastAutoBillingSummary.updated > 0 && `${lastAutoBillingSummary.updated} ενημερώθηκαν`} με βάση το AS-BUILD
+            </div>
+          </div>
+        </div>
+      )}
       {!isCrewMode && <Card className="overflow-hidden">
         <button
           type="button"
