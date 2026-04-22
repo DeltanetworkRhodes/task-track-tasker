@@ -1801,7 +1801,11 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
       eisagogi_type: section6?.eisagogi_type || null,
       eisagogi_meters: eisagogiMeters,
       bcp_eidos: section6?.bcp_eidos || null,
-      bcp_meters: parseFloat(section6?.bcp_ms || "0") || 0,
+      // Συνολικά μέτρα BCP = σκάψιμο Καμπ→BCP (Μ/Σ) + BCP→BEP υπόγεια + BCP→BEP εναέρια
+      bcp_meters:
+        (parseFloat(section6?.bcp_ms || "0") || 0) +
+        (parseFloat(section6?.bcp_bep_ypogeia || "0") || 0) +
+        (parseFloat(section6?.bcp_bep_enaeria || "0") || 0),
       fb_same_level_as_bep: Boolean((section6 as any)?.fb_same_level_as_bep),
       horizontal_meters: parseFloat((section6 as any)?.horizontal_meters || "0") || 0,
       cab_to_bep_damaged: Boolean((section6 as any)?.cab_to_bep_damaged),
