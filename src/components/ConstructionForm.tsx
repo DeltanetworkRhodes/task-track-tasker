@@ -34,6 +34,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { isOnline, enqueueConstruction, fileToOfflineFile, type OfflineConstructionPayload } from "@/lib/offlineQueue";
 import { usePhotoChecklist } from "@/hooks/usePhotoChecklist";
 import PhotoChecklist from "@/components/PhotoChecklist";
+import { OteBillingSection } from "@/components/construction/OteBillingSection";
 import { useUserRole } from "@/hooks/useUserRole";
 
 interface WorkItem {
@@ -4811,6 +4812,22 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
         </div>
         )}
       </Card>}
+
+      {/* OTE Billing — auto-suggest articles based on construction data */}
+      <OteBillingSection
+        assignmentId={assignment.id}
+        buildingType={buildingType}
+        floors={Number(floors) || 0}
+        fbSameLevelAsBep={false}
+        distributionType={"eskalit"}
+        distributionMeters={0}
+        cabToBepDamaged={false}
+        horizontalMeters={0}
+        isAerial={false}
+        aerialMeters={0}
+        isCommercialCenter={false}
+        fbCount={0}
+      />
 
       {/* Construction Photos - Categorized */}
       <Card className="overflow-hidden">
