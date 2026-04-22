@@ -237,7 +237,7 @@ export function OteBillingSection({
       if (error) throw error;
     },
     onSuccess: () => {
-      hapticFeedback?.("success");
+      hapticFeedback.success();
       toast.success("Εφαρμόστηκαν τα προτεινόμενα άρθρα");
       queryClient.invalidateQueries({
         queryKey: ["sr-billing-items", assignmentId],
@@ -267,7 +267,7 @@ export function OteBillingSection({
       if (error) throw error;
     },
     onSuccess: () => {
-      hapticFeedback?.("light");
+      hapticFeedback.light();
       toast.success("Προστέθηκε");
       queryClient.invalidateQueries({
         queryKey: ["sr-billing-items", assignmentId],
@@ -301,7 +301,7 @@ export function OteBillingSection({
       if (error) throw error;
     },
     onSuccess: () => {
-      hapticFeedback?.("light");
+      hapticFeedback.light();
       toast.success("Αφαιρέθηκε");
       queryClient.invalidateQueries({
         queryKey: ["sr-billing-items", assignmentId],
