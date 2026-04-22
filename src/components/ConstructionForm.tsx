@@ -34,7 +34,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { isOnline, enqueueConstruction, fileToOfflineFile, type OfflineConstructionPayload } from "@/lib/offlineQueue";
 import { usePhotoChecklist } from "@/hooks/usePhotoChecklist";
 import PhotoChecklist from "@/components/PhotoChecklist";
-import { OteBillingSection } from "@/components/construction/OteBillingSection";
+
 import { useUserRole } from "@/hooks/useUserRole";
 import {
   getCodePrefix,
