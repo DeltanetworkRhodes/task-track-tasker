@@ -1861,10 +1861,6 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
       console.log("[AutoBilling] ⏸ no OTE articles loaded yet");
       return;
     }
-    if (isCrewMode) {
-      console.log("[AutoBilling] ⏸ crew mode — skip");
-      return;
-    }
     if (!workPricing) {
       console.log("[AutoBilling] ⏸ work_pricing not loaded");
       return;
@@ -4945,8 +4941,8 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
         </Card>
       )}
 
-      {/* Work Items - Category based (hidden for all crew members) */}
-      {!isCrewMode && lastAutoBillingSummary && (lastAutoBillingSummary.added > 0 || lastAutoBillingSummary.updated > 0) && (
+      {/* Work Items - Category based */}
+      {lastAutoBillingSummary && (lastAutoBillingSummary.added > 0 || lastAutoBillingSummary.updated > 0) && (
         <div className="rounded-xl border border-primary/30 bg-gradient-to-r from-primary/10 via-primary/5 to-transparent p-3 flex items-center gap-3">
           <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center text-base shrink-0">✨</div>
           <div className="flex-1 min-w-0 text-sm">
@@ -4960,7 +4956,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
         </div>
       )}
 
-      {!isCrewMode && <Card className="overflow-hidden">
+      <Card className="overflow-hidden">
         <button
           type="button"
           onClick={() => toggleSection("works")}
@@ -5149,7 +5145,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
         </div>
         </div>
         )}
-      </Card>}
+      </Card>
       {(!phase || phase === 1 || phase === 2) && <Card className="overflow-hidden">
         <button
           type="button"
