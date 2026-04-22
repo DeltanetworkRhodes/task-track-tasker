@@ -36,6 +36,14 @@ import { usePhotoChecklist } from "@/hooks/usePhotoChecklist";
 import PhotoChecklist from "@/components/PhotoChecklist";
 import { OteBillingSection } from "@/components/construction/OteBillingSection";
 import { useUserRole } from "@/hooks/useUserRole";
+import {
+  getCodePrefix,
+  suggestArticleForPrefix,
+  calculateDefaultQuantity,
+  type OteArticleRow,
+  type SuggestionInput,
+} from "@/lib/oteArticleCategories";
+import { Sparkles } from "lucide-react";
 
 interface WorkItem {
   work_pricing_id: string;
@@ -825,18 +833,64 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
     };
   }, [existingConstruction?.id, assignment.sr_id]);
 
-  // Fetch work pricing
-  const { data: workPricing } = useQuery({
-    queryKey: ["work_pricing"],
+  // Fetch OTE articles (νέα κύρια πηγή για τη Φόρμα Εργασιών)
+  // Adapter: παρουσιάζονται με τα πεδία που περιμένει το υπάρχον UI
+  // (id, code, description, unit, unit_price) ώστε να μη σπάσει τίποτα.
+  const { data: oteArticlesRaw } = useQuery({
+    queryKey: ["ote_articles_for_form", organizationId],
+    enabled: !!organizationId,
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("work_pricing")
+        .from("ote_articles")
         .select("*")
-        .order("code", { ascending: true });
+        .eq("organization_id", organizationId!)
+        .eq("is_active", true)
+        .eq("is_excluded", false)
+        .order("sort_order", { ascending: true });
       if (error) throw error;
-      return data;
+      return (data ?? []) as unknown as OteArticleRow[];
     },
   });
+
+  // Fetch existing work_pricing για να αντιστοιχίσουμε ote_articles → work_pricing.id
+  // (χρειάζεται γιατί το construction_works αποθηκεύει work_pricing_id)
+  const { data: existingWorkPricing } = useQuery({
+    queryKey: ["work_pricing_index", organizationId],
+    enabled: !!organizationId,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("work_pricing")
+        .select("id, code, unit_price, unit");
+      return data ?? [];
+    },
+  });
+
+  // Adapter: μετατρέπει ote_articles σε δομή συμβατή με workPricing UI
+  const workPricing = useMemo(() => {
+    if (!oteArticlesRaw) return null;
+    const wpByCode = new Map(
+      (existingWorkPricing ?? []).map((w: any) => [w.code, w]),
+    );
+    return oteArticlesRaw.map((a) => {
+      const wp = wpByCode.get(a.code) as any;
+      return {
+        // Αν υπάρχει αντίστοιχο work_pricing → χρησιμοποίησε ΤΟ ID του
+        // αλλιώς prefix με "ote:" για να ξέρουμε ότι θέλει upsert πριν το save
+        id: wp?.id ?? `ote:${a.id}`,
+        code: a.code,
+        description: a.full_title,
+        unit: a.unit || "τεμ.",
+        unit_price: Number(a.price_eur) || 0,
+        // Extra fields για το enhanced UI
+        _ote_article_id: a.id,
+        _short_label: a.short_label,
+        _user_annotation: a.user_annotation,
+        _is_default: a.is_default_suggestion,
+        _when_to_use: a.when_to_use,
+        _requires_qty: a.requires_quantity,
+      };
+    });
+  }, [oteArticlesRaw, existingWorkPricing]);
 
   // Fetch materials
   const { data: materials } = useQuery({
@@ -2109,17 +2163,54 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
           .eq("construction_id", constructionId);
         if (deleteMaterialsError) throw deleteMaterialsError;
 
-        // Insert works
+        // Insert works — αν κάποιο item προέρχεται από ote_articles χωρίς αντίστοιχο
+        // work_pricing, κάνουμε auto-upsert στο work_pricing για συμβατότητα.
         if (workItems.length > 0) {
+          const itemsToSync = workItems.filter((w) => w.work_pricing_id.startsWith("ote:"));
+          const codeToRealId = new Map<string, string>();
+
+          if (itemsToSync.length > 0) {
+            // Upsert όλα τα νέα ote_articles στο work_pricing με βάση τον code
+            const { data: upserted, error: upsertErr } = await supabase
+              .from("work_pricing")
+              .upsert(
+                itemsToSync.map((w) => ({
+                  code: w.code,
+                  description: w.description,
+                  unit: w.unit,
+                  unit_price: w.unit_price,
+                  organization_id: organizationId,
+                })),
+                { onConflict: "code", ignoreDuplicates: false },
+              )
+              .select("id, code");
+            if (upsertErr) throw upsertErr;
+            (upserted || []).forEach((r: any) => codeToRealId.set(r.code, r.id));
+
+            // Fallback: όσα δεν επέστρεψαν, ξαναψάξε για να πάρεις το id
+            const missingCodes = itemsToSync
+              .filter((w) => !codeToRealId.has(w.code))
+              .map((w) => w.code);
+            if (missingCodes.length > 0) {
+              const { data: refetched } = await supabase
+                .from("work_pricing")
+                .select("id, code")
+                .in("code", missingCodes);
+              (refetched || []).forEach((r: any) => codeToRealId.set(r.code, r.id));
+            }
+          }
+
           const { error: worksError } = await supabase.from("construction_works").insert(
             workItems.map((w) => ({
               construction_id: constructionId,
-              work_pricing_id: w.work_pricing_id,
+              work_pricing_id: w.work_pricing_id.startsWith("ote:")
+                ? codeToRealId.get(w.code) || w.work_pricing_id
+                : w.work_pricing_id,
               quantity: w.quantity,
               unit_price: w.unit_price,
               subtotal: w.unit_price * w.quantity,
               organization_id: organizationId,
-            }))
+            })),
           );
           if (worksError) throw worksError;
         }
@@ -4563,12 +4654,37 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
             const isOpen = openWorkCategories.includes(cat.prefix);
             const selectedCount = selectedWorkCount(cat.prefix);
 
+            // Auto-suggest based on form state (μόνο όταν δεν έχει επιλεγεί κάτι ήδη στην κατηγορία)
+            const suggestionInput: SuggestionInput = {
+              building_type: buildingType,
+              floors: parseInt(floors) || 0,
+              fb_same_level_as_bep: Boolean(section6?.fb_same_level_as_bep),
+              distribution_type: (section6?.distribution_type as string) || null,
+              distribution_meters: Number(section6?.distribution_meters) || 0,
+              cab_to_bep_damaged: Boolean(section6?.cab_to_bep_damaged),
+              horizontal_meters: Number(section6?.horizontal_meters) || 0,
+              is_aerial: Boolean(section6?.is_aerial),
+              aerial_meters: Number(section6?.aerial_meters) || 0,
+            };
+            const suggested =
+              selectedCount === 0 && oteArticlesRaw
+                ? suggestArticleForPrefix(cat.prefix, suggestionInput, oteArticlesRaw)
+                : null;
+            const suggestedItem = suggested
+              ? catWorks.find((w: any) => w.code === suggested.code)
+              : null;
+
+            // Sum για το header (πόσα € σε αυτή την κατηγορία)
+            const catSubtotal = workItems
+              .filter((wi) => catWorks.some((cw: any) => cw.id === wi.work_pricing_id))
+              .reduce((sum, wi) => sum + wi.unit_price * wi.quantity, 0);
+
             return (
               <div key={cat.prefix} className="border border-border rounded-lg overflow-hidden">
                 <button
                   type="button"
                   onClick={() => toggleWorkCategory(cat.prefix)}
-                  className="w-full flex items-center gap-2 px-3 py-2.5 text-left hover:bg-muted/50 transition-colors"
+                  className="w-full flex items-center gap-2 px-3 py-2.5 text-left hover:bg-muted/50 transition-colors min-h-[48px]"
                 >
                   {isOpen ? (
                     <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
@@ -4581,19 +4697,57 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                   {selectedCount > 0 && (
                     <Badge className="text-[10px] h-5 min-w-[20px] justify-center bg-primary">
                       {selectedCount}
+                      {isAdminUser && catSubtotal > 0 && (
+                        <span className="ml-1 font-mono">· {catSubtotal.toFixed(2)}€</span>
+                      )}
                     </Badge>
                   )}
                 </button>
-                
+
                 {isOpen && (
                   <div className="border-t border-border bg-muted/20">
-                    {catWorks.map((w) => {
+                    {/* Suggestion banner */}
+                    {suggestedItem && (
+                      <div className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 border-b border-amber-200 dark:border-amber-800 px-3 py-2.5">
+                        <div className="flex items-center gap-2">
+                          <Sparkles className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <div className="text-[10px] font-bold text-amber-900 dark:text-amber-200 uppercase tracking-wide">
+                              Πρόταση από GIS
+                            </div>
+                            <div className="text-xs text-amber-800 dark:text-amber-300 truncate">
+                              {(suggestedItem as any)._short_label || suggestedItem.description}{" "}
+                              <span className="font-mono opacity-70">({suggestedItem.code})</span>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const qty = calculateDefaultQuantity(suggestedItem.code, suggestionInput) || 1;
+                              toggleWork(suggestedItem);
+                              if (qty > 1) {
+                                setTimeout(() => updateWorkQty(suggestedItem.id, qty), 0);
+                              }
+                              hapticFeedback.success();
+                            }}
+                            className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-lg active:scale-95 transition-transform min-h-[32px] shrink-0"
+                          >
+                            Εφαρμογή
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {catWorks.map((w: any) => {
                       const selected = isWorkSelected(w.id);
                       const qty = getWorkQty(w.id);
+                      const shortLabel = w._short_label || w.description;
+                      const annotation = w._user_annotation;
+                      const isDefault = w._is_default;
                       return (
                         <div
                           key={w.id}
-                          className={`flex items-center gap-2 px-3 py-2 border-b border-border/30 last:border-0 transition-colors ${
+                          className={`flex items-center gap-2 px-3 py-2.5 border-b border-border/30 last:border-0 transition-colors min-h-[52px] ${
                             selected ? "bg-primary/5" : ""
                           }`}
                         >
@@ -4608,12 +4762,25 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                           >
                             {selected && <CheckCircle className="h-3 w-3" />}
                           </button>
-                          
-                          <div className="flex-1 min-w-0" onClick={() => toggleWork(w)}>
-                            <div className="flex items-center gap-1.5">
-                              <span className="text-xs text-primary font-bold">{w.code}</span>
+
+                          <div className="flex-1 min-w-0 cursor-pointer" onClick={() => toggleWork(w)}>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="text-sm font-semibold">
+                                {shortLabel}
+                                {isDefault && <span className="ml-1 text-amber-500">★</span>}
+                              </span>
                             </div>
-                            <p className="text-[11px] text-muted-foreground leading-tight">{w.description}</p>
+                            <div className="flex items-center gap-2 mt-0.5 text-[10px] text-muted-foreground">
+                              <span className="font-mono font-bold text-primary">{w.code}</span>
+                              {annotation && (
+                                <span className="text-purple-600 dark:text-purple-400">· {annotation}</span>
+                              )}
+                              {isAdminUser && (
+                                <span className="font-mono ml-auto">
+                                  {Number(w.unit_price).toFixed(2)}€
+                                </span>
+                              )}
+                            </div>
                           </div>
 
                           {selected && (
@@ -4621,7 +4788,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                               <button
                                 type="button"
                                 onClick={() => updateWorkQty(w.id, qty - 1)}
-                                className="w-6 h-6 rounded bg-muted flex items-center justify-center hover:bg-muted-foreground/20"
+                                className="w-7 h-7 rounded bg-muted flex items-center justify-center hover:bg-muted-foreground/20 active:scale-95"
                               >
                                 <Minus className="h-3 w-3" />
                               </button>
@@ -4630,12 +4797,12 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                                 min="1"
                                 value={qty}
                                 onChange={(e) => updateWorkQty(w.id, parseFloat(e.target.value) || 1)}
-                                className="w-12 h-6 text-xs text-center p-0"
+                                className="w-12 h-7 text-xs text-center p-0"
                               />
                               <button
                                 type="button"
                                 onClick={() => updateWorkQty(w.id, qty + 1)}
-                                className="w-6 h-6 rounded bg-muted flex items-center justify-center hover:bg-muted-foreground/20"
+                                className="w-7 h-7 rounded bg-muted flex items-center justify-center hover:bg-muted-foreground/20 active:scale-95"
                               >
                                 <Plus className="h-3 w-3" />
                               </button>
