@@ -4658,12 +4658,12 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
             const suggestionInput: SuggestionInput = {
               building_type: buildingType,
               floors: parseInt(floors) || 0,
-              fb_same_level_as_bep: section6?.fb_same_level_as_bep ?? false,
+              fb_same_level_as_bep: Boolean(section6?.fb_same_level_as_bep),
               distribution_type: (section6?.distribution_type as string) || null,
               distribution_meters: Number(section6?.distribution_meters) || 0,
-              cab_to_bep_damaged: section6?.cab_to_bep_damaged ?? false,
+              cab_to_bep_damaged: Boolean(section6?.cab_to_bep_damaged),
               horizontal_meters: Number(section6?.horizontal_meters) || 0,
-              is_aerial: section6?.is_aerial ?? false,
+              is_aerial: Boolean(section6?.is_aerial),
               aerial_meters: Number(section6?.aerial_meters) || 0,
             };
             const suggested =
