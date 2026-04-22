@@ -725,51 +725,77 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
           });
 
           if (driveRes.data?.found && driveRes.data?.subfolders) {
-            const driveFolderToCategory: Record<string, string> = {
-              "ΣΚΑΜΑ": "ΣΚΑΜΑ", "ΣΚΑΜΜΑ": "ΣΚΑΜΑ", "SKAMA": "ΣΚΑΜΑ", "ΣΚΆΜΑ": "ΣΚΑΜΑ",
-              "ΟΔΕΥΣΗ": "ΟΔΕΥΣΗ", "ODEFSI": "ΟΔΕΥΣΗ", "ΌΔΕΥΣΗ": "ΟΔΕΥΣΗ",
-              "BCP": "BCP", "BEP": "BEP", "BMO": "BMO", "FB": "FB",
-              "FLOOR BOX": "FB", "FLOORBOX": "FB",
-              "ΚΑΜΠΙΝΑ": "ΚΑΜΠΙΝΑ", "ΚΑΜΠΊΝΑ": "ΚΑΜΠΙΝΑ", "KAMPINA": "ΚΑΜΠΙΝΑ",
-              "Γ_ΦΑΣΗ": "Γ_ΦΑΣΗ", "Γ ΦΑΣΗ": "Γ_ΦΑΣΗ", "G_FASI": "Γ_ΦΑΣΗ", "Γ' ΦΑΣΗ": "Γ_ΦΑΣΗ", "Γ' ΦΆΣΗ": "Γ_ΦΑΣΗ",
+            // Map of CANONICAL category keys → list of accepted Drive folder name variants
+            // We match by NFD-normalized + uppercased + alphanumeric-only comparison so that
+            // "Σκάμα", "ΣΚΑΜΑ", "SKAMA", "Floor Box", "Γ' ΦΑΣΗ" etc. all resolve correctly.
+            const categoryAliases: Record<string, string[]> = {
+              "ΣΚΑΜΑ": ["ΣΚΑΜΑ", "ΣΚΑΜΜΑ", "SKAMA"],
+              "ΟΔΕΥΣΗ": ["ΟΔΕΥΣΗ", "ODEFSI", "ODEYSI"],
+              "BCP": ["BCP"],
+              "BEP": ["BEP"],
+              "BMO": ["BMO"],
+              "FB": ["FB", "FLOORBOX", "FLOOR BOX"],
+              "ΚΑΜΠΙΝΑ": ["ΚΑΜΠΙΝΑ", "KAMPINA", "CABINET"],
+              "Γ_ΦΑΣΗ": ["Γ_ΦΑΣΗ", "Γ ΦΑΣΗ", "Γ' ΦΑΣΗ", "G_FASI", "GFASI", "ΦΑΣΗ Γ"],
             };
 
             const normalizeFolderName = (name: string): string => {
-              return name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().trim();
+              return name
+                .normalize("NFD")
+                .replace(/[\u0300-\u036f]/g, "") // strip accents
+                .toUpperCase()
+                .replace(/[^A-Z0-9ΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩ]/g, ""); // strip spaces, underscores, apostrophes
             };
 
+            // Pre-compute normalized alias → canonical lookup
+            const normalizedLookup: Record<string, string> = {};
+            for (const [canonical, aliases] of Object.entries(categoryAliases)) {
+              for (const alias of aliases) {
+                normalizedLookup[normalizeFolderName(alias)] = canonical;
+              }
+            }
+
             const newDriveUrls: Record<string, { url: string; thumb: string; name: string }[]> = {};
+            const debugMapping: Array<{ drive: string; normalized: string; matched: string | null; files: number }> = [];
 
             for (const [folderName, folderData] of Object.entries(driveRes.data.subfolders as Record<string, any>)) {
-              // Try exact match, then uppercase, then normalized (accent-stripped)
-              let categoryKey = driveFolderToCategory[folderName] || driveFolderToCategory[folderName.toUpperCase()];
-              if (!categoryKey) {
-                const normalized = normalizeFolderName(folderName);
-                categoryKey = Object.entries(driveFolderToCategory).find(
-                  ([k]) => normalizeFolderName(k) === normalized
-                )?.[1] || "";
-              }
-              if (!categoryKey) continue;
+              const normalized = normalizeFolderName(folderName);
+              const categoryKey = normalizedLookup[normalized] || "";
 
               const imageFiles = (folderData.files || []).filter((f: any) =>
                 f.mimeType?.startsWith("image/")
               );
 
-              if (imageFiles.length > 0) {
-                photoCounts[categoryKey] = imageFiles.length;
-                newDriveUrls[categoryKey] = imageFiles
-                  .slice(0, 12)
-                  .map((f: any) => ({
-                    thumb: f.thumbnailLink ? f.thumbnailLink.replace(/=s\d+/, "=s400") : "",
-                    url: f.webViewLink || "",
-                    name: f.name || "",
-                  }))
-                  .filter((f: any) => f.thumb);
-              }
+              debugMapping.push({
+                drive: folderName,
+                normalized,
+                matched: categoryKey || null,
+                files: imageFiles.length,
+              });
+
+              if (!categoryKey || imageFiles.length === 0) continue;
+
+              photoCounts[categoryKey] = imageFiles.length;
+              newDriveUrls[categoryKey] = imageFiles
+                .slice(0, 12)
+                .map((f: any) => ({
+                  thumb: f.thumbnailLink ? f.thumbnailLink.replace(/=s\d+/, "=s400") : "",
+                  url: f.webViewLink || "",
+                  name: f.name || "",
+                }))
+                .filter((f: any) => f.thumb);
             }
+
+            console.log(`[PhotoLoader] SR ${assignment.sr_id} — Drive folder mapping:`, debugMapping);
 
             if (!cancelled) {
               setDrivePhotoUrls(newDriveUrls);
+              // Auto-expand the first category that actually has Drive photos so the
+              // technician sees thumbnails immediately without needing to click.
+              const firstWithPhotos = Object.keys(newDriveUrls)[0];
+              if (firstWithPhotos) {
+                setExpandedPhotoCategory((prev) => prev ?? firstWithPhotos);
+              }
             }
 
             // Save the discovered counts back to the construction record for future use
