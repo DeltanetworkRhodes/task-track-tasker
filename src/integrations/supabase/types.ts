@@ -144,6 +144,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "assignment_history_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "sr_billing_totals"
+            referencedColumns: ["assignment_id"]
+          },
+          {
             foreignKeyName: "assignment_history_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
@@ -512,6 +519,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "completion_overrides_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "sr_billing_totals"
+            referencedColumns: ["assignment_id"]
+          },
+          {
             foreignKeyName: "completion_overrides_construction_id_fkey"
             columns: ["construction_id"]
             isOneToOne: false
@@ -636,6 +650,7 @@ export type Database = {
       }
       constructions: {
         Row: {
+          aerial_ftth_meters: number | null
           ak: string | null
           asbuilt_section6: Json | null
           assignment_id: string | null
@@ -645,11 +660,25 @@ export type Database = {
             | Database["public"]["Enums"]["building_type_enum"]
             | null
           cab: string | null
+          cab_to_bep_damaged: boolean | null
           created_at: string
+          damage_fiber_count: number | null
+          damage_type: string | null
+          distribution_meters: number | null
+          distribution_surface: string | null
+          distribution_type: string | null
+          fb_count: number | null
+          fb_same_level_as_bep: boolean | null
           floor_meters: Json | null
           floors: number | null
           google_sheet_row_id: number | null
+          has_damage: boolean | null
+          height_work_approved: boolean | null
+          height_work_type: string | null
+          horizontal_ftth_meters: number | null
           id: string
+          is_aerial: boolean | null
+          is_commercial_center: boolean | null
           koi_type_cab_bcp: string | null
           koi_type_cab_bep: string | null
           material_cost: number
@@ -676,6 +705,7 @@ export type Database = {
           vertical_infra_type: string | null
         }
         Insert: {
+          aerial_ftth_meters?: number | null
           ak?: string | null
           asbuilt_section6?: Json | null
           assignment_id?: string | null
@@ -685,11 +715,25 @@ export type Database = {
             | Database["public"]["Enums"]["building_type_enum"]
             | null
           cab?: string | null
+          cab_to_bep_damaged?: boolean | null
           created_at?: string
+          damage_fiber_count?: number | null
+          damage_type?: string | null
+          distribution_meters?: number | null
+          distribution_surface?: string | null
+          distribution_type?: string | null
+          fb_count?: number | null
+          fb_same_level_as_bep?: boolean | null
           floor_meters?: Json | null
           floors?: number | null
           google_sheet_row_id?: number | null
+          has_damage?: boolean | null
+          height_work_approved?: boolean | null
+          height_work_type?: string | null
+          horizontal_ftth_meters?: number | null
           id?: string
+          is_aerial?: boolean | null
+          is_commercial_center?: boolean | null
           koi_type_cab_bcp?: string | null
           koi_type_cab_bep?: string | null
           material_cost?: number
@@ -716,6 +760,7 @@ export type Database = {
           vertical_infra_type?: string | null
         }
         Update: {
+          aerial_ftth_meters?: number | null
           ak?: string | null
           asbuilt_section6?: Json | null
           assignment_id?: string | null
@@ -725,11 +770,25 @@ export type Database = {
             | Database["public"]["Enums"]["building_type_enum"]
             | null
           cab?: string | null
+          cab_to_bep_damaged?: boolean | null
           created_at?: string
+          damage_fiber_count?: number | null
+          damage_type?: string | null
+          distribution_meters?: number | null
+          distribution_surface?: string | null
+          distribution_type?: string | null
+          fb_count?: number | null
+          fb_same_level_as_bep?: boolean | null
           floor_meters?: Json | null
           floors?: number | null
           google_sheet_row_id?: number | null
+          has_damage?: boolean | null
+          height_work_approved?: boolean | null
+          height_work_type?: string | null
+          horizontal_ftth_meters?: number | null
           id?: string
+          is_aerial?: boolean | null
+          is_commercial_center?: boolean | null
           koi_type_cab_bcp?: string | null
           koi_type_cab_bep?: string | null
           material_cost?: number
@@ -762,6 +821,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "assignments"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "constructions_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "sr_billing_totals"
+            referencedColumns: ["assignment_id"]
           },
           {
             foreignKeyName: "constructions_organization_id_fkey"
@@ -967,6 +1033,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "assignments"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gis_data_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "sr_billing_totals"
+            referencedColumns: ["assignment_id"]
           },
           {
             foreignKeyName: "gis_data_organization_id_fkey"
@@ -1243,6 +1316,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "assignments"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inspection_reports_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "sr_billing_totals"
+            referencedColumns: ["assignment_id"]
           },
           {
             foreignKeyName: "inspection_reports_organization_id_fkey"
@@ -1779,6 +1859,13 @@ export type Database = {
             referencedRelation: "assignments"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "pre_work_checklists_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: true
+            referencedRelation: "sr_billing_totals"
+            referencedColumns: ["assignment_id"]
+          },
         ]
       }
       profiles: {
@@ -1908,6 +1995,83 @@ export type Database = {
         }
         Relationships: []
       }
+      sr_billing_items: {
+        Row: {
+          article_code: string
+          article_id: string
+          assignment_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          notes: string | null
+          organization_id: string
+          quantity: number
+          source: string
+          total_eur: number | null
+          unit_price_eur: number
+          updated_at: string
+        }
+        Insert: {
+          article_code: string
+          article_id: string
+          assignment_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          organization_id: string
+          quantity?: number
+          source?: string
+          total_eur?: number | null
+          unit_price_eur: number
+          updated_at?: string
+        }
+        Update: {
+          article_code?: string
+          article_id?: string
+          assignment_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          organization_id?: string
+          quantity?: number
+          source?: string
+          total_eur?: number | null
+          unit_price_eur?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sr_billing_items_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "ote_articles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sr_billing_items_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "assignments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sr_billing_items_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "sr_billing_totals"
+            referencedColumns: ["assignment_id"]
+          },
+          {
+            foreignKeyName: "sr_billing_items_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sr_comments: {
         Row: {
           assignment_id: string
@@ -1940,6 +2104,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "assignments"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sr_comments_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "sr_billing_totals"
+            referencedColumns: ["assignment_id"]
           },
           {
             foreignKeyName: "sr_comments_organization_id_fkey"
@@ -1997,6 +2168,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "assignments"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sr_crew_assignments_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "sr_billing_totals"
+            referencedColumns: ["assignment_id"]
           },
           {
             foreignKeyName: "sr_crew_assignments_category_id_fkey"
@@ -2260,6 +2438,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "assignments"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "technician_earnings_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "sr_billing_totals"
+            referencedColumns: ["assignment_id"]
           },
           {
             foreignKeyName: "technician_earnings_construction_id_fkey"
@@ -2540,11 +2725,36 @@ export type Database = {
             referencedRelation: "assignments"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "work_time_entries_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "sr_billing_totals"
+            referencedColumns: ["assignment_id"]
+          },
         ]
       }
     }
     Views: {
-      [_ in never]: never
+      sr_billing_totals: {
+        Row: {
+          article_count: number | null
+          assignment_id: string | null
+          last_updated: string | null
+          organization_id: string | null
+          sr_id: string | null
+          total_ote_eur: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assignments_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       get_user_org_id: { Args: { _user_id: string }; Returns: string }
