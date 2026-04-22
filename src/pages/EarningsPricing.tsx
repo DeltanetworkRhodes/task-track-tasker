@@ -6,7 +6,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
-import { Save, Info, Banknote, Loader2 } from "lucide-react";
+import { Save, Info, Banknote, Loader2, AlertTriangle, Wand2 } from "lucide-react";
 
 interface BuildingPriceRow {
   id: string;
@@ -81,6 +81,44 @@ const EarningsPricing = () => {
     onError: (err: any) => toast.error(err?.message || "Σφάλμα αποθήκευσης"),
   });
 
+  // ===== Backfill: constructions χωρίς building_type =====
+  const { data: missingTypeRows = [], refetch: refetchMissing } = useQuery({
+    queryKey: ["constructions-missing-building-type", organizationId],
+    enabled: !!organizationId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("constructions")
+        .select("id, sr_id, phase2_status, phase3_status, assignment_id")
+        .eq("organization_id", organizationId!)
+        .is("building_type", null);
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  const [backfillType, setBackfillType] = useState<string>("poly");
+
+  const backfillMutation = useMutation({
+    mutationFn: async () => {
+      if (!organizationId || missingTypeRows.length === 0) return 0;
+      const ids = missingTypeRows.map((r) => r.id);
+      const { error } = await supabase
+        .from("constructions")
+        .update({ building_type: backfillType as any })
+        .in("id", ids);
+      if (error) throw error;
+      return ids.length;
+    },
+    onSuccess: (count) => {
+      toast.success(`Συμπληρώθηκαν ${count} κατασκευές`, {
+        description: "Μελλοντικές ολοκληρώσεις θα δημιουργήσουν αμοιβές. Για ήδη ολοκληρωμένες φάσεις, χρειάζεται χειροκίνητη επανυποβολή.",
+      });
+      refetchMissing();
+      queryClient.invalidateQueries({ queryKey: ["constructions-missing-building-type"] });
+    },
+    onError: (err: any) => toast.error(err?.message || "Αποτυχία ενημέρωσης"),
+  });
+
   const stats = useMemo(() => {
     if (!rows || rows.length === 0) return { avg2: 0, avg3: 0, total: 0 };
     const list = rows.map((r) => ({
@@ -136,7 +174,58 @@ const EarningsPricing = () => {
           </div>
         </div>
 
-        {/* Pricing table */}
+        {/* Backfill banner — εμφανίζεται μόνο αν υπάρχουν κατασκευές χωρίς building_type */}
+        {missingTypeRows.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="rounded-2xl border-2 border-amber-400 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/20 p-5 space-y-4"
+          >
+            <div className="flex items-start gap-3">
+              <div className="rounded-lg bg-amber-100 dark:bg-amber-900/40 p-2 shrink-0">
+                <AlertTriangle className="h-5 w-5 text-amber-700 dark:text-amber-400" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-extrabold text-amber-900 dark:text-amber-200">
+                  {missingTypeRows.length} κατασκευές χωρίς τύπο κτιρίου
+                </p>
+                <p className="text-xs text-amber-800/80 dark:text-amber-300/80 mt-0.5">
+                  Ο trigger χρέωσης δεν δημιουργεί αμοιβές χωρίς τύπο κτιρίου. Συμπλήρωσε προεπιλογή για όλες, ή ζήτα από τους τεχνικούς να επιλέξουν στη φόρμα.
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
+              <label className="text-xs font-semibold text-amber-900 dark:text-amber-200">
+                Προεπιλεγμένος τύπος:
+              </label>
+              <select
+                value={backfillType}
+                onChange={(e) => setBackfillType(e.target.value)}
+                className="rounded-lg border border-amber-300 bg-background px-3 py-1.5 text-sm font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-amber-500/40"
+              >
+                {rows?.map((r) => (
+                  <option key={r.building_type} value={r.building_type}>
+                    {r.building_icon || "🏢"} {r.building_label}
+                  </option>
+                ))}
+              </select>
+              <button
+                onClick={() => backfillMutation.mutate()}
+                disabled={backfillMutation.isPending}
+                className="inline-flex items-center gap-2 rounded-lg bg-amber-600 hover:bg-amber-700 px-4 py-1.5 text-sm font-bold text-white shadow-sm transition-all disabled:opacity-50"
+              >
+                {backfillMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Wand2 className="h-4 w-4" />
+                )}
+                Συμπλήρωση όλων
+              </button>
+            </div>
+          </motion.div>
+        )}
+
+
         <div className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">

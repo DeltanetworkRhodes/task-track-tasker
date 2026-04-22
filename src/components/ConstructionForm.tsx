@@ -3069,10 +3069,22 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
 
       {/* === Building Type Selector & Earnings Preview — visible to ALL (admin + crew/technicians) === */}
       {buildingTypes && buildingTypes.length > 0 && (
-        <Card className="p-5 space-y-3">
+        <Card
+          id="building-type-selector"
+          className={`p-5 space-y-3 transition-all ${
+            (phase === 2 || phase === 3) && !buildingType
+              ? "border-amber-500/60 bg-amber-50/40 dark:bg-amber-950/20 ring-2 ring-amber-500/30"
+              : ""
+          }`}
+        >
           <Label className="text-xs flex items-center gap-1.5">
             <Building2 className="h-3.5 w-3.5 text-primary" />
             Τύπος Κτιρίου <span className="text-destructive">*</span>
+            {(phase === 2 || phase === 3) && !buildingType && (
+              <span className="ml-auto text-[10px] font-semibold text-amber-600 dark:text-amber-400 uppercase tracking-wider">
+                Απαιτείται για ολοκλήρωση
+              </span>
+            )}
           </Label>
 
           {/* Editable selector — admins (no phase) and Phase 1/2. Phase 3 = read-only */}
@@ -5265,12 +5277,28 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
 
           {/* Phase completion button — for any crew technician with a phase */}
           {phase && (() => {
-            const blocked = phase === 3 && photoChecklist && !photoChecklist.all_required_satisfied && !isAdminUser;
+            const photosBlocked = phase === 3 && photoChecklist && !photoChecklist.all_required_satisfied && !isAdminUser;
+            // Building type required για Φάση 2 και 3 (αλλιώς δεν δημιουργείται earning record)
+            const buildingTypeBlocked = (phase === 2 || phase === 3) && !buildingType;
+            const blocked = photosBlocked || buildingTypeBlocked;
             const missingCount = photoChecklist?.missing_required.length ?? 0;
             return (
               <Button
                 onClick={async (e) => {
-                  if (blocked) {
+                  if (buildingTypeBlocked) {
+                    e.preventDefault();
+                    hapticFeedback.error();
+                    toast.error("Επίλεξε πρώτα τύπο κτιρίου", {
+                      description: "Χωρίς τύπο κτιρίου δεν μπορεί να καταχωρηθεί η αμοιβή σου.",
+                    });
+                    // Scroll στο selector
+                    document.getElementById("building-type-selector")?.scrollIntoView({
+                      behavior: "smooth",
+                      block: "center",
+                    });
+                    return;
+                  }
+                  if (photosBlocked) {
                     e.preventDefault();
                     hapticFeedback.error();
                     toast.error(`Λείπουν ${missingCount} υποχρεωτικές κατηγορίες φωτογραφιών`, {
@@ -5317,7 +5345,9 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                     : "bg-green-600 hover:bg-green-700"
                 }`}
               >
-                {blocked ? (
+                {buildingTypeBlocked ? (
+                  <><AlertTriangle className="h-4 w-4" /> Επίλεξε τύπο κτιρίου</>
+                ) : photosBlocked ? (
                   <><AlertTriangle className="h-4 w-4" /> Λείπουν {missingCount} φωτογραφίες</>
                 ) : (
                   <><CheckCircle className="h-4 w-4" /> ✅ Ολοκλήρωση Φάσης {phase}{phase === 1 ? " — Χωματουργικά" : phase === 2 ? " — Οδεύσεις" : " — Κόλληση"}</>
