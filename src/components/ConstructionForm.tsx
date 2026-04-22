@@ -5058,7 +5058,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                               const qty = calculateDefaultQuantity(suggestedItem.code, suggestionInput) || 1;
                               toggleWork(suggestedItem);
                               if (qty > 1) {
-                                setTimeout(() => updateWorkQty(suggestedItem.id, qty), 0);
+                                setTimeout(() => updateWorkQty(suggestedItem.id, qty, suggestedItem.code), 0);
                               }
                               hapticFeedback.success();
                             }}
@@ -5119,7 +5119,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                             <div className="flex items-center gap-1 shrink-0">
                               <button
                                 type="button"
-                                onClick={() => updateWorkQty(w.id, qty - 1)}
+                                onClick={() => updateWorkQty(w.id, qty - 1, w.code)}
                                 className="w-7 h-7 rounded bg-muted flex items-center justify-center hover:bg-muted-foreground/20 active:scale-95"
                               >
                                 <Minus className="h-3 w-3" />
@@ -5128,12 +5128,12 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                                 type="number"
                                 min="1"
                                 value={qty}
-                                onChange={(e) => updateWorkQty(w.id, parseFloat(e.target.value) || 1)}
+                                onChange={(e) => updateWorkQty(w.id, parseFloat(e.target.value) || 1, w.code)}
                                 className="w-12 h-7 text-xs text-center p-0"
                               />
                               <button
                                 type="button"
-                                onClick={() => updateWorkQty(w.id, qty + 1)}
+                                onClick={() => updateWorkQty(w.id, qty + 1, w.code)}
                                 className="w-7 h-7 rounded bg-muted flex items-center justify-center hover:bg-muted-foreground/20 active:scale-95"
                               >
                                 <Plus className="h-3 w-3" />
