@@ -43,7 +43,12 @@ import {
   type OteArticleRow,
   type SuggestionInput,
 } from "@/lib/oteArticleCategories";
-import { Sparkles } from "lucide-react";
+import {
+  computeAutoBilling,
+  mergeAutoBilling,
+  type AutoBillingInput,
+} from "@/lib/oteAutoBilling";
+import { Sparkles, Zap } from "lucide-react";
 
 interface WorkItem {
   work_pricing_id: string;
