@@ -4755,6 +4755,41 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
         </button>
         {openSections.includes("works") && (
         <div className="px-4 pb-4 space-y-2 border-t border-border/50 pt-3">
+        {/* ⚡ Auto-Billing Banner */}
+        <div className={`rounded-xl border-2 p-3 transition-all ${autoBillingEnabled ? "bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/30 border-emerald-300 dark:border-emerald-800" : "bg-muted/40 border-border"}`}>
+          <div className="flex items-center gap-3">
+            <div className={`h-10 w-10 rounded-xl grid place-items-center shrink-0 ${autoBillingEnabled ? "bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-lg shadow-emerald-500/30" : "bg-muted text-muted-foreground"}`}>
+              <Zap className={`h-5 w-5 ${autoBillingEnabled ? "animate-pulse" : ""}`} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-sm font-bold text-foreground flex items-center gap-2">
+                Αυτόματη Τιμολόγηση
+                {autoBillingEnabled && (
+                  <span className="text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-emerald-600 text-white">LIVE</span>
+                )}
+              </div>
+              <div className="text-[11px] text-muted-foreground mt-0.5 leading-snug">
+                {autoBillingEnabled
+                  ? lastAutoBillingSummary
+                    ? `✓ ${lastAutoBillingSummary.added} νέα · ${lastAutoBillingSummary.updated} ενημερώσεις από Οριζοντογραφία/Διαδρομές/Ορόφους`
+                    : "Συμπληρώνει αυτόματα τα άρθρα από τα δεδομένα της φόρμας. Διατηρεί τα χειροκίνητα."
+                  : "Απενεργοποιημένο — επίλεξε χειροκίνητα τα άρθρα παρακάτω."}
+              </div>
+            </div>
+            <Switch
+              checked={autoBillingEnabled}
+              onCheckedChange={setAutoBillingEnabled}
+              className="shrink-0"
+            />
+          </div>
+          {autoBillingEnabled && assignment?.sr_id?.trim().startsWith("2-") && (
+            <div className="mt-2 px-2.5 py-1.5 rounded-lg bg-amber-100 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 text-[11px] font-semibold text-amber-900 dark:text-amber-200 flex items-center gap-1.5">
+              <span>⚡</span>
+              <span>SR "{assignment.sr_id}" → Γ' Φάση: άρθρο 1955.2 (Σύνδεση Πελάτη)</span>
+            </div>
+          )}
+        </div>
+
 
         <div className="space-y-1">
           {WORK_CATEGORIES.map((cat) => {
