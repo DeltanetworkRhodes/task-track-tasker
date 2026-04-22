@@ -94,20 +94,26 @@ const PHASE_INFO = {
 } as const;
 
 // Category definitions for works based on code prefix
-const WORK_CATEGORIES: { prefix: string; label: string; icon: string }[] = [
-  { prefix: "1956", label: "Αυτοψία", icon: "🔍" },
-  { prefix: "1991", label: "BCP – Σκάψιμο έως BCP", icon: "⛏️" },
-  { prefix: "1993", label: "BCP – Από BCP έως BEP", icon: "🔗" },
-  { prefix: "1963", label: "BEP – ΕΣΚΑΛΙΤ σωλήνωση", icon: "🕳️" },
-  { prefix: "1965", label: "BEP – Σκάψιμο έως BEP", icon: "⛏️" },
-  { prefix: "1970", label: "BEP – Τοποθέτηση BEP/ΚΟΙ", icon: "📦" },
-  { prefix: "1984", label: "FB–BEP στο ίδιο επίπεδο", icon: "↔️" },
-  { prefix: "1985", label: "FB – Τοποθέτηση & Κατακόρυφη ΚΟΙ", icon: "📋" },
-  { prefix: "1986", label: "FB – Κολλήσεις & Διασυνδέσεις", icon: "🔧" },
-  { prefix: "1980", label: "Εμφύσηση CAB", icon: "💨" },
-  { prefix: "1955", label: "Γ' Φάση – Σύνδεση Πελάτη", icon: "👤" },
-  { prefix: "1930", label: "Διασύνδεση Σωληνίσκου Φρεατίου", icon: "🔗" },
+// `prefix` παραμένει το κύριο prefix (για backward compat & matching),
+// `prefixes` περιλαμβάνει ΟΛΑ τα prefixes που ανήκουν στην κατηγορία.
+const WORK_CATEGORIES: { prefix: string; prefixes: string[]; label: string; icon: string }[] = [
+  { prefix: "1956", prefixes: ["1956", "1951", "1968"], label: "Αυτοψία", icon: "🔍" },
+  { prefix: "1991", prefixes: ["1991", "1915", "1959", "1969"], label: "BCP – Σκάψιμο έως BCP", icon: "⛏️" },
+  { prefix: "1993", prefixes: ["1993", "1994"], label: "BCP – Από BCP έως BEP", icon: "🔗" },
+  { prefix: "1963", prefixes: ["1963"], label: "BEP – ΕΣΚΑΛΙΤ σωλήνωση", icon: "🕳️" },
+  { prefix: "1965", prefixes: ["1965", "1966"], label: "BEP – Σκάψιμο έως BEP", icon: "⛏️" },
+  { prefix: "1970", prefixes: ["1970", "1971", "1973"], label: "BEP – Τοποθέτηση BEP/ΚΟΙ", icon: "📦" },
+  { prefix: "1984", prefixes: ["1984"], label: "FB–BEP στο ίδιο επίπεδο", icon: "↔️" },
+  { prefix: "1985", prefixes: ["1985"], label: "FB – Τοποθέτηση & Κατακόρυφη ΚΟΙ", icon: "📋" },
+  { prefix: "1986", prefixes: ["1986", "1998", "1999"], label: "FB – Κολλήσεις & Διασυνδέσεις", icon: "🔧" },
+  { prefix: "1980", prefixes: ["1980"], label: "Εμφύσηση CAB", icon: "💨" },
+  { prefix: "1955", prefixes: ["1955", "1988", "1989"], label: "Γ' Φάση – Σύνδεση Πελάτη", icon: "👤" },
+  { prefix: "1997", prefixes: ["1997", "1977", "1995", "1996"], label: "Διασύνδεση Σωληνίσκου Φρεατίου", icon: "🔗" },
 ];
+
+// Helper: επιστρέφει την κατηγορία στην οποία ανήκει ένας κωδικός εργασίας
+const getCategoryForCode = (code: string) =>
+  WORK_CATEGORIES.find((c) => c.prefixes.some((p) => code.startsWith(p)));
 
 // Material categories based on description patterns
 const MATERIAL_CATEGORIES: { label: string; match: (name: string, code: string) => boolean }[] = [
@@ -281,7 +287,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
   }, [filterPhotoCatKeys, crewPhotoCategoryTokens]);
 
   // Filter photo categories based on selected works
-  const selectedWorkPrefixes = new Set(workItems.map((w) => WORK_CATEGORIES.find((c) => w.code.startsWith(c.prefix))?.prefix).filter(Boolean));
+  const selectedWorkPrefixes = new Set(workItems.map((w) => getCategoryForCode(w.code)?.prefix).filter(Boolean));
 
   const crewFilteredPhotoCategories = ALL_PHOTO_CATEGORIES.filter((cat) => normalizedCrewPhotoKeys.has(cat.key));
 
@@ -871,23 +877,25 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
     const wpByCode = new Map(
       (existingWorkPricing ?? []).map((w: any) => [w.code, w]),
     );
-    return oteArticlesRaw.map((a) => {
+    return oteArticlesRaw.map((a: any) => {
       const wp = wpByCode.get(a.code) as any;
+      // Πραγματικά πεδία στη ΒΔ: title, official_description, user_annotation
+      const label = a.title || a.official_description || a.code;
       return {
         // Αν υπάρχει αντίστοιχο work_pricing → χρησιμοποίησε ΤΟ ID του
         // αλλιώς prefix με "ote:" για να ξέρουμε ότι θέλει upsert πριν το save
         id: wp?.id ?? `ote:${a.id}`,
         code: a.code,
-        description: a.full_title,
+        description: label,
         unit: a.unit || "τεμ.",
         unit_price: Number(a.price_eur) || 0,
         // Extra fields για το enhanced UI
         _ote_article_id: a.id,
-        _short_label: a.short_label,
+        _short_label: label,
         _user_annotation: a.user_annotation,
-        _is_default: a.is_default_suggestion,
+        _is_default: false,
         _when_to_use: a.when_to_use,
-        _requires_qty: a.requires_quantity,
+        _requires_qty: false,
       };
     });
   }, [oteArticlesRaw, existingWorkPricing]);
@@ -1727,10 +1735,10 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
     const allowedPrefixes = filterWorkPrefixes && filterWorkPrefixes.length > 0 ? filterWorkPrefixes : null;
     
     for (const w of workPricing) {
-      const cat = WORK_CATEGORIES.find((c) => w.code.startsWith(c.prefix));
+      const cat = getCategoryForCode(w.code);
       if (cat) {
         // Skip categories not in allowed prefixes (crew mode)
-        if (allowedPrefixes && !allowedPrefixes.some((p) => w.code.startsWith(p))) continue;
+        if (allowedPrefixes && !allowedPrefixes.some((p) => cat.prefixes.some((cp) => cp === p || w.code.startsWith(p)))) continue;
         if (!groups[cat.prefix]) groups[cat.prefix] = [];
         groups[cat.prefix].push(w);
       } else {
