@@ -47,6 +47,7 @@ import {
 import {
   computeAutoBilling,
   mergeAutoBilling,
+  isTierManagedCode,
   type AutoBillingInput,
 } from "@/lib/oteAutoBilling";
 import { Sparkles, Zap } from "lucide-react";
@@ -638,6 +639,15 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
     }));
 
     setWorkItems(items);
+
+    // Σημάδεψε τα tier-managed codes ως auto-added ώστε η μηχανή να μπορεί
+    // να τα αντικαταστήσει όταν αλλάξουν τα μέτρα (π.χ. 1965.2 → 1965.3).
+    const initialAuto = new Set<string>();
+    for (const it of items) {
+      if (isTierManagedCode(it.code)) initialAuto.add(it.code);
+    }
+    autoAddedCodesRef.current = initialAuto;
+
     setExistingWorksLoaded(true);
   }, [existingWorks, existingWorksLoaded]);
 
