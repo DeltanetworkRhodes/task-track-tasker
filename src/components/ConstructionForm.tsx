@@ -2189,7 +2189,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                   unit_price: w.unit_price,
                   organization_id: organizationId,
                 })),
-                { onConflict: "code", ignoreDuplicates: false },
+                { onConflict: "code,organization_id", ignoreDuplicates: false },
               )
               .select("id, code");
             if (upsertErr) throw upsertErr;
@@ -2689,7 +2689,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                 unit_price: w.unit_price,
                 organization_id: organizationId,
               })),
-              { onConflict: "code", ignoreDuplicates: false },
+              { onConflict: "code,organization_id", ignoreDuplicates: false },
             )
             .select("id, code");
           if (upsertErr) throw upsertErr;
