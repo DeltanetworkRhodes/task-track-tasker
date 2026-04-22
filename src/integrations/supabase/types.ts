@@ -1601,6 +1601,74 @@ export type Database = {
         }
         Relationships: []
       }
+      ote_articles: {
+        Row: {
+          category: Database["public"]["Enums"]["ote_article_category"]
+          code: string
+          created_at: string
+          frequency: Database["public"]["Enums"]["ote_article_frequency"]
+          id: string
+          is_active: boolean
+          is_excluded: boolean
+          official_description: string | null
+          organization_id: string
+          price_eur: number
+          sort_order: number
+          title: string
+          unit: string
+          updated_at: string
+          updated_by: string | null
+          user_annotation: string | null
+          when_to_use: string | null
+        }
+        Insert: {
+          category: Database["public"]["Enums"]["ote_article_category"]
+          code: string
+          created_at?: string
+          frequency?: Database["public"]["Enums"]["ote_article_frequency"]
+          id?: string
+          is_active?: boolean
+          is_excluded?: boolean
+          official_description?: string | null
+          organization_id: string
+          price_eur?: number
+          sort_order?: number
+          title: string
+          unit?: string
+          updated_at?: string
+          updated_by?: string | null
+          user_annotation?: string | null
+          when_to_use?: string | null
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["ote_article_category"]
+          code?: string
+          created_at?: string
+          frequency?: Database["public"]["Enums"]["ote_article_frequency"]
+          id?: string
+          is_active?: boolean
+          is_excluded?: boolean
+          official_description?: string | null
+          organization_id?: string
+          price_eur?: number
+          sort_order?: number
+          title?: string
+          unit?: string
+          updated_at?: string
+          updated_by?: string | null
+          user_annotation?: string | null
+          when_to_use?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ote_articles_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       photo_requirements: {
         Row: {
           building_type:
@@ -2526,6 +2594,27 @@ export type Database = {
       building_type_enum: "poly" | "mono" | "mez" | "complex" | "biz"
       label_location_enum: "kampina" | "bep" | "bmo" | "fb"
       label_type_enum: "flag" | "flat"
+      ote_article_category:
+        | "AUTOPSIA"
+        | "SKAMMA_BCP"
+        | "EXTENSION"
+        | "BEP"
+        | "KOI_CABIN_BEP"
+        | "HORIZONTAL"
+        | "VERTICAL"
+        | "CUSTOMER"
+        | "SPLITTER"
+        | "AERIAL_SPECIAL"
+        | "SMART_READINESS"
+        | "REPAIR_HEIGHT"
+        | "EXCLUDED"
+      ote_article_frequency:
+        | "ALWAYS"
+        | "CONDITIONAL"
+        | "RARE"
+        | "ON_DAMAGE"
+        | "ON_APPROVAL"
+        | "NEVER"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2657,6 +2746,29 @@ export const Constants = {
       building_type_enum: ["poly", "mono", "mez", "complex", "biz"],
       label_location_enum: ["kampina", "bep", "bmo", "fb"],
       label_type_enum: ["flag", "flat"],
+      ote_article_category: [
+        "AUTOPSIA",
+        "SKAMMA_BCP",
+        "EXTENSION",
+        "BEP",
+        "KOI_CABIN_BEP",
+        "HORIZONTAL",
+        "VERTICAL",
+        "CUSTOMER",
+        "SPLITTER",
+        "AERIAL_SPECIAL",
+        "SMART_READINESS",
+        "REPAIR_HEIGHT",
+        "EXCLUDED",
+      ],
+      ote_article_frequency: [
+        "ALWAYS",
+        "CONDITIONAL",
+        "RARE",
+        "ON_DAMAGE",
+        "ON_APPROVAL",
+        "NEVER",
+      ],
     },
   },
 } as const
