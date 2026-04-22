@@ -4980,22 +4980,6 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
         )}
       </Card>}
 
-      {/* OTE Billing — auto-suggest articles based on construction data */}
-      <OteBillingSection
-        assignmentId={assignment.id}
-        buildingType={buildingType}
-        floors={Number(floors) || 0}
-        fbSameLevelAsBep={false}
-        distributionType={"eskalit"}
-        distributionMeters={0}
-        cabToBepDamaged={false}
-        horizontalMeters={0}
-        isAerial={false}
-        aerialMeters={0}
-        isCommercialCenter={false}
-        fbCount={0}
-      />
-
       {/* Construction Photos - Categorized */}
       <Card className="overflow-hidden">
         <button
