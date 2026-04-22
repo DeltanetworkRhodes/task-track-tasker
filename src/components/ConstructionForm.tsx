@@ -1758,6 +1758,63 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
     return groups;
   }, [workPricing, filterWorkPrefixes]);
 
+  // ⚡ LIVE AUTO-BILLING ENGINE
+  // Παρακολουθεί τα πεδία της φόρμας και ενημερώνει αυτόματα τα workItems.
+  // Διατηρεί χειροκίνητα προστιθέμενα άρθρα — προσθέτει μόνο όσα λείπουν.
+  useEffect(() => {
+    if (!autoBillingEnabled) return;
+    if (!oteArticlesRaw || oteArticlesRaw.length === 0) return;
+    if (isCrewMode) return; // crew δεν τιμολογεί
+    if (!workPricing) return; // περιμένουμε να φορτώσει το catalog
+
+    const billingInput: AutoBillingInput = {
+      sr_id: assignment?.sr_id,
+      building_type: buildingType,
+      floors: parseInt(floors) || 0,
+      route_cab_to_bep_meters: parseFloat(effectiveRoutes[0]?.koi || "0") || 0,
+      route_aerial_cab_to_bep_meters: parseFloat(effectiveRoutes[1]?.koi || "0") || 0,
+      route_aerial_bep_to_fb_meters: parseFloat(effectiveRoutes[2]?.koi || "0") || 0,
+      route_inhouse_meters: inhouseKoiSum,
+      floor_meters_count: floorMeters.filter((fm) => parseFloat(fm.meters) > 0).length,
+      eisagogi_type: section6?.eisagogi_type || null,
+      eisagogi_meters:
+        parseFloat(
+          section6?.eskalit_solienosi_eisagogis ||
+            section6?.eskalit_nea_solienosi ||
+            section6?.ms_skamma ||
+            "0",
+        ) || 0,
+      bcp_eidos: section6?.bcp_eidos || null,
+      bcp_meters: parseFloat(section6?.bcp_ms || "0") || 0,
+      fb_same_level_as_bep: Boolean((section6 as any)?.fb_same_level_as_bep),
+      horizontal_meters: parseFloat((section6 as any)?.horizontal_meters || "0") || 0,
+      cab_to_bep_damaged: Boolean((section6 as any)?.cab_to_bep_damaged),
+    };
+
+    const computed = computeAutoBilling(billingInput, oteArticlesRaw);
+    if (computed.length === 0) return;
+
+    setWorkItems((prev) => {
+      const { items, added, updated } = mergeAutoBilling(prev, computed, oteArticlesRaw);
+      if (added.length === 0 && updated.length === 0) return prev;
+      setLastAutoBillingSummary({ added: added.length, updated: updated.length });
+      return items;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    autoBillingEnabled,
+    oteArticlesRaw,
+    workPricing,
+    isCrewMode,
+    assignment?.sr_id,
+    buildingType,
+    floors,
+    effectiveRoutes,
+    inhouseKoiSum,
+    floorMeters,
+    section6,
+  ]);
+
   // Group materials by category
   const materialsByCategory = useMemo(() => {
     if (!materials) return {};
