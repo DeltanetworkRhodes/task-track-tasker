@@ -13,7 +13,6 @@ const DEFAULT_NAV_ITEMS = [
   { to: '/surveys', label: 'Αυτοψίες', icon: Search },
   { to: '/construction', label: 'Κατασκευές', icon: Wrench },
   { to: '/materials', label: 'Αποθήκη', icon: Package },
-  { to: '/work-pricing', label: 'Τιμοκατάλογος', icon: FileText },
   { to: '/ote-pricing', label: 'Άρθρα ΟΤΕ', icon: Receipt },
   { to: '/earnings-pricing', label: 'Αμοιβές Κτιρίων', icon: Banknote },
   { to: '/photo-requirements', label: 'Έλεγχος Φωτο', icon: ShieldCheck },
