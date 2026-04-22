@@ -1020,23 +1020,88 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
     },
   });
 
-  // Auto-populate floorMeters from gisData.floor_details (only once, never overwrite user edits)
-  // CRITICAL: Wait for existingConstruction fetch to complete first, otherwise we race
+  // Auto-populate floorMeters from GIS:
+  //   1) Primary: gisData.floor_details (αν υπάρχει)
+  //   2) Fallback: παρσάρισμα από optical_paths (BMO-FB) — ένα row ανά μοναδικό όροφο
+  //      με fo_type αυτόματο από τα FB ports (≥6 → 12FO, αλλιώς 4FO)
+  // Wait for existingConstruction fetch to complete first, otherwise we race
   // and overwrite user's typed values when the saved data finally loads.
   useEffect(() => {
     if (!gisData || floorMetersInitialized) return;
     if (!existingConstructionLoaded) return;
+
+    type FMRow = { floor: string; meters: string; pipe_type: string; fo_type: string };
+
+    // ── 1) Primary: floor_details ──
     const fd = (gisData as any).floor_details;
-    if (!Array.isArray(fd) || fd.length === 0) return;
-    setFloorMeters(fd.map((f: any) => {
-      const foType = f.fo_type || "4FO";
-      const derivedPipe = foType === "12FO" ? '4"' : '2"';
-      return {
-        floor: f["ΟΡΟΦΟΣ"] || f.floor || "",
-        meters: String(f["ΜΕΤΡΑ"] ?? f.meters ?? ""),
-        pipe_type: f["ΕΙΔΟΣ"] || f.pipe_type || derivedPipe,
-        fo_type: foType,
-      };
+    if (Array.isArray(fd) && fd.length > 0) {
+      setFloorMeters(fd.map((f: any): FMRow => {
+        const foType = f.fo_type || "4FO";
+        const derivedPipe = foType === "12FO" ? '4"' : '2"';
+        return {
+          floor: f["ΟΡΟΦΟΣ"] || f.floor || "",
+          meters: String(f["ΜΕΤΡΑ"] ?? f.meters ?? ""),
+          pipe_type: f["ΕΙΔΟΣ"] || f.pipe_type || derivedPipe,
+          fo_type: foType,
+        };
+      }));
+      setFloorMetersInitialized(true);
+      return;
+    }
+
+    // ── 2) Fallback: parse BMO-FB optical_paths ──
+    const paths = ((gisData as any).optical_paths as any[]) || [];
+    if (paths.length === 0) return;
+
+    // Συγκέντρωση ορόφων από BMO-FB paths (path format π.χ.: "G137_BMO01_05_FB(+02)" ή "FB(+ΗΜ)")
+    const floorAgg: Record<string, { label: string; sort: number; fbCount: number }> = {};
+    for (const p of paths) {
+      const raw = p.raw || p;
+      const pathType = (raw["OPTICAL PATH TYPE"] || raw["optical_path_type"] || "").toString().toUpperCase();
+      if (pathType !== "BMO-FB") continue;
+      const pathStr = (raw["OPTICAL PATH"] || raw["optical_path"] || "").toString();
+      const fm = pathStr.match(/FB\(\+?([^)]+)\)/i);
+      if (!fm) continue;
+      const rawFloor = fm[1].trim().toUpperCase();
+      let key = rawFloor;
+      let label = rawFloor;
+      let sort = 999;
+      if (/ΗΜ|HM/i.test(rawFloor)) {
+        key = "ΗΜ";
+        label = "ΗΜ";
+        sort = -1;
+      } else if (/ΥΠ|YP/i.test(rawFloor)) {
+        key = "ΥΠ";
+        label = "ΥΠ";
+        sort = -2;
+      } else {
+        const num = parseInt(rawFloor, 10);
+        if (!isNaN(num)) {
+          sort = num;
+          if (num === 0) {
+            key = "0";
+            label = "ΙΣ";
+          } else if (num > 0) {
+            key = String(num);
+            label = `${num}ος`;
+          } else {
+            key = String(num);
+            label = `${num}`;
+          }
+        }
+      }
+      if (!floorAgg[key]) floorAgg[key] = { label, sort, fbCount: 0 };
+      floorAgg[key].fbCount += 1;
+    }
+
+    const sorted = Object.values(floorAgg).sort((a, b) => a.sort - b.sort);
+    if (sorted.length === 0) return;
+
+    setFloorMeters(sorted.map((f): FMRow => {
+      // ≥6 FB ports → 12FO (μεγαλύτερη χωρητικότητα), αλλιώς 4FO
+      const foType = f.fbCount >= 6 ? "12FO" : "4FO";
+      const pipe = foType === "12FO" ? '4"' : '2"';
+      return { floor: f.label, meters: "", pipe_type: pipe, fo_type: foType };
     }));
     setFloorMetersInitialized(true);
   }, [gisData, floorMetersInitialized, existingConstructionLoaded]);
