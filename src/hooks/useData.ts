@@ -1,4 +1,5 @@
-import { useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/contexts/OrganizationContext";
 
@@ -21,6 +22,34 @@ export const useAssignments = () => {
 
 export const useConstructions = () => {
   const { organizationId } = useOrganization();
+  const queryClient = useQueryClient();
+
+  // Realtime: ανανέωσε όταν αλλάζει οτιδήποτε στο constructions ή construction_works
+  useEffect(() => {
+    if (!organizationId) return;
+    const channel = supabase
+      .channel(`constructions-live-${organizationId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "constructions" },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["constructions", organizationId] });
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "construction_works" },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["constructions", organizationId] });
+          queryClient.invalidateQueries({ queryKey: ["construction_works"] });
+        },
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [organizationId, queryClient]);
+
   return useQuery({
     queryKey: ["constructions", organizationId],
     enabled: !!organizationId,
