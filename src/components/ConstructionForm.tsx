@@ -3180,7 +3180,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
   // Count selected items per category
   const selectedWorkCount = (prefix: string) => {
     const catWorks = worksByCategory[prefix] || [];
-    return catWorks.filter((w) => isWorkSelected(w.id)).length;
+    return catWorks.filter((w) => isWorkSelected(w)).length;
   };
 
   const selectedMaterialCount = (source: string, catLabel: string) => {
@@ -5071,8 +5071,8 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                     )}
 
                     {catWorks.map((w: any) => {
-                      const selected = isWorkSelected(w.id);
-                      const qty = getWorkQty(w.id);
+                      const selected = isWorkSelected(w);
+                      const qty = getWorkQty(w);
                       const shortLabel = w._short_label || w.description;
                       const annotation = w._user_annotation;
                       const isDefault = w._is_default;
