@@ -2018,16 +2018,22 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
   };
 
   // Check if work is selected
-  const isWorkSelected = (id: string) => workItems.some((w) => w.work_pricing_id === id);
-  const getWorkQty = (id: string) => workItems.find((w) => w.work_pricing_id === id)?.quantity || 0;
+  const findSelectedWork = (work: { id?: string; code?: string } | string) => {
+    const id = typeof work === "string" ? work : work.id;
+    const code = typeof work === "string" ? undefined : work.code;
+    return workItems.find((w) => w.work_pricing_id === id || (!!code && w.code === code));
+  };
+  const isWorkSelected = (work: { id?: string; code?: string } | string) => Boolean(findSelectedWork(work));
+  const getWorkQty = (work: { id?: string; code?: string } | string) => findSelectedWork(work)?.quantity || 0;
   
   const isMaterialSelected = (id: string) => materialItems.some((m) => m.material_id === id);
   const getMaterialQty = (id: string) => materialItems.find((m) => m.material_id === id)?.quantity || 0;
 
   // Toggle work item
   const toggleWork = (w: any) => {
-    if (isWorkSelected(w.id)) {
-      setWorkItems((prev) => prev.filter((wi) => wi.work_pricing_id !== w.id));
+    const selected = findSelectedWork(w);
+    if (selected) {
+      setWorkItems((prev) => prev.filter((wi) => wi.work_pricing_id !== selected.work_pricing_id && wi.code !== selected.code));
     } else {
       setWorkItems((prev) => [
         ...prev,
@@ -2064,9 +2070,9 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
   };
 
   // Update quantities
-  const updateWorkQty = (id: string, qty: number) => {
+  const updateWorkQty = (id: string, qty: number, code?: string) => {
     if (qty < 1) qty = 1;
-    setWorkItems((prev) => prev.map((w) => (w.work_pricing_id === id ? { ...w, quantity: qty } : w)));
+    setWorkItems((prev) => prev.map((w) => (w.work_pricing_id === id || (!!code && w.code === code) ? { ...w, quantity: qty } : w)));
   };
   const updateMaterialQty = (id: string, qty: number) => {
     if (qty < 1) qty = 1;
