@@ -549,6 +549,14 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
   const [existingWorksLoaded, setExistingWorksLoaded] = useState(false);
   const [existingMaterialsLoaded, setExistingMaterialsLoaded] = useState(false);
 
+  useEffect(() => {
+    setExistingConstructionLoaded(false);
+    setExistingWorksLoaded(false);
+    setExistingMaterialsLoaded(false);
+    autoAddedCodesRef.current = new Set();
+    setLastAutoBillingSummary(null);
+  }, [assignment.id]);
+
   // Hydrate base form fields from saved construction so edits persist across reopen/save cycles
   useEffect(() => {
     if (existingConstructionLoaded) return;
@@ -1780,6 +1788,8 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
     if (!oteArticlesRaw || oteArticlesRaw.length === 0) return;
     if (isCrewMode) return; // crew δεν τιμολογεί
     if (!workPricing) return; // περιμένουμε να φορτώσει το catalog
+    if (!existingConstructionLoaded) return;
+    if (existingConstruction?.id && !existingWorksLoaded) return;
 
     // Σωστή επιλογή μέτρων εισαγωγής βάσει type — ΟΧΙ fallback ||
     // (αλλιώς όταν αλλάζει type μένουν τα παλιά μέτρα και βγαίνει λάθος tier κωδικός)
@@ -1823,6 +1833,8 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
 
     const computed = computeAutoBilling(billingInput, oteArticlesRaw);
 
+    let summary: { added: number; updated: number } | null = null;
+
     setWorkItems((prev) => {
       const { items, added, updated, removed, nextAutoAddedCodes } = mergeAutoBilling(
         prev,
@@ -1832,9 +1844,13 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
       );
       autoAddedCodesRef.current = nextAutoAddedCodes;
       if (added.length === 0 && updated.length === 0 && removed.length === 0) return prev;
-      setLastAutoBillingSummary({ added: added.length, updated: updated.length });
+      summary = { added: added.length, updated: updated.length };
       return items;
     });
+
+    if (summary) {
+      setLastAutoBillingSummary(summary);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     autoBillingEnabled,
@@ -1845,6 +1861,9 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
     buildingType,
     floors,
     effectiveRoutes,
+    existingConstruction?.id,
+    existingConstructionLoaded,
+    existingWorksLoaded,
     inhouseKoiSum,
     floorMeters,
     section6,
