@@ -81,6 +81,44 @@ const EarningsPricing = () => {
     onError: (err: any) => toast.error(err?.message || "Σφάλμα αποθήκευσης"),
   });
 
+  // ===== Backfill: constructions χωρίς building_type =====
+  const { data: missingTypeRows = [], refetch: refetchMissing } = useQuery({
+    queryKey: ["constructions-missing-building-type", organizationId],
+    enabled: !!organizationId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("constructions")
+        .select("id, sr_id, phase2_status, phase3_status, assignment_id")
+        .eq("organization_id", organizationId!)
+        .is("building_type", null);
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  const [backfillType, setBackfillType] = useState<string>("poly");
+
+  const backfillMutation = useMutation({
+    mutationFn: async () => {
+      if (!organizationId || missingTypeRows.length === 0) return 0;
+      const ids = missingTypeRows.map((r) => r.id);
+      const { error } = await supabase
+        .from("constructions")
+        .update({ building_type: backfillType as any })
+        .in("id", ids);
+      if (error) throw error;
+      return ids.length;
+    },
+    onSuccess: (count) => {
+      toast.success(`Συμπληρώθηκαν ${count} κατασκευές`, {
+        description: "Μελλοντικές ολοκληρώσεις θα δημιουργήσουν αμοιβές. Για ήδη ολοκληρωμένες φάσεις, χρειάζεται χειροκίνητη επανυποβολή.",
+      });
+      refetchMissing();
+      queryClient.invalidateQueries({ queryKey: ["constructions-missing-building-type"] });
+    },
+    onError: (err: any) => toast.error(err?.message || "Αποτυχία ενημέρωσης"),
+  });
+
   const stats = useMemo(() => {
     if (!rows || rows.length === 0) return { avg2: 0, avg3: 0, total: 0 };
     const list = rows.map((r) => ({
