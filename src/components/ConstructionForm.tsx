@@ -877,23 +877,25 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
     const wpByCode = new Map(
       (existingWorkPricing ?? []).map((w: any) => [w.code, w]),
     );
-    return oteArticlesRaw.map((a) => {
+    return oteArticlesRaw.map((a: any) => {
       const wp = wpByCode.get(a.code) as any;
+      // Πραγματικά πεδία στη ΒΔ: title, official_description, user_annotation
+      const label = a.title || a.official_description || a.code;
       return {
         // Αν υπάρχει αντίστοιχο work_pricing → χρησιμοποίησε ΤΟ ID του
         // αλλιώς prefix με "ote:" για να ξέρουμε ότι θέλει upsert πριν το save
         id: wp?.id ?? `ote:${a.id}`,
         code: a.code,
-        description: a.full_title,
+        description: label,
         unit: a.unit || "τεμ.",
         unit_price: Number(a.price_eur) || 0,
         // Extra fields για το enhanced UI
         _ote_article_id: a.id,
-        _short_label: a.short_label,
+        _short_label: label,
         _user_annotation: a.user_annotation,
-        _is_default: a.is_default_suggestion,
+        _is_default: false,
         _when_to_use: a.when_to_use,
-        _requires_qty: a.requires_quantity,
+        _requires_qty: false,
       };
     });
   }, [oteArticlesRaw, existingWorkPricing]);
