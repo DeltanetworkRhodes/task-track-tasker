@@ -36,6 +36,14 @@ import { usePhotoChecklist } from "@/hooks/usePhotoChecklist";
 import PhotoChecklist from "@/components/PhotoChecklist";
 import { OteBillingSection } from "@/components/construction/OteBillingSection";
 import { useUserRole } from "@/hooks/useUserRole";
+import {
+  getCodePrefix,
+  suggestArticleForPrefix,
+  calculateDefaultQuantity,
+  type OteArticleRow,
+  type SuggestionInput,
+} from "@/lib/oteArticleCategories";
+import { Sparkles } from "lucide-react";
 
 interface WorkItem {
   work_pricing_id: string;
@@ -825,18 +833,64 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
     };
   }, [existingConstruction?.id, assignment.sr_id]);
 
-  // Fetch work pricing
-  const { data: workPricing } = useQuery({
-    queryKey: ["work_pricing"],
+  // Fetch OTE articles (νέα κύρια πηγή για τη Φόρμα Εργασιών)
+  // Adapter: παρουσιάζονται με τα πεδία που περιμένει το υπάρχον UI
+  // (id, code, description, unit, unit_price) ώστε να μη σπάσει τίποτα.
+  const { data: oteArticlesRaw } = useQuery({
+    queryKey: ["ote_articles_for_form", organizationId],
+    enabled: !!organizationId,
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("work_pricing")
+        .from("ote_articles")
         .select("*")
-        .order("code", { ascending: true });
+        .eq("organization_id", organizationId!)
+        .eq("is_active", true)
+        .eq("is_excluded", false)
+        .order("sort_order", { ascending: true });
       if (error) throw error;
-      return data;
+      return (data ?? []) as unknown as OteArticleRow[];
     },
   });
+
+  // Fetch existing work_pricing για να αντιστοιχίσουμε ote_articles → work_pricing.id
+  // (χρειάζεται γιατί το construction_works αποθηκεύει work_pricing_id)
+  const { data: existingWorkPricing } = useQuery({
+    queryKey: ["work_pricing_index", organizationId],
+    enabled: !!organizationId,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("work_pricing")
+        .select("id, code, unit_price, unit");
+      return data ?? [];
+    },
+  });
+
+  // Adapter: μετατρέπει ote_articles σε δομή συμβατή με workPricing UI
+  const workPricing = useMemo(() => {
+    if (!oteArticlesRaw) return null;
+    const wpByCode = new Map(
+      (existingWorkPricing ?? []).map((w: any) => [w.code, w]),
+    );
+    return oteArticlesRaw.map((a) => {
+      const wp = wpByCode.get(a.code) as any;
+      return {
+        // Αν υπάρχει αντίστοιχο work_pricing → χρησιμοποίησε ΤΟ ID του
+        // αλλιώς prefix με "ote:" για να ξέρουμε ότι θέλει upsert πριν το save
+        id: wp?.id ?? `ote:${a.id}`,
+        code: a.code,
+        description: a.full_title,
+        unit: a.unit || "τεμ.",
+        unit_price: Number(a.price_eur) || 0,
+        // Extra fields για το enhanced UI
+        _ote_article_id: a.id,
+        _short_label: a.short_label,
+        _user_annotation: a.user_annotation,
+        _is_default: a.is_default_suggestion,
+        _when_to_use: a.when_to_use,
+        _requires_qty: a.requires_quantity,
+      };
+    });
+  }, [oteArticlesRaw, existingWorkPricing]);
 
   // Fetch materials
   const { data: materials } = useQuery({
