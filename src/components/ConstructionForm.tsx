@@ -4697,7 +4697,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                   {selectedCount > 0 && (
                     <Badge className="text-[10px] h-5 min-w-[20px] justify-center bg-primary">
                       {selectedCount}
-                      {!isTechnician && catSubtotal > 0 && (
+                      {isAdminUser && catSubtotal > 0 && (
                         <span className="ml-1 font-mono">· {catSubtotal.toFixed(2)}€</span>
                       )}
                     </Badge>
@@ -4775,7 +4775,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                               {annotation && (
                                 <span className="text-purple-600 dark:text-purple-400">· {annotation}</span>
                               )}
-                              {!isTechnician && (
+                              {isAdminUser && (
                                 <span className="font-mono ml-auto">
                                   {Number(w.unit_price).toFixed(2)}€
                                 </span>
