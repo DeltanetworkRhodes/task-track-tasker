@@ -3069,10 +3069,22 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
 
       {/* === Building Type Selector & Earnings Preview — visible to ALL (admin + crew/technicians) === */}
       {buildingTypes && buildingTypes.length > 0 && (
-        <Card className="p-5 space-y-3">
+        <Card
+          id="building-type-selector"
+          className={`p-5 space-y-3 transition-all ${
+            (phase === 2 || phase === 3) && !buildingType
+              ? "border-amber-500/60 bg-amber-50/40 dark:bg-amber-950/20 ring-2 ring-amber-500/30"
+              : ""
+          }`}
+        >
           <Label className="text-xs flex items-center gap-1.5">
             <Building2 className="h-3.5 w-3.5 text-primary" />
             Τύπος Κτιρίου <span className="text-destructive">*</span>
+            {(phase === 2 || phase === 3) && !buildingType && (
+              <span className="ml-auto text-[10px] font-semibold text-amber-600 dark:text-amber-400 uppercase tracking-wider">
+                Απαιτείται για ολοκλήρωση
+              </span>
+            )}
           </Label>
 
           {/* Editable selector — admins (no phase) and Phase 1/2. Phase 3 = read-only */}
