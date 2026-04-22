@@ -1788,12 +1788,30 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
   // Παρακολουθεί τα πεδία της φόρμας και ενημερώνει αυτόματα τα workItems.
   // Διατηρεί χειροκίνητα προστιθέμενα άρθρα — προσθέτει μόνο όσα λείπουν.
   useEffect(() => {
-    if (!autoBillingEnabled) return;
-    if (!oteArticlesRaw || oteArticlesRaw.length === 0) return;
-    if (isCrewMode) return; // crew δεν τιμολογεί
-    if (!workPricing) return; // περιμένουμε να φορτώσει το catalog
-    if (!existingConstructionLoaded) return;
-    if (existingConstruction?.id && !existingWorksLoaded) return;
+    if (!autoBillingEnabled) {
+      console.log("[AutoBilling] ⏸ disabled");
+      return;
+    }
+    if (!oteArticlesRaw || oteArticlesRaw.length === 0) {
+      console.log("[AutoBilling] ⏸ no OTE articles loaded yet");
+      return;
+    }
+    if (isCrewMode) {
+      console.log("[AutoBilling] ⏸ crew mode — skip");
+      return;
+    }
+    if (!workPricing) {
+      console.log("[AutoBilling] ⏸ work_pricing not loaded");
+      return;
+    }
+    if (!existingConstructionLoaded) {
+      console.log("[AutoBilling] ⏸ waiting for existing construction");
+      return;
+    }
+    if (existingConstruction?.id && !existingWorksLoaded) {
+      console.log("[AutoBilling] ⏸ waiting for existing works");
+      return;
+    }
 
     // Σωστή επιλογή μέτρων εισαγωγής βάσει type — ΟΧΙ fallback ||
     // (αλλιώς όταν αλλάζει type μένουν τα παλιά μέτρα και βγαίνει λάθος tier κωδικός)
@@ -1813,15 +1831,22 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
         break;
     }
 
+    // Floors fallback: αν floors=0 αλλά υπάρχουν floor_meters γραμμές, χρησιμοποίησέ τες
+    const parsedFloors = parseInt(floors) || 0;
+    const floorMetersWithValues = floorMeters.filter(
+      (fm) => parseFloat(fm.meters) > 0,
+    ).length;
+    const effectiveFloors = parsedFloors > 0 ? parsedFloors : floorMetersWithValues;
+
     const billingInput: AutoBillingInput = {
       sr_id: assignment?.sr_id,
       building_type: buildingType,
-      floors: parseInt(floors) || 0,
+      floors: effectiveFloors,
       route_cab_to_bep_meters: parseFloat(effectiveRoutes[0]?.koi || "0") || 0,
       route_aerial_cab_to_bep_meters: parseFloat(effectiveRoutes[1]?.koi || "0") || 0,
       route_aerial_bep_to_fb_meters: parseFloat(effectiveRoutes[2]?.koi || "0") || 0,
       route_inhouse_meters: inhouseKoiSum,
-      floor_meters_count: floorMeters.filter((fm) => parseFloat(fm.meters) > 0).length,
+      floor_meters_count: floorMetersWithValues,
       eisagogi_type: section6?.eisagogi_type || null,
       eisagogi_meters: eisagogiMeters,
       bcp_eidos: section6?.bcp_eidos || null,
@@ -1835,7 +1860,24 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
       cab_to_bep_damaged: Boolean(section6?.cab_to_bep_damaged),
     };
 
+    console.log("[AutoBilling] ▶ running with input:", {
+      sr_id: billingInput.sr_id,
+      building_type: billingInput.building_type,
+      floors_raw: parsedFloors,
+      floor_meters_filled: floorMetersWithValues,
+      effective_floors: effectiveFloors,
+      eisagogi_type: billingInput.eisagogi_type,
+      eisagogi_meters: billingInput.eisagogi_meters,
+      cab_bep_ug: billingInput.route_cab_to_bep_meters,
+      cab_bep_air: billingInput.route_aerial_cab_to_bep_meters,
+      articles_in_catalog: oteArticlesRaw.length,
+    });
+
     const computed = computeAutoBilling(billingInput, oteArticlesRaw);
+    console.log(
+      `[AutoBilling] ✓ computed ${computed.length} articles:`,
+      computed.map((c) => `${c.code}×${c.quantity}`).join(", "),
+    );
 
     let summary: { added: number; updated: number } | null = null;
 

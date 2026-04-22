@@ -46,7 +46,12 @@ const isKya = (sr_id?: string | null) =>
   !!sr_id && sr_id.trim().startsWith("2-");
 
 const isSmallBuilding = (bt?: string | null) =>
-  bt === "mono" || bt === "mez" || bt === "small";
+  bt === "mono" || bt === "mez" || bt === "small" || bt === "small_apt";
+
+// "poly" / "medium_apt" / "large_apt" → μεσαίο/μεγάλο. Ό,τι άλλο → επίσης μεσαίο
+// (defensive default ώστε να μη χάνεται 1956.1/1970.5 όταν λείπει το type).
+const isKnownBuildingType = (bt?: string | null) =>
+  !!bt && bt.length > 0;
 
 /**
  * Επιλέγει άρθρο ΝΕΑΣ ΣΩΛΗΝΩΣΗΣ (1965.x) με βάση τα μέτρα.
