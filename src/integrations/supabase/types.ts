@@ -1687,12 +1687,16 @@ export type Database = {
           code: string
           created_at: string
           frequency: Database["public"]["Enums"]["ote_article_frequency"]
+          full_title: string | null
           id: string
           is_active: boolean
+          is_default_suggestion: boolean
           is_excluded: boolean
           official_description: string | null
           organization_id: string
           price_eur: number
+          requires_quantity: boolean
+          short_label: string | null
           sort_order: number
           title: string
           unit: string
@@ -1706,12 +1710,16 @@ export type Database = {
           code: string
           created_at?: string
           frequency?: Database["public"]["Enums"]["ote_article_frequency"]
+          full_title?: string | null
           id?: string
           is_active?: boolean
+          is_default_suggestion?: boolean
           is_excluded?: boolean
           official_description?: string | null
           organization_id: string
           price_eur?: number
+          requires_quantity?: boolean
+          short_label?: string | null
           sort_order?: number
           title: string
           unit?: string
@@ -1725,12 +1733,16 @@ export type Database = {
           code?: string
           created_at?: string
           frequency?: Database["public"]["Enums"]["ote_article_frequency"]
+          full_title?: string | null
           id?: string
           is_active?: boolean
+          is_default_suggestion?: boolean
           is_excluded?: boolean
           official_description?: string | null
           organization_id?: string
           price_eur?: number
+          requires_quantity?: boolean
+          short_label?: string | null
           sort_order?: number
           title?: string
           unit?: string
