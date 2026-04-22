@@ -94,20 +94,26 @@ const PHASE_INFO = {
 } as const;
 
 // Category definitions for works based on code prefix
-const WORK_CATEGORIES: { prefix: string; label: string; icon: string }[] = [
-  { prefix: "1956", label: "Αυτοψία", icon: "🔍" },
-  { prefix: "1991", label: "BCP – Σκάψιμο έως BCP", icon: "⛏️" },
-  { prefix: "1993", label: "BCP – Από BCP έως BEP", icon: "🔗" },
-  { prefix: "1963", label: "BEP – ΕΣΚΑΛΙΤ σωλήνωση", icon: "🕳️" },
-  { prefix: "1965", label: "BEP – Σκάψιμο έως BEP", icon: "⛏️" },
-  { prefix: "1970", label: "BEP – Τοποθέτηση BEP/ΚΟΙ", icon: "📦" },
-  { prefix: "1984", label: "FB–BEP στο ίδιο επίπεδο", icon: "↔️" },
-  { prefix: "1985", label: "FB – Τοποθέτηση & Κατακόρυφη ΚΟΙ", icon: "📋" },
-  { prefix: "1986", label: "FB – Κολλήσεις & Διασυνδέσεις", icon: "🔧" },
-  { prefix: "1980", label: "Εμφύσηση CAB", icon: "💨" },
-  { prefix: "1955", label: "Γ' Φάση – Σύνδεση Πελάτη", icon: "👤" },
-  { prefix: "1930", label: "Διασύνδεση Σωληνίσκου Φρεατίου", icon: "🔗" },
+// `prefix` παραμένει το κύριο prefix (για backward compat & matching),
+// `prefixes` περιλαμβάνει ΟΛΑ τα prefixes που ανήκουν στην κατηγορία.
+const WORK_CATEGORIES: { prefix: string; prefixes: string[]; label: string; icon: string }[] = [
+  { prefix: "1956", prefixes: ["1956", "1951", "1968"], label: "Αυτοψία", icon: "🔍" },
+  { prefix: "1991", prefixes: ["1991", "1915", "1959", "1969"], label: "BCP – Σκάψιμο έως BCP", icon: "⛏️" },
+  { prefix: "1993", prefixes: ["1993", "1994"], label: "BCP – Από BCP έως BEP", icon: "🔗" },
+  { prefix: "1963", prefixes: ["1963"], label: "BEP – ΕΣΚΑΛΙΤ σωλήνωση", icon: "🕳️" },
+  { prefix: "1965", prefixes: ["1965", "1966"], label: "BEP – Σκάψιμο έως BEP", icon: "⛏️" },
+  { prefix: "1970", prefixes: ["1970", "1971", "1973"], label: "BEP – Τοποθέτηση BEP/ΚΟΙ", icon: "📦" },
+  { prefix: "1984", prefixes: ["1984"], label: "FB–BEP στο ίδιο επίπεδο", icon: "↔️" },
+  { prefix: "1985", prefixes: ["1985"], label: "FB – Τοποθέτηση & Κατακόρυφη ΚΟΙ", icon: "📋" },
+  { prefix: "1986", prefixes: ["1986", "1998", "1999"], label: "FB – Κολλήσεις & Διασυνδέσεις", icon: "🔧" },
+  { prefix: "1980", prefixes: ["1980"], label: "Εμφύσηση CAB", icon: "💨" },
+  { prefix: "1955", prefixes: ["1955", "1988", "1989"], label: "Γ' Φάση – Σύνδεση Πελάτη", icon: "👤" },
+  { prefix: "1997", prefixes: ["1997", "1977", "1995", "1996"], label: "Διασύνδεση Σωληνίσκου Φρεατίου", icon: "🔗" },
 ];
+
+// Helper: επιστρέφει την κατηγορία στην οποία ανήκει ένας κωδικός εργασίας
+const getCategoryForCode = (code: string) =>
+  WORK_CATEGORIES.find((c) => c.prefixes.some((p) => code.startsWith(p)));
 
 // Material categories based on description patterns
 const MATERIAL_CATEGORIES: { label: string; match: (name: string, code: string) => boolean }[] = [
