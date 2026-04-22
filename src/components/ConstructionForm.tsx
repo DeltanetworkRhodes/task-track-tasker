@@ -5265,12 +5265,28 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
 
           {/* Phase completion button — for any crew technician with a phase */}
           {phase && (() => {
-            const blocked = phase === 3 && photoChecklist && !photoChecklist.all_required_satisfied && !isAdminUser;
+            const photosBlocked = phase === 3 && photoChecklist && !photoChecklist.all_required_satisfied && !isAdminUser;
+            // Building type required για Φάση 2 και 3 (αλλιώς δεν δημιουργείται earning record)
+            const buildingTypeBlocked = (phase === 2 || phase === 3) && !buildingType;
+            const blocked = photosBlocked || buildingTypeBlocked;
             const missingCount = photoChecklist?.missing_required.length ?? 0;
             return (
               <Button
                 onClick={async (e) => {
-                  if (blocked) {
+                  if (buildingTypeBlocked) {
+                    e.preventDefault();
+                    hapticFeedback.error();
+                    toast.error("Επίλεξε πρώτα τύπο κτιρίου", {
+                      description: "Χωρίς τύπο κτιρίου δεν μπορεί να καταχωρηθεί η αμοιβή σου.",
+                    });
+                    // Scroll στο selector
+                    document.getElementById("building-type-selector")?.scrollIntoView({
+                      behavior: "smooth",
+                      block: "center",
+                    });
+                    return;
+                  }
+                  if (photosBlocked) {
                     e.preventDefault();
                     hapticFeedback.error();
                     toast.error(`Λείπουν ${missingCount} υποχρεωτικές κατηγορίες φωτογραφιών`, {
