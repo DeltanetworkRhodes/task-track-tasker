@@ -6,6 +6,7 @@ import { constructionStatusLabels } from "@/data/mockData";
 import { Wrench, TrendingUp, Receipt, DollarSign, Search, Filter, ExternalLink, ChevronDown, ChevronUp, Calendar, MapPin, Layers, Route, Trash2, Radio, CheckCircle2, AlertCircle } from "lucide-react";
 import AsBuiltExporter from "@/components/AsBuiltExporter";
 import CrewAssignmentPanel from "@/components/CrewAssignmentPanel";
+import OteAutoBillingCard from "@/components/construction/OteAutoBillingCard";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
@@ -758,6 +759,9 @@ const ConstructionPage = () => {
               const assignment = assignmentMap[c.srId];
               return (
                 <div className="space-y-4">
+                  {/* Auto-Billing Summary (admin only) */}
+                  <OteAutoBillingCard constructionId={c.id} />
+
                   {/* Status */}
                   <div>
                     <p className="text-[10px] uppercase tracking-wider text-muted-foreground/70 mb-1.5">Κατάσταση</p>
