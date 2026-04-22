@@ -47,6 +47,7 @@ import {
 import {
   computeAutoBilling,
   mergeAutoBilling,
+  isTierManagedCode,
   type AutoBillingInput,
 } from "@/lib/oteAutoBilling";
 import { Sparkles, Zap } from "lucide-react";
