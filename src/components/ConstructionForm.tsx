@@ -226,6 +226,10 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
   const [workItems, setWorkItems] = useState<WorkItem[]>([]);
   const [openWorkCategories, setOpenWorkCategories] = useState<string[]>([]);
 
+  // ⚡ Αυτόματη Τιμολόγηση (Live)
+  const [autoBillingEnabled, setAutoBillingEnabled] = useState(true);
+  const [lastAutoBillingSummary, setLastAutoBillingSummary] = useState<{ added: number; updated: number } | null>(null);
+
   // Materials
   const [materialItems, setMaterialItems] = useState<MaterialItem[]>([]);
   const [openMaterialCategories, setOpenMaterialCategories] = useState<string[]>([]);
