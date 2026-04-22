@@ -4963,74 +4963,92 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
       {/* 🤖 Auto-Billed Articles Panel — εμφανίζεται για admin & responsible technician */}
       {!isCrewMode && workItems.length > 0 && (
         <Card className="overflow-hidden border-primary/20">
-          <div className="px-4 py-3 bg-gradient-to-r from-primary/5 to-transparent border-b border-border/50 flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-primary" />
-              <span className="text-sm font-semibold">Άρθρα ΟΤΕ προς Τιμολόγηση</span>
-              <Badge variant="secondary" className="text-[10px]">{workItems.length}</Badge>
+          <button
+            type="button"
+            onClick={() => toggleSection("autoBilling")}
+            className="w-full px-3 sm:px-4 py-3 bg-gradient-to-r from-primary/5 to-transparent border-b border-border/50 flex items-center justify-between gap-2 hover:bg-primary/5 transition-colors"
+          >
+            <div className="flex items-center gap-2 min-w-0">
+              <Sparkles className="h-4 w-4 text-primary shrink-0" />
+              <span className="text-sm font-semibold truncate">Άρθρα ΟΤΕ</span>
+              <Badge variant="secondary" className="text-[10px] shrink-0">{workItems.length}</Badge>
             </div>
-            {isAdminUser && (
-              <span className="text-xs font-mono text-muted-foreground">
-                Σύνολο: {workItems.reduce((s, w) => s + w.unit_price * w.quantity, 0).toFixed(2)}€
-              </span>
-            )}
-          </div>
-          <div className="divide-y divide-border/30">
-            {workItems.map((wi) => {
-              const isAuto = autoAddedCodesRef.current.has(wi.code);
-              const subtotal = wi.unit_price * wi.quantity;
-              return (
-                <div key={wi.work_pricing_id} className="px-4 py-2.5 flex items-center gap-3 text-sm">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono text-xs text-muted-foreground">{wi.code}</span>
-                      {isAuto && (
-                        <Badge variant="outline" className="text-[9px] h-4 px-1 border-primary/40 text-primary">
-                          AUTO
-                        </Badge>
+            <div className="flex items-center gap-2 shrink-0">
+              {isAdminUser && (
+                <span className="text-[11px] sm:text-xs font-mono text-muted-foreground">
+                  {workItems.reduce((s, w) => s + w.unit_price * w.quantity, 0).toFixed(2)}€
+                </span>
+              )}
+              <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${openSections.includes("autoBilling") ? "rotate-180" : ""}`} />
+            </div>
+          </button>
+          {openSections.includes("autoBilling") && (
+            <div className="divide-y divide-border/30">
+              {workItems.map((wi) => {
+                const isAuto = autoAddedCodesRef.current.has(wi.code);
+                const subtotal = wi.unit_price * wi.quantity;
+                return (
+                  <div key={wi.work_pricing_id} className="px-3 sm:px-4 py-2.5 space-y-2 sm:space-y-0 sm:flex sm:items-center sm:gap-3 text-sm">
+                    {/* Info row */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-mono text-xs text-muted-foreground">{wi.code}</span>
+                        {isAuto && (
+                          <Badge variant="outline" className="text-[9px] h-4 px-1 border-primary/40 text-primary">
+                            AUTO
+                          </Badge>
+                        )}
+                        {isAdminUser && (
+                          <span className="text-[11px] font-mono text-muted-foreground sm:hidden ml-auto">
+                            {subtotal.toFixed(2)}€
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-xs text-foreground/80 line-clamp-2 sm:truncate">{wi.description}</div>
+                    </div>
+                    {/* Controls row */}
+                    <div className="flex items-center justify-between sm:justify-end gap-2 shrink-0">
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => updateWorkQty(wi.work_pricing_id, Math.max(1, wi.quantity - 1))}
+                          className="h-9 w-9 sm:h-7 sm:w-7 rounded-md border border-border bg-background active:bg-muted flex items-center justify-center"
+                          aria-label="Μείωση"
+                        >
+                          <Minus className="h-4 w-4 sm:h-3 sm:w-3" />
+                        </button>
+                        <span className="w-10 sm:w-8 text-center text-base sm:text-sm font-semibold tabular-nums">{wi.quantity}</span>
+                        <button
+                          type="button"
+                          onClick={() => updateWorkQty(wi.work_pricing_id, wi.quantity + 1)}
+                          className="h-9 w-9 sm:h-7 sm:w-7 rounded-md border border-border bg-background active:bg-muted flex items-center justify-center"
+                          aria-label="Αύξηση"
+                        >
+                          <Plus className="h-4 w-4 sm:h-3 sm:w-3" />
+                        </button>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setWorkItems((prev) => prev.filter((w) => w.work_pricing_id !== wi.work_pricing_id));
+                          autoAddedCodesRef.current.delete(wi.code);
+                        }}
+                        className="h-9 w-9 sm:h-7 sm:w-7 rounded-md border border-destructive/30 bg-background active:bg-destructive/10 text-destructive flex items-center justify-center"
+                        aria-label="Διαγραφή"
+                      >
+                        <Trash2 className="h-4 w-4 sm:h-3 sm:w-3" />
+                      </button>
+                      {isAdminUser && (
+                        <div className="hidden sm:block w-20 text-right text-xs font-mono text-muted-foreground">
+                          {subtotal.toFixed(2)}€
+                        </div>
                       )}
                     </div>
-                    <div className="text-xs text-foreground/80 truncate">{wi.description}</div>
                   </div>
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => updateWorkQty(wi.work_pricing_id, Math.max(1, wi.quantity - 1))}
-                      className="h-7 w-7 rounded-md border border-border bg-background hover:bg-muted flex items-center justify-center"
-                      aria-label="Μείωση"
-                    >
-                      <Minus className="h-3 w-3" />
-                    </button>
-                    <span className="w-8 text-center text-sm font-semibold tabular-nums">{wi.quantity}</span>
-                    <button
-                      type="button"
-                      onClick={() => updateWorkQty(wi.work_pricing_id, wi.quantity + 1)}
-                      className="h-7 w-7 rounded-md border border-border bg-background hover:bg-muted flex items-center justify-center"
-                      aria-label="Αύξηση"
-                    >
-                      <Plus className="h-3 w-3" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setWorkItems((prev) => prev.filter((w) => w.work_pricing_id !== wi.work_pricing_id));
-                        autoAddedCodesRef.current.delete(wi.code);
-                      }}
-                      className="h-7 w-7 rounded-md border border-destructive/30 bg-background hover:bg-destructive/10 text-destructive flex items-center justify-center ml-1"
-                      aria-label="Διαγραφή"
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </button>
-                  </div>
-                  {isAdminUser && (
-                    <div className="w-20 text-right text-xs font-mono text-muted-foreground shrink-0">
-                      {subtotal.toFixed(2)}€
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </Card>
       )}
       {!isCrewMode && <Card className="overflow-hidden">
