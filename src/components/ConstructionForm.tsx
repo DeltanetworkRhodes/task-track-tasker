@@ -555,6 +555,10 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
     setExistingMaterialsLoaded(false);
     autoAddedCodesRef.current = new Set();
     setLastAutoBillingSummary(null);
+    // CRITICAL: άδειασε τα state arrays για να μη "διαρρεύσουν" εργασίες/υλικά από προηγούμενο SR
+    // στη μηχανή auto-billing του νέου SR (που οδηγούσε σε χαμένα/διπλά άρθρα).
+    setWorkItems([]);
+    setMaterialItems([]);
   }, [assignment.id]);
 
   // Hydrate base form fields from saved construction so edits persist across reopen/save cycles
