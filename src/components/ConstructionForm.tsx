@@ -3,6 +3,7 @@ import { uploadPhotoDrive } from "@/lib/driveUpload";
 import { hapticFeedback } from "@/lib/haptics";
 import { compressImage } from "@/lib/imageCompression";
 import { applyWatermark, type WatermarkData } from "@/lib/watermark";
+import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -43,7 +44,12 @@ import {
   type OteArticleRow,
   type SuggestionInput,
 } from "@/lib/oteArticleCategories";
-import { Sparkles } from "lucide-react";
+import {
+  computeAutoBilling,
+  mergeAutoBilling,
+  type AutoBillingInput,
+} from "@/lib/oteAutoBilling";
+import { Sparkles, Zap } from "lucide-react";
 
 interface WorkItem {
   work_pricing_id: string;
@@ -220,6 +226,10 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
   // Work items
   const [workItems, setWorkItems] = useState<WorkItem[]>([]);
   const [openWorkCategories, setOpenWorkCategories] = useState<string[]>([]);
+
+  // ⚡ Αυτόματη Τιμολόγηση (Live)
+  const [autoBillingEnabled, setAutoBillingEnabled] = useState(true);
+  const [lastAutoBillingSummary, setLastAutoBillingSummary] = useState<{ added: number; updated: number } | null>(null);
 
   // Materials
   const [materialItems, setMaterialItems] = useState<MaterialItem[]>([]);
@@ -1748,6 +1758,63 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
     if (uncategorized.length > 0) groups["other"] = uncategorized;
     return groups;
   }, [workPricing, filterWorkPrefixes]);
+
+  // ⚡ LIVE AUTO-BILLING ENGINE
+  // Παρακολουθεί τα πεδία της φόρμας και ενημερώνει αυτόματα τα workItems.
+  // Διατηρεί χειροκίνητα προστιθέμενα άρθρα — προσθέτει μόνο όσα λείπουν.
+  useEffect(() => {
+    if (!autoBillingEnabled) return;
+    if (!oteArticlesRaw || oteArticlesRaw.length === 0) return;
+    if (isCrewMode) return; // crew δεν τιμολογεί
+    if (!workPricing) return; // περιμένουμε να φορτώσει το catalog
+
+    const billingInput: AutoBillingInput = {
+      sr_id: assignment?.sr_id,
+      building_type: buildingType,
+      floors: parseInt(floors) || 0,
+      route_cab_to_bep_meters: parseFloat(effectiveRoutes[0]?.koi || "0") || 0,
+      route_aerial_cab_to_bep_meters: parseFloat(effectiveRoutes[1]?.koi || "0") || 0,
+      route_aerial_bep_to_fb_meters: parseFloat(effectiveRoutes[2]?.koi || "0") || 0,
+      route_inhouse_meters: inhouseKoiSum,
+      floor_meters_count: floorMeters.filter((fm) => parseFloat(fm.meters) > 0).length,
+      eisagogi_type: section6?.eisagogi_type || null,
+      eisagogi_meters:
+        parseFloat(
+          section6?.eskalit_solienosi_eisagogis ||
+            section6?.eskalit_nea_solienosi ||
+            section6?.ms_skamma ||
+            "0",
+        ) || 0,
+      bcp_eidos: section6?.bcp_eidos || null,
+      bcp_meters: parseFloat(section6?.bcp_ms || "0") || 0,
+      fb_same_level_as_bep: Boolean((section6 as any)?.fb_same_level_as_bep),
+      horizontal_meters: parseFloat((section6 as any)?.horizontal_meters || "0") || 0,
+      cab_to_bep_damaged: Boolean((section6 as any)?.cab_to_bep_damaged),
+    };
+
+    const computed = computeAutoBilling(billingInput, oteArticlesRaw);
+    if (computed.length === 0) return;
+
+    setWorkItems((prev) => {
+      const { items, added, updated } = mergeAutoBilling(prev, computed, oteArticlesRaw);
+      if (added.length === 0 && updated.length === 0) return prev;
+      setLastAutoBillingSummary({ added: added.length, updated: updated.length });
+      return items;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    autoBillingEnabled,
+    oteArticlesRaw,
+    workPricing,
+    isCrewMode,
+    assignment?.sr_id,
+    buildingType,
+    floors,
+    effectiveRoutes,
+    inhouseKoiSum,
+    floorMeters,
+    section6,
+  ]);
 
   // Group materials by category
   const materialsByCategory = useMemo(() => {
@@ -4689,6 +4756,41 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
         </button>
         {openSections.includes("works") && (
         <div className="px-4 pb-4 space-y-2 border-t border-border/50 pt-3">
+        {/* ⚡ Auto-Billing Banner */}
+        <div className={`rounded-xl border-2 p-3 transition-all ${autoBillingEnabled ? "bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/30 border-emerald-300 dark:border-emerald-800" : "bg-muted/40 border-border"}`}>
+          <div className="flex items-center gap-3">
+            <div className={`h-10 w-10 rounded-xl grid place-items-center shrink-0 ${autoBillingEnabled ? "bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-lg shadow-emerald-500/30" : "bg-muted text-muted-foreground"}`}>
+              <Zap className={`h-5 w-5 ${autoBillingEnabled ? "animate-pulse" : ""}`} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-sm font-bold text-foreground flex items-center gap-2">
+                Αυτόματη Τιμολόγηση
+                {autoBillingEnabled && (
+                  <span className="text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-emerald-600 text-white">LIVE</span>
+                )}
+              </div>
+              <div className="text-[11px] text-muted-foreground mt-0.5 leading-snug">
+                {autoBillingEnabled
+                  ? lastAutoBillingSummary
+                    ? `✓ ${lastAutoBillingSummary.added} νέα · ${lastAutoBillingSummary.updated} ενημερώσεις από Οριζοντογραφία/Διαδρομές/Ορόφους`
+                    : "Συμπληρώνει αυτόματα τα άρθρα από τα δεδομένα της φόρμας. Διατηρεί τα χειροκίνητα."
+                  : "Απενεργοποιημένο — επίλεξε χειροκίνητα τα άρθρα παρακάτω."}
+              </div>
+            </div>
+            <Switch
+              checked={autoBillingEnabled}
+              onCheckedChange={setAutoBillingEnabled}
+              className="shrink-0"
+            />
+          </div>
+          {autoBillingEnabled && assignment?.sr_id?.trim().startsWith("2-") && (
+            <div className="mt-2 px-2.5 py-1.5 rounded-lg bg-amber-100 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 text-[11px] font-semibold text-amber-900 dark:text-amber-200 flex items-center gap-1.5">
+              <span>⚡</span>
+              <span>SR "{assignment.sr_id}" → Γ' Φάση: άρθρο 1955.2 (Σύνδεση Πελάτη)</span>
+            </div>
+          )}
+        </div>
+
 
         <div className="space-y-1">
           {WORK_CATEGORIES.map((cat) => {
