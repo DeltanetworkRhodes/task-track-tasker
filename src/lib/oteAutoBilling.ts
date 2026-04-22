@@ -240,6 +240,20 @@ function familyForCode(code: string): { name: string; codes: string[] } | null {
   return TIER_FAMILIES.find((f) => f.codes.includes(code)) || null;
 }
 
+/**
+ * Όλοι οι κωδικοί που ανήκουν σε tier-families (auto-managed από τη μηχανή).
+ * Χρησιμοποιείται κατά τη φόρτωση υπάρχουσας κατασκευής, ώστε αποθηκευμένα
+ * tier-articles (π.χ. 1965.2) να σημαδεύονται ως auto-added και να μπορούν
+ * να αντικατασταθούν όταν αλλάζουν τα μέτρα (1965.2 → 1965.3).
+ */
+export function getAllTierManagedCodes(): string[] {
+  return TIER_FAMILIES.flatMap((f) => f.codes);
+}
+
+export function isTierManagedCode(code: string): boolean {
+  return TIER_FAMILIES.some((f) => f.codes.includes(code));
+}
+
 export interface MergeOptions {
   /** Codes που έχουν προστεθεί προηγουμένως αυτόματα — επιτρέπεται replace/remove. */
   autoAddedCodes?: Set<string>;
