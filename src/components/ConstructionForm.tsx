@@ -287,7 +287,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
   }, [filterPhotoCatKeys, crewPhotoCategoryTokens]);
 
   // Filter photo categories based on selected works
-  const selectedWorkPrefixes = new Set(workItems.map((w) => WORK_CATEGORIES.find((c) => w.code.startsWith(c.prefix))?.prefix).filter(Boolean));
+  const selectedWorkPrefixes = new Set(workItems.map((w) => getCategoryForCode(w.code)?.prefix).filter(Boolean));
 
   const crewFilteredPhotoCategories = ALL_PHOTO_CATEGORIES.filter((cat) => normalizedCrewPhotoKeys.has(cat.key));
 
@@ -1735,10 +1735,10 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
     const allowedPrefixes = filterWorkPrefixes && filterWorkPrefixes.length > 0 ? filterWorkPrefixes : null;
     
     for (const w of workPricing) {
-      const cat = WORK_CATEGORIES.find((c) => w.code.startsWith(c.prefix));
+      const cat = getCategoryForCode(w.code);
       if (cat) {
         // Skip categories not in allowed prefixes (crew mode)
-        if (allowedPrefixes && !allowedPrefixes.some((p) => w.code.startsWith(p))) continue;
+        if (allowedPrefixes && !allowedPrefixes.some((p) => cat.prefixes.some((cp) => cp === p || w.code.startsWith(p)))) continue;
         if (!groups[cat.prefix]) groups[cat.prefix] = [];
         groups[cat.prefix].push(w);
       } else {
