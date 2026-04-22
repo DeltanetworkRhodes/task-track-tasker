@@ -230,6 +230,9 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
   // ⚡ Αυτόματη Τιμολόγηση (Live)
   const [autoBillingEnabled, setAutoBillingEnabled] = useState(true);
   const [lastAutoBillingSummary, setLastAutoBillingSummary] = useState<{ added: number; updated: number } | null>(null);
+  // Παρακολούθηση των κωδικών που έχει προσθέσει αυτόματα ο engine
+  // (επιτρέπει replace/remove όταν αλλάζουν μέτρα/τύπος εισαγωγής, χωρίς να ακουμπάει manual additions)
+  const autoAddedCodesRef = useRef<Set<string>>(new Set());
 
   // Materials
   const [materialItems, setMaterialItems] = useState<MaterialItem[]>([]);
