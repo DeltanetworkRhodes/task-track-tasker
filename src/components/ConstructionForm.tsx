@@ -2163,17 +2163,54 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
           .eq("construction_id", constructionId);
         if (deleteMaterialsError) throw deleteMaterialsError;
 
-        // Insert works
+        // Insert works — αν κάποιο item προέρχεται από ote_articles χωρίς αντίστοιχο
+        // work_pricing, κάνουμε auto-upsert στο work_pricing για συμβατότητα.
         if (workItems.length > 0) {
+          const itemsToSync = workItems.filter((w) => w.work_pricing_id.startsWith("ote:"));
+          const codeToRealId = new Map<string, string>();
+
+          if (itemsToSync.length > 0) {
+            // Upsert όλα τα νέα ote_articles στο work_pricing με βάση τον code
+            const { data: upserted, error: upsertErr } = await supabase
+              .from("work_pricing")
+              .upsert(
+                itemsToSync.map((w) => ({
+                  code: w.code,
+                  description: w.description,
+                  unit: w.unit,
+                  unit_price: w.unit_price,
+                  organization_id: organizationId,
+                })),
+                { onConflict: "code", ignoreDuplicates: false },
+              )
+              .select("id, code");
+            if (upsertErr) throw upsertErr;
+            (upserted || []).forEach((r: any) => codeToRealId.set(r.code, r.id));
+
+            // Fallback: όσα δεν επέστρεψαν, ξαναψάξε για να πάρεις το id
+            const missingCodes = itemsToSync
+              .filter((w) => !codeToRealId.has(w.code))
+              .map((w) => w.code);
+            if (missingCodes.length > 0) {
+              const { data: refetched } = await supabase
+                .from("work_pricing")
+                .select("id, code")
+                .in("code", missingCodes);
+              (refetched || []).forEach((r: any) => codeToRealId.set(r.code, r.id));
+            }
+          }
+
           const { error: worksError } = await supabase.from("construction_works").insert(
             workItems.map((w) => ({
               construction_id: constructionId,
-              work_pricing_id: w.work_pricing_id,
+              work_pricing_id: w.work_pricing_id.startsWith("ote:")
+                ? codeToRealId.get(w.code) || w.work_pricing_id
+                : w.work_pricing_id,
               quantity: w.quantity,
               unit_price: w.unit_price,
               subtotal: w.unit_price * w.quantity,
               organization_id: organizationId,
-            }))
+            })),
           );
           if (worksError) throw worksError;
         }
