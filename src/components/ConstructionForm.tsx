@@ -4786,6 +4786,49 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
                   </div>
                 </div>
               )}
+
+              {/* ΣΤ — FB & Οριζόντια όδευση + Κατειλημμένη υποδομή Cab→BEP */}
+              <div className="border-t border-border pt-3 space-y-3">
+                <Label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  FB & Οριζόντια όδευση
+                </Label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <label className="flex items-center gap-2 text-sm cursor-pointer select-none p-2 rounded-md border border-border bg-muted/30 hover:bg-muted/50 transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={Boolean(section6?.fb_same_level_as_bep)}
+                      onChange={(e) =>
+                        setSection6((s) => ({ ...s, fb_same_level_as_bep: e.target.checked as unknown as string }))
+                      }
+                      className="h-4 w-4 accent-primary"
+                    />
+                    <span>FB στο ίδιο επίπεδο με BEP</span>
+                  </label>
+                  <div>
+                    <Label className="text-xs">Οριζόντια μέτρα FB→BEP (m)</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      step="0.1"
+                      value={(section6?.horizontal_meters as string) || ""}
+                      onChange={(e) => setSection6((s) => ({ ...s, horizontal_meters: e.target.value }))}
+                      className="h-10 text-sm mt-1"
+                      placeholder="0"
+                    />
+                  </div>
+                  <label className="flex items-center gap-2 text-sm cursor-pointer select-none p-2 rounded-md border border-border bg-muted/30 hover:bg-muted/50 transition-colors md:col-span-2">
+                    <input
+                      type="checkbox"
+                      checked={Boolean(section6?.cab_to_bep_damaged)}
+                      onChange={(e) =>
+                        setSection6((s) => ({ ...s, cab_to_bep_damaged: e.target.checked as unknown as string }))
+                      }
+                      className="h-4 w-4 accent-primary"
+                    />
+                    <span>Κατειλημμένη υποδομή Cab→BEP <span className="text-muted-foreground">(χρεώνει 1980.2 αντί 1980.1)</span></span>
+                  </label>
+                </div>
+              </div>
             </div>
           )}
         </Card>
