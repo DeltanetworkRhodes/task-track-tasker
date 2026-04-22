@@ -174,7 +174,58 @@ const EarningsPricing = () => {
           </div>
         </div>
 
-        {/* Pricing table */}
+        {/* Backfill banner — εμφανίζεται μόνο αν υπάρχουν κατασκευές χωρίς building_type */}
+        {missingTypeRows.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="rounded-2xl border-2 border-amber-400 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/20 p-5 space-y-4"
+          >
+            <div className="flex items-start gap-3">
+              <div className="rounded-lg bg-amber-100 dark:bg-amber-900/40 p-2 shrink-0">
+                <AlertTriangle className="h-5 w-5 text-amber-700 dark:text-amber-400" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-extrabold text-amber-900 dark:text-amber-200">
+                  {missingTypeRows.length} κατασκευές χωρίς τύπο κτιρίου
+                </p>
+                <p className="text-xs text-amber-800/80 dark:text-amber-300/80 mt-0.5">
+                  Ο trigger χρέωσης δεν δημιουργεί αμοιβές χωρίς τύπο κτιρίου. Συμπλήρωσε προεπιλογή για όλες, ή ζήτα από τους τεχνικούς να επιλέξουν στη φόρμα.
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
+              <label className="text-xs font-semibold text-amber-900 dark:text-amber-200">
+                Προεπιλεγμένος τύπος:
+              </label>
+              <select
+                value={backfillType}
+                onChange={(e) => setBackfillType(e.target.value)}
+                className="rounded-lg border border-amber-300 bg-background px-3 py-1.5 text-sm font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-amber-500/40"
+              >
+                {rows?.map((r) => (
+                  <option key={r.building_type} value={r.building_type}>
+                    {r.building_icon || "🏢"} {r.building_label}
+                  </option>
+                ))}
+              </select>
+              <button
+                onClick={() => backfillMutation.mutate()}
+                disabled={backfillMutation.isPending}
+                className="inline-flex items-center gap-2 rounded-lg bg-amber-600 hover:bg-amber-700 px-4 py-1.5 text-sm font-bold text-white shadow-sm transition-all disabled:opacity-50"
+              >
+                {backfillMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Wand2 className="h-4 w-4" />
+                )}
+                Συμπλήρωση όλων
+              </button>
+            </div>
+          </motion.div>
+        )}
+
+
         <div className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
