@@ -218,23 +218,83 @@ export interface ExistingWorkItem {
   quantity: number;
 }
 
+/**
+ * Οικογένειες κωδικών που εξαρτώνται από μέτρα — όταν αλλάζουν τα μέτρα,
+ * ο tier-κωδικός αλλάζει και πρέπει να αντικαθιστούμε ΜΟΝΟ τον προηγούμενο
+ * auto-added κωδικό της ίδιας οικογένειας (όχι manual additions).
+ */
+const TIER_FAMILIES: Array<{ name: string; codes: string[] }> = [
+  { name: "autopsia", codes: ["1956.1", "1956.2"] },
+  { name: "bep", codes: ["1970.4", "1970.5"] },
+  { name: "eskalit", codes: ["1963.1", "1963.2"] },
+  { name: "new_pipe", codes: ["1965.1", "1965.2", "1965.3", "1965.4", "1965.5", "1965.6", "1965.7", "1965.8"] },
+  { name: "bcp_public", codes: ["1991.1.1", "1991.1.2", "1991.1.3"] },
+  { name: "bcp_private", codes: ["1991.2.1", "1991.2.2", "1991.2.3"] },
+  { name: "cab_bep_ug", codes: ["1993.1.1", "1993.1.2", "1993.1.3", "1993.1.4"] },
+  { name: "cab_bep_air", codes: ["1993.2", "1993.3"] },
+  { name: "emfysisi", codes: ["1980.1", "1980.2"] },
+  { name: "horizontal", codes: ["1984.i", "1984.ii"] },
+];
+
+function familyForCode(code: string): { name: string; codes: string[] } | null {
+  return TIER_FAMILIES.find((f) => f.codes.includes(code)) || null;
+}
+
+export interface MergeOptions {
+  /** Codes που έχουν προστεθεί προηγουμένως αυτόματα — επιτρέπεται replace/remove. */
+  autoAddedCodes?: Set<string>;
+}
+
 export function mergeAutoBilling(
   existing: ExistingWorkItem[],
   computed: BillingItem[],
   articles: OteArticleRow[],
-): { items: ExistingWorkItem[]; added: BillingItem[]; updated: BillingItem[] } {
+  options: MergeOptions = {},
+): {
+  items: ExistingWorkItem[];
+  added: BillingItem[];
+  updated: BillingItem[];
+  removed: string[];
+  nextAutoAddedCodes: Set<string>;
+} {
+  const auto = options.autoAddedCodes ?? new Set<string>();
   const result = [...existing];
   const added: BillingItem[] = [];
   const updated: BillingItem[] = [];
+  const removed: string[] = [];
+  const nextAuto = new Set<string>(auto);
+  const computedCodes = new Set(computed.map((c) => c.code));
 
+  // ── Step 1: Tier-replacement
+  // Για κάθε οικογένεια, αν ο νέος προτεινόμενος κωδικός είναι διαφορετικός
+  // από τον παλιό auto-added της ίδιας οικογένειας → αφαίρεσε τον παλιό.
+  const newComputedFamilies = new Map<string, string>(); // family.name → new code
+  for (const c of computed) {
+    const fam = familyForCode(c.code);
+    if (fam) newComputedFamilies.set(fam.name, c.code);
+  }
+
+  for (const [famName, newCode] of newComputedFamilies.entries()) {
+    const fam = TIER_FAMILIES.find((f) => f.name === famName)!;
+    for (const oldCode of fam.codes) {
+      if (oldCode === newCode) continue;
+      if (!auto.has(oldCode)) continue; // μην ακουμπάς manual
+      const idx = result.findIndex((w) => w.code === oldCode);
+      if (idx !== -1) {
+        result.splice(idx, 1);
+        nextAuto.delete(oldCode);
+        removed.push(oldCode);
+      }
+    }
+  }
+
+  // ── Step 2: Add/Update
   for (const c of computed) {
     const article = articles.find((a) => a.code === c.code);
     if (!article) continue;
-
     const existingIdx = result.findIndex((w) => w.code === c.code);
 
     if (existingIdx === -1) {
-      // Δεν υπάρχει → προσθήκη
       result.push({
         work_pricing_id: `ote:${article.id}`,
         code: article.code,
@@ -244,16 +304,37 @@ export function mergeAutoBilling(
         quantity: c.quantity,
       });
       added.push(c);
+      nextAuto.add(c.code);
     } else {
-      // Υπάρχει — ενημέρωσε ΜΟΝΟ την ποσότητα ΑΝ είναι μεγαλύτερη
-      // (διατηρούμε χειροκίνητες αυξήσεις, μη μειώνουμε αυτόματα)
       const cur = result[existingIdx];
-      if (c.quantity > cur.quantity) {
-        result[existingIdx] = { ...cur, quantity: c.quantity };
-        updated.push(c);
+      if (auto.has(c.code)) {
+        // auto-added → sync ποσότητα ακριβώς (πάνω/κάτω)
+        if (c.quantity !== cur.quantity) {
+          result[existingIdx] = { ...cur, quantity: c.quantity };
+          updated.push(c);
+        }
+      } else {
+        // manual → μόνο αυξάνουμε αν χρειαστεί, ποτέ δεν μειώνουμε
+        if (c.quantity > cur.quantity) {
+          result[existingIdx] = { ...cur, quantity: c.quantity };
+          updated.push(c);
+        }
       }
     }
   }
 
-  return { items: result, added, updated };
+  // ── Step 3: Remove auto-added items που δεν προτείνονται πια
+  // (π.χ. ο τεχνικός άλλαξε eisagogi_type από ΝΕΑ ΥΠΟΔΟΜΗ σε BCP → 1965.x εξαφανίζεται)
+  for (const code of Array.from(nextAuto)) {
+    if (!computedCodes.has(code)) {
+      const idx = result.findIndex((w) => w.code === code);
+      if (idx !== -1) {
+        result.splice(idx, 1);
+        removed.push(code);
+      }
+      nextAuto.delete(code);
+    }
+  }
+
+  return { items: result, added, updated, removed, nextAutoAddedCodes: nextAuto };
 }
