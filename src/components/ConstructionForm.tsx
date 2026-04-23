@@ -2054,6 +2054,16 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
       }
     }
 
+    // === BCP DETECTION ===
+    // Υπάρχει BCP αν: (α) GIS το δείχνει Ή (β) ο τεχνικός επέλεξε "BCP" στο eisagogi_type
+    const hasBcpFromGis = !!(
+      (gisData as any)?.new_bcp ||
+      (gisData as any)?.nearby_bcp ||
+      (gisData as any)?.raw_data?.bcp_placement
+    );
+    const hasBcpFromUser = section6?.eisagogi_type === "BCP";
+    const hasBcp = hasBcpFromGis || hasBcpFromUser;
+
     const billingInput: AutoBillingInput = {
       sr_id: assignment?.sr_id,
       building_type: buildingType,
@@ -2067,12 +2077,14 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
       floor_meters_count: floorMetersWithValues,
       eisagogi_type: section6?.eisagogi_type || null,
       eisagogi_meters: eisagogiMeters,
+
+      // 🆕 BCP — ΞΕΧΩΡΙΣΤΑ πεδία (όχι sum)
+      has_bcp: hasBcp,
       bcp_eidos: section6?.bcp_eidos || null,
-      // Συνολικά μέτρα BCP = σκάψιμο Καμπ→BCP (Μ/Σ) + BCP→BEP υπόγεια + BCP→BEP εναέρια
-      bcp_meters:
-        (parseFloat(section6?.bcp_ms || "0") || 0) +
-        (parseFloat(section6?.bcp_bep_ypogeia || "0") || 0) +
-        (parseFloat(section6?.bcp_bep_enaeria || "0") || 0),
+      bcp_skamma_meters: parseFloat(section6?.bcp_ms || "0") || 0,
+      bcp_to_bep_underground_meters: parseFloat(section6?.bcp_bep_ypogeia || "0") || 0,
+      bcp_to_bep_aerial_meters: parseFloat(section6?.bcp_bep_enaeria || "0") || 0,
+
       fb_same_level_as_bep: Boolean(section6?.fb_same_level_as_bep),
       horizontal_meters: parseFloat(String(section6?.horizontal_meters || "0")) || 0,
       cab_to_bep_damaged: Boolean(section6?.cab_to_bep_damaged),
