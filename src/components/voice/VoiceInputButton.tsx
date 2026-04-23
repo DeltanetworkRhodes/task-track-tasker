@@ -113,10 +113,30 @@ export function VoiceInputButton({ context, onApply, currentFields, label }: Voi
     };
 
     recognition.onerror = (e: any) => {
-      console.error("Speech error:", e);
-      if (e?.error !== "aborted" && e?.error !== "no-speech") {
-        toast.error("Σφάλμα αναγνώρισης φωνής");
+      const errorType = e?.error || "unknown";
+      // Silent errors — δεν ενοχλούμε τον χρήστη
+      const SILENT_ERRORS = ["aborted", "no-speech", "audio-capture"];
+      if (SILENT_ERRORS.includes(errorType)) {
+        console.info("[Voice] silent error:", errorType);
+        setIsRecording(false);
+        return;
       }
+      // Permission errors — εξήγηση στον χρήστη
+      if (errorType === "not-allowed" || errorType === "service-not-allowed") {
+        console.warn("[Voice] permission error:", errorType);
+        toast.error("Δώσε άδεια χρήσης μικροφώνου από τις ρυθμίσεις του browser");
+        setIsRecording(false);
+        return;
+      }
+      // Network errors
+      if (errorType === "network") {
+        console.warn("[Voice] network error");
+        toast.error("Πρόβλημα δικτύου — η αναγνώριση φωνής χρειάζεται internet");
+        setIsRecording(false);
+        return;
+      }
+      console.warn("[Voice] error:", errorType, e);
+      toast.error(`Σφάλμα φωνής: ${errorType}`);
       setIsRecording(false);
     };
 
