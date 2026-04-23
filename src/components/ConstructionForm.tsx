@@ -35,6 +35,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { isOnline, enqueueConstruction, fileToOfflineFile, type OfflineConstructionPayload } from "@/lib/offlineQueue";
 import { usePhotoChecklist } from "@/hooks/usePhotoChecklist";
 import PhotoChecklist from "@/components/PhotoChecklist";
+import { useDiagnosticLogger } from "@/hooks/useDiagnosticLogger";
 
 import { useUserRole } from "@/hooks/useUserRole";
 import {
@@ -146,6 +147,13 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
   const queryClient = useQueryClient();
   
   const { activeEntry, checkOut } = useTimeTracking(assignment.id);
+
+  // 🔍 Διαγνωστικός logger για auto-billing & materials autofill (Step 1: observability only)
+  const logDiag = useDiagnosticLogger({
+    organizationId,
+    assignmentId: assignment?.id,
+    srId: assignment?.sr_id,
+  });
 
 
 
