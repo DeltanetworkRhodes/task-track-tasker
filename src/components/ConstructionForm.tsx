@@ -50,6 +50,12 @@ import {
   isTierManagedCode,
   type AutoBillingInput,
 } from "@/lib/oteAutoBilling";
+import {
+  computeAutoMaterials,
+  mergeAutoMaterials,
+  isAutoManagedMaterialCode,
+  type AutoMaterialsInput,
+} from "@/lib/oteAutoMaterials";
 import { Sparkles, Zap } from "lucide-react";
 
 interface WorkItem {
