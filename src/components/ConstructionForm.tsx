@@ -6048,6 +6048,34 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
         )}
       </Card>}
 
+      {(!phase || phase === 3) && organizationId && (
+        <Card className="overflow-hidden">
+          <button
+            type="button"
+            onClick={() => toggleSection("otdr_sor")}
+            className="w-full flex items-center justify-between p-5 hover:bg-muted/40 transition-colors rounded-2xl"
+          >
+            <Label className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground flex items-center gap-2 pointer-events-none">
+              <span className="h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
+              📊 Μετρήσεις OTDR (SOR αρχεία)
+            </Label>
+            <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${openSections.includes("otdr_sor") ? "rotate-180" : ""}`} />
+          </button>
+          {openSections.includes("otdr_sor") && (
+            <div className="px-5 pb-5 border-t border-border/40 pt-4">
+              <OTDRMeasurementsSection
+                assignmentId={assignment.id}
+                constructionId={(existingConstruction as any)?.id}
+                organizationId={organizationId}
+                floors={floorCount}
+                hasBcp={String(section6.bcp_eidos || "").trim().length > 0}
+                floorDetails={floorMeters}
+              />
+            </div>
+          )}
+        </Card>
+      )}
+
 
 
 
