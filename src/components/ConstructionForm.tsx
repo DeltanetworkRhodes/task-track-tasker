@@ -5241,6 +5241,22 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
         </div>
       )}
 
+      {/* BCP Warning — αν επέλεξε BCP αλλά δεν έχει συμπληρώσει BCP Είδος */}
+      {!isCrewMode &&
+        section6?.eisagogi_type === "BCP" &&
+        !section6?.bcp_eidos &&
+        parseFloat(section6?.bcp_ms || "0") > 0 && (
+          <div className="rounded-xl border border-destructive/40 bg-destructive/10 p-3 flex items-center gap-3">
+            <div className="h-8 w-8 rounded-full bg-destructive/20 flex items-center justify-center text-base shrink-0">⚠️</div>
+            <div className="min-w-0 flex-1">
+              <div className="font-semibold text-destructive">Λείπει BCP Είδος!</div>
+              <div className="text-xs text-muted-foreground">
+                Συμπλήρωσε «ΔΗΜΟΣΙΟ» ή «ΙΔΙΩΤΙΚΟ» στο πεδίο BCP Είδος — αλλιώς το σκάμα ΔΕΝ θα χρεωθεί.
+              </div>
+            </div>
+          </div>
+        )}
+
       {/* Work Items - Category based */}
       {lastAutoBillingSummary && (lastAutoBillingSummary.added > 0 || lastAutoBillingSummary.updated > 0) && (
         <div className="rounded-xl border border-primary/30 bg-gradient-to-r from-primary/10 via-primary/5 to-transparent p-3 flex items-center gap-3">
