@@ -57,6 +57,11 @@ import {
   isAutoManagedMaterialCode,
   type AutoMaterialsInput,
 } from "@/lib/oteAutoMaterials";
+import {
+  computeAutoMaterials as computeLiveMaterials,
+  mergeAutoMaterials as mergeLiveMaterials,
+  type MaterialsAutoFillInput,
+} from "@/lib/oteMaterialsAutoFill";
 import { Sparkles, Zap } from "lucide-react";
 
 interface WorkItem {
@@ -250,6 +255,12 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
   const autoAddedCodesRef = useRef<Set<string>>(new Set());
   // Παρακολούθηση των material IDs που έχει προσθέσει αυτόματα ο engine υλικών
   const autoAddedMaterialIdsRef = useRef<Set<string>>(new Set());
+  // Live materials engine (GIS + Οριζοντογραφία + floorMeters)
+  const autoAddedLiveMaterialIdsRef = useRef<Set<string>>(new Set());
+  const [lastMaterialsAutoSummary, setLastMaterialsAutoSummary] = useState<{
+    added: number;
+    updated: number;
+  } | null>(null);
 
   // Materials
   const [materialItems, setMaterialItems] = useState<MaterialItem[]>([]);
@@ -2025,13 +2036,31 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
     const floorMetersWithValues = floorMeters.filter(
       (fm) => parseFloat(fm.meters) > 0,
     ).length;
-    const effectiveFloors = parsedFloors > 0 ? parsedFloors : floorMetersWithValues;
+    let effectiveFloors = parsedFloors > 0 ? parsedFloors : floorMetersWithValues;
+
+    // Fallback chain για floors: gisData.floors → floor_details.length → floorMeters count
+    if (effectiveFloors === 0) {
+      const gisFloors = Number((gisData as any)?.floors);
+      if (gisFloors > 0) {
+        effectiveFloors = gisFloors;
+        console.log("[AutoBilling] Using gisData.floors as fallback:", gisFloors);
+      }
+    }
+    if (effectiveFloors === 0) {
+      const fd = (gisData as any)?.floor_details;
+      if (Array.isArray(fd) && fd.length > 0) {
+        effectiveFloors = fd.length;
+        console.log("[AutoBilling] Using floor_details.length as fallback:", fd.length);
+      }
+    }
 
     const billingInput: AutoBillingInput = {
       sr_id: assignment?.sr_id,
       building_type: buildingType,
       floors: effectiveFloors,
-      route_cab_to_bep_meters: parseFloat(effectiveRoutes[0]?.koi || "0") || 0,
+      route_cab_to_bep_meters:
+        (parseFloat(effectiveRoutes[0]?.koi || "0") || 0) ||
+        Number((gisData as any)?.distance_from_cabinet) || 0,
       route_aerial_cab_to_bep_meters: parseFloat(effectiveRoutes[1]?.koi || "0") || 0,
       route_aerial_bep_to_fb_meters: parseFloat(effectiveRoutes[2]?.koi || "0") || 0,
       route_inhouse_meters: inhouseKoiSum,
@@ -2156,6 +2185,60 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
     materials,
     buildingType,
     floorMeters,
+    existingConstruction?.id,
+    existingMaterialsLoaded,
+  ]);
+
+  // ⚡ LIVE MATERIALS AUTO-FILL (GIS + Οριζοντογραφία + floorMeters + routes)
+  useEffect(() => {
+    if (isCrewMode) return;
+    if (!gisData) return;
+    if (!materials || materials.length === 0) return;
+    if (!existingConstructionLoaded) return;
+    if (existingConstruction?.id && !existingMaterialsLoaded) return;
+
+    const liveInput: MaterialsAutoFillInput = {
+      gisData,
+      section6: (section6 || {}) as Record<string, any>,
+      floorMeters,
+      materials,
+      routes: effectiveRoutes,
+    };
+
+    const computed = computeLiveMaterials(liveInput);
+    logDiag("materials_autofill", "live_computed", {
+      count: computed.length,
+      codes: computed.map((m) => `${m.code}×${m.quantity}`),
+    });
+
+    let summary: { added: number; updated: number } | null = null;
+
+    setMaterialItems((prev) => {
+      const { items, added, updated, removed, nextAutoAddedIds } = mergeLiveMaterials(
+        prev,
+        computed,
+        { autoAddedIds: autoAddedLiveMaterialIdsRef.current },
+      );
+      autoAddedLiveMaterialIdsRef.current = nextAutoAddedIds;
+      if (added.length === 0 && updated.length === 0 && removed.length === 0)
+        return prev;
+      summary = { added: added.length, updated: updated.length };
+      return items;
+    });
+
+    if (summary) {
+      setLastMaterialsAutoSummary(summary);
+      logDiag("materials_autofill", "live_applied", summary as any);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    gisData,
+    materials,
+    section6,
+    floorMeters,
+    effectiveRoutes,
+    isCrewMode,
+    existingConstructionLoaded,
     existingConstruction?.id,
     existingMaterialsLoaded,
   ]);
@@ -5156,6 +5239,20 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
               {lastAutoBillingSummary.added > 0 && `${lastAutoBillingSummary.added} προστέθηκαν`}
               {lastAutoBillingSummary.added > 0 && lastAutoBillingSummary.updated > 0 && " · "}
               {lastAutoBillingSummary.updated > 0 && `${lastAutoBillingSummary.updated} ενημερώθηκαν`} με βάση το AS-BUILD
+            </div>
+          </div>
+        </div>
+      )}
+
+      {!isCrewMode && lastMaterialsAutoSummary && (lastMaterialsAutoSummary.added > 0 || lastMaterialsAutoSummary.updated > 0) && (
+        <div className="rounded-xl border border-primary/30 bg-gradient-to-r from-primary/10 via-primary/5 to-transparent p-3 flex items-center gap-3">
+          <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center text-base shrink-0">📦</div>
+          <div className="flex-1 min-w-0 text-sm">
+            <div className="font-semibold text-foreground">Αυτόματη χρέωση υλικών</div>
+            <div className="text-xs text-muted-foreground">
+              {lastMaterialsAutoSummary.added > 0 && `${lastMaterialsAutoSummary.added} προστέθηκαν`}
+              {lastMaterialsAutoSummary.added > 0 && lastMaterialsAutoSummary.updated > 0 && " · "}
+              {lastMaterialsAutoSummary.updated > 0 && `${lastMaterialsAutoSummary.updated} ενημερώθηκαν`} από GIS + Οριζοντογραφία
             </div>
           </div>
         </div>
