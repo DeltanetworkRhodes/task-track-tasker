@@ -275,30 +275,13 @@ export function computeAutoMaterials(
   }
 
   // === 9. Ενδεικτικό πλέγμα σήμανσης 20cm (14023051) ===
-  // Βάσει συνολικού Μ/Σ (σκάματος): BCP→Καμπίνα + BCP→BEP υπόγεια +
-  // γενικό σκάμα + νέα σωλήνωση εισαγωγής + KOI υπόγεια Καμπ→BEP (από routes).
-  const num = (v: any) => parseFloat(String(v ?? "0")) || 0;
-  const s6: any = section6 || {};
-  const eisagogiSkamma =
-    String(s6?.eisagogi_type || "").toUpperCase().includes("ΝΕΑ ΥΠΟΔΟΜΗ")
-      ? num(s6?.eisagogi_meters)
-      : 0;
-  const routesKoiTotal = (routes || []).reduce(
-    (acc, r) => acc + num((r as any)?.koi),
-    0,
-  );
-  const totalSkammaMeters =
-    num(s6?.bcp_ms) +
-    num(s6?.bcp_bep_ypogeia) +
-    num(s6?.ms_skamma) +
-    eisagogiSkamma +
-    routesKoiTotal;
-
-  if (totalSkammaMeters > 0) {
+  // Ίσα μέτρα με το Μ/Σ (ms_skamma) από Οριζοντογραφία AS-BUILD.
+  const msSkammaMeters = parseFloat(String((section6 as any)?.ms_skamma ?? "0")) || 0;
+  if (msSkammaMeters > 0) {
     addMaterial(
       (m) => m.code === "14023051" || nameMatches(m.name, "πλέγμα", "σήμανσης"),
-      Math.ceil(totalSkammaMeters),
-      `Πλέγμα σήμανσης 20cm (${Math.ceil(totalSkammaMeters)}m σκάμα)`,
+      Math.ceil(msSkammaMeters),
+      `Πλέγμα σήμανσης 20cm (${Math.ceil(msSkammaMeters)}m Μ/Σ)`,
     );
   }
 
