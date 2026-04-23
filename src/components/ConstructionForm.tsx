@@ -64,6 +64,7 @@ import {
 } from "@/lib/oteMaterialsAutoFill";
 import { Sparkles, Zap } from "lucide-react";
 import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
+import { OTDRMeasurementsSection } from "@/components/otdr/OTDRMeasurementsSection";
 
 interface WorkItem {
   work_pricing_id: string;
