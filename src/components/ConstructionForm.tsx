@@ -255,6 +255,12 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
   const autoAddedCodesRef = useRef<Set<string>>(new Set());
   // Παρακολούθηση των material IDs που έχει προσθέσει αυτόματα ο engine υλικών
   const autoAddedMaterialIdsRef = useRef<Set<string>>(new Set());
+  // Live materials engine (GIS + Οριζοντογραφία + floorMeters)
+  const autoAddedLiveMaterialIdsRef = useRef<Set<string>>(new Set());
+  const [lastMaterialsAutoSummary, setLastMaterialsAutoSummary] = useState<{
+    added: number;
+    updated: number;
+  } | null>(null);
 
   // Materials
   const [materialItems, setMaterialItems] = useState<MaterialItem[]>([]);
