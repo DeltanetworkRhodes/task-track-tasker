@@ -32,6 +32,8 @@ export interface FloorMeterEntry {
 
 export interface AutoMaterialsInput {
   building_type?: string | null;
+  /** Από GIS (gis_data.bep_type) — π.χ. "MEDIUM/12/RAYCAP". Αν υπάρχει, υπερισχύει του building_type. */
+  bep_type?: string | null;
   floor_meters?: FloorMeterEntry[];
 }
 
@@ -63,8 +65,29 @@ const CODE_BEP_MEDIUM = "14028869";
 const CODE_BEP_LARGE = "14028870";
 const CODE_BEP_XLARGE = "14028871";
 
-/** Επιλέγει τον κωδικό BEP βάσει building_type. */
-function pickBepCode(buildingType?: string | null): string | null {
+/**
+ * Επιλέγει τον κωδικό BEP βάσει GIS bep_type (πρώτη προτεραιότητα),
+ * διαφορετικά πέφτει σε building_type.
+ *
+ * GIS bep_type παραδείγματα:
+ *   "SMALL/4/RAYCAP", "MEDIUM/12/RAYCAP (01a..06b)", "LARGE/24/...", "XLARGE/48/..."
+ */
+function pickBepCode(
+  buildingType?: string | null,
+  bepType?: string | null,
+): string | null {
+  // 1) Priority: GIS bep_type
+  if (bepType) {
+    const upper = bepType.toUpperCase();
+    if (upper.includes("XLARGE") || upper.includes("X-LARGE") || upper.includes("X LARGE")) return CODE_BEP_XLARGE;
+    if (upper.includes("LARGE")) return CODE_BEP_LARGE;
+    if (upper.includes("MEDIUM")) return CODE_BEP_MEDIUM;
+    if (upper.includes("SMALL")) return CODE_BEP_SMALL;
+    // Αν είναι αδιευκρίνιστο, μη μαντεύεις από building_type — επέστρεψε MEDIUM ως safe default
+    return CODE_BEP_MEDIUM;
+  }
+
+  // 2) Fallback: building_type (παλιά λογική)
   switch (buildingType) {
     case "mono":
     case "mez":
@@ -79,8 +102,11 @@ function pickBepCode(buildingType?: string | null): string | null {
       return CODE_BEP_LARGE;
     case "xlarge":
     case "xlarge_apt":
-    case "poly":
       return CODE_BEP_XLARGE;
+    case "poly":
+      // 'poly' (πολυκατοικία) είναι γενικός όρος — default σε MEDIUM
+      // αν δεν υπάρχει GIS bep_type. Ο τεχνικός το αλλάζει χειροκίνητα αν χρειάζεται.
+      return CODE_BEP_MEDIUM;
     default:
       return buildingType ? CODE_BEP_MEDIUM : null;
   }
@@ -125,15 +151,17 @@ export function computeAutoMaterials(
 ): MaterialBillingItem[] {
   const items: MaterialBillingItem[] = [];
 
-  // ── 1) BEP βάσει building_type ──
-  const bepCode = pickBepCode(input.building_type);
+  // ── 1) BEP βάσει GIS bep_type (priority) ή building_type (fallback) ──
+  const bepCode = pickBepCode(input.building_type, input.bep_type);
   if (bepCode) {
     const bep = findMaterialByCode(materials, bepCode, "piece");
     if (bep) {
       items.push({
         material_id: bep.id,
         quantity: 1,
-        reason: `BEP για κτίριο τύπου ${input.building_type || "?"}`,
+        reason: input.bep_type
+          ? `BEP από GIS bep_type "${input.bep_type}"`
+          : `BEP για κτίριο τύπου ${input.building_type || "?"}`,
       });
     }
   }

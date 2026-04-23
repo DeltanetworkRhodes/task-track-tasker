@@ -2153,6 +2153,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
 
     const matInput: AutoMaterialsInput = {
       building_type: buildingType,
+      bep_type: (gisData as any)?.bep_type ?? null,
       floor_meters: floorMeters,
     };
 
@@ -2187,6 +2188,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
     autoBillingEnabled,
     materials,
     buildingType,
+    (gisData as any)?.bep_type,
     floorMeters,
     existingConstruction?.id,
     existingMaterialsLoaded,
