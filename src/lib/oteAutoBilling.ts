@@ -109,10 +109,11 @@ function pickBcpPrivateCode(meters: number): string {
 }
 
 function pickCabToBepUndergroundCode(meters: number): string {
-  if (meters <= 5) return "1993.1.1";
-  if (meters <= 15) return "1993.1.2";
-  if (meters <= 30) return "1993.1.3";
-  return "1993.1.4";
+  // Default: ΚΥΑ 2023 (1993.1.5-8) — οι νέες τιμές
+  if (meters <= 5) return "1993.1.5";
+  if (meters <= 15) return "1993.1.6";
+  if (meters <= 30) return "1993.1.7";
+  return "1993.1.8";
 }
 
 function pickCabToBepAerialCode(meters: number): string {
