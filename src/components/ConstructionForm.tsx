@@ -5023,15 +5023,11 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
               currentFields={{
                 floors,
                 building_type: buildingType,
-                bep_type: gisData?.bep_type,
-                bmo_type: gisData?.bmo_type,
                 ...section6,
               }}
               onApply={(fields) => {
                 if (fields.floors !== undefined) setFloors(String(fields.floors));
                 if (fields.building_type) setBuildingType(fields.building_type);
-                if (fields.bep_type) setGisData((g: any) => ({ ...g, bep_type: fields.bep_type }));
-                if (fields.bmo_type) setGisData((g: any) => ({ ...g, bmo_type: fields.bmo_type }));
                 const s6Keys = [
                   "eisagogi_type",
                   "eisagogi_meters",
