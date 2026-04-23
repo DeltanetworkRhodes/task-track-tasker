@@ -1745,6 +1745,86 @@ export type Database = {
         }
         Relationships: []
       }
+      otdr_measurements: {
+        Row: {
+          assignment_id: string
+          construction_id: string | null
+          fb_index: number | null
+          floor_number: number | null
+          id: string
+          label: string
+          notes: string | null
+          organization_id: string
+          point_type: Database["public"]["Enums"]["otdr_point_type"]
+          sor_file_name: string
+          sor_file_size_bytes: number | null
+          sor_file_url: string
+          uploaded_at: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          assignment_id: string
+          construction_id?: string | null
+          fb_index?: number | null
+          floor_number?: number | null
+          id?: string
+          label: string
+          notes?: string | null
+          organization_id: string
+          point_type: Database["public"]["Enums"]["otdr_point_type"]
+          sor_file_name: string
+          sor_file_size_bytes?: number | null
+          sor_file_url: string
+          uploaded_at?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          assignment_id?: string
+          construction_id?: string | null
+          fb_index?: number | null
+          floor_number?: number | null
+          id?: string
+          label?: string
+          notes?: string | null
+          organization_id?: string
+          point_type?: Database["public"]["Enums"]["otdr_point_type"]
+          sor_file_name?: string
+          sor_file_size_bytes?: number | null
+          sor_file_url?: string
+          uploaded_at?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "otdr_measurements_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "assignments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "otdr_measurements_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "sr_billing_totals"
+            referencedColumns: ["assignment_id"]
+          },
+          {
+            foreignKeyName: "otdr_measurements_construction_id_fkey"
+            columns: ["construction_id"]
+            isOneToOne: false
+            referencedRelation: "constructions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "otdr_measurements_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ote_articles: {
         Row: {
           category: Database["public"]["Enums"]["ote_article_category"]
@@ -2881,6 +2961,7 @@ export type Database = {
       building_type_enum: "poly" | "mono" | "mez" | "complex" | "biz"
       label_location_enum: "kampina" | "bep" | "bmo" | "fb"
       label_type_enum: "flag" | "flat"
+      otdr_point_type: "CABIN" | "LIVE" | "BEP" | "BCP" | "BMO" | "FLOOR_BOX"
       ote_article_category:
         | "AUTOPSIA"
         | "SKAMMA_BCP"
@@ -3033,6 +3114,7 @@ export const Constants = {
       building_type_enum: ["poly", "mono", "mez", "complex", "biz"],
       label_location_enum: ["kampina", "bep", "bmo", "fb"],
       label_type_enum: ["flag", "flat"],
+      otdr_point_type: ["CABIN", "LIVE", "BEP", "BCP", "BMO", "FLOOR_BOX"],
       ote_article_category: [
         "AUTOPSIA",
         "SKAMMA_BCP",
