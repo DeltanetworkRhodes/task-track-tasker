@@ -2189,6 +2189,60 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
     existingMaterialsLoaded,
   ]);
 
+  // ⚡ LIVE MATERIALS AUTO-FILL (GIS + Οριζοντογραφία + floorMeters + routes)
+  useEffect(() => {
+    if (isCrewMode) return;
+    if (!gisData) return;
+    if (!materials || materials.length === 0) return;
+    if (!existingConstructionLoaded) return;
+    if (existingConstruction?.id && !existingMaterialsLoaded) return;
+
+    const liveInput: MaterialsAutoFillInput = {
+      gisData,
+      section6: (section6 || {}) as Record<string, any>,
+      floorMeters,
+      materials,
+      routes: effectiveRoutes,
+    };
+
+    const computed = computeLiveMaterials(liveInput);
+    logDiag("materials_autofill", "live_computed", {
+      count: computed.length,
+      codes: computed.map((m) => `${m.code}×${m.quantity}`),
+    });
+
+    let summary: { added: number; updated: number } | null = null;
+
+    setMaterialItems((prev) => {
+      const { items, added, updated, removed, nextAutoAddedIds } = mergeLiveMaterials(
+        prev,
+        computed,
+        { autoAddedIds: autoAddedLiveMaterialIdsRef.current },
+      );
+      autoAddedLiveMaterialIdsRef.current = nextAutoAddedIds;
+      if (added.length === 0 && updated.length === 0 && removed.length === 0)
+        return prev;
+      summary = { added: added.length, updated: updated.length };
+      return items;
+    });
+
+    if (summary) {
+      setLastMaterialsAutoSummary(summary);
+      logDiag("materials_autofill", "live_applied", summary as any);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    gisData,
+    materials,
+    section6,
+    floorMeters,
+    effectiveRoutes,
+    isCrewMode,
+    existingConstructionLoaded,
+    existingConstruction?.id,
+    existingMaterialsLoaded,
+  ]);
+
   // Group materials by category
   const materialsByCategory = useMemo(() => {
     if (!materials) return {};
