@@ -1190,12 +1190,32 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
       }
     }
 
-    // ── BCP στοιχεία στο section6 ──
+    // ── BCP Είδος από GIS (μόνο αρχική πρόταση, ο τεχνικός μπορεί να αλλάξει) ──
     if (rawData.bcp_placement && !section6?.bcp_eidos) {
-      setSection6((s) => ({
-        ...s,
-        bcp_eidos: rawData.bcp_type_oriz || rawData["BCP ΕΙΔΟΣ"] || "",
-      }));
+      const gisEidos = String(
+        rawData.bcp_type_oriz ||
+          rawData["BCP ΕΙΔΟΣ"] ||
+          rawData.bcp_placement_type ||
+          "",
+      )
+        .toUpperCase()
+        .trim();
+
+      let suggestedEidos = "";
+      if (gisEidos.includes("ΔΗΜΟΣ") || gisEidos.includes("PUBLIC") || gisEidos === "Δ") {
+        suggestedEidos = "ΔΗΜΟΣΙΟ";
+      } else if (gisEidos.includes("ΙΔΙΩΤ") || gisEidos.includes("PRIVATE") || gisEidos === "Ι") {
+        suggestedEidos = "ΙΔΙΩΤΙΚΟ";
+      } else if (rawData.bcp_placement) {
+        // Αν το GIS δεν καθορίζει σαφώς, default σε ΔΗΜΟΣΙΟ (πιο συχνό)
+        suggestedEidos = "ΔΗΜΟΣΙΟ";
+        console.log("[BCP] Είδος δεν καθορίστηκε από GIS — default ΔΗΜΟΣΙΟ");
+      }
+
+      if (suggestedEidos) {
+        setSection6((s) => ({ ...s, bcp_eidos: suggestedEidos }));
+        console.log(`[BCP] Auto-filled bcp_eidos: ${suggestedEidos}`);
+      }
     }
 
     // ── FTTH ΥΠΟΓ ΔΔ KOI (routes[0]) από distance_from_cabinet ──
