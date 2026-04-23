@@ -5197,17 +5197,22 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
         </div>
       )}
 
-      {/* BCP Warning — αν επέλεξε BCP αλλά δεν έχει συμπληρώσει BCP Είδος */}
+      {/* BCP Warning — κρίσιμο: εμφανίζεται όταν επιλέγεται BCP χωρίς είδος */}
       {!isCrewMode &&
         section6?.eisagogi_type === "BCP" &&
-        !section6?.bcp_eidos &&
-        parseFloat(section6?.bcp_ms || "0") > 0 && (
-          <div className="rounded-xl border border-destructive/40 bg-destructive/10 p-3 flex items-center gap-3">
-            <div className="h-8 w-8 rounded-full bg-destructive/20 flex items-center justify-center text-base shrink-0">⚠️</div>
-            <div className="min-w-0 flex-1">
-              <div className="font-semibold text-destructive">Λείπει BCP Είδος!</div>
-              <div className="text-xs text-muted-foreground">
-                Συμπλήρωσε «ΔΗΜΟΣΙΟ» ή «ΙΔΙΩΤΙΚΟ» στο πεδίο BCP Είδος — αλλιώς το σκάμα ΔΕΝ θα χρεωθεί.
+        !section6?.bcp_eidos && (
+          <div className="rounded-xl border-2 border-destructive bg-destructive/10 p-4 flex items-center gap-3 animate-pulse">
+            <div className="h-10 w-10 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center text-lg font-bold flex-shrink-0">
+              !
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="font-bold text-destructive text-sm">
+                ΠΡΟΣΟΧΗ: Λείπει BCP Είδος!
+              </div>
+              <div className="text-xs text-destructive/90 mt-1">
+                Επίλεξε <b>ΔΗΜΟΣΙΟ</b> ή <b>ΙΔΙΩΤΙΚΟ</b> στα πεδία BCP.
+                <br />
+                <b>Χωρίς αυτό, χάνεις 174-181€ ανά SR!</b>
               </div>
             </div>
           </div>
