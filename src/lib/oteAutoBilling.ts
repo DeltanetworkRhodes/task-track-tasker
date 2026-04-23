@@ -128,15 +128,23 @@ export function computeAutoBilling(
   const kya = isKya(input.sr_id);
   const floors = Math.max(0, Number(input.floors) || 0);
 
-  // Warning αν το building είναι medium/large αλλά floors=0
-  // Αυτό μπορεί να συμβεί όταν ο τεχνικός δεν έχει ακόμα συμπληρώσει όροφους
-  if (!small && floors === 0) {
-    console.warn(
-      "[oteAutoBilling] ⚠️ Building is medium/large but floors=0. " +
-      "Skipping vertical (1985.2) and splice (1986.3) articles. " +
-      "Check that gisData.floors is populated."
-    );
-  }
+  // === Διαγνωστικά ===
+  console.log("[computeAutoBilling] input:", {
+    sr_id: input.sr_id,
+    building_type: input.building_type,
+    floors,
+    small,
+    kya,
+    eisagogi_type: input.eisagogi_type,
+    eisagogi_meters: input.eisagogi_meters,
+    bcp_eidos: input.bcp_eidos,
+    bcp_meters: input.bcp_meters,
+    fb_same_level_as_bep: input.fb_same_level_as_bep,
+    horizontal_meters: input.horizontal_meters,
+    route_cab_to_bep_meters: input.route_cab_to_bep_meters,
+    route_aerial_cab_to_bep_meters: input.route_aerial_cab_to_bep_meters,
+    floor_meters_count: input.floor_meters_count,
+  });
 
   // ── 1) ΑΥΤΟΨΙΑ ──
   push(
@@ -212,11 +220,26 @@ export function computeAutoBilling(
     }
   }
 
-  // ── 8) ΚΑΤΑΚΟΡΥΦΗ — 1985.2 ανά όροφο (ή αριθμός γραμμών floor_meters αν υπάρχουν) ──
-  const floorQty = Math.max(
-    Number(input.floor_meters_count) || 0,
-    input.fb_same_level_as_bep ? Math.max(0, floors - 1) : floors,
-  );
+  // ── 8) ΚΑΤΑΚΟΡΥΦΗ — 1985.2 ανά όροφο (3 fallback sources) ──
+  let floorQty = 0;
+  const fromFloorMeters = Number(input.floor_meters_count) || 0;
+  const fromFloors = input.fb_same_level_as_bep
+    ? Math.max(0, floors - 1)
+    : floors;
+
+  if (fromFloorMeters > 0) {
+    floorQty = fromFloorMeters;
+    console.log(`[computeAutoBilling] Using floor_meters_count: ${floorQty}`);
+  } else if (fromFloors > 0) {
+    floorQty = fromFloors;
+    console.log(`[computeAutoBilling] Using floors: ${floorQty}`);
+  } else if (!small) {
+    console.warn(
+      "[computeAutoBilling] ⚠️ Poly/Medium building but NO floors info — " +
+      "Κατακόρυφη (1985.2) & Κολλήσεις (1986.3) ΔΕΝ προστέθηκαν!"
+    );
+  }
+
   if (floorQty > 0) {
     push("1985.2", floorQty, `${floorQty} όροφοι BMO→FB`);
   }
@@ -233,6 +256,11 @@ export function computeAutoBilling(
   if (kya) {
     push("1955.2", 1, "Γ' Φάση — Σύνδεση πελάτη με ενεργοποίηση");
   }
+
+  console.log(
+    `[computeAutoBilling] OUTPUT ${items.length} articles:`,
+    items.map((i) => `${i.code}×${i.quantity}`).join(", ")
+  );
 
   return items;
 }
