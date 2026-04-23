@@ -2025,13 +2025,31 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
     const floorMetersWithValues = floorMeters.filter(
       (fm) => parseFloat(fm.meters) > 0,
     ).length;
-    const effectiveFloors = parsedFloors > 0 ? parsedFloors : floorMetersWithValues;
+    let effectiveFloors = parsedFloors > 0 ? parsedFloors : floorMetersWithValues;
+
+    // Fallback chain για floors: gisData.floors → floor_details.length → floorMeters count
+    if (effectiveFloors === 0) {
+      const gisFloors = Number((gisData as any)?.floors);
+      if (gisFloors > 0) {
+        effectiveFloors = gisFloors;
+        console.log("[AutoBilling] Using gisData.floors as fallback:", gisFloors);
+      }
+    }
+    if (effectiveFloors === 0) {
+      const fd = (gisData as any)?.floor_details;
+      if (Array.isArray(fd) && fd.length > 0) {
+        effectiveFloors = fd.length;
+        console.log("[AutoBilling] Using floor_details.length as fallback:", fd.length);
+      }
+    }
 
     const billingInput: AutoBillingInput = {
       sr_id: assignment?.sr_id,
       building_type: buildingType,
       floors: effectiveFloors,
-      route_cab_to_bep_meters: parseFloat(effectiveRoutes[0]?.koi || "0") || 0,
+      route_cab_to_bep_meters:
+        (parseFloat(effectiveRoutes[0]?.koi || "0") || 0) ||
+        Number((gisData as any)?.distance_from_cabinet) || 0,
       route_aerial_cab_to_bep_meters: parseFloat(effectiveRoutes[1]?.koi || "0") || 0,
       route_aerial_bep_to_fb_meters: parseFloat(effectiveRoutes[2]?.koi || "0") || 0,
       route_inhouse_meters: inhouseKoiSum,
