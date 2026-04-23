@@ -648,9 +648,10 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
       setBallMarkerBcp(savedSection6.bcp_ball_marker || "");
     }
 
-    // Prevent GIS defaults from overriding persisted values
+    // Prevent GIS defaults from overriding persisted values for FIELDS,
+    // but DO NOT lock materials autofill here — that's the responsibility
+    // of the saved-materials hydration effect (only locks when items > 0).
     setGisFieldsFilled(true);
-    setGisAutoFilled(true);
     setExistingConstructionLoaded(true);
   }, [existingConstruction, existingConstructionFetched, existingConstructionLoaded, assignment.cab]);
 
@@ -705,7 +706,12 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
     }
     autoAddedMaterialIdsRef.current = initialAutoMat;
     setExistingMaterialsLoaded(true);
-    setGisAutoFilled(true);
+    // ΜΟΝΟ αν υπάρχουν ΑΠΟΘΗΚΕΥΜΕΝΑ υλικά κλειδώνουμε το autofill.
+    // Αν είναι κενά (π.χ. construction δημιουργήθηκε αυτόματα από trigger
+    // χωρίς ποτέ να γεμίσει), αφήνουμε το GIS autofill να τρέξει κανονικά.
+    if (items.length > 0) {
+      setGisAutoFilled(true);
+    }
   }, [existingMaterials, existingMaterialsLoaded]);
 
   // (moved below gisData declaration)
