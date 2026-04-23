@@ -1573,10 +1573,8 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
       upsertMicro(microSmall, meters);
       upsertMicro(microLarge, meters);
 
-      // Ενδεικτικό πλέγμα σήμανσης 20cm = Μ/Σ Σκάμμα μέτρα
-      const skammaMeters = parseFloat(
-        ballMarkerBep ? (section6?.ms_skamma || "0") : "0"
-      );
+      // Ενδεικτικό πλέγμα σήμανσης 20cm = Μ/Σ Σκάμμα μέτρα (Οριζοντογραφία AS-BUILD)
+      const skammaMeters = Math.ceil(parseFloat(section6?.ms_skamma || "0") || 0);
       const plegma = materials.find((m: any) => {
         const upper = (m.name || "").toUpperCase();
         return (
