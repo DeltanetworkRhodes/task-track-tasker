@@ -50,6 +50,12 @@ import {
   isTierManagedCode,
   type AutoBillingInput,
 } from "@/lib/oteAutoBilling";
+import {
+  computeAutoMaterials,
+  mergeAutoMaterials,
+  isAutoManagedMaterialCode,
+  type AutoMaterialsInput,
+} from "@/lib/oteAutoMaterials";
 import { Sparkles, Zap } from "lucide-react";
 
 interface WorkItem {
@@ -234,6 +240,8 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
   // Παρακολούθηση των κωδικών που έχει προσθέσει αυτόματα ο engine
   // (επιτρέπει replace/remove όταν αλλάζουν μέτρα/τύπος εισαγωγής, χωρίς να ακουμπάει manual additions)
   const autoAddedCodesRef = useRef<Set<string>>(new Set());
+  // Παρακολούθηση των material IDs που έχει προσθέσει αυτόματα ο engine υλικών
+  const autoAddedMaterialIdsRef = useRef<Set<string>>(new Set());
 
   // Materials
   const [materialItems, setMaterialItems] = useState<MaterialItem[]>([]);
@@ -554,6 +562,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
     setExistingWorksLoaded(false);
     setExistingMaterialsLoaded(false);
     autoAddedCodesRef.current = new Set();
+    autoAddedMaterialIdsRef.current = new Set();
     setLastAutoBillingSummary(null);
     // CRITICAL: άδειασε τα state arrays για να μη "διαρρεύσουν" εργασίες/υλικά από προηγούμενο SR
     // στη μηχανή auto-billing του νέου SR (που οδηγούσε σε χαμένα/διπλά άρθρα).
@@ -678,6 +687,15 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
     }));
 
     setMaterialItems(items);
+    // Σημάδεψε τα auto-managed material codes ώστε η μηχανή υλικών να μπορεί
+    // να τα αντικαταστήσει όταν αλλάξει π.χ. το building_type ή ο τύπος fiber.
+    const initialAutoMat = new Set<string>();
+    for (const it of items) {
+      if (it.code && isAutoManagedMaterialCode(it.code)) {
+        initialAutoMat.add(it.material_id);
+      }
+    }
+    autoAddedMaterialIdsRef.current = initialAutoMat;
     setExistingMaterialsLoaded(true);
     setGisAutoFilled(true);
   }, [existingMaterials, existingMaterialsLoaded]);
@@ -1974,6 +1992,53 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
     inhouseKoiSum,
     floorMeters,
     section6,
+  ]);
+
+  // ⚡ Auto-Materials live engine — τρέχει σε κάθε αλλαγή building_type/floor_meters
+  useEffect(() => {
+    if (!autoBillingEnabled) return;
+    if (!materials || materials.length === 0) return;
+    if (existingConstruction && !existingMaterialsLoaded) return;
+
+    const matInput: AutoMaterialsInput = {
+      building_type: buildingType,
+      floor_meters: floorMeters,
+    };
+
+    const computed = computeAutoMaterials(matInput, materials as any);
+    if (computed.length === 0 && autoAddedMaterialIdsRef.current.size === 0) return;
+
+    setMaterialItems((prev) => {
+      const { items, added, updated, removed, nextAutoAddedIds } = mergeAutoMaterials(
+        prev,
+        computed,
+        materials as any,
+        (mat, quantity) => ({
+          material_id: mat.id,
+          code: mat.code,
+          name: mat.name,
+          unit: mat.unit,
+          price: Number(mat.price) || 0,
+          source: mat.source,
+          quantity,
+        }),
+        { autoAddedIds: autoAddedMaterialIdsRef.current },
+      );
+      autoAddedMaterialIdsRef.current = nextAutoAddedIds;
+      if (added.length === 0 && updated.length === 0 && removed.length === 0) return prev;
+      console.log(
+        `[AutoMaterials] +${added.length} ~${updated.length} -${removed.length}`,
+      );
+      return items;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    autoBillingEnabled,
+    materials,
+    buildingType,
+    floorMeters,
+    existingConstruction?.id,
+    existingMaterialsLoaded,
   ]);
 
   // Group materials by category
