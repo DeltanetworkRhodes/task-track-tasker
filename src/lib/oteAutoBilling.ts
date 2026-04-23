@@ -85,10 +85,11 @@ const isKnownBuildingType = (bt?: string | null) =>
  * Επιστρέφει πάντα το standard (όχι ΚΥΑ) — η ΚΥΑ μετατροπή γίνεται μόνο για 1955.2.
  */
 function pickNewPipeCode(meters: number): string {
-  if (meters <= 5) return "1965.1";
-  if (meters <= 15) return "1965.2";
-  if (meters <= 30) return "1965.3";
-  return "1965.4";
+  // Default: ΚΥΑ 2023 (1965.5-8) — οι νέες τιμές
+  if (meters <= 5) return "1965.5";
+  if (meters <= 15) return "1965.6";
+  if (meters <= 30) return "1965.7";
+  return "1965.8";
 }
 
 function pickEskalitCode(meters: number): string {
@@ -108,10 +109,11 @@ function pickBcpPrivateCode(meters: number): string {
 }
 
 function pickCabToBepUndergroundCode(meters: number): string {
-  if (meters <= 5) return "1993.1.1";
-  if (meters <= 15) return "1993.1.2";
-  if (meters <= 30) return "1993.1.3";
-  return "1993.1.4";
+  // Default: ΚΥΑ 2023 (1993.1.5-8) — οι νέες τιμές
+  if (meters <= 5) return "1993.1.5";
+  if (meters <= 15) return "1993.1.6";
+  if (meters <= 30) return "1993.1.7";
+  return "1993.1.8";
 }
 
 function pickCabToBepAerialCode(meters: number): string {
@@ -348,7 +350,7 @@ const TIER_FAMILIES: Array<{ name: string; codes: string[] }> = [
   { name: "new_pipe", codes: ["1965.1", "1965.2", "1965.3", "1965.4", "1965.5", "1965.6", "1965.7", "1965.8"] },
   { name: "bcp_public", codes: ["1991.1.1", "1991.1.2", "1991.1.3"] },
   { name: "bcp_private", codes: ["1991.2.1", "1991.2.2", "1991.2.3"] },
-  { name: "cab_bep_ug", codes: ["1993.1.1", "1993.1.2", "1993.1.3", "1993.1.4"] },
+  { name: "cab_bep_ug", codes: ["1993.1.1", "1993.1.2", "1993.1.3", "1993.1.4", "1993.1.5", "1993.1.6", "1993.1.7", "1993.1.8"] },
   { name: "cab_bep_air", codes: ["1993.2", "1993.3"] },
   { name: "emfysisi", codes: ["1980.1", "1980.2"] },
   { name: "horizontal", codes: ["1984.i", "1984.ii"] },
