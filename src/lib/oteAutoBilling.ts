@@ -182,9 +182,9 @@ export function computeAutoBilling(
 
   // ── 2) 🆕 BCP — split σε ΤΡΕΙΣ ξεχωριστές εργασίες ──
   const hasBcp = input.has_bcp || input.eisagogi_type === "BCP";
-  const bcpSkamma = Number(input.bcp_skamma_meters) || 0;
-  const bcpUg = Number(input.bcp_to_bep_underground_meters) || 0;
-  const bcpAir = Number(input.bcp_to_bep_aerial_meters) || 0;
+  const bcpSkamma = Number(input.bcp_skamma_meters) || Number(input.bcp_meters) || 0;
+  const bcpUg = Number(input.bcp_to_bep_underground_meters) || Number(input.bcp_bep_underground_meters) || 0;
+  const bcpAir = Number(input.bcp_to_bep_aerial_meters) || Number(input.bcp_bep_aerial_meters) || 0;
 
   if (hasBcp) {
     // 2A) Σκάψιμο Καμπ→BCP (1991.x)
