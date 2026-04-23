@@ -5076,12 +5076,27 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
               {section6.eisagogi_type === "BCP" && (
                 <div className="grid grid-cols-2 gap-3 border-t border-border pt-3">
                   <div>
-                    <Label className="text-xs">BCP Είδος</Label>
-                    <Input
-                      value={section6.bcp_eidos}
+                    <Label className="text-xs">
+                      BCP Είδος <span className="text-destructive">*</span>
+                    </Label>
+                    <select
+                      value={section6.bcp_eidos || ""}
                       onChange={(e) => setSection6((s) => ({ ...s, bcp_eidos: e.target.value }))}
-                      className="h-10 text-sm mt-1"
-                    />
+                      className={`h-10 text-sm mt-1 w-full rounded-md border px-3 ${
+                        !section6.bcp_eidos
+                          ? "border-destructive bg-destructive/10 text-destructive font-semibold"
+                          : "border-input bg-background text-foreground"
+                      }`}
+                    >
+                      <option value="">— Επίλεξε —</option>
+                      <option value="ΔΗΜΟΣΙΟ">🏛️ ΔΗΜΟΣΙΟ (στύλος/πεζοδρόμιο)</option>
+                      <option value="ΙΔΙΩΤΙΚΟ">🏠 ΙΔΙΩΤΙΚΟ (ιδιοκτησία/αυλή)</option>
+                    </select>
+                    {!section6.bcp_eidos && (
+                      <div className="text-xs text-destructive mt-1 font-semibold">
+                        ⚠️ Χωρίς είδος, το σκάμα BCP ΔΕΝ χρεώνεται!
+                      </div>
+                    )}
                   </div>
                   <div>
                     <Label className="text-xs">Ball Marker BCP</Label>
