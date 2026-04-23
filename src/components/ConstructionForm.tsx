@@ -5244,6 +5244,20 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
         </div>
       )}
 
+      {!isCrewMode && lastMaterialsAutoSummary && (lastMaterialsAutoSummary.added > 0 || lastMaterialsAutoSummary.updated > 0) && (
+        <div className="rounded-xl border border-primary/30 bg-gradient-to-r from-primary/10 via-primary/5 to-transparent p-3 flex items-center gap-3">
+          <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center text-base shrink-0">📦</div>
+          <div className="flex-1 min-w-0 text-sm">
+            <div className="font-semibold text-foreground">Αυτόματη χρέωση υλικών</div>
+            <div className="text-xs text-muted-foreground">
+              {lastMaterialsAutoSummary.added > 0 && `${lastMaterialsAutoSummary.added} προστέθηκαν`}
+              {lastMaterialsAutoSummary.added > 0 && lastMaterialsAutoSummary.updated > 0 && " · "}
+              {lastMaterialsAutoSummary.updated > 0 && `${lastMaterialsAutoSummary.updated} ενημερώθηκαν`} από GIS + Οριζοντογραφία
+            </div>
+          </div>
+        </div>
+      )}
+
       <Card className="overflow-hidden">
         <button
           type="button"
