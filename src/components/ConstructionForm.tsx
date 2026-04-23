@@ -1879,26 +1879,46 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
   // Παρακολουθεί τα πεδία της φόρμας και ενημερώνει αυτόματα τα workItems.
   // Διατηρεί χειροκίνητα προστιθέμενα άρθρα — προσθέτει μόνο όσα λείπουν.
   useEffect(() => {
+    // Snapshot για διαγνωστικά
+    const _diagState = {
+      autoBillingEnabled,
+      oteArticlesCount: oteArticlesRaw?.length ?? 0,
+      isCrewMode,
+      workPricingCount: workPricing?.length ?? 0,
+      existingConstructionLoaded,
+      hasExistingConstruction: !!existingConstruction?.id,
+      existingWorksLoaded,
+      buildingType,
+      floors: parseInt(floors) || 0,
+    };
+
     if (!autoBillingEnabled) {
       console.log("[AutoBilling] ⏸ disabled");
+      logDiag("auto_billing", "guard_blocked", { reason: "autoBillingEnabled=false" }, _diagState);
       return;
     }
     if (!oteArticlesRaw || oteArticlesRaw.length === 0) {
       console.log("[AutoBilling] ⏸ no OTE articles loaded yet");
+      logDiag("auto_billing", "guard_blocked", { reason: "no_ote_articles", got: oteArticlesRaw?.length ?? null }, _diagState);
       return;
     }
     if (!workPricing) {
       console.log("[AutoBilling] ⏸ work_pricing not loaded");
+      logDiag("auto_billing", "guard_blocked", { reason: "work_pricing_not_loaded" }, _diagState);
       return;
     }
     if (!existingConstructionLoaded) {
       console.log("[AutoBilling] ⏸ waiting for existing construction");
+      logDiag("auto_billing", "guard_blocked", { reason: "existing_construction_not_loaded" }, _diagState);
       return;
     }
     if (existingConstruction?.id && !existingWorksLoaded) {
       console.log("[AutoBilling] ⏸ waiting for existing works");
+      logDiag("auto_billing", "guard_blocked", { reason: "existing_works_not_loaded", construction_id: existingConstruction.id }, _diagState);
       return;
     }
+
+    logDiag("auto_billing", "all_guards_passed", {}, _diagState);
 
     // Σωστή επιλογή μέτρων εισαγωγής βάσει type — ΟΧΙ fallback ||
     // (αλλιώς όταν αλλάζει type μένουν τα παλιά μέτρα και βγαίνει λάθος tier κωδικός)
