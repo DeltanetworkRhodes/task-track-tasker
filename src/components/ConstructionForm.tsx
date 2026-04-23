@@ -1477,6 +1477,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
       // Microduct 8/10mm (χοντρό) — κενό
       addMaterial(
         (m) =>
+          m.code === "14034565" ||
           m.code === "14034374" ||
           nameMatches(m.name, "Microduct", "8/10") ||
           nameMatches(m.name, "Microduct", "Mde"),
@@ -1538,6 +1539,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
       (m.name?.toUpperCase().includes("MICRODUCT") && m.name?.includes("7/4"))
     );
     const microLarge = materials.find((m: any) =>
+      m.code === "14034565" ||
       m.code === "14034374" ||
       (m.name?.toUpperCase().includes("MICRODUCT") &&
         (m.name?.includes("8/10") || m.name?.toUpperCase().includes("MDE")))
@@ -1635,6 +1637,52 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
       return updated;
     });
   }, [ballMarkerBep, section6?.ms_skamma, materials]);
+
+  // 🔧 ΜΟΥΦΑ 14026591 — πάντα 1 τεμάχιο σε κάθε σωλήνωση από καμπίνα
+  useEffect(() => {
+    if (!materials) return;
+
+    const hasPipeFromCabin = !!(
+      parseFloat(ballMarkerBep || "0") > 0 ||
+      parseFloat(ballMarkerBcp || "0") > 0 ||
+      parseFloat(section6?.ms_skamma || "0") > 0 ||
+      parseFloat(effectiveRoutes?.[0]?.koi || "0") > 0
+    );
+
+    const moufa = materials.find((m: any) =>
+      m.code === "14026591" ||
+      (m.name?.toUpperCase().includes("SEALING") &&
+        (m.name?.includes("7/2") || m.name?.includes("7/2.5") || m.name?.includes("7/2,5"))) ||
+      (m.name?.toUpperCase().includes("ΜΟΥΦΑ") && m.name?.includes("7/2"))
+    );
+
+    if (!moufa) return;
+
+    setMaterialItems((prev) => {
+      const existIdx = prev.findIndex((m) => m.material_id === moufa.id);
+
+      if (!hasPipeFromCabin) {
+        return existIdx >= 0 ? prev.filter((_, i) => i !== existIdx) : prev;
+      }
+
+      if (existIdx >= 0) {
+        if (prev[existIdx].quantity === 1) return prev;
+        const updated = [...prev];
+        updated[existIdx] = { ...updated[existIdx], quantity: 1 };
+        return updated;
+      }
+
+      return [...prev, {
+        material_id: moufa.id,
+        code: moufa.code,
+        name: moufa.name,
+        unit: moufa.unit,
+        price: moufa.price,
+        source: moufa.source,
+        quantity: 1,
+      }];
+    });
+  }, [gisData, materials, ballMarkerBep, ballMarkerBcp, section6?.ms_skamma, effectiveRoutes]);
 
   // BCP → BEP υλικά
   useEffect(() => {

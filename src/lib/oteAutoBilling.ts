@@ -40,6 +40,11 @@ export interface AutoBillingInput {
   /** @deprecated Χρησιμοποίησε τα ξεχωριστά πεδία bcp_skamma_meters κλπ. Διατηρείται για backward compat. */
   bcp_meters?: number;
 
+  /** Alias για bcp_to_bep_underground_meters (backward compat) */
+  bcp_bep_underground_meters?: number;
+  /** Alias για bcp_to_bep_aerial_meters (backward compat) */
+  bcp_bep_aerial_meters?: number;
+
   fb_same_level_as_bep?: boolean;
   horizontal_meters?: number;
   cab_to_bep_damaged?: boolean;           // 1980.2 αν κατειλημμένη υποδομή

@@ -265,6 +265,7 @@ export function computeAutoMaterials(
     );
     addMaterial(
       (m) =>
+        m.code === "14034565" ||
         m.code === "14034374" ||
         nameMatches(m.name, "Microduct", "8/10") ||
         nameMatches(m.name, "Microduct", "Mde"),
