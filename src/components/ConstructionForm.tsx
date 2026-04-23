@@ -240,6 +240,8 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
   // Παρακολούθηση των κωδικών που έχει προσθέσει αυτόματα ο engine
   // (επιτρέπει replace/remove όταν αλλάζουν μέτρα/τύπος εισαγωγής, χωρίς να ακουμπάει manual additions)
   const autoAddedCodesRef = useRef<Set<string>>(new Set());
+  // Παρακολούθηση των material IDs που έχει προσθέσει αυτόματα ο engine υλικών
+  const autoAddedMaterialIdsRef = useRef<Set<string>>(new Set());
 
   // Materials
   const [materialItems, setMaterialItems] = useState<MaterialItem[]>([]);
@@ -560,6 +562,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
     setExistingWorksLoaded(false);
     setExistingMaterialsLoaded(false);
     autoAddedCodesRef.current = new Set();
+    autoAddedMaterialIdsRef.current = new Set();
     setLastAutoBillingSummary(null);
     // CRITICAL: άδειασε τα state arrays για να μη "διαρρεύσουν" εργασίες/υλικά από προηγούμενο SR
     // στη μηχανή auto-billing του νέου SR (που οδηγούσε σε χαμένα/διπλά άρθρα).
@@ -684,6 +687,15 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
     }));
 
     setMaterialItems(items);
+    // Σημάδεψε τα auto-managed material codes ώστε η μηχανή υλικών να μπορεί
+    // να τα αντικαταστήσει όταν αλλάξει π.χ. το building_type ή ο τύπος fiber.
+    const initialAutoMat = new Set<string>();
+    for (const it of items) {
+      if (it.code && isAutoManagedMaterialCode(it.code)) {
+        initialAutoMat.add(it.material_id);
+      }
+    }
+    autoAddedMaterialIdsRef.current = initialAutoMat;
     setExistingMaterialsLoaded(true);
     setGisAutoFilled(true);
   }, [existingMaterials, existingMaterialsLoaded]);
