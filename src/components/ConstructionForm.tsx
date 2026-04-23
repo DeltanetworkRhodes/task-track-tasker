@@ -1514,88 +1514,9 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
     toast.success(`✅ Επαναφορτώθηκαν ${items.length} υλικά από GIS`, { duration: 5000 });
   }, [gisData, materials, computeGisMaterials]);
 
-  useEffect(() => {
-    const hasExistingConstruction = !!existingConstruction;
-    const hasExistingSavedMaterials = (existingMaterials?.length || 0) > 0;
-    const existingMaterialLookupReady = !existingConstruction ? existingConstructionFetched : existingMaterialsFetched;
-
-    const _diagState = {
-      existingMaterialLookupReady,
-      hasGisData: !!gisData,
-      materialsCount: materials?.length ?? 0,
-      gisAutoFilled,
-      materialItemsCount: materialItems.length,
-      hasExistingSavedMaterials,
-      hasExistingConstruction,
-    };
-
-    if (!existingMaterialLookupReady) {
-      logDiag("materials_autofill", "guard_blocked", { reason: "lookup_not_ready" }, _diagState);
-      return;
-    }
-    if (!gisData) {
-      logDiag("materials_autofill", "guard_blocked", { reason: "no_gis_data" }, _diagState);
-      return;
-    }
-    if (!materials) {
-      logDiag("materials_autofill", "guard_blocked", { reason: "materials_not_loaded" }, _diagState);
-      return;
-    }
-    if (gisAutoFilled) {
-      logDiag("materials_autofill", "guard_blocked", { reason: "already_filled_once" }, _diagState);
-      return;
-    }
-    if (materialItems.length > 0) {
-      logDiag("materials_autofill", "guard_blocked", { reason: "user_has_items", count: materialItems.length }, _diagState);
-      return;
-    }
-    if (hasExistingSavedMaterials) {
-      logDiag("materials_autofill", "guard_blocked", { reason: "db_has_saved", count: existingMaterials?.length ?? 0 }, _diagState);
-      return;
-    }
-    if (hasExistingConstruction) {
-      logDiag("materials_autofill", "guard_blocked", { reason: "existing_construction" }, _diagState);
-      return;
-    }
-
-    logDiag("materials_autofill", "all_guards_passed", {}, _diagState);
-
-    const autoItems = computeGisMaterials();
-    logDiag("materials_autofill", "computed", {
-      count: autoItems?.length ?? 0,
-      codes: autoItems?.map((i) => `${i.code}×${i.quantity}`) ?? [],
-    });
-
-    if (autoItems && autoItems.length > 0) {
-      setMaterialItems(autoItems);
-      setMaterialTab("OTE");
-      setGisAutoFilled(true);
-      toast.success(`✅ Αυτόματη χρέωση ${autoItems.length} υλικών από GIS`, { duration: 6000 });
-      logDiag("materials_autofill", "applied", { count: autoItems.length });
-    } else if (gisData) {
-      console.log("GIS auto-fill: no matching materials found.");
-      logDiag("materials_autofill", "no_match", {
-        bep_type: (gisData as any).bep_type,
-        bmo_type: (gisData as any).bmo_type,
-        optical_paths: ((gisData as any).optical_paths as any[])?.length,
-        floor_details: ((gisData as any).floor_details as any[])?.length,
-        nearby_bcp: (gisData as any).nearby_bcp,
-        new_bcp: (gisData as any).new_bcp,
-      });
-    }
-  }, [
-    existingConstruction,
-    existingConstructionFetched,
-    existingMaterials,
-    existingMaterialsFetched,
-    gisData,
-    materials,
-    gisAutoFilled,
-    materialItems.length,
-    computeGisMaterials,
-    section6,
-    routes,
-  ]);
+  // ⚠️ Παλιός autofill useEffect αφαιρέθηκε (Step 4) — αντικαταστάθηκε από
+  // τον νέο engine (`computeAutoMaterials` + `mergeAutoMaterials`) παρακάτω.
+  // Το `computeGisMaterials` παραμένει για το manual refill button.
 
   // Microduct trigger — προσθέτει/ενημερώνει/αφαιρεί τα 2 Microducts
   // βάσει του Ball Marker (BEP ή BCP) όταν ο τεχνικός το συμπληρώνει.
