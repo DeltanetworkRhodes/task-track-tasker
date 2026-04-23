@@ -358,6 +358,70 @@ export type Database = {
           },
         ]
       }
+      auto_system_logs: {
+        Row: {
+          assignment_id: string | null
+          created_at: string
+          details: Json | null
+          event: string
+          expires_at: string
+          id: string
+          organization_id: string
+          sr_id: string | null
+          state_snapshot: Json | null
+          system: string
+          user_id: string | null
+        }
+        Insert: {
+          assignment_id?: string | null
+          created_at?: string
+          details?: Json | null
+          event: string
+          expires_at?: string
+          id?: string
+          organization_id: string
+          sr_id?: string | null
+          state_snapshot?: Json | null
+          system: string
+          user_id?: string | null
+        }
+        Update: {
+          assignment_id?: string | null
+          created_at?: string
+          details?: Json | null
+          event?: string
+          expires_at?: string
+          id?: string
+          organization_id?: string
+          sr_id?: string | null
+          state_snapshot?: Json | null
+          system?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "auto_system_logs_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "assignments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "auto_system_logs_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "sr_billing_totals"
+            referencedColumns: ["assignment_id"]
+          },
+          {
+            foreignKeyName: "auto_system_logs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       building_pricing: {
         Row: {
           building_icon: string | null
@@ -2769,6 +2833,7 @@ export type Database = {
       }
     }
     Functions: {
+      cleanup_expired_auto_system_logs: { Args: never; Returns: undefined }
       get_user_org_id: { Args: { _user_id: string }; Returns: string }
       has_role: {
         Args: {

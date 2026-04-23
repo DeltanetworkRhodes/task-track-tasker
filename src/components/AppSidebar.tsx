@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, ClipboardCheck, Wrench, Package, LogOut, FileText, TrendingUp, Search, UserCog, X, BarChart3, Settings, Sun, Moon, CalendarDays, GripVertical, Check, FileSpreadsheet, Banknote, ShieldCheck, Receipt } from "lucide-react";
+import { LayoutDashboard, ClipboardCheck, Wrench, Package, LogOut, FileText, TrendingUp, Search, UserCog, X, BarChart3, Settings, Sun, Moon, CalendarDays, GripVertical, Check, FileSpreadsheet, Banknote, ShieldCheck, Receipt, Activity } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import NotificationBell from "@/components/NotificationBell";
 import deltaLogoIcon from "@/assets/delta-logo-icon.png";
@@ -23,6 +23,7 @@ const DEFAULT_NAV_ITEMS = [
   { to: '/documents', label: 'Documents', icon: FileSpreadsheet },
   { to: '/users', label: 'Χρήστες', icon: UserCog },
   { to: '/settings', label: 'Ρυθμίσεις', icon: Settings },
+  { to: '/diagnostics', label: 'Διαγνωστικά', icon: Activity },
 ];
 
 const ICON_MAP: Record<string, React.ElementType> = {
@@ -42,6 +43,7 @@ const ICON_MAP: Record<string, React.ElementType> = {
   '/documents': FileSpreadsheet,
   '/users': UserCog,
   '/settings': Settings,
+  '/diagnostics': Activity,
 };
 
 function getSavedOrder(): string[] | null {

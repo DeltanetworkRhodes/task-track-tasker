@@ -35,6 +35,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { isOnline, enqueueConstruction, fileToOfflineFile, type OfflineConstructionPayload } from "@/lib/offlineQueue";
 import { usePhotoChecklist } from "@/hooks/usePhotoChecklist";
 import PhotoChecklist from "@/components/PhotoChecklist";
+import { useDiagnosticLogger } from "@/hooks/useDiagnosticLogger";
 
 import { useUserRole } from "@/hooks/useUserRole";
 import {
@@ -146,6 +147,13 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
   const queryClient = useQueryClient();
   
   const { activeEntry, checkOut } = useTimeTracking(assignment.id);
+
+  // 🔍 Διαγνωστικός logger για auto-billing & materials autofill (Step 1: observability only)
+  const logDiag = useDiagnosticLogger({
+    organizationId,
+    assignmentId: assignment?.id,
+    srId: assignment?.sr_id,
+  });
 
 
 
@@ -1474,16 +1482,69 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
     const hasExistingSavedMaterials = (existingMaterials?.length || 0) > 0;
     const existingMaterialLookupReady = !existingConstruction ? existingConstructionFetched : existingMaterialsFetched;
 
-    if (!existingMaterialLookupReady || !gisData || !materials || gisAutoFilled || materialItems.length > 0 || hasExistingSavedMaterials || hasExistingConstruction) return;
+    const _diagState = {
+      existingMaterialLookupReady,
+      hasGisData: !!gisData,
+      materialsCount: materials?.length ?? 0,
+      gisAutoFilled,
+      materialItemsCount: materialItems.length,
+      hasExistingSavedMaterials,
+      hasExistingConstruction,
+    };
+
+    if (!existingMaterialLookupReady) {
+      logDiag("materials_autofill", "guard_blocked", { reason: "lookup_not_ready" }, _diagState);
+      return;
+    }
+    if (!gisData) {
+      logDiag("materials_autofill", "guard_blocked", { reason: "no_gis_data" }, _diagState);
+      return;
+    }
+    if (!materials) {
+      logDiag("materials_autofill", "guard_blocked", { reason: "materials_not_loaded" }, _diagState);
+      return;
+    }
+    if (gisAutoFilled) {
+      logDiag("materials_autofill", "guard_blocked", { reason: "already_filled_once" }, _diagState);
+      return;
+    }
+    if (materialItems.length > 0) {
+      logDiag("materials_autofill", "guard_blocked", { reason: "user_has_items", count: materialItems.length }, _diagState);
+      return;
+    }
+    if (hasExistingSavedMaterials) {
+      logDiag("materials_autofill", "guard_blocked", { reason: "db_has_saved", count: existingMaterials?.length ?? 0 }, _diagState);
+      return;
+    }
+    if (hasExistingConstruction) {
+      logDiag("materials_autofill", "guard_blocked", { reason: "existing_construction" }, _diagState);
+      return;
+    }
+
+    logDiag("materials_autofill", "all_guards_passed", {}, _diagState);
 
     const autoItems = computeGisMaterials();
+    logDiag("materials_autofill", "computed", {
+      count: autoItems?.length ?? 0,
+      codes: autoItems?.map((i) => `${i.code}×${i.quantity}`) ?? [],
+    });
+
     if (autoItems && autoItems.length > 0) {
       setMaterialItems(autoItems);
       setMaterialTab("OTE");
       setGisAutoFilled(true);
       toast.success(`✅ Αυτόματη χρέωση ${autoItems.length} υλικών από GIS`, { duration: 6000 });
+      logDiag("materials_autofill", "applied", { count: autoItems.length });
     } else if (gisData) {
       console.log("GIS auto-fill: no matching materials found.");
+      logDiag("materials_autofill", "no_match", {
+        bep_type: (gisData as any).bep_type,
+        bmo_type: (gisData as any).bmo_type,
+        optical_paths: ((gisData as any).optical_paths as any[])?.length,
+        floor_details: ((gisData as any).floor_details as any[])?.length,
+        nearby_bcp: (gisData as any).nearby_bcp,
+        new_bcp: (gisData as any).new_bcp,
+      });
     }
   }, [
     existingConstruction,
@@ -1871,26 +1932,46 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
   // Παρακολουθεί τα πεδία της φόρμας και ενημερώνει αυτόματα τα workItems.
   // Διατηρεί χειροκίνητα προστιθέμενα άρθρα — προσθέτει μόνο όσα λείπουν.
   useEffect(() => {
+    // Snapshot για διαγνωστικά
+    const _diagState = {
+      autoBillingEnabled,
+      oteArticlesCount: oteArticlesRaw?.length ?? 0,
+      isCrewMode,
+      workPricingCount: workPricing?.length ?? 0,
+      existingConstructionLoaded,
+      hasExistingConstruction: !!existingConstruction?.id,
+      existingWorksLoaded,
+      buildingType,
+      floors: parseInt(floors) || 0,
+    };
+
     if (!autoBillingEnabled) {
       console.log("[AutoBilling] ⏸ disabled");
+      logDiag("auto_billing", "guard_blocked", { reason: "autoBillingEnabled=false" }, _diagState);
       return;
     }
     if (!oteArticlesRaw || oteArticlesRaw.length === 0) {
       console.log("[AutoBilling] ⏸ no OTE articles loaded yet");
+      logDiag("auto_billing", "guard_blocked", { reason: "no_ote_articles", got: oteArticlesRaw?.length ?? null }, _diagState);
       return;
     }
     if (!workPricing) {
       console.log("[AutoBilling] ⏸ work_pricing not loaded");
+      logDiag("auto_billing", "guard_blocked", { reason: "work_pricing_not_loaded" }, _diagState);
       return;
     }
     if (!existingConstructionLoaded) {
       console.log("[AutoBilling] ⏸ waiting for existing construction");
+      logDiag("auto_billing", "guard_blocked", { reason: "existing_construction_not_loaded" }, _diagState);
       return;
     }
     if (existingConstruction?.id && !existingWorksLoaded) {
       console.log("[AutoBilling] ⏸ waiting for existing works");
+      logDiag("auto_billing", "guard_blocked", { reason: "existing_works_not_loaded", construction_id: existingConstruction.id }, _diagState);
       return;
     }
+
+    logDiag("auto_billing", "all_guards_passed", {}, _diagState);
 
     // Σωστή επιλογή μέτρων εισαγωγής βάσει type — ΟΧΙ fallback ||
     // (αλλιώς όταν αλλάζει type μένουν τα παλιά μέτρα και βγαίνει λάθος tier κωδικός)
@@ -1957,6 +2038,11 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
       `[AutoBilling] ✓ computed ${computed.length} articles:`,
       computed.map((c) => `${c.code}×${c.quantity}`).join(", "),
     );
+    logDiag("auto_billing", "computed", {
+      input: billingInput,
+      output_count: computed.length,
+      codes: computed.map((c) => `${c.code}×${c.quantity}`),
+    });
 
     let summary: { added: number; updated: number } | null = null;
 
@@ -1975,6 +2061,10 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
 
     if (summary) {
       setLastAutoBillingSummary(summary);
+      logDiag("auto_billing", "applied_changes", {
+        added: (summary as any).added,
+        updated: (summary as any).updated,
+      });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [

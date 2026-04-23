@@ -35,6 +35,7 @@ import FtthLabelGenerator from "./pages/FtthLabelGenerator";
 import MyEarnings from "./pages/MyEarnings";
 import PhotoRequirements from "./pages/PhotoRequirements";
 import OtePricing from "./pages/OtePricing";
+import Diagnostics from "./pages/Diagnostics";
 
 import NotFound from "./pages/NotFound";
 import HelpChatBot from "./components/HelpChatBot";
@@ -142,6 +143,7 @@ const App = () => (
                   <Route path="/my-earnings" element={<ProtectedRoute><RoleGate><MyEarnings /></RoleGate></ProtectedRoute>} />
                   <Route path="/photo-requirements" element={<ProtectedRoute><RoleGate><AdminRoute><PhotoRequirements /></AdminRoute></RoleGate></ProtectedRoute>} />
                   <Route path="/ote-pricing" element={<ProtectedRoute><RoleGate><AdminRoute><OtePricing /></AdminRoute></RoleGate></ProtectedRoute>} />
+                  <Route path="/diagnostics" element={<ProtectedRoute><RoleGate><AdminRoute><Diagnostics /></AdminRoute></RoleGate></ProtectedRoute>} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </BrowserRouter>
