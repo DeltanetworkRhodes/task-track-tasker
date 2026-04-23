@@ -79,7 +79,8 @@ export default function Diagnostics() {
           </Card>
         )}
 
-        {Object.entries(bySR).map(([srId, srLogs]) => {
+        {Object.entries(bySR).map(([srId, srLogsRaw]) => {
+          const srLogs = srLogsRaw as any[];
           const billingLogs = srLogs.filter((l) => l.system === "auto_billing");
           const materialsLogs = srLogs.filter((l) => l.system === "materials_autofill");
           const billingPassed = billingLogs.find((l) => l.event === "all_guards_passed");
