@@ -1190,12 +1190,32 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
       }
     }
 
-    // ── BCP στοιχεία στο section6 ──
+    // ── BCP Είδος από GIS (μόνο αρχική πρόταση, ο τεχνικός μπορεί να αλλάξει) ──
     if (rawData.bcp_placement && !section6?.bcp_eidos) {
-      setSection6((s) => ({
-        ...s,
-        bcp_eidos: rawData.bcp_type_oriz || rawData["BCP ΕΙΔΟΣ"] || "",
-      }));
+      const gisEidos = String(
+        rawData.bcp_type_oriz ||
+          rawData["BCP ΕΙΔΟΣ"] ||
+          rawData.bcp_placement_type ||
+          "",
+      )
+        .toUpperCase()
+        .trim();
+
+      let suggestedEidos = "";
+      if (gisEidos.includes("ΔΗΜΟΣ") || gisEidos.includes("PUBLIC") || gisEidos === "Δ") {
+        suggestedEidos = "ΔΗΜΟΣΙΟ";
+      } else if (gisEidos.includes("ΙΔΙΩΤ") || gisEidos.includes("PRIVATE") || gisEidos === "Ι") {
+        suggestedEidos = "ΙΔΙΩΤΙΚΟ";
+      } else if (rawData.bcp_placement) {
+        // Αν το GIS δεν καθορίζει σαφώς, default σε ΔΗΜΟΣΙΟ (πιο συχνό)
+        suggestedEidos = "ΔΗΜΟΣΙΟ";
+        console.log("[BCP] Είδος δεν καθορίστηκε από GIS — default ΔΗΜΟΣΙΟ");
+      }
+
+      if (suggestedEidos) {
+        setSection6((s) => ({ ...s, bcp_eidos: suggestedEidos }));
+        console.log(`[BCP] Auto-filled bcp_eidos: ${suggestedEidos}`);
+      }
     }
 
     // ── FTTH ΥΠΟΓ ΔΔ KOI (routes[0]) από distance_from_cabinet ──
@@ -1494,88 +1514,9 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
     toast.success(`✅ Επαναφορτώθηκαν ${items.length} υλικά από GIS`, { duration: 5000 });
   }, [gisData, materials, computeGisMaterials]);
 
-  useEffect(() => {
-    const hasExistingConstruction = !!existingConstruction;
-    const hasExistingSavedMaterials = (existingMaterials?.length || 0) > 0;
-    const existingMaterialLookupReady = !existingConstruction ? existingConstructionFetched : existingMaterialsFetched;
-
-    const _diagState = {
-      existingMaterialLookupReady,
-      hasGisData: !!gisData,
-      materialsCount: materials?.length ?? 0,
-      gisAutoFilled,
-      materialItemsCount: materialItems.length,
-      hasExistingSavedMaterials,
-      hasExistingConstruction,
-    };
-
-    if (!existingMaterialLookupReady) {
-      logDiag("materials_autofill", "guard_blocked", { reason: "lookup_not_ready" }, _diagState);
-      return;
-    }
-    if (!gisData) {
-      logDiag("materials_autofill", "guard_blocked", { reason: "no_gis_data" }, _diagState);
-      return;
-    }
-    if (!materials) {
-      logDiag("materials_autofill", "guard_blocked", { reason: "materials_not_loaded" }, _diagState);
-      return;
-    }
-    if (gisAutoFilled) {
-      logDiag("materials_autofill", "guard_blocked", { reason: "already_filled_once" }, _diagState);
-      return;
-    }
-    if (materialItems.length > 0) {
-      logDiag("materials_autofill", "guard_blocked", { reason: "user_has_items", count: materialItems.length }, _diagState);
-      return;
-    }
-    if (hasExistingSavedMaterials) {
-      logDiag("materials_autofill", "guard_blocked", { reason: "db_has_saved", count: existingMaterials?.length ?? 0 }, _diagState);
-      return;
-    }
-    if (hasExistingConstruction) {
-      logDiag("materials_autofill", "guard_blocked", { reason: "existing_construction" }, _diagState);
-      return;
-    }
-
-    logDiag("materials_autofill", "all_guards_passed", {}, _diagState);
-
-    const autoItems = computeGisMaterials();
-    logDiag("materials_autofill", "computed", {
-      count: autoItems?.length ?? 0,
-      codes: autoItems?.map((i) => `${i.code}×${i.quantity}`) ?? [],
-    });
-
-    if (autoItems && autoItems.length > 0) {
-      setMaterialItems(autoItems);
-      setMaterialTab("OTE");
-      setGisAutoFilled(true);
-      toast.success(`✅ Αυτόματη χρέωση ${autoItems.length} υλικών από GIS`, { duration: 6000 });
-      logDiag("materials_autofill", "applied", { count: autoItems.length });
-    } else if (gisData) {
-      console.log("GIS auto-fill: no matching materials found.");
-      logDiag("materials_autofill", "no_match", {
-        bep_type: (gisData as any).bep_type,
-        bmo_type: (gisData as any).bmo_type,
-        optical_paths: ((gisData as any).optical_paths as any[])?.length,
-        floor_details: ((gisData as any).floor_details as any[])?.length,
-        nearby_bcp: (gisData as any).nearby_bcp,
-        new_bcp: (gisData as any).new_bcp,
-      });
-    }
-  }, [
-    existingConstruction,
-    existingConstructionFetched,
-    existingMaterials,
-    existingMaterialsFetched,
-    gisData,
-    materials,
-    gisAutoFilled,
-    materialItems.length,
-    computeGisMaterials,
-    section6,
-    routes,
-  ]);
+  // ⚠️ Παλιός autofill useEffect αφαιρέθηκε (Step 4) — αντικαταστάθηκε από
+  // τον νέο engine (`computeAutoMaterials` + `mergeAutoMaterials`) παρακάτω.
+  // Το `computeGisMaterials` παραμένει για το manual refill button.
 
   // Microduct trigger — προσθέτει/ενημερώνει/αφαιρεί τα 2 Microducts
   // βάσει του Ball Marker (BEP ή BCP) όταν ο τεχνικός το συμπληρώνει.
@@ -5135,12 +5076,27 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
               {section6.eisagogi_type === "BCP" && (
                 <div className="grid grid-cols-2 gap-3 border-t border-border pt-3">
                   <div>
-                    <Label className="text-xs">BCP Είδος</Label>
-                    <Input
-                      value={section6.bcp_eidos}
+                    <Label className="text-xs">
+                      BCP Είδος <span className="text-destructive">*</span>
+                    </Label>
+                    <select
+                      value={section6.bcp_eidos || ""}
                       onChange={(e) => setSection6((s) => ({ ...s, bcp_eidos: e.target.value }))}
-                      className="h-10 text-sm mt-1"
-                    />
+                      className={`h-10 text-sm mt-1 w-full rounded-md border px-3 ${
+                        !section6.bcp_eidos
+                          ? "border-destructive bg-destructive/10 text-destructive font-semibold"
+                          : "border-input bg-background text-foreground"
+                      }`}
+                    >
+                      <option value="">— Επίλεξε —</option>
+                      <option value="ΔΗΜΟΣΙΟ">🏛️ ΔΗΜΟΣΙΟ (στύλος/πεζοδρόμιο)</option>
+                      <option value="ΙΔΙΩΤΙΚΟ">🏠 ΙΔΙΩΤΙΚΟ (ιδιοκτησία/αυλή)</option>
+                    </select>
+                    {!section6.bcp_eidos && (
+                      <div className="text-xs text-destructive mt-1 font-semibold">
+                        ⚠️ Χωρίς είδος, το σκάμα BCP ΔΕΝ χρεώνεται!
+                      </div>
+                    )}
                   </div>
                   <div>
                     <Label className="text-xs">Ball Marker BCP</Label>
@@ -5241,17 +5197,22 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
         </div>
       )}
 
-      {/* BCP Warning — αν επέλεξε BCP αλλά δεν έχει συμπληρώσει BCP Είδος */}
+      {/* BCP Warning — κρίσιμο: εμφανίζεται όταν επιλέγεται BCP χωρίς είδος */}
       {!isCrewMode &&
         section6?.eisagogi_type === "BCP" &&
-        !section6?.bcp_eidos &&
-        parseFloat(section6?.bcp_ms || "0") > 0 && (
-          <div className="rounded-xl border border-destructive/40 bg-destructive/10 p-3 flex items-center gap-3">
-            <div className="h-8 w-8 rounded-full bg-destructive/20 flex items-center justify-center text-base shrink-0">⚠️</div>
-            <div className="min-w-0 flex-1">
-              <div className="font-semibold text-destructive">Λείπει BCP Είδος!</div>
-              <div className="text-xs text-muted-foreground">
-                Συμπλήρωσε «ΔΗΜΟΣΙΟ» ή «ΙΔΙΩΤΙΚΟ» στο πεδίο BCP Είδος — αλλιώς το σκάμα ΔΕΝ θα χρεωθεί.
+        !section6?.bcp_eidos && (
+          <div className="rounded-xl border-2 border-destructive bg-destructive/10 p-4 flex items-center gap-3 animate-pulse">
+            <div className="h-10 w-10 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center text-lg font-bold flex-shrink-0">
+              !
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="font-bold text-destructive text-sm">
+                ΠΡΟΣΟΧΗ: Λείπει BCP Είδος!
+              </div>
+              <div className="text-xs text-destructive/90 mt-1">
+                Επίλεξε <b>ΔΗΜΟΣΙΟ</b> ή <b>ΙΔΙΩΤΙΚΟ</b> στα πεδία BCP.
+                <br />
+                <b>Χωρίς αυτό, χάνεις 174-181€ ανά SR!</b>
               </div>
             </div>
           </div>
