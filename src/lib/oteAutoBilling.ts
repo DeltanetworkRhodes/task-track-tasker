@@ -45,10 +45,28 @@ export interface BillingItem {
 const isKya = (sr_id?: string | null) =>
   !!sr_id && sr_id.trim().startsWith("2-");
 
-const isSmallBuilding = (bt?: string | null) =>
-  bt === "mono" || bt === "mez" || bt === "small" || bt === "small_apt";
+const isSmallBuilding = (bt?: string | null) => {
+  const normalized = String(bt || "").toLowerCase().trim();
+  return (
+    normalized === "mono" ||
+    normalized === "mez" ||
+    normalized === "small" ||
+    normalized === "small_apt"
+  );
+};
 
-// "poly" / "medium_apt" / "large_apt" → μεσαίο/μεγάλο. Ό,τι άλλο → επίσης μεσαίο
+// "poly" / "medium_apt" / "large_apt" / "biz" / "complex" → μεσαίο/μεγάλο.
+const isMediumLargeBuilding = (bt?: string | null) => {
+  const normalized = String(bt || "").toLowerCase().trim();
+  return (
+    normalized === "poly" ||
+    normalized === "medium_apt" ||
+    normalized === "large_apt" ||
+    normalized === "biz" ||
+    normalized === "complex"
+  );
+};
+
 // (defensive default ώστε να μη χάνεται 1956.1/1970.5 όταν λείπει το type).
 const isKnownBuildingType = (bt?: string | null) =>
   !!bt && bt.length > 0;
