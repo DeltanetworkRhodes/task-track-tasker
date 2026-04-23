@@ -63,6 +63,7 @@ import {
   type MaterialsAutoFillInput,
 } from "@/lib/oteMaterialsAutoFill";
 import { Sparkles, Zap } from "lucide-react";
+import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 
 interface WorkItem {
   work_pricing_id: string;
