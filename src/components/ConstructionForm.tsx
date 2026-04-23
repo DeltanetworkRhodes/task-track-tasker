@@ -5008,14 +5008,59 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
       {/* 🗺️ Οριζοντογραφία AS-BUILD (collapsible) — admin + Φάση 2/3 */}
       {(!isCrewMode || phase === 2 || phase === 3) && (
         <Card className="p-5 space-y-2.5">
-          <button
-            type="button"
-            onClick={() => setAsbuiltCardOpen((o) => !o)}
-            className="w-full flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-muted-foreground"
-          >
-            <span>🗺️ Οριζοντογραφία AS-BUILD</span>
-            {asbuiltCardOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-          </button>
+          <div className="flex items-center justify-between gap-3">
+            <button
+              type="button"
+              onClick={() => setAsbuiltCardOpen((o) => !o)}
+              className="flex-1 flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+            >
+              <span>🗺️ Οριζοντογραφία AS-BUILD</span>
+              {asbuiltCardOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+            </button>
+            <VoiceInputButton
+              context="as_build"
+              label="Φωνή"
+              currentFields={{
+                floors,
+                building_type: buildingType,
+                bep_type: gisData?.bep_type,
+                bmo_type: gisData?.bmo_type,
+                ...section6,
+              }}
+              onApply={(fields) => {
+                if (fields.floors !== undefined) setFloors(String(fields.floors));
+                if (fields.building_type) setBuildingType(fields.building_type);
+                if (fields.bep_type) setGisData((g: any) => ({ ...g, bep_type: fields.bep_type }));
+                if (fields.bmo_type) setGisData((g: any) => ({ ...g, bmo_type: fields.bmo_type }));
+                const s6Keys = [
+                  "eisagogi_type",
+                  "eisagogi_meters",
+                  "bcp_eidos",
+                  "bcp_ms",
+                  "bcp_bep_ypogeia",
+                  "bcp_bep_enaeria",
+                  "horizontal_meters",
+                  "fb_same_level_as_bep",
+                  "cab_to_bep_damaged",
+                  "ms_skamma",
+                  "ball_marker_bep",
+                  "ball_marker_bcp",
+                  "bmo_bep_distance",
+                ];
+                setSection6((s: any) => {
+                  const updated = { ...s };
+                  s6Keys.forEach((k) => {
+                    if (fields[k] !== undefined) {
+                      updated[k] =
+                        typeof fields[k] === "boolean" ? fields[k] : String(fields[k]);
+                    }
+                  });
+                  return updated;
+                });
+                if (!asbuiltCardOpen) setAsbuiltCardOpen(true);
+              }}
+            />
+          </div>
           {asbuiltCardOpen && (
             <div className="space-y-3 pt-2">
               {/* Α — πάντα */}
