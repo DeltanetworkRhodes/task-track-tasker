@@ -29,8 +29,17 @@ export interface AutoBillingInput {
   // Section6 / Οριζοντογραφία
   eisagogi_type?: string | null;          // 'ΝΕΑ ΥΠΟΔΟΜΗ' | 'ΕΣΚΑΛΗΤ' | 'ΕΣΚΑΛΗΤ Β1' | 'BCP'
   eisagogi_meters?: number;               // μέτρα του "είδους εισαγωγής"
-  bcp_eidos?: string | null;              // 'ΔΗΜΟΣΙΟ' | 'ΙΔΙΩΤΙΚΟ' (όταν eisagogi=BCP)
-  bcp_meters?: number;                    // μέτρα BCP εισαγωγής
+
+  // 🆕 BCP — ΞΕΧΩΡΙΣΤΑ πεδία για κάθε εργασία (split από bcp_meters sum)
+  bcp_eidos?: string | null;              // 'ΔΗΜΟΣΙΟ' | 'ΙΔΙΩΤΙΚΟ' (από τεχνικό)
+  bcp_skamma_meters?: number;             // Μ/Σ — σκάμα Καμπ→BCP (1991.x)
+  bcp_to_bep_underground_meters?: number; // BCP→BEP υπόγεια (1993.1.x)
+  bcp_to_bep_aerial_meters?: number;      // BCP→BEP εναέρια (1993.2/3 + 1994Α)
+  has_bcp?: boolean;                      // αν υπάρχει BCP (από GIS ή τεχνικό)
+
+  /** @deprecated Χρησιμοποίησε τα ξεχωριστά πεδία bcp_skamma_meters κλπ. Διατηρείται για backward compat. */
+  bcp_meters?: number;
+
   fb_same_level_as_bep?: boolean;
   horizontal_meters?: number;
   cab_to_bep_damaged?: boolean;           // 1980.2 αν κατειλημμένη υποδομή
@@ -109,6 +118,14 @@ function pickCabToBepAerialCode(meters: number): string {
   return meters <= 16 ? "1993.3" : "1993.2";
 }
 
+// BCP → BEP χρησιμοποιεί τους ίδιους πίνακες tier με Καμπ→BEP
+function pickBcpToBepUndergroundCode(meters: number): string {
+  return pickCabToBepUndergroundCode(meters);
+}
+function pickBcpToBepAerialCode(meters: number): string {
+  return pickCabToBepAerialCode(meters);
+}
+
 /**
  * Κύρια συνάρτηση. Επιστρέφει όλα τα άρθρα που εντοπίζονται από τη φόρμα.
  */
@@ -129,7 +146,7 @@ export function computeAutoBilling(
   const floors = Math.max(0, Number(input.floors) || 0);
 
   // === Διαγνωστικά ===
-  console.log("[computeAutoBilling] input:", {
+  console.log("[computeAutoBilling] 📊 INPUT:", {
     sr_id: input.sr_id,
     building_type: input.building_type,
     floors,
@@ -138,7 +155,10 @@ export function computeAutoBilling(
     eisagogi_type: input.eisagogi_type,
     eisagogi_meters: input.eisagogi_meters,
     bcp_eidos: input.bcp_eidos,
-    bcp_meters: input.bcp_meters,
+    bcp_skamma_meters: input.bcp_skamma_meters,
+    bcp_to_bep_underground_meters: input.bcp_to_bep_underground_meters,
+    bcp_to_bep_aerial_meters: input.bcp_to_bep_aerial_meters,
+    has_bcp: input.has_bcp,
     fb_same_level_as_bep: input.fb_same_level_as_bep,
     horizontal_meters: input.horizontal_meters,
     route_cab_to_bep_meters: input.route_cab_to_bep_meters,
@@ -153,14 +173,39 @@ export function computeAutoBilling(
     small ? "Μικρό κτίριο" : "Μεσαίο/Μεγάλο κτίριο",
   );
 
-  // ── 2) BCP — Σκάψιμο έως BCP (όταν eisagogi=BCP) ──
-  if (input.eisagogi_type === "BCP" && (input.bcp_meters ?? 0) > 0) {
-    const m = input.bcp_meters ?? 0;
-    if (input.bcp_eidos === "ΔΗΜΟΣΙΟ") {
-      push(pickBcpPublicCode(m), 1, `BCP Δημ. Χώρος ${m}m`);
-    } else if (input.bcp_eidos === "ΙΔΙΩΤΙΚΟ") {
-      push(pickBcpPrivateCode(m), 1, `BCP Ιδιωτ. Χώρος ${m}m`);
+  // ── 2) 🆕 BCP — split σε ΤΡΕΙΣ ξεχωριστές εργασίες ──
+  const hasBcp = input.has_bcp || input.eisagogi_type === "BCP";
+  const bcpSkamma = Number(input.bcp_skamma_meters) || 0;
+  const bcpUg = Number(input.bcp_to_bep_underground_meters) || 0;
+  const bcpAir = Number(input.bcp_to_bep_aerial_meters) || 0;
+
+  if (hasBcp) {
+    // 2A) Σκάψιμο Καμπ→BCP (1991.x)
+    if (bcpSkamma > 0 && input.bcp_eidos) {
+      const eidos = String(input.bcp_eidos).toUpperCase();
+      if (eidos === "ΔΗΜΟΣΙΟ" || eidos === "DIMOSIO") {
+        push(pickBcpPublicCode(bcpSkamma), 1, `BCP Δημ. Χώρος σκάμα ${bcpSkamma}m`);
+      } else if (eidos === "ΙΔΙΩΤΙΚΟ" || eidos === "IDIOTIKO") {
+        push(pickBcpPrivateCode(bcpSkamma), 1, `BCP Ιδιωτ. Χώρος σκάμα ${bcpSkamma}m`);
+      } else {
+        console.warn(
+          `[AutoBilling] ⚠️ BCP Είδος άγνωστο: "${input.bcp_eidos}" — το σκάμα δεν χρεώνεται`
+        );
+      }
     }
+
+    // 2B) BCP→BEP υπόγεια (1993.1.x)
+    if (bcpUg > 0) {
+      push(pickBcpToBepUndergroundCode(bcpUg), 1, `Υπόγεια BCP→BEP ${bcpUg}m`);
+    }
+
+    // 2C) BCP→BEP εναέρια (1993.2/3 + 1994Α)
+    if (bcpAir > 0) {
+      push(pickBcpToBepAerialCode(bcpAir), 1, `Εναέρια BCP→BEP ${bcpAir}m`);
+      push("1994Α", 1, `ADSS αυτοστήρικτο για εναέρια ${bcpAir}m`);
+    }
+
+    // 2D) Τοποθέτηση κουτιού BCP — ΠΑΝΤΑ όταν υπάρχει BCP
     push("1997", 1, "Τοποθέτηση κουτιού BCP");
   }
 
@@ -187,29 +232,41 @@ export function computeAutoBilling(
     small ? "BEP μικρό κτίριο" : "BEP μεσαίο/μεγάλο",
   );
 
-  // ── 5) ΚΟΙ Καμπίνα → BEP (από route_cab_to_bep ή route_aerial_cab_to_bep) ──
+  // ── 5) ΚΟΙ Καμπίνα → BEP — ΜΟΝΟ αν ΔΕΝ έχει BCP
+  // (αλλιώς τα 1993.x έχουν ήδη χρεωθεί από το 2B/2C)
   const cabBepUg = Number(input.route_cab_to_bep_meters) || 0;
   const cabBepAir = Number(input.route_aerial_cab_to_bep_meters) || 0;
 
-  if (cabBepUg > 0) {
-    push(
-      pickCabToBepUndergroundCode(cabBepUg),
-      1,
-      `Υπόγεια Καμπ→BEP ${cabBepUg}m`,
-    );
-  }
-  if (cabBepAir > 0) {
-    push(
-      pickCabToBepAerialCode(cabBepAir),
-      1,
-      `Εναέρια Καμπ→BEP ${cabBepAir}m`,
-    );
+  if (!hasBcp) {
+    if (cabBepUg > 0) {
+      push(
+        pickCabToBepUndergroundCode(cabBepUg),
+        1,
+        `Υπόγεια Καμπ→BEP ${cabBepUg}m`,
+      );
+    }
+    if (cabBepAir > 0) {
+      push(
+        pickCabToBepAerialCode(cabBepAir),
+        1,
+        `Εναέρια Καμπ→BEP ${cabBepAir}m`,
+      );
+    }
   }
 
-  // ── 6) Εμφύσηση CAB (1980.x) — όταν υπάρχει υπόγεια διαδρομή Καμπ→BEP ──
-  if (cabBepUg > 0) {
+  // ── 6) Εμφύσηση CAB (1980.x) ──
+  // Αν δεν έχει BCP → εξαρτάται από cabBepUg
+  // Αν έχει BCP → εξαρτάται από bcpUg
+  const blowingMeters = hasBcp ? bcpUg : cabBepUg;
+  if (blowingMeters > 0) {
     const code = input.cab_to_bep_damaged ? "1980.2" : "1980.1";
-    push(code, 1, input.cab_to_bep_damaged ? "Κατειλημμένη υποδομή" : "Ελεύθερη εμφύσηση");
+    push(
+      code,
+      1,
+      input.cab_to_bep_damaged
+        ? `Κατειλημμένη υποδομή${hasBcp ? " (BCP)" : ""}`
+        : `Ελεύθερη εμφύσηση${hasBcp ? " (BCP)" : ""}`,
+    );
   }
 
   // ── 7) FB-BEP στο ίδιο επίπεδο ──

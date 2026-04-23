@@ -2054,6 +2054,16 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
       }
     }
 
+    // === BCP DETECTION ===
+    // Υπάρχει BCP αν: (α) GIS το δείχνει Ή (β) ο τεχνικός επέλεξε "BCP" στο eisagogi_type
+    const hasBcpFromGis = !!(
+      (gisData as any)?.new_bcp ||
+      (gisData as any)?.nearby_bcp ||
+      (gisData as any)?.raw_data?.bcp_placement
+    );
+    const hasBcpFromUser = section6?.eisagogi_type === "BCP";
+    const hasBcp = hasBcpFromGis || hasBcpFromUser;
+
     const billingInput: AutoBillingInput = {
       sr_id: assignment?.sr_id,
       building_type: buildingType,
@@ -2067,12 +2077,14 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
       floor_meters_count: floorMetersWithValues,
       eisagogi_type: section6?.eisagogi_type || null,
       eisagogi_meters: eisagogiMeters,
+
+      // 🆕 BCP — ΞΕΧΩΡΙΣΤΑ πεδία (όχι sum)
+      has_bcp: hasBcp,
       bcp_eidos: section6?.bcp_eidos || null,
-      // Συνολικά μέτρα BCP = σκάψιμο Καμπ→BCP (Μ/Σ) + BCP→BEP υπόγεια + BCP→BEP εναέρια
-      bcp_meters:
-        (parseFloat(section6?.bcp_ms || "0") || 0) +
-        (parseFloat(section6?.bcp_bep_ypogeia || "0") || 0) +
-        (parseFloat(section6?.bcp_bep_enaeria || "0") || 0),
+      bcp_skamma_meters: parseFloat(section6?.bcp_ms || "0") || 0,
+      bcp_to_bep_underground_meters: parseFloat(section6?.bcp_bep_ypogeia || "0") || 0,
+      bcp_to_bep_aerial_meters: parseFloat(section6?.bcp_bep_enaeria || "0") || 0,
+
       fb_same_level_as_bep: Boolean(section6?.fb_same_level_as_bep),
       horizontal_meters: parseFloat(String(section6?.horizontal_meters || "0")) || 0,
       cab_to_bep_damaged: Boolean(section6?.cab_to_bep_damaged),
@@ -5228,6 +5240,22 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
           </div>
         </div>
       )}
+
+      {/* BCP Warning — αν επέλεξε BCP αλλά δεν έχει συμπληρώσει BCP Είδος */}
+      {!isCrewMode &&
+        section6?.eisagogi_type === "BCP" &&
+        !section6?.bcp_eidos &&
+        parseFloat(section6?.bcp_ms || "0") > 0 && (
+          <div className="rounded-xl border border-destructive/40 bg-destructive/10 p-3 flex items-center gap-3">
+            <div className="h-8 w-8 rounded-full bg-destructive/20 flex items-center justify-center text-base shrink-0">⚠️</div>
+            <div className="min-w-0 flex-1">
+              <div className="font-semibold text-destructive">Λείπει BCP Είδος!</div>
+              <div className="text-xs text-muted-foreground">
+                Συμπλήρωσε «ΔΗΜΟΣΙΟ» ή «ΙΔΙΩΤΙΚΟ» στο πεδίο BCP Είδος — αλλιώς το σκάμα ΔΕΝ θα χρεωθεί.
+              </div>
+            </div>
+          </div>
+        )}
 
       {/* Work Items - Category based */}
       {lastAutoBillingSummary && (lastAutoBillingSummary.added > 0 || lastAutoBillingSummary.updated > 0) && (
