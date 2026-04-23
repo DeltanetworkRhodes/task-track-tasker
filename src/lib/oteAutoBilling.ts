@@ -85,10 +85,11 @@ const isKnownBuildingType = (bt?: string | null) =>
  * Επιστρέφει πάντα το standard (όχι ΚΥΑ) — η ΚΥΑ μετατροπή γίνεται μόνο για 1955.2.
  */
 function pickNewPipeCode(meters: number): string {
-  if (meters <= 5) return "1965.1";
-  if (meters <= 15) return "1965.2";
-  if (meters <= 30) return "1965.3";
-  return "1965.4";
+  // Default: ΚΥΑ 2023 (1965.5-8) — οι νέες τιμές
+  if (meters <= 5) return "1965.5";
+  if (meters <= 15) return "1965.6";
+  if (meters <= 30) return "1965.7";
+  return "1965.8";
 }
 
 function pickEskalitCode(meters: number): string {
