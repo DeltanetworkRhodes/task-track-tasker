@@ -1994,6 +1994,53 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
     section6,
   ]);
 
+  // ⚡ Auto-Materials live engine — τρέχει σε κάθε αλλαγή building_type/floor_meters
+  useEffect(() => {
+    if (!autoBillingEnabled) return;
+    if (!materials || materials.length === 0) return;
+    if (existingConstruction && !existingMaterialsLoaded) return;
+
+    const matInput: AutoMaterialsInput = {
+      building_type: buildingType,
+      floor_meters: floorMeters,
+    };
+
+    const computed = computeAutoMaterials(matInput, materials as any);
+    if (computed.length === 0 && autoAddedMaterialIdsRef.current.size === 0) return;
+
+    setMaterialItems((prev) => {
+      const { items, added, updated, removed, nextAutoAddedIds } = mergeAutoMaterials(
+        prev,
+        computed,
+        materials as any,
+        (mat, quantity) => ({
+          material_id: mat.id,
+          code: mat.code,
+          name: mat.name,
+          unit: mat.unit,
+          price: Number(mat.price) || 0,
+          source: mat.source,
+          quantity,
+        }),
+        { autoAddedIds: autoAddedMaterialIdsRef.current },
+      );
+      autoAddedMaterialIdsRef.current = nextAutoAddedIds;
+      if (added.length === 0 && updated.length === 0 && removed.length === 0) return prev;
+      console.log(
+        `[AutoMaterials] +${added.length} ~${updated.length} -${removed.length}`,
+      );
+      return items;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    autoBillingEnabled,
+    materials,
+    buildingType,
+    floorMeters,
+    existingConstruction?.id,
+    existingMaterialsLoaded,
+  ]);
+
   // Group materials by category
   const materialsByCategory = useMemo(() => {
     if (!materials) return {};
