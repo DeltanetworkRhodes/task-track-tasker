@@ -110,6 +110,16 @@ export function computeAutoBilling(
   const kya = isKya(input.sr_id);
   const floors = Math.max(0, Number(input.floors) || 0);
 
+  // Warning αν το building είναι medium/large αλλά floors=0
+  // Αυτό μπορεί να συμβεί όταν ο τεχνικός δεν έχει ακόμα συμπληρώσει όροφους
+  if (!small && floors === 0) {
+    console.warn(
+      "[oteAutoBilling] ⚠️ Building is medium/large but floors=0. " +
+      "Skipping vertical (1985.2) and splice (1986.3) articles. " +
+      "Check that gisData.floors is populated."
+    );
+  }
+
   // ── 1) ΑΥΤΟΨΙΑ ──
   push(
     small ? "1956.2" : "1956.1",
