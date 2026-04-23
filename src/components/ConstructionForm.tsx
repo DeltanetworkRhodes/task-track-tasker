@@ -57,6 +57,11 @@ import {
   isAutoManagedMaterialCode,
   type AutoMaterialsInput,
 } from "@/lib/oteAutoMaterials";
+import {
+  computeAutoMaterials as computeLiveMaterials,
+  mergeAutoMaterials as mergeLiveMaterials,
+  type MaterialsAutoFillInput,
+} from "@/lib/oteMaterialsAutoFill";
 import { Sparkles, Zap } from "lucide-react";
 
 interface WorkItem {
