@@ -1835,9 +1835,32 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
       setCab(gisData.associated_bcp);
     }
 
-    // Floors
-    if (gisData.floors && floors === "0") {
-      setFloors(String(gisData.floors));
+    // Floors — με πολλαπλά fallbacks για να βεβαιωθούμε ότι έχουμε σωστή τιμή
+    if (floors === "0" || floors === "" || !floors) {
+      // 1) Πρώτη προτεραιότητα: gisData.floors
+      if (gisData.floors && Number(gisData.floors) > 0) {
+        setFloors(String(gisData.floors));
+      }
+      // 2) Δεύτερη: count από floor_details
+      else if (Array.isArray((gisData as any).floor_details) && (gisData as any).floor_details.length > 0) {
+        setFloors(String((gisData as any).floor_details.length));
+      }
+      // 3) Τρίτη: count από optical_paths με BMO/FB
+      else {
+        const paths = ((gisData as any).optical_paths as any[]) || [];
+        const fbFloors = new Set(
+          paths
+            .map((p: any) => {
+              const path = p.path || p["OPTICAL PATH"] || "";
+              const m = path.match(/FB(\d+)/i) || path.match(/_F(\d+)/i);
+              return m ? m[1] : null;
+            })
+            .filter(Boolean)
+        );
+        if (fbFloors.size > 0) {
+          setFloors(String(fbFloors.size));
+        }
+      }
     }
 
     // Routing type from area_type or conduit
@@ -5106,6 +5129,21 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
             </div>
           )}
         </Card>
+      )}
+
+      {/* Warning αν λείπει floors & δεν είναι μικρό κτίριο */}
+      {!isCrewMode && buildingType === "poly" && (parseInt(floors) || 0) === 0 && (
+        <div className="rounded-xl border border-amber-400 bg-gradient-to-r from-amber-50 to-yellow-50 p-3 flex items-center gap-3">
+          <div className="h-8 w-8 rounded-full bg-amber-500/20 flex items-center justify-center text-base shrink-0">⚠️</div>
+          <div className="flex-1 min-w-0 text-sm">
+            <div className="font-semibold text-amber-900">Λείπουν όροφοι!</div>
+            <div className="text-xs text-amber-800">
+              Η τιμολόγηση δεν μπορεί να υπολογίσει κατακόρυφη κόι (1985.2) και κολλήσεις ίνας (1986.3).
+              <br />
+              <b>Συμπλήρωσε το πεδίο "Όροφοι"</b> στα Τεχνικά Στοιχεία.
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Work Items - Category based */}
