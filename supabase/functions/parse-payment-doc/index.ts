@@ -10,12 +10,44 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { file_path, organization_id } = await req.json();
-    if (!file_path) throw new Error("file_path required");
-
+    // Require authenticated admin user
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const supabaseAuth = createClient(supabaseUrl, anonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: claimsData, error: claimsErr } = await supabaseAuth.auth.getClaims(
+      authHeader.replace("Bearer ", "")
+    );
+    if (claimsErr || !claimsData?.claims) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const userId = claimsData.claims.sub;
+
+    // Use service-role client to check role + perform privileged storage download
     const supabase = createClient(supabaseUrl, serviceKey);
+    const { data: isAdmin } = await supabase.rpc("has_role", {
+      _user_id: userId,
+      _role: "admin",
+    });
+    const { data: isSuper } = await supabase.rpc("is_super_admin", { _user_id: userId });
+    if (!isAdmin && !isSuper) {
+      return new Response(JSON.stringify({ error: "Forbidden: admin role required" }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const { file_path, organization_id } = await req.json();
+    if (!file_path) throw new Error("file_path required");
 
     // Download the file from storage
     const { data: fileData, error: dlErr } = await supabase.storage
