@@ -147,7 +147,7 @@ export default function VodafoneDashboard() {
         </div>
 
         {/* Quick actions */}
-        <div className="grid sm:grid-cols-3 gap-3">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <Card
             className="p-6 cursor-pointer hover:border-red-500/40 transition-colors bg-gradient-to-br from-red-500/10 to-rose-500/5"
             onClick={() => navigate("/vodafone/ticket/new")}
@@ -175,6 +175,14 @@ export default function VodafoneDashboard() {
             <p className="text-xs text-muted-foreground">
               {stats?.subs_count ?? 0} ενεργοί
             </p>
+          </Card>
+          <Card
+            className="p-6 cursor-pointer hover:border-amber-500/40 transition-colors bg-gradient-to-br from-amber-500/10 to-orange-500/5"
+            onClick={() => navigate("/subcontractor-payments")}
+          >
+            <Banknote className="h-8 w-8 text-amber-600 mb-2" />
+            <h3 className="text-base font-semibold">Πληρωμές</h3>
+            <p className="text-xs text-muted-foreground">Μηνιαίες πληρωμές</p>
           </Card>
         </div>
 
