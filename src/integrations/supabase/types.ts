@@ -2446,6 +2446,181 @@ export type Database = {
           },
         ]
       }
+      subcontractor_payments: {
+        Row: {
+          amount_eur: number
+          created_at: string
+          id: string
+          notes: string | null
+          organization_id: string
+          payment_date: string | null
+          payment_method: string | null
+          period_month: number
+          period_year: number
+          statement_pdf_url: string | null
+          status: string
+          subcontractor_id: string
+          tickets_count: number
+          updated_at: string
+        }
+        Insert: {
+          amount_eur: number
+          created_at?: string
+          id?: string
+          notes?: string | null
+          organization_id: string
+          payment_date?: string | null
+          payment_method?: string | null
+          period_month: number
+          period_year: number
+          statement_pdf_url?: string | null
+          status?: string
+          subcontractor_id: string
+          tickets_count?: number
+          updated_at?: string
+        }
+        Update: {
+          amount_eur?: number
+          created_at?: string
+          id?: string
+          notes?: string | null
+          organization_id?: string
+          payment_date?: string | null
+          payment_method?: string | null
+          period_month?: number
+          period_year?: number
+          statement_pdf_url?: string | null
+          status?: string
+          subcontractor_id?: string
+          tickets_count?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subcontractor_payments_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subcontractor_payments_subcontractor_id_fkey"
+            columns: ["subcontractor_id"]
+            isOneToOne: false
+            referencedRelation: "subcontractors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subcontractor_pricing: {
+        Row: {
+          active: boolean
+          client_code: string
+          created_at: string
+          customer_type: string
+          id: string
+          notes: string | null
+          service_code: string
+          subcontractor_id: string
+          unit_price_eur: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          client_code?: string
+          created_at?: string
+          customer_type: string
+          id?: string
+          notes?: string | null
+          service_code: string
+          subcontractor_id: string
+          unit_price_eur: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          client_code?: string
+          created_at?: string
+          customer_type?: string
+          id?: string
+          notes?: string | null
+          service_code?: string
+          subcontractor_id?: string
+          unit_price_eur?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subcontractor_pricing_subcontractor_id_fkey"
+            columns: ["subcontractor_id"]
+            isOneToOne: false
+            referencedRelation: "subcontractors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subcontractors: {
+        Row: {
+          active: boolean
+          created_at: string
+          email: string | null
+          full_name: string
+          id: string
+          notes: string | null
+          organization_id: string
+          phone: string | null
+          primary_region: string
+          secondary_regions: string[] | null
+          short_name: string | null
+          total_paid_eur: number
+          total_tickets_completed: number
+          updated_at: string
+          vat_number: string | null
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          email?: string | null
+          full_name: string
+          id?: string
+          notes?: string | null
+          organization_id: string
+          phone?: string | null
+          primary_region: string
+          secondary_regions?: string[] | null
+          short_name?: string | null
+          total_paid_eur?: number
+          total_tickets_completed?: number
+          updated_at?: string
+          vat_number?: string | null
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          email?: string | null
+          full_name?: string
+          id?: string
+          notes?: string | null
+          organization_id?: string
+          phone?: string | null
+          primary_region?: string
+          secondary_regions?: string[] | null
+          short_name?: string | null
+          total_paid_eur?: number
+          total_tickets_completed?: number
+          updated_at?: string
+          vat_number?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subcontractors_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       survey_files: {
         Row: {
           created_at: string
@@ -2794,6 +2969,224 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      vodafone_articles: {
+        Row: {
+          active: boolean
+          category: string
+          code: string
+          combo_includes: string[] | null
+          created_at: string
+          customer_type: string
+          description_el: string
+          id: string
+          is_combo: boolean
+          organization_id: string
+          sort_order: number | null
+          unit_price_eur: number
+          updated_at: string
+          zone: string
+        }
+        Insert: {
+          active?: boolean
+          category: string
+          code: string
+          combo_includes?: string[] | null
+          created_at?: string
+          customer_type: string
+          description_el: string
+          id?: string
+          is_combo?: boolean
+          organization_id: string
+          sort_order?: number | null
+          unit_price_eur: number
+          updated_at?: string
+          zone: string
+        }
+        Update: {
+          active?: boolean
+          category?: string
+          code?: string
+          combo_includes?: string[] | null
+          created_at?: string
+          customer_type?: string
+          description_el?: string
+          id?: string
+          is_combo?: boolean
+          organization_id?: string
+          sort_order?: number | null
+          unit_price_eur?: number
+          updated_at?: string
+          zone?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vodafone_articles_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vodafone_ticket_services: {
+        Row: {
+          article_id: string
+          combo_label: string | null
+          created_at: string
+          description: string
+          id: string
+          is_part_of_combo: boolean | null
+          quantity: number
+          service_code: string
+          ticket_id: string
+          total_subcontractor: number | null
+          total_vodafone: number | null
+          unit_price_subcontractor: number
+          unit_price_vodafone: number
+        }
+        Insert: {
+          article_id: string
+          combo_label?: string | null
+          created_at?: string
+          description: string
+          id?: string
+          is_part_of_combo?: boolean | null
+          quantity?: number
+          service_code: string
+          ticket_id: string
+          total_subcontractor?: number | null
+          total_vodafone?: number | null
+          unit_price_subcontractor?: number
+          unit_price_vodafone: number
+        }
+        Update: {
+          article_id?: string
+          combo_label?: string | null
+          created_at?: string
+          description?: string
+          id?: string
+          is_part_of_combo?: boolean | null
+          quantity?: number
+          service_code?: string
+          ticket_id?: string
+          total_subcontractor?: number | null
+          total_vodafone?: number | null
+          unit_price_subcontractor?: number
+          unit_price_vodafone?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vodafone_ticket_services_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "vodafone_articles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vodafone_ticket_services_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "vodafone_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vodafone_tickets: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          customer_address: string | null
+          customer_name: string | null
+          customer_phone: string | null
+          customer_signature_url: string | null
+          customer_type: string
+          id: string
+          is_same_day: boolean
+          margin_eur: number | null
+          notes: string | null
+          organization_id: string
+          photos_count: number | null
+          region: string
+          scheduled_at: string | null
+          started_at: string | null
+          status: string
+          subcontractor_id: string | null
+          ticket_id: string
+          total_subcontractor_eur: number
+          total_vodafone_eur: number
+          updated_at: string
+          zone: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_address?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          customer_signature_url?: string | null
+          customer_type: string
+          id?: string
+          is_same_day?: boolean
+          margin_eur?: number | null
+          notes?: string | null
+          organization_id: string
+          photos_count?: number | null
+          region: string
+          scheduled_at?: string | null
+          started_at?: string | null
+          status?: string
+          subcontractor_id?: string | null
+          ticket_id: string
+          total_subcontractor_eur?: number
+          total_vodafone_eur?: number
+          updated_at?: string
+          zone: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_address?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          customer_signature_url?: string | null
+          customer_type?: string
+          id?: string
+          is_same_day?: boolean
+          margin_eur?: number | null
+          notes?: string | null
+          organization_id?: string
+          photos_count?: number | null
+          region?: string
+          scheduled_at?: string | null
+          started_at?: string | null
+          status?: string
+          subcontractor_id?: string | null
+          ticket_id?: string
+          total_subcontractor_eur?: number
+          total_vodafone_eur?: number
+          updated_at?: string
+          zone?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vodafone_tickets_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vodafone_tickets_subcontractor_id_fkey"
+            columns: ["subcontractor_id"]
+            isOneToOne: false
+            referencedRelation: "subcontractors"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       work_pricing: {
         Row: {
