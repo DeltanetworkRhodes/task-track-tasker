@@ -135,6 +135,16 @@ const AppSidebar = ({ onClose }: AppSidebarProps) => {
         </button>
       </div>
 
+      {/* Client Switcher (admins only) */}
+      {isAdmin && (
+        <div className="px-3 pt-3 pb-2 border-b border-sidebar-border">
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/40 px-1 pb-1.5">
+            Τρέχων Client
+          </p>
+          <ClientSwitcher />
+        </div>
+      )}
+
       {/* Navigation */}
       <nav className="flex-1 space-y-1 px-3 py-4 overflow-y-auto">
         <div className="flex items-center justify-between px-3 pb-2">
