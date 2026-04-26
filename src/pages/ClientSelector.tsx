@@ -160,8 +160,8 @@ export default function ClientSelector() {
       <header className="relative border-b border-border/40 backdrop-blur-xl bg-background/40">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-accent shadow-glow-emerald">
-              <Sparkles className="h-5 w-5 text-white" />
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white shadow-glow-emerald p-1.5">
+              <img src={logoDelta} alt="DeltaNetwork" className="h-full w-full object-contain" />
             </div>
             <div>
               <h1 className="text-xl font-bold tracking-tight text-foreground">
