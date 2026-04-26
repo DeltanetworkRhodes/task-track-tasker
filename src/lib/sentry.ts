@@ -4,13 +4,14 @@ const SENTRY_DSN =
   "https://049e9984ec7a6a514e80c29a184fdc98@o4511287858036736.ingest.de.sentry.io/4511287889887312";
 
 export function initSentry() {
-  // Activate ΜΟΝΟ σε production (όχι σε localhost ή Lovable preview)
-  const isProduction =
+  // Activate παντού εκτός από localhost (για debugging)
+  const isLocalhost =
     typeof window !== "undefined" &&
-    window.location.hostname === "deltanetwork.app";
+    (window.location.hostname === "localhost" ||
+      window.location.hostname === "127.0.0.1");
 
-  if (!isProduction) {
-    console.log("[Sentry] Disabled (not production)");
+  if (isLocalhost) {
+    console.log("[Sentry] Disabled (localhost)");
     return;
   }
 
@@ -63,7 +64,10 @@ export function initSentry() {
 // Hook για να συνδέσουμε auth user με Sentry events
 export function setSentryUser(user: { id: string; email?: string } | null) {
   if (typeof window === "undefined") return;
-  if (window.location.hostname !== "deltanetwork.app") return;
+  const isLocalhost =
+    window.location.hostname === "localhost" ||
+    window.location.hostname === "127.0.0.1";
+  if (isLocalhost) return;
 
   if (!user) {
     Sentry.setUser(null);
