@@ -3,6 +3,11 @@ import * as Sentry from "@sentry/react";
 const SENTRY_DSN =
   "https://049e9984ec7a6a514e80c29a184fdc98@o4511287858036736.ingest.de.sentry.io/4511287889887312";
 
+const getSentryTunnelUrl = () => {
+  const backendUrl = import.meta.env.VITE_SUPABASE_URL;
+  return backendUrl ? `${backendUrl}/functions/v1/sentry-tunnel` : undefined;
+};
+
 export function initSentry() {
   // Active παντού εκτός localhost
   const hostname = typeof window !== "undefined" ? window.location.hostname : "";
@@ -18,6 +23,7 @@ export function initSentry() {
 
   Sentry.init({
     dsn: SENTRY_DSN,
+    tunnel: getSentryTunnelUrl(),
     environment: "production",
 
     // Δείγμα: 100% errors (έχουμε λίγους users — capture όλα)
