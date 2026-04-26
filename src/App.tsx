@@ -45,6 +45,7 @@ import Subcontractors from "./pages/Subcontractors";
 import SubcontractorDetail from "./pages/SubcontractorDetail";
 import VodafoneTickets from "./pages/VodafoneTickets";
 import VodafoneTicketEdit from "./pages/VodafoneTicketEdit";
+import SubcontractorPayments from "./pages/SubcontractorPayments";
 
 import NotFound from "./pages/NotFound";
 import HelpChatBot from "./components/HelpChatBot";
