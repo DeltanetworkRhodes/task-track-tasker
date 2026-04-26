@@ -57,3 +57,6 @@ verify_jwt = false
 [functions.google-calendar-callback]
 verify_jwt = false
 
+[functions.sentry-tunnel]
+verify_jwt = false
+
