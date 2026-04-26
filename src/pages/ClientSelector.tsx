@@ -19,6 +19,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useEnabledClients } from "@/hooks/useEnabledClients";
 import { supabase } from "@/integrations/supabase/client";
 import { AnimatedCounter } from "@/components/AnimatedCounter";
 import logoOte from "@/assets/logo-ote.png";
@@ -33,15 +34,30 @@ export default function ClientSelector() {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const { data: role, isLoading: roleLoading } = useUserRole();
+  const { data: enabledClients = ["ote"], isLoading: enabledLoading } = useEnabledClients();
 
   useEffect(() => {
     if (!roleLoading && role === "technician") {
       navigate("/technician", { replace: true });
+      return;
     }
     if (!roleLoading && role === "super_admin") {
       navigate("/super-admin", { replace: true });
+      return;
     }
-  }, [role, roleLoading, navigate]);
+    // Auto-redirect if user has only one enabled client
+    if (!roleLoading && !enabledLoading && enabledClients.length === 1) {
+      const only = enabledClients[0];
+      const map: Record<string, string> = {
+        ote: "/ote/dashboard",
+        vodafone: "/vodafone/dashboard",
+        nova: "/nova/dashboard",
+        deh: "/deh/dashboard",
+        master: "/master/dashboard",
+      };
+      if (map[only]) navigate(map[only], { replace: true });
+    }
+  }, [role, roleLoading, enabledClients, enabledLoading, navigate]);
 
   // OTE stats
   const { data: oteStats } = useQuery({
@@ -264,82 +280,94 @@ export default function ClientSelector() {
 
         {/* Premium Cards Grid */}
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          <PremiumCard
-            logo={logoOte}
-            title="OTE / COSMOTE"
-            subtitle="FTTH Β' Φάση + Αυτοψίες"
-            color="blue"
-            stats={[
-              { label: "Ενεργά", value: oteStats?.active ?? 0 },
-              { label: "Ολοκληρωμένα", value: oteStats?.completed ?? 0 },
-            ]}
-            alert={
-              oteStats && oteStats.stuck > 0
-                ? `${oteStats.stuck} stuck SRs (>14 ημέρες)`
-                : undefined
-            }
-            onClick={() => navigate("/ote/dashboard")}
-            stagger={1}
-          />
+          {enabledClients.includes("ote") && (
+            <PremiumCard
+              logo={logoOte}
+              title="OTE / COSMOTE"
+              subtitle="FTTH Β' Φάση + Αυτοψίες"
+              color="blue"
+              stats={[
+                { label: "Ενεργά", value: oteStats?.active ?? 0 },
+                { label: "Ολοκληρωμένα", value: oteStats?.completed ?? 0 },
+              ]}
+              alert={
+                oteStats && oteStats.stuck > 0
+                  ? `${oteStats.stuck} stuck SRs (>14 ημέρες)`
+                  : undefined
+              }
+              onClick={() => navigate("/ote/dashboard")}
+              stagger={1}
+            />
+          )}
 
-          <PremiumCard
-            logo={logoVodafone}
-            title="Vodafone"
-            subtitle="LLU + FTTH Φ3 + Tickets"
-            color="red"
-            stats={[
-              { label: "Tickets μήνα", value: vfStats?.month_count ?? 0 },
-              {
-                label: "Έσοδα",
-                value: vfStats?.revenue ?? 0,
-                isCurrency: true,
-              },
-            ]}
-            onClick={() => navigate("/vodafone/dashboard")}
-            stagger={2}
-          />
+          {enabledClients.includes("vodafone") && (
+            <PremiumCard
+              logo={logoVodafone}
+              title="Vodafone"
+              subtitle="LLU + FTTH Φ3 + Tickets"
+              color="red"
+              stats={[
+                { label: "Tickets μήνα", value: vfStats?.month_count ?? 0 },
+                {
+                  label: "Έσοδα",
+                  value: vfStats?.revenue ?? 0,
+                  isCurrency: true,
+                },
+              ]}
+              onClick={() => navigate("/vodafone/dashboard")}
+              stagger={2}
+            />
+          )}
 
-          <PremiumCard
-            logo={logoNova}
-            title="Nova"
-            subtitle="Multi-service"
-            color="purple"
-            comingSoon
-            onClick={() => navigate("/nova/dashboard")}
-            stagger={3}
-          />
+          {enabledClients.includes("nova") && (
+            <PremiumCard
+              logo={logoNova}
+              title="Nova"
+              subtitle="Multi-service"
+              color="purple"
+              comingSoon
+              onClick={() => navigate("/nova/dashboard")}
+              stagger={3}
+            />
+          )}
 
-          <PremiumCard
-            logo={logoDeh}
-            title="ΔΕΗ"
-            subtitle="Δίκτυο Διανομής"
-            color="amber"
-            comingSoon
-            onClick={() => navigate("/deh/dashboard")}
-            stagger={4}
-          />
+          {enabledClients.includes("deh") && (
+            <PremiumCard
+              logo={logoDeh}
+              title="ΔΕΗ"
+              subtitle="Δίκτυο Διανομής"
+              color="amber"
+              comingSoon
+              onClick={() => navigate("/deh/dashboard")}
+              stagger={4}
+            />
+          )}
 
-          <PremiumCard
-            fallbackIcon={<Briefcase className="h-7 w-7 text-emerald-500" />}
-            title="Συνολική Εικόνα"
-            subtitle="Cashflow & KPIs"
-            color="emerald"
-            isMaster
-            onClick={() => navigate("/master/dashboard")}
-            stagger={5}
-          />
+          {enabledClients.includes("master") && (
+            <PremiumCard
+              fallbackIcon={<Briefcase className="h-7 w-7 text-emerald-500" />}
+              title="Συνολική Εικόνα"
+              subtitle="Cashflow & KPIs"
+              color="emerald"
+              isMaster
+              onClick={() => navigate("/master/dashboard")}
+              stagger={5}
+            />
+          )}
         </div>
 
         {/* Quick Links */}
         <div className="mt-12 flex flex-wrap gap-3 animate-fade-in-up stagger-6">
-          <Button
-            variant="outline"
-            onClick={() => navigate("/subcontractors")}
-            className="gap-2 rounded-xl hover:bg-primary/10 hover:border-primary/40 transition-all"
-          >
-            <Users className="h-4 w-4" />
-            Υπεργολάβοι
-          </Button>
+          {enabledClients.includes("vodafone") && (
+            <Button
+              variant="outline"
+              onClick={() => navigate("/subcontractors")}
+              className="gap-2 rounded-xl hover:bg-primary/10 hover:border-primary/40 transition-all"
+            >
+              <Users className="h-4 w-4" />
+              Υπεργολάβοι
+            </Button>
+          )}
           <Button
             variant="outline"
             onClick={() => navigate("/users")}
