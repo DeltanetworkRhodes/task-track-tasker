@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import AppLayout from "@/components/AppLayout";
 import AuditLogViewer from "@/components/AuditLogViewer";
 import DailyBackupViewer from "@/components/DailyBackupViewer";
+import { BackupButton } from "@/components/BackupButton";
 import GoogleCalendarConnect from "@/components/GoogleCalendarConnect";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
