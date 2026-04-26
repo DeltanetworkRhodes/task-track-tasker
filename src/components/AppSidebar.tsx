@@ -6,6 +6,8 @@ import NotificationBell from "@/components/NotificationBell";
 import deltaLogoIcon from "@/assets/delta-logo-icon.png";
 import { useTheme } from "next-themes";
 import { useConstructions } from "@/hooks/useData";
+import { ClientSwitcher } from "@/components/ClientSwitcher";
+import { useUserRole } from "@/hooks/useUserRole";
 
 const DEFAULT_NAV_ITEMS = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard },
@@ -79,7 +81,9 @@ const AppSidebar = ({ onClose }: AppSidebarProps) => {
   const { user, signOut } = useAuth();
   const { theme, setTheme } = useTheme();
   const { data: constructions } = useConstructions();
+  const { data: role } = useUserRole();
   const activeConstructions = constructions?.filter(c => c.status === 'in_progress').length || 0;
+  const isAdmin = role === 'admin' || role === 'super_admin';
 
   const [navItems, setNavItems] = useState(getOrderedItems);
   const [editMode, setEditMode] = useState(false);
@@ -130,6 +134,16 @@ const AppSidebar = ({ onClose }: AppSidebarProps) => {
           <X className="h-4 w-4 text-sidebar-foreground/60" />
         </button>
       </div>
+
+      {/* Client Switcher (admins only) */}
+      {isAdmin && (
+        <div className="px-3 pt-3 pb-2 border-b border-sidebar-border">
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/40 px-1 pb-1.5">
+            Τρέχων Client
+          </p>
+          <ClientSwitcher />
+        </div>
+      )}
 
       {/* Navigation */}
       <nav className="flex-1 space-y-1 px-3 py-4 overflow-y-auto">
