@@ -477,11 +477,19 @@ function PremiumCard({
           <div className="flex items-start justify-between mb-6">
             <div className="flex items-start gap-4">
               <div
-                className={`flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br ${c.iconBg} text-3xl shadow-lg ${
+                className={`flex h-14 w-14 items-center justify-center rounded-2xl bg-white p-2 shadow-lg ${
                   !comingSoon ? c.iconGlow : ""
                 } ${!comingSoon ? "group-hover:animate-float" : ""}`}
               >
-                <span className="drop-shadow-sm">{icon}</span>
+                {logo ? (
+                  <img
+                    src={logo}
+                    alt={title}
+                    className="h-full w-full object-contain"
+                  />
+                ) : (
+                  fallbackIcon
+                )}
               </div>
               <div>
                 <h4 className="text-lg font-bold text-foreground leading-tight">
