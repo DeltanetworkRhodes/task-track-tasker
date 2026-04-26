@@ -45,6 +45,7 @@ import Subcontractors from "./pages/Subcontractors";
 import SubcontractorDetail from "./pages/SubcontractorDetail";
 import VodafoneTickets from "./pages/VodafoneTickets";
 import VodafoneTicketEdit from "./pages/VodafoneTicketEdit";
+import VodafoneImport from "./pages/VodafoneImport";
 import SubcontractorPayments from "./pages/SubcontractorPayments";
 
 import NotFound from "./pages/NotFound";
@@ -144,6 +145,7 @@ const App = () => (
                   <Route path="/vodafone/tickets" element={<ProtectedRoute><RoleGate><AdminRoute><VodafoneTickets /></AdminRoute></RoleGate></ProtectedRoute>} />
                   <Route path="/vodafone/ticket/new" element={<ProtectedRoute><RoleGate><AdminRoute><VodafoneTicketEdit /></AdminRoute></RoleGate></ProtectedRoute>} />
                   <Route path="/vodafone/ticket/:id" element={<ProtectedRoute><RoleGate><AdminRoute><VodafoneTicketEdit /></AdminRoute></RoleGate></ProtectedRoute>} />
+                  <Route path="/vodafone/import" element={<ProtectedRoute><RoleGate><AdminRoute><VodafoneImport /></AdminRoute></RoleGate></ProtectedRoute>} />
                   <Route path="/nova/dashboard" element={<ProtectedRoute><RoleGate><AdminRoute><NovaDashboard /></AdminRoute></RoleGate></ProtectedRoute>} />
                   <Route path="/deh/dashboard" element={<ProtectedRoute><RoleGate><AdminRoute><DehDashboard /></AdminRoute></RoleGate></ProtectedRoute>} />
                   <Route path="/master/dashboard" element={<ProtectedRoute><RoleGate><AdminRoute><MasterDashboard /></AdminRoute></RoleGate></ProtectedRoute>} />
