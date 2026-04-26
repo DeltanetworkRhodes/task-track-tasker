@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Settings, HardDrive, Mail, Save, Plus, Trash2, FolderOpen, KeyRound, Eye, EyeOff, CheckCircle2, AlertCircle, Shield, Send } from "lucide-react";
+import { Settings, HardDrive, Mail, Save, Plus, Trash2, FolderOpen, KeyRound, Eye, EyeOff, CheckCircle2, AlertCircle, Shield, Send, Bug } from "lucide-react";
 
 interface SettingRow {
   setting_key: string;
@@ -260,6 +260,26 @@ const OrgSettings = () => {
         </div>
 
         <BackupButton />
+
+        {/* TEMPORARY: Sentry Test — διαγράφεται μετά τον έλεγχο */}
+        <Card className="p-5 space-y-3 border-orange-500/40 bg-orange-500/5">
+          <div className="flex items-center gap-2 pb-2 border-b border-orange-500/20">
+            <Bug className="h-5 w-5 text-orange-500" />
+            <h2 className="text-sm font-semibold text-foreground">🧪 Sentry Test (Προσωρινό)</h2>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Πάτα για να δημιουργήσεις δοκιμαστικό error. Πρέπει να εμφανιστεί στο Sentry σε ~30''.
+          </p>
+          <Button
+            variant="outline"
+            className="border-orange-500/50 text-orange-600 hover:bg-orange-500/10 hover:text-orange-700"
+            onClick={() => {
+              throw new Error(`Sentry Test από Settings — ${new Date().toISOString()}`);
+            }}
+          >
+            💥 Trigger Test Error
+          </Button>
+        </Card>
 
         {isLoading ? (
           <div className="space-y-4">
