@@ -366,7 +366,8 @@ export default function ClientSelector() {
 // PREMIUM CARD COMPONENT
 // ============================================
 interface PremiumCardProps {
-  icon: string;
+  logo?: string;
+  fallbackIcon?: React.ReactNode;
   title: string;
   subtitle: string;
   color: ColorKey;
@@ -379,7 +380,8 @@ interface PremiumCardProps {
 }
 
 function PremiumCard({
-  icon,
+  logo,
+  fallbackIcon,
   title,
   subtitle,
   color,
