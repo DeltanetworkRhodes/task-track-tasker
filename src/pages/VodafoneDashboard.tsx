@@ -8,6 +8,7 @@ import {
   Receipt,
   TrendingUp,
   Banknote,
+  FileSpreadsheet,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -147,7 +148,7 @@ export default function VodafoneDashboard() {
         </div>
 
         {/* Quick actions */}
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-3">
           <Card
             className="p-6 cursor-pointer hover:border-red-500/40 transition-colors bg-gradient-to-br from-red-500/10 to-rose-500/5"
             onClick={() => navigate("/vodafone/ticket/new")}
@@ -183,6 +184,14 @@ export default function VodafoneDashboard() {
             <Banknote className="h-8 w-8 text-amber-600 mb-2" />
             <h3 className="text-base font-semibold">Πληρωμές</h3>
             <p className="text-xs text-muted-foreground">Μηνιαίες πληρωμές</p>
+          </Card>
+          <Card
+            className="p-6 cursor-pointer hover:border-emerald-500/40 transition-colors bg-gradient-to-br from-emerald-500/10 to-teal-500/5"
+            onClick={() => navigate("/vodafone/import")}
+          >
+            <FileSpreadsheet className="h-8 w-8 text-emerald-600 mb-2" />
+            <h3 className="text-base font-semibold">Excel Import</h3>
+            <p className="text-xs text-muted-foreground">Μαζική εισαγωγή</p>
           </Card>
         </div>
 
