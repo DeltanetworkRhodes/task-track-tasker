@@ -1691,6 +1691,7 @@ export type Database = {
       organizations: {
         Row: {
           created_at: string
+          enabled_clients: string[]
           id: string
           last_payment_date: string | null
           logo_url: string | null
@@ -1709,6 +1710,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          enabled_clients?: string[]
           id?: string
           last_payment_date?: string | null
           logo_url?: string | null
@@ -1727,6 +1729,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          enabled_clients?: string[]
           id?: string
           last_payment_date?: string | null
           logo_url?: string | null
@@ -3329,6 +3332,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_client_enabled: { Args: { client_code: string }; Returns: boolean }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
       location_print_order: {
         Args: { loc: Database["public"]["Enums"]["label_location_enum"] }
