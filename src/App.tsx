@@ -43,6 +43,8 @@ import DehDashboard from "./pages/DehDashboard";
 import MasterDashboard from "./pages/MasterDashboard";
 import Subcontractors from "./pages/Subcontractors";
 import SubcontractorDetail from "./pages/SubcontractorDetail";
+import VodafoneTickets from "./pages/VodafoneTickets";
+import VodafoneTicketEdit from "./pages/VodafoneTicketEdit";
 
 import NotFound from "./pages/NotFound";
 import HelpChatBot from "./components/HelpChatBot";
@@ -138,6 +140,9 @@ const App = () => (
                   {/* ====================================== */}
                   <Route path="/client-selector" element={<ProtectedRoute><RoleGate><AdminRoute><ClientSelector /></AdminRoute></RoleGate></ProtectedRoute>} />
                   <Route path="/vodafone/dashboard" element={<ProtectedRoute><RoleGate><AdminRoute><VodafoneDashboard /></AdminRoute></RoleGate></ProtectedRoute>} />
+                  <Route path="/vodafone/tickets" element={<ProtectedRoute><RoleGate><AdminRoute><VodafoneTickets /></AdminRoute></RoleGate></ProtectedRoute>} />
+                  <Route path="/vodafone/ticket/new" element={<ProtectedRoute><RoleGate><AdminRoute><VodafoneTicketEdit /></AdminRoute></RoleGate></ProtectedRoute>} />
+                  <Route path="/vodafone/ticket/:id" element={<ProtectedRoute><RoleGate><AdminRoute><VodafoneTicketEdit /></AdminRoute></RoleGate></ProtectedRoute>} />
                   <Route path="/nova/dashboard" element={<ProtectedRoute><RoleGate><AdminRoute><NovaDashboard /></AdminRoute></RoleGate></ProtectedRoute>} />
                   <Route path="/deh/dashboard" element={<ProtectedRoute><RoleGate><AdminRoute><DehDashboard /></AdminRoute></RoleGate></ProtectedRoute>} />
                   <Route path="/master/dashboard" element={<ProtectedRoute><RoleGate><AdminRoute><MasterDashboard /></AdminRoute></RoleGate></ProtectedRoute>} />
