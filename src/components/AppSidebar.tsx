@@ -6,6 +6,8 @@ import NotificationBell from "@/components/NotificationBell";
 import deltaLogoIcon from "@/assets/delta-logo-icon.png";
 import { useTheme } from "next-themes";
 import { useConstructions } from "@/hooks/useData";
+import { ClientSwitcher } from "@/components/ClientSwitcher";
+import { useUserRole } from "@/hooks/useUserRole";
 
 const DEFAULT_NAV_ITEMS = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard },
