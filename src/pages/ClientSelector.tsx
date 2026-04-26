@@ -8,6 +8,10 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import { supabase } from "@/integrations/supabase/client";
+import logoOte from "@/assets/logo-ote.png";
+import logoVodafone from "@/assets/logo-vodafone.png";
+import logoNova from "@/assets/logo-nova.png";
+import logoDeh from "@/assets/logo-deh.png";
 
 export default function ClientSelector() {
   const navigate = useNavigate();
@@ -106,7 +110,7 @@ export default function ClientSelector() {
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <ClientCard
-            icon="📡"
+            logo={logoOte}
             title="OTE / COSMOTE"
             subtitle="FTTH Β' Φάση + Αυτοψίες"
             colorClass="from-blue-500/20 to-cyan-500/10 border-blue-500/30"
@@ -123,7 +127,7 @@ export default function ClientSelector() {
           />
 
           <ClientCard
-            icon="📱"
+            logo={logoVodafone}
             title="Vodafone"
             subtitle="LLU + FTTH Φ3"
             colorClass="from-red-500/20 to-rose-500/10 border-red-500/30"
@@ -136,7 +140,7 @@ export default function ClientSelector() {
           />
 
           <ClientCard
-            icon="📺"
+            logo={logoNova}
             title="Nova"
             subtitle="Multi-service"
             colorClass="from-purple-500/20 to-fuchsia-500/10 border-purple-500/30"
@@ -149,7 +153,7 @@ export default function ClientSelector() {
           />
 
           <ClientCard
-            icon="⚡"
+            logo={logoDeh}
             title="ΔΕΗ"
             subtitle="Δίκτυο Διανομής"
             colorClass="from-yellow-500/20 to-amber-500/10 border-yellow-500/30"
@@ -162,7 +166,7 @@ export default function ClientSelector() {
           />
 
           <ClientCard
-            icon="💼"
+            icon={<Briefcase className="h-10 w-10 text-emerald-500" />}
             title="Συνολική Εικόνα"
             subtitle="Cashflow & KPIs"
             colorClass="from-emerald-500/20 to-green-500/10 border-emerald-500/30"
@@ -192,7 +196,8 @@ export default function ClientSelector() {
 }
 
 interface ClientCardProps {
-  icon: string;
+  logo?: string;
+  icon?: React.ReactNode;
   title: string;
   subtitle: string;
   colorClass: string;
@@ -204,6 +209,7 @@ interface ClientCardProps {
 }
 
 function ClientCard({
+  logo,
   icon,
   title,
   subtitle,
@@ -221,7 +227,20 @@ function ClientCard({
     >
       <div className="flex items-start justify-between">
         <div>
-          <div className="text-4xl mb-2">{icon}</div>
+          <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-lg bg-white/90 p-2 shadow-sm">
+            {logo ? (
+              <img
+                src={logo}
+                alt={title}
+                width={56}
+                height={56}
+                loading="lazy"
+                className="h-full w-full object-contain"
+              />
+            ) : (
+              icon
+            )}
+          </div>
           <h4 className="text-lg font-bold text-foreground">{title}</h4>
           <p className="text-sm text-muted-foreground">{subtitle}</p>
         </div>

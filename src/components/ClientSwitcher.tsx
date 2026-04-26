@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from "react-router-dom";
-import { ChevronDown, Check, Home } from "lucide-react";
+import { ChevronDown, Check, Home, Briefcase } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -9,21 +9,25 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import logoOte from "@/assets/logo-ote.png";
+import logoVodafone from "@/assets/logo-vodafone.png";
+import logoNova from "@/assets/logo-nova.png";
+import logoDeh from "@/assets/logo-deh.png";
 
 interface ClientOption {
   code: string;
   label: string;
-  icon: string;
+  logo?: string;
   path: string;
   comingSoon?: boolean;
 }
 
 const CLIENTS: ClientOption[] = [
-  { code: 'ote', label: 'OTE', icon: '📡', path: '/ote/dashboard' },
-  { code: 'vodafone', label: 'VODAFONE', icon: '📱', path: '/vodafone/dashboard', comingSoon: true },
-  { code: 'nova', label: 'NOVA', icon: '📺', path: '/nova/dashboard', comingSoon: true },
-  { code: 'deh', label: 'ΔΕΗ', icon: '⚡', path: '/deh/dashboard', comingSoon: true },
-  { code: 'master', label: 'Συνολική Εικόνα', icon: '💼', path: '/master/dashboard' },
+  { code: 'ote', label: 'OTE', logo: logoOte, path: '/ote/dashboard' },
+  { code: 'vodafone', label: 'VODAFONE', logo: logoVodafone, path: '/vodafone/dashboard', comingSoon: true },
+  { code: 'nova', label: 'NOVA', logo: logoNova, path: '/nova/dashboard', comingSoon: true },
+  { code: 'deh', label: 'ΔΕΗ', logo: logoDeh, path: '/deh/dashboard', comingSoon: true },
+  { code: 'master', label: 'Συνολική Εικόνα', path: '/master/dashboard' },
 ];
 
 function detectCurrentClient(pathname: string): string {
@@ -49,6 +53,23 @@ function detectCurrentClient(pathname: string): string {
   return 'ote';
 }
 
+function ClientIcon({ client, size = 24 }: { client: ClientOption; size?: number }) {
+  if (client.logo) {
+    return (
+      <img
+        src={client.logo}
+        alt={client.label}
+        width={size}
+        height={size}
+        loading="lazy"
+        className="object-contain rounded-sm bg-white p-0.5"
+        style={{ width: size, height: size }}
+      />
+    );
+  }
+  return <Briefcase className="text-emerald-500" style={{ width: size, height: size }} />;
+}
+
 export function ClientSwitcher() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -63,7 +84,7 @@ export function ClientSwitcher() {
           variant="outline"
           className="w-full justify-start gap-2 h-10 font-semibold"
         >
-          <span className="text-lg">{current.icon}</span>
+          <ClientIcon client={current} size={22} />
           <span className="flex-1 text-left truncate">{current.label}</span>
           <ChevronDown className="w-4 h-4 opacity-60" />
         </Button>
@@ -78,7 +99,7 @@ export function ClientSwitcher() {
             disabled={c.comingSoon}
             className="gap-2 cursor-pointer"
           >
-            <span className="text-base">{c.icon}</span>
+            <ClientIcon client={c} size={22} />
             <span className="flex-1">{c.label}</span>
             {c.comingSoon && (
               <span className="text-xs text-muted-foreground">Σύντομα</span>
