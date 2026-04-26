@@ -1,4 +1,8 @@
-# Welcome to your Lovable project
+# DeltaNetwork
+
+![Tests](https://github.com/DeltanetworkRhodes/task-track-tasker/actions/workflows/test.yml/badge.svg)
+
+FTTx Operations Platform για εργολάβους τηλεπικοινωνιών.
 
 ## Project info
 
