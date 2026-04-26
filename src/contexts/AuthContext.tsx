@@ -35,6 +35,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUser(session?.user ?? null);
       setLoading(false);
 
+      // Sync user identity to Sentry
+      if (session?.user) {
+        setSentryUser({ id: session.user.id, email: session.user.email });
+      } else {
+        setSentryUser(null);
+      }
+
       // For OAuth sign-ins, check if user was pre-created (has organization_id)
       if (_event === 'SIGNED_IN' && session?.user) {
         const provider = session.user.app_metadata?.provider;
