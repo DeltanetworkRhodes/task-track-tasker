@@ -13,6 +13,7 @@ import logoOte from "@/assets/logo-ote.png";
 import logoVodafone from "@/assets/logo-vodafone.png";
 import logoNova from "@/assets/logo-nova.png";
 import logoDeh from "@/assets/logo-deh.png";
+import { useEnabledClients } from "@/hooks/useEnabledClients";
 
 interface ClientOption {
   code: string;
@@ -73,9 +74,12 @@ function ClientIcon({ client, size = 24 }: { client: ClientOption; size?: number
 export function ClientSwitcher() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { data: enabled = ["ote"] } = useEnabledClients();
+
+  const visibleClients = CLIENTS.filter((c) => enabled.includes(c.code as never));
 
   const currentCode = detectCurrentClient(location.pathname);
-  const current = CLIENTS.find((c) => c.code === currentCode) || CLIENTS[0];
+  const current = visibleClients.find((c) => c.code === currentCode) || visibleClients[0] || CLIENTS[0];
 
   return (
     <DropdownMenu>
@@ -92,7 +96,7 @@ export function ClientSwitcher() {
       <DropdownMenuContent align="start" className="w-56 z-50 bg-popover">
         <DropdownMenuLabel>Άλλαξε Client</DropdownMenuLabel>
         <DropdownMenuSeparator />
-        {CLIENTS.map((c) => (
+        {visibleClients.map((c) => (
           <DropdownMenuItem
             key={c.code}
             onClick={() => !c.comingSoon && navigate(c.path)}
