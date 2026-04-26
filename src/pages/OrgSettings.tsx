@@ -259,6 +259,8 @@ const OrgSettings = () => {
           </p>
         </div>
 
+        <BackupButton />
+
         {isLoading ? (
           <div className="space-y-4">
             {[1, 2, 3].map((i) => <div key={i} className="h-32 bg-muted animate-pulse rounded-xl" />)}
