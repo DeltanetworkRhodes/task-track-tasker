@@ -41,6 +41,8 @@ import VodafoneDashboard from "./pages/VodafoneDashboard";
 import NovaDashboard from "./pages/NovaDashboard";
 import DehDashboard from "./pages/DehDashboard";
 import MasterDashboard from "./pages/MasterDashboard";
+import Subcontractors from "./pages/Subcontractors";
+import SubcontractorDetail from "./pages/SubcontractorDetail";
 
 import NotFound from "./pages/NotFound";
 import HelpChatBot from "./components/HelpChatBot";
@@ -139,6 +141,8 @@ const App = () => (
                   <Route path="/nova/dashboard" element={<ProtectedRoute><RoleGate><AdminRoute><NovaDashboard /></AdminRoute></RoleGate></ProtectedRoute>} />
                   <Route path="/deh/dashboard" element={<ProtectedRoute><RoleGate><AdminRoute><DehDashboard /></AdminRoute></RoleGate></ProtectedRoute>} />
                   <Route path="/master/dashboard" element={<ProtectedRoute><RoleGate><AdminRoute><MasterDashboard /></AdminRoute></RoleGate></ProtectedRoute>} />
+                  <Route path="/subcontractors" element={<ProtectedRoute><RoleGate><AdminRoute><Subcontractors /></AdminRoute></RoleGate></ProtectedRoute>} />
+                  <Route path="/subcontractors/:id" element={<ProtectedRoute><RoleGate><AdminRoute><SubcontractorDetail /></AdminRoute></RoleGate></ProtectedRoute>} />
 
                   {/* ====================================== */}
                   {/* OTE Namespace — νέα paths              */}

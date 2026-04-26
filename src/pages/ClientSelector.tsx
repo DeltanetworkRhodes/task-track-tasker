@@ -181,6 +181,10 @@ export default function ClientSelector() {
 
         {/* Quick actions */}
         <div className="mt-10 flex flex-wrap gap-3">
+          <Button variant="outline" onClick={() => navigate("/subcontractors")}>
+            <Users className="h-4 w-4 mr-2" />
+            👥 Υπεργολάβοι
+          </Button>
           <Button variant="outline" onClick={() => navigate("/users")}>
             <Users className="h-4 w-4 mr-2" />
             Χρήστες
