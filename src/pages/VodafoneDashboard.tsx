@@ -219,9 +219,9 @@ export default function VodafoneDashboard() {
   });
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-background">
-      {/* Vodafone Red Ambient Background */}
-      <div className="pointer-events-none fixed inset-0 -z-10">
+    <div className="relative -m-4 sm:-m-6 overflow-hidden">
+      {/* Vodafone Red Ambient Background (contained inside layout) */}
+      <div className="pointer-events-none absolute inset-0 -z-10">
         <div
           className="absolute inset-0 animate-ambient opacity-50"
           style={{
@@ -236,40 +236,32 @@ export default function VodafoneDashboard() {
         />
       </div>
 
-      {/* Header */}
-      <header className="relative border-b border-border/40 backdrop-blur-xl bg-background/40">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between gap-3">
+      <main className="relative container mx-auto px-4 py-6 sm:py-8 space-y-8">
+        {/* Page header — branded for Vodafone (no back button: sidebar provides it) */}
+        <header className="flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-3 min-w-0">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate("/client-selector")}
-              className="rounded-xl shrink-0"
-            >
-              <ArrowLeft className="h-4 w-4 sm:mr-2" />
-              <span className="hidden sm:inline">Πίνακες</span>
-            </Button>
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white p-1.5 shadow-glow-red shrink-0">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white p-1.5 shadow-glow-red shrink-0">
               <img src={logoVodafone} alt="Vodafone" className="h-full w-full object-contain" />
             </div>
             <div className="min-w-0">
-              <h1 className="text-xl font-bold tracking-tight text-foreground truncate">VODAFONE</h1>
-              <p className="text-[11px] uppercase tracking-widest text-muted-foreground truncate">
-                LLU + FTTH Φ3 Dashboard
+              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight bg-gradient-to-r from-red-500 to-rose-500 bg-clip-text text-transparent truncate">
+                Vodafone Dashboard
+              </h1>
+              <p className="text-[11px] sm:text-xs uppercase tracking-widest text-muted-foreground truncate">
+                Διαχείριση LLU + FTTH Φ3 ραντεβού
               </p>
             </div>
           </div>
           <Button
             onClick={() => navigate("/vodafone/ticket/new")}
-            className="gap-2 rounded-xl bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 shadow-md hover:shadow-glow-red text-white shrink-0"
+            size="lg"
+            className="gap-2 rounded-xl bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 shadow-md hover:shadow-glow-red text-white"
           >
             <Plus className="h-4 w-4" />
-            <span className="hidden sm:inline">Νέο Ticket</span>
+            <span>Νέο Ticket</span>
           </Button>
-        </div>
-      </header>
+        </header>
 
-      <main className="relative container mx-auto px-4 py-6 sm:py-8 space-y-8">
         {/* HERO KPI Section */}
         <section className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <KpiCard
