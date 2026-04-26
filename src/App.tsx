@@ -125,24 +125,46 @@ const App = () => (
                   <Route path="/dashboard" element={<ProtectedRoute><RoleGate><RoleRouter /></RoleGate></ProtectedRoute>} />
                   <Route path="/super-admin" element={<ProtectedRoute><SuperAdminRoute><SuperAdminDashboard /></SuperAdminRoute></ProtectedRoute>} />
                   <Route path="/technician" element={<ProtectedRoute><RoleGate><TechnicianDashboard /></RoleGate></ProtectedRoute>} />
-                  <Route path="/assignments" element={<ProtectedRoute><RoleGate><AdminRoute><Assignments /></AdminRoute></RoleGate></ProtectedRoute>} />
-                  <Route path="/surveys" element={<ProtectedRoute><RoleGate><AdminRoute><Surveys /></AdminRoute></RoleGate></ProtectedRoute>} />
-                  <Route path="/construction" element={<ProtectedRoute><RoleGate><AdminRoute><Construction /></AdminRoute></RoleGate></ProtectedRoute>} />
-                  <Route path="/materials" element={<ProtectedRoute><RoleGate><AdminRoute><Materials /></AdminRoute></RoleGate></ProtectedRoute>} />
-                  <Route path="/work-pricing" element={<ProtectedRoute><RoleGate><AdminRoute><WorkPricing /></AdminRoute></RoleGate></ProtectedRoute>} />
-                  <Route path="/earnings-pricing" element={<ProtectedRoute><RoleGate><AdminRoute><EarningsPricing /></AdminRoute></RoleGate></ProtectedRoute>} />
-                  <Route path="/profit" element={<ProtectedRoute><RoleGate><AdminRoute><ProfitPerSR /></AdminRoute></RoleGate></ProtectedRoute>} />
+
+                  {/* ====================================== */}
+                  {/* OTE Namespace — νέα paths              */}
+                  {/* ====================================== */}
+                  <Route path="/ote/dashboard" element={<ProtectedRoute><RoleGate><AdminRoute><Index /></AdminRoute></RoleGate></ProtectedRoute>} />
+                  <Route path="/ote/assignments" element={<ProtectedRoute><RoleGate><AdminRoute><Assignments /></AdminRoute></RoleGate></ProtectedRoute>} />
+                  <Route path="/ote/surveys" element={<ProtectedRoute><RoleGate><AdminRoute><Surveys /></AdminRoute></RoleGate></ProtectedRoute>} />
+                  <Route path="/ote/construction" element={<ProtectedRoute><RoleGate><AdminRoute><Construction /></AdminRoute></RoleGate></ProtectedRoute>} />
+                  <Route path="/ote/materials" element={<ProtectedRoute><RoleGate><AdminRoute><Materials /></AdminRoute></RoleGate></ProtectedRoute>} />
+                  <Route path="/ote/work-pricing" element={<ProtectedRoute><RoleGate><AdminRoute><WorkPricing /></AdminRoute></RoleGate></ProtectedRoute>} />
+                  <Route path="/ote/earnings-pricing" element={<ProtectedRoute><RoleGate><AdminRoute><EarningsPricing /></AdminRoute></RoleGate></ProtectedRoute>} />
+                  <Route path="/ote/profit" element={<ProtectedRoute><RoleGate><AdminRoute><ProfitPerSR /></AdminRoute></RoleGate></ProtectedRoute>} />
+                  <Route path="/ote/kpis" element={<ProtectedRoute><RoleGate><AdminRoute><TechnicianKPIs /></AdminRoute></RoleGate></ProtectedRoute>} />
+                  <Route path="/ote/calendar" element={<ProtectedRoute><RoleGate><AdminRoute><Calendar /></AdminRoute></RoleGate></ProtectedRoute>} />
+                  <Route path="/ote/documents" element={<ProtectedRoute><RoleGate><AdminRoute><DocumentGenerator /></AdminRoute></RoleGate></ProtectedRoute>} />
+                  <Route path="/ote/photo-requirements" element={<ProtectedRoute><RoleGate><AdminRoute><PhotoRequirements /></AdminRoute></RoleGate></ProtectedRoute>} />
+                  <Route path="/ote/pricing" element={<ProtectedRoute><RoleGate><AdminRoute><OtePricing /></AdminRoute></RoleGate></ProtectedRoute>} />
+
+                  {/* ====================================== */}
+                  {/* Backwards-compat redirects             */}
+                  {/* (από παλιά paths σε νέα /ote/*)        */}
+                  {/* ====================================== */}
+                  <Route path="/assignments" element={<Navigate to="/ote/assignments" replace />} />
+                  <Route path="/surveys" element={<Navigate to="/ote/surveys" replace />} />
+                  <Route path="/construction" element={<Navigate to="/ote/construction" replace />} />
+                  <Route path="/materials" element={<Navigate to="/ote/materials" replace />} />
+                  <Route path="/work-pricing" element={<Navigate to="/ote/work-pricing" replace />} />
+                  <Route path="/earnings-pricing" element={<Navigate to="/ote/earnings-pricing" replace />} />
+                  <Route path="/profit" element={<Navigate to="/ote/profit" replace />} />
+                  <Route path="/kpis" element={<Navigate to="/ote/kpis" replace />} />
+                  <Route path="/calendar" element={<Navigate to="/ote/calendar" replace />} />
+                  <Route path="/documents" element={<Navigate to="/ote/documents" replace />} />
+                  <Route path="/photo-requirements" element={<Navigate to="/ote/photo-requirements" replace />} />
+                  <Route path="/ote-pricing" element={<Navigate to="/ote/pricing" replace />} />
+
                   <Route path="/users" element={<ProtectedRoute><RoleGate><AdminRoute><UserManagement /></AdminRoute></RoleGate></ProtectedRoute>} />
                   <Route path="/settings" element={<ProtectedRoute><RoleGate><AdminRoute><OrgSettings /></AdminRoute></RoleGate></ProtectedRoute>} />
-                  <Route path="/kpis" element={<ProtectedRoute><RoleGate><AdminRoute><TechnicianKPIs /></AdminRoute></RoleGate></ProtectedRoute>} />
-                  
-                  <Route path="/calendar" element={<ProtectedRoute><RoleGate><AdminRoute><Calendar /></AdminRoute></RoleGate></ProtectedRoute>} />
-                  <Route path="/documents" element={<ProtectedRoute><RoleGate><AdminRoute><DocumentGenerator /></AdminRoute></RoleGate></ProtectedRoute>} />
                   <Route path="/labels" element={<ProtectedRoute><RoleGate><FtthLabelGenerator /></RoleGate></ProtectedRoute>} />
                   <Route path="/labels/:srId" element={<ProtectedRoute><RoleGate><FtthLabelGenerator /></RoleGate></ProtectedRoute>} />
                   <Route path="/my-earnings" element={<ProtectedRoute><RoleGate><MyEarnings /></RoleGate></ProtectedRoute>} />
-                  <Route path="/photo-requirements" element={<ProtectedRoute><RoleGate><AdminRoute><PhotoRequirements /></AdminRoute></RoleGate></ProtectedRoute>} />
-                  <Route path="/ote-pricing" element={<ProtectedRoute><RoleGate><AdminRoute><OtePricing /></AdminRoute></RoleGate></ProtectedRoute>} />
                   <Route path="/diagnostics" element={<ProtectedRoute><RoleGate><AdminRoute><Diagnostics /></AdminRoute></RoleGate></ProtectedRoute>} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
