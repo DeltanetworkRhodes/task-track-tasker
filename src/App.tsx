@@ -149,6 +149,7 @@ const App = () => (
                   <Route path="/master/dashboard" element={<ProtectedRoute><RoleGate><AdminRoute><MasterDashboard /></AdminRoute></RoleGate></ProtectedRoute>} />
                   <Route path="/subcontractors" element={<ProtectedRoute><RoleGate><AdminRoute><Subcontractors /></AdminRoute></RoleGate></ProtectedRoute>} />
                   <Route path="/subcontractors/:id" element={<ProtectedRoute><RoleGate><AdminRoute><SubcontractorDetail /></AdminRoute></RoleGate></ProtectedRoute>} />
+                  <Route path="/subcontractor-payments" element={<ProtectedRoute><RoleGate><AdminRoute><SubcontractorPayments /></AdminRoute></RoleGate></ProtectedRoute>} />
 
                   {/* ====================================== */}
                   {/* OTE Namespace — νέα paths              */}
