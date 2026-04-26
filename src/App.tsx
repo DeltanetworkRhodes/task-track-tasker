@@ -36,6 +36,11 @@ import MyEarnings from "./pages/MyEarnings";
 import PhotoRequirements from "./pages/PhotoRequirements";
 import OtePricing from "./pages/OtePricing";
 import Diagnostics from "./pages/Diagnostics";
+import ClientSelector from "./pages/ClientSelector";
+import VodafoneDashboard from "./pages/VodafoneDashboard";
+import NovaDashboard from "./pages/NovaDashboard";
+import DehDashboard from "./pages/DehDashboard";
+import MasterDashboard from "./pages/MasterDashboard";
 
 import NotFound from "./pages/NotFound";
 import HelpChatBot from "./components/HelpChatBot";
@@ -92,7 +97,7 @@ const RoleRouter = () => {
   if (isLoading) return <div className="flex min-h-screen items-center justify-center bg-background"><div className="text-muted-foreground">Φόρτωση...</div></div>;
   if (role === "super_admin") return <Navigate to="/super-admin" replace />;
   if (role === "technician") return <Navigate to="/technician" replace />;
-  return <Index />;
+  return <Navigate to="/client-selector" replace />;
 };
 
 const LandingOrDashboard = () => {
@@ -125,6 +130,15 @@ const App = () => (
                   <Route path="/dashboard" element={<ProtectedRoute><RoleGate><RoleRouter /></RoleGate></ProtectedRoute>} />
                   <Route path="/super-admin" element={<ProtectedRoute><SuperAdminRoute><SuperAdminDashboard /></SuperAdminRoute></ProtectedRoute>} />
                   <Route path="/technician" element={<ProtectedRoute><RoleGate><TechnicianDashboard /></RoleGate></ProtectedRoute>} />
+
+                  {/* ====================================== */}
+                  {/* Client Selector & Per-Client Dashboards */}
+                  {/* ====================================== */}
+                  <Route path="/client-selector" element={<ProtectedRoute><RoleGate><AdminRoute><ClientSelector /></AdminRoute></RoleGate></ProtectedRoute>} />
+                  <Route path="/vodafone/dashboard" element={<ProtectedRoute><RoleGate><AdminRoute><VodafoneDashboard /></AdminRoute></RoleGate></ProtectedRoute>} />
+                  <Route path="/nova/dashboard" element={<ProtectedRoute><RoleGate><AdminRoute><NovaDashboard /></AdminRoute></RoleGate></ProtectedRoute>} />
+                  <Route path="/deh/dashboard" element={<ProtectedRoute><RoleGate><AdminRoute><DehDashboard /></AdminRoute></RoleGate></ProtectedRoute>} />
+                  <Route path="/master/dashboard" element={<ProtectedRoute><RoleGate><AdminRoute><MasterDashboard /></AdminRoute></RoleGate></ProtectedRoute>} />
 
                   {/* ====================================== */}
                   {/* OTE Namespace — νέα paths              */}
