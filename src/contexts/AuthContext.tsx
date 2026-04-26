@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { setSentryUser } from "@/lib/sentry";
 
 declare global {
   interface Window {
@@ -33,6 +34,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
+
+      // Sync user identity to Sentry
+      if (session?.user) {
+        setSentryUser({ id: session.user.id, email: session.user.email });
+      } else {
+        setSentryUser(null);
+      }
 
       // For OAuth sign-ins, check if user was pre-created (has organization_id)
       if (_event === 'SIGNED_IN' && session?.user) {
@@ -73,6 +81,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
+      if (session?.user) {
+        setSentryUser({ id: session.user.id, email: session.user.email });
+      }
     });
 
     return () => subscription.unsubscribe();
