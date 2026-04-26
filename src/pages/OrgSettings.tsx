@@ -262,23 +262,83 @@ const OrgSettings = () => {
         <BackupButton />
 
         {/* TEMPORARY: Sentry Test — διαγράφεται μετά τον έλεγχο */}
-        <Card className="p-5 space-y-3 border-orange-500/40 bg-orange-500/5">
+        <Card className="p-5 space-y-4 border-orange-500/40 bg-orange-500/5">
           <div className="flex items-center gap-2 pb-2 border-b border-orange-500/20">
             <Bug className="h-5 w-5 text-orange-500" />
-            <h2 className="text-sm font-semibold text-foreground">🧪 Sentry Test (Προσωρινό)</h2>
+            <div>
+              <h2 className="text-sm font-semibold text-foreground">🧪 Sentry Test (Προσωρινό)</h2>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                3 διαφορετικά tests για να επιβεβαιώσουμε ότι το Sentry δουλεύει.
+              </p>
+            </div>
           </div>
-          <p className="text-xs text-muted-foreground">
-            Πάτα για να δημιουργήσεις δοκιμαστικό error. Πρέπει να εμφανιστεί στο Sentry σε ~30''.
+
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="border-blue-500/50 text-blue-600 hover:bg-blue-500/10 hover:text-blue-700"
+              onClick={async () => {
+                const Sentry = await import("@sentry/react");
+                const id = Sentry.captureMessage(
+                  `[TEST] Sentry message από Settings — ${new Date().toISOString()}`,
+                  "info"
+                );
+                await Sentry.flush(2000);
+
+                const { toast } = await import("sonner");
+                if (id) {
+                  toast.success(`✅ Στάλθηκε! Event ID: ${id.slice(0, 8)}...`);
+                } else {
+                  toast.error("❌ Sentry δεν επέστρεψε ID — δεν έχει init");
+                }
+              }}
+            >
+              📨 Test 1: Capture Message
+            </Button>
+
+            <Button
+              variant="outline"
+              size="sm"
+              className="border-purple-500/50 text-purple-600 hover:bg-purple-500/10 hover:text-purple-700"
+              onClick={async () => {
+                const Sentry = await import("@sentry/react");
+                try {
+                  throw new Error(`[TEST] Captured exception — ${new Date().toISOString()}`);
+                } catch (err) {
+                  const id = Sentry.captureException(err);
+                  await Sentry.flush(2000);
+
+                  const { toast } = await import("sonner");
+                  if (id) {
+                    toast.success(`✅ Exception στάλθηκε! ID: ${id.slice(0, 8)}...`);
+                  } else {
+                    toast.error("❌ Sentry δεν επέστρεψε ID — δεν έχει init");
+                  }
+                }
+              }}
+            >
+              🐛 Test 2: Capture Exception
+            </Button>
+
+            <Button
+              variant="outline"
+              size="sm"
+              className="border-red-500/50 text-red-600 hover:bg-red-500/10 hover:text-red-700"
+              onClick={() => {
+                throw new Error(`[TEST] Uncaught error από Settings — ${new Date().toISOString()}`);
+              }}
+            >
+              💥 Test 3: Uncaught (ErrorBoundary)
+            </Button>
+          </div>
+
+          <p className="text-[11px] text-muted-foreground border-t border-orange-500/20 pt-3">
+            💡 Tip: Άνοιξε το Console (Ctrl+Shift+I) πριν πατήσεις. Πρέπει να δεις:
+            <code className="block mt-1 px-2 py-1 bg-muted rounded text-foreground">
+              [Sentry] ✅ Initialized successfully on...
+            </code>
           </p>
-          <Button
-            variant="outline"
-            className="border-orange-500/50 text-orange-600 hover:bg-orange-500/10 hover:text-orange-700"
-            onClick={() => {
-              throw new Error(`Sentry Test από Settings — ${new Date().toISOString()}`);
-            }}
-          >
-            💥 Trigger Test Error
-          </Button>
         </Card>
 
         {isLoading ? (
