@@ -4,16 +4,17 @@ const SENTRY_DSN =
   "https://049e9984ec7a6a514e80c29a184fdc98@o4511287858036736.ingest.de.sentry.io/4511287889887312";
 
 export function initSentry() {
-  // Activate παντού εκτός από localhost (για debugging)
+  // Active παντού εκτός localhost
+  const hostname = typeof window !== "undefined" ? window.location.hostname : "";
   const isLocalhost =
-    typeof window !== "undefined" &&
-    (window.location.hostname === "localhost" ||
-      window.location.hostname === "127.0.0.1");
+    hostname === "localhost" || hostname === "127.0.0.1" || hostname === "";
 
   if (isLocalhost) {
     console.log("[Sentry] Disabled (localhost)");
     return;
   }
+
+  console.log(`[Sentry] Initializing on ${hostname}...`);
 
   Sentry.init({
     dsn: SENTRY_DSN,
