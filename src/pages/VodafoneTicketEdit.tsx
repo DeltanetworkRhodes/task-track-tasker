@@ -274,20 +274,23 @@ export default function VodafoneTicketEdit() {
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      const userRes = await supabase.auth.getUser();
-      const userId = userRes.data.user?.id;
-      if (!userId) throw new Error("Δεν είστε συνδεδεμένος");
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Δεν είστε συνδεδεμένος");
 
-      const { data: profile } = await supabase
+      const { data: profile, error: profileError } = await supabase
         .from("profiles")
         .select("organization_id")
-        .eq("id", userId)
-        .single();
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (profileError) throw profileError;
+      if (!profile?.organization_id) {
+        throw new Error("Δεν βρέθηκε organization. Επικοινωνήστε με admin.");
+      }
 
       let ticketDbId = id as string | undefined;
 
       const ticketData: any = {
-        organization_id: profile?.organization_id,
+        organization_id: profile.organization_id,
         ticket_id: form.ticket_id,
         customer_type: form.customer_type,
         zone: form.zone,
