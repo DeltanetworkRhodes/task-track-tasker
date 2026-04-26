@@ -81,7 +81,9 @@ const AppSidebar = ({ onClose }: AppSidebarProps) => {
   const { user, signOut } = useAuth();
   const { theme, setTheme } = useTheme();
   const { data: constructions } = useConstructions();
+  const { data: role } = useUserRole();
   const activeConstructions = constructions?.filter(c => c.status === 'in_progress').length || 0;
+  const isAdmin = role === 'admin' || role === 'super_admin';
 
   const [navItems, setNavItems] = useState(getOrderedItems);
   const [editMode, setEditMode] = useState(false);
