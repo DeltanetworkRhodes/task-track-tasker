@@ -241,3 +241,108 @@
 /* Smooth crossfade for tap-to-cycle missions */
 .mission-fade-enter { opacity: 0; transform: translateY(8px); filter: blur(4px); }
 .mission-fade-enter-active { opacity: 1; transform: translateY(0); filter: blur(0); transition: all 420ms cubic-bezier(0.22, 1, 0.36, 1); }
+/* ============================================ */
+/* PREMIUM UX ANIMATIONS                        */
+/* ============================================ */
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeInScale {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -1000px 0; }
+  100% { background-position: 1000px 0; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+@keyframes pulseGlow {
+  0%, 100% { opacity: 0.5; filter: blur(20px); }
+  50% { opacity: 0.8; filter: blur(30px); }
+}
+
+@keyframes ambientShift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+@keyframes countUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  opacity: 0;
+}
+.animate-fade-in-scale {
+  animation: fadeInScale 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  opacity: 0;
+}
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+.animate-pulse-glow {
+  animation: pulseGlow 3s ease-in-out infinite;
+}
+.animate-ambient {
+  background-size: 400% 400%;
+  animation: ambientShift 15s ease infinite;
+}
+
+.stagger-1 { animation-delay: 0.05s; }
+.stagger-2 { animation-delay: 0.15s; }
+.stagger-3 { animation-delay: 0.25s; }
+.stagger-4 { animation-delay: 0.35s; }
+.stagger-5 { animation-delay: 0.45s; }
+.stagger-6 { animation-delay: 0.55s; }
+
+.glass-card {
+  background: linear-gradient(135deg, hsl(var(--card) / 0.7), hsl(var(--card) / 0.3));
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid hsl(var(--border) / 0.3);
+}
+
+.shadow-glow-blue   { box-shadow: 0 20px 60px -15px hsl(217 91% 60% / 0.5); }
+.shadow-glow-red    { box-shadow: 0 20px 60px -15px hsl(0 84% 60% / 0.5); }
+.shadow-glow-purple { box-shadow: 0 20px 60px -15px hsl(280 91% 65% / 0.5); }
+.shadow-glow-amber  { box-shadow: 0 20px 60px -15px hsl(38 92% 50% / 0.5); }
+.shadow-glow-emerald{ box-shadow: 0 20px 60px -15px hsl(160 84% 45% / 0.5); }
+
+.tilt-card {
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  transform-style: preserve-3d;
+}
+.tilt-card:hover {
+  transform: perspective(1000px) rotateX(2deg) rotateY(-2deg) translateY(-8px) scale(1.02);
+}
+
+.shimmer {
+  background: linear-gradient(90deg, hsl(var(--muted)) 0%, hsl(var(--muted) / 0.5) 50%, hsl(var(--muted)) 100%);
+  background-size: 1000px 100%;
+  animation: shimmer 2s infinite linear;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-in-up,
+  .animate-fade-in-scale,
+  .animate-float,
+  .animate-pulse-glow,
+  .animate-ambient {
+    animation: none;
+    opacity: 1;
+  }
+  .tilt-card:hover {
+    transform: translateY(-4px);
+  }
+}
