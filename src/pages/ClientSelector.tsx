@@ -19,6 +19,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useEnabledClients } from "@/hooks/useEnabledClients";
 import { supabase } from "@/integrations/supabase/client";
 import { AnimatedCounter } from "@/components/AnimatedCounter";
 import logoOte from "@/assets/logo-ote.png";
@@ -33,15 +34,30 @@ export default function ClientSelector() {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const { data: role, isLoading: roleLoading } = useUserRole();
+  const { data: enabledClients = ["ote"], isLoading: enabledLoading } = useEnabledClients();
 
   useEffect(() => {
     if (!roleLoading && role === "technician") {
       navigate("/technician", { replace: true });
+      return;
     }
     if (!roleLoading && role === "super_admin") {
       navigate("/super-admin", { replace: true });
+      return;
     }
-  }, [role, roleLoading, navigate]);
+    // Auto-redirect if user has only one enabled client
+    if (!roleLoading && !enabledLoading && enabledClients.length === 1) {
+      const only = enabledClients[0];
+      const map: Record<string, string> = {
+        ote: "/ote/dashboard",
+        vodafone: "/vodafone/dashboard",
+        nova: "/nova/dashboard",
+        deh: "/deh/dashboard",
+        master: "/master/dashboard",
+      };
+      if (map[only]) navigate(map[only], { replace: true });
+    }
+  }, [role, roleLoading, enabledClients, enabledLoading, navigate]);
 
   // OTE stats
   const { data: oteStats } = useQuery({
