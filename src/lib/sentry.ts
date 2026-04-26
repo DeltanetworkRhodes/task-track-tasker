@@ -59,7 +59,7 @@ export function initSentry() {
     },
   });
 
-  console.log("[Sentry] Initialized");
+  console.log(`[Sentry] ✅ Initialized successfully on ${hostname}`);
 }
 
 // Hook για να συνδέσουμε auth user με Sentry events
