@@ -83,20 +83,22 @@ export default function Subcontractors() {
 
   const upsertMutation = useMutation({
     mutationFn: async (data: FormState) => {
-      const userRes = await supabase.auth.getUser();
-      const userId = userRes.data.user?.id;
-      if (!userId) throw new Error("Δεν είστε συνδεδεμένος");
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Δεν είστε συνδεδεμένος");
 
       const { data: profile, error: profileError } = await supabase
         .from("profiles")
         .select("organization_id")
-        .eq("id", userId)
-        .single();
+        .eq("user_id", user.id)
+        .maybeSingle();
       if (profileError) throw profileError;
+      if (!profile?.organization_id) {
+        throw new Error("Δεν βρέθηκε organization. Επικοινωνήστε με admin.");
+      }
 
       const payload = {
         ...data,
-        organization_id: profile?.organization_id,
+        organization_id: profile.organization_id,
       };
 
       if (editing?.id) {
