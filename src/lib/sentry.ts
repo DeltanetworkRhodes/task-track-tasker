@@ -64,7 +64,10 @@ export function initSentry() {
 // Hook για να συνδέσουμε auth user με Sentry events
 export function setSentryUser(user: { id: string; email?: string } | null) {
   if (typeof window === "undefined") return;
-  if (window.location.hostname !== "deltanetwork.app") return;
+  const isLocalhost =
+    window.location.hostname === "localhost" ||
+    window.location.hostname === "127.0.0.1";
+  if (isLocalhost) return;
 
   if (!user) {
     Sentry.setUser(null);
