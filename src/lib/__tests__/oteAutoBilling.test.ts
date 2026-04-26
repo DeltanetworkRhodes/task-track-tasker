@@ -165,7 +165,7 @@ describe("ΚΥΑ 2023 — Νέα σωλήνωση (1965.5-8)", () => {
 describe("ΚΥΑ 2023 — Καμπ→BEP υπόγεια (1993.1.5-8)", () => {
   it("REGRESSION TEST: 23m → 1993.1.7 (ΟΧΙ 1993.1.4)", () => {
     const items = computeAutoBilling(
-      { sr_id: "2-339981751841", building_type: "mono", bcp_to_bep_underground_meters: 23 },
+      { sr_id: "2-339981751841", building_type: "mono", has_bcp: true, bcp_to_bep_underground_meters: 23 },
       MOCK_ARTICLES
     );
     expect(hasCode(items, "1993.1.7")).toBe(true);
@@ -174,7 +174,7 @@ describe("ΚΥΑ 2023 — Καμπ→BEP υπόγεια (1993.1.5-8)", () => {
 
   it("3m → 1993.1.5", () => {
     const items = computeAutoBilling(
-      { sr_id: "2-1", building_type: "mono", bcp_to_bep_underground_meters: 3 },
+      { sr_id: "2-1", building_type: "mono", has_bcp: true, bcp_to_bep_underground_meters: 3 },
       MOCK_ARTICLES
     );
     expect(hasCode(items, "1993.1.5")).toBe(true);
@@ -182,7 +182,7 @@ describe("ΚΥΑ 2023 — Καμπ→BEP υπόγεια (1993.1.5-8)", () => {
 
   it("10m → 1993.1.6", () => {
     const items = computeAutoBilling(
-      { sr_id: "2-1", building_type: "mono", bcp_to_bep_underground_meters: 10 },
+      { sr_id: "2-1", building_type: "mono", has_bcp: true, bcp_to_bep_underground_meters: 10 },
       MOCK_ARTICLES
     );
     expect(hasCode(items, "1993.1.6")).toBe(true);
@@ -190,7 +190,7 @@ describe("ΚΥΑ 2023 — Καμπ→BEP υπόγεια (1993.1.5-8)", () => {
 
   it("50m → 1993.1.8", () => {
     const items = computeAutoBilling(
-      { sr_id: "2-1", building_type: "mono", bcp_to_bep_underground_meters: 50 },
+      { sr_id: "2-1", building_type: "mono", has_bcp: true, bcp_to_bep_underground_meters: 50 },
       MOCK_ARTICLES
     );
     expect(hasCode(items, "1993.1.8")).toBe(true);
@@ -198,7 +198,7 @@ describe("ΚΥΑ 2023 — Καμπ→BEP υπόγεια (1993.1.5-8)", () => {
 
   it("backward compat: bcp_bep_underground_meters alias works", () => {
     const items = computeAutoBilling(
-      { sr_id: "2-1", building_type: "mono", bcp_bep_underground_meters: 12 },
+      { sr_id: "2-1", building_type: "mono", has_bcp: true, bcp_bep_underground_meters: 12 },
       MOCK_ARTICLES
     );
     expect(hasCode(items, "1993.1.6")).toBe(true);
