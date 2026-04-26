@@ -422,6 +422,33 @@ export type Database = {
           },
         ]
       }
+      backup_log: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          filename: string
+          id: string
+          tables_count: number | null
+          total_rows: number | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          filename: string
+          id?: string
+          tables_count?: number | null
+          total_rows?: number | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          filename?: string
+          id?: string
+          tables_count?: number | null
+          total_rows?: number | null
+        }
+        Relationships: []
+      }
       building_pricing: {
         Row: {
           building_icon: string | null
