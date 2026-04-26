@@ -51,6 +51,7 @@ import SubcontractorPayments from "./pages/SubcontractorPayments";
 import NotFound from "./pages/NotFound";
 import HelpChatBot from "./components/HelpChatBot";
 import { ClientGate } from "@/components/ClientGate";
+import AppLayout from "@/components/AppLayout";
 
 const queryClient = new QueryClient();
 
@@ -142,17 +143,17 @@ const App = () => (
                   {/* Client Selector & Per-Client Dashboards */}
                   {/* ====================================== */}
                   <Route path="/client-selector" element={<ProtectedRoute><RoleGate><AdminRoute><ClientSelector /></AdminRoute></RoleGate></ProtectedRoute>} />
-                  <Route path="/vodafone/dashboard" element={<ProtectedRoute><RoleGate><AdminRoute><ClientGate client="vodafone"><VodafoneDashboard /></ClientGate></AdminRoute></RoleGate></ProtectedRoute>} />
-                  <Route path="/vodafone/tickets" element={<ProtectedRoute><RoleGate><AdminRoute><ClientGate client="vodafone"><VodafoneTickets /></ClientGate></AdminRoute></RoleGate></ProtectedRoute>} />
-                  <Route path="/vodafone/ticket/new" element={<ProtectedRoute><RoleGate><AdminRoute><ClientGate client="vodafone"><VodafoneTicketEdit /></ClientGate></AdminRoute></RoleGate></ProtectedRoute>} />
-                  <Route path="/vodafone/ticket/:id" element={<ProtectedRoute><RoleGate><AdminRoute><ClientGate client="vodafone"><VodafoneTicketEdit /></ClientGate></AdminRoute></RoleGate></ProtectedRoute>} />
-                  <Route path="/vodafone/import" element={<ProtectedRoute><RoleGate><AdminRoute><ClientGate client="vodafone"><VodafoneImport /></ClientGate></AdminRoute></RoleGate></ProtectedRoute>} />
-                  <Route path="/nova/dashboard" element={<ProtectedRoute><RoleGate><AdminRoute><ClientGate client="nova"><NovaDashboard /></ClientGate></AdminRoute></RoleGate></ProtectedRoute>} />
-                  <Route path="/deh/dashboard" element={<ProtectedRoute><RoleGate><AdminRoute><ClientGate client="deh"><DehDashboard /></ClientGate></AdminRoute></RoleGate></ProtectedRoute>} />
-                  <Route path="/master/dashboard" element={<ProtectedRoute><RoleGate><AdminRoute><ClientGate client="master"><MasterDashboard /></ClientGate></AdminRoute></RoleGate></ProtectedRoute>} />
-                  <Route path="/subcontractors" element={<ProtectedRoute><RoleGate><AdminRoute><ClientGate client="vodafone"><Subcontractors /></ClientGate></AdminRoute></RoleGate></ProtectedRoute>} />
-                  <Route path="/subcontractors/:id" element={<ProtectedRoute><RoleGate><AdminRoute><ClientGate client="vodafone"><SubcontractorDetail /></ClientGate></AdminRoute></RoleGate></ProtectedRoute>} />
-                  <Route path="/subcontractor-payments" element={<ProtectedRoute><RoleGate><AdminRoute><ClientGate client="vodafone"><SubcontractorPayments /></ClientGate></AdminRoute></RoleGate></ProtectedRoute>} />
+                  <Route path="/vodafone/dashboard" element={<ProtectedRoute><RoleGate><AdminRoute><ClientGate client="vodafone"><AppLayout><VodafoneDashboard /></AppLayout></ClientGate></AdminRoute></RoleGate></ProtectedRoute>} />
+                  <Route path="/vodafone/tickets" element={<ProtectedRoute><RoleGate><AdminRoute><ClientGate client="vodafone"><AppLayout><VodafoneTickets /></AppLayout></ClientGate></AdminRoute></RoleGate></ProtectedRoute>} />
+                  <Route path="/vodafone/ticket/new" element={<ProtectedRoute><RoleGate><AdminRoute><ClientGate client="vodafone"><AppLayout><VodafoneTicketEdit /></AppLayout></ClientGate></AdminRoute></RoleGate></ProtectedRoute>} />
+                  <Route path="/vodafone/ticket/:id" element={<ProtectedRoute><RoleGate><AdminRoute><ClientGate client="vodafone"><AppLayout><VodafoneTicketEdit /></AppLayout></ClientGate></AdminRoute></RoleGate></ProtectedRoute>} />
+                  <Route path="/vodafone/import" element={<ProtectedRoute><RoleGate><AdminRoute><ClientGate client="vodafone"><AppLayout><VodafoneImport /></AppLayout></ClientGate></AdminRoute></RoleGate></ProtectedRoute>} />
+                  <Route path="/nova/dashboard" element={<ProtectedRoute><RoleGate><AdminRoute><ClientGate client="nova"><AppLayout><NovaDashboard /></AppLayout></ClientGate></AdminRoute></RoleGate></ProtectedRoute>} />
+                  <Route path="/deh/dashboard" element={<ProtectedRoute><RoleGate><AdminRoute><ClientGate client="deh"><AppLayout><DehDashboard /></AppLayout></ClientGate></AdminRoute></RoleGate></ProtectedRoute>} />
+                  <Route path="/master/dashboard" element={<ProtectedRoute><RoleGate><AdminRoute><ClientGate client="master"><AppLayout><MasterDashboard /></AppLayout></ClientGate></AdminRoute></RoleGate></ProtectedRoute>} />
+                  <Route path="/subcontractors" element={<ProtectedRoute><RoleGate><AdminRoute><ClientGate client="vodafone"><AppLayout><Subcontractors /></AppLayout></ClientGate></AdminRoute></RoleGate></ProtectedRoute>} />
+                  <Route path="/subcontractors/:id" element={<ProtectedRoute><RoleGate><AdminRoute><ClientGate client="vodafone"><AppLayout><SubcontractorDetail /></AppLayout></ClientGate></AdminRoute></RoleGate></ProtectedRoute>} />
+                  <Route path="/subcontractor-payments" element={<ProtectedRoute><RoleGate><AdminRoute><ClientGate client="vodafone"><AppLayout><SubcontractorPayments /></AppLayout></ClientGate></AdminRoute></RoleGate></ProtectedRoute>} />
 
                   {/* ====================================== */}
                   {/* OTE Namespace — νέα paths              */}
