@@ -3307,6 +3307,20 @@ export type Database = {
     }
     Functions: {
       cleanup_expired_auto_system_logs: { Args: never; Returns: undefined }
+      compute_subcontractor_monthly_summary: {
+        Args: { p_month: number; p_year: number }
+        Returns: {
+          full_name: string
+          has_existing_payment: boolean
+          payment_id: string
+          payment_status: string
+          primary_region: string
+          short_name: string
+          subcontractor_id: string
+          tickets_count: number
+          total_amount: number
+        }[]
+      }
       get_user_org_id: { Args: { _user_id: string }; Returns: string }
       has_role: {
         Args: {
