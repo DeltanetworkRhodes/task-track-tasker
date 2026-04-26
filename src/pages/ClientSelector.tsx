@@ -21,6 +21,11 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import { supabase } from "@/integrations/supabase/client";
 import { AnimatedCounter } from "@/components/AnimatedCounter";
+import logoOte from "@/assets/logo-ote.png";
+import logoVodafone from "@/assets/logo-vodafone.png";
+import logoNova from "@/assets/logo-nova.png";
+import logoDeh from "@/assets/logo-deh.png";
+import logoDelta from "@/assets/delta-logo-icon.png";
 
 type ColorKey = "blue" | "red" | "purple" | "amber" | "emerald";
 
