@@ -265,7 +265,7 @@ export default function ClientSelector() {
         {/* Premium Cards Grid */}
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           <PremiumCard
-            icon="🌐"
+            logo={logoOte}
             title="OTE / COSMOTE"
             subtitle="FTTH Β' Φάση + Αυτοψίες"
             color="blue"
@@ -283,7 +283,7 @@ export default function ClientSelector() {
           />
 
           <PremiumCard
-            icon="📱"
+            logo={logoVodafone}
             title="Vodafone"
             subtitle="LLU + FTTH Φ3 + Tickets"
             color="red"
@@ -300,7 +300,7 @@ export default function ClientSelector() {
           />
 
           <PremiumCard
-            icon="🟣"
+            logo={logoNova}
             title="Nova"
             subtitle="Multi-service"
             color="purple"
@@ -310,7 +310,7 @@ export default function ClientSelector() {
           />
 
           <PremiumCard
-            icon="⚡"
+            logo={logoDeh}
             title="ΔΕΗ"
             subtitle="Δίκτυο Διανομής"
             color="amber"
@@ -320,7 +320,7 @@ export default function ClientSelector() {
           />
 
           <PremiumCard
-            icon="📊"
+            fallbackIcon={<Briefcase className="h-7 w-7 text-emerald-500" />}
             title="Συνολική Εικόνα"
             subtitle="Cashflow & KPIs"
             color="emerald"
