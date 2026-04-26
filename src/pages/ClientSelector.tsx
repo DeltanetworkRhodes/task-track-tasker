@@ -21,6 +21,11 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import { supabase } from "@/integrations/supabase/client";
 import { AnimatedCounter } from "@/components/AnimatedCounter";
+import logoOte from "@/assets/logo-ote.png";
+import logoVodafone from "@/assets/logo-vodafone.png";
+import logoNova from "@/assets/logo-nova.png";
+import logoDeh from "@/assets/logo-deh.png";
+import logoDelta from "@/assets/delta-logo-icon.png";
 
 type ColorKey = "blue" | "red" | "purple" | "amber" | "emerald";
 
@@ -155,8 +160,8 @@ export default function ClientSelector() {
       <header className="relative border-b border-border/40 backdrop-blur-xl bg-background/40">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-accent shadow-glow-emerald">
-              <Sparkles className="h-5 w-5 text-white" />
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white shadow-glow-emerald p-1.5">
+              <img src={logoDelta} alt="DeltaNetwork" className="h-full w-full object-contain" />
             </div>
             <div>
               <h1 className="text-xl font-bold tracking-tight text-foreground">
@@ -260,7 +265,7 @@ export default function ClientSelector() {
         {/* Premium Cards Grid */}
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           <PremiumCard
-            icon="🌐"
+            logo={logoOte}
             title="OTE / COSMOTE"
             subtitle="FTTH Β' Φάση + Αυτοψίες"
             color="blue"
@@ -278,7 +283,7 @@ export default function ClientSelector() {
           />
 
           <PremiumCard
-            icon="📱"
+            logo={logoVodafone}
             title="Vodafone"
             subtitle="LLU + FTTH Φ3 + Tickets"
             color="red"
@@ -295,7 +300,7 @@ export default function ClientSelector() {
           />
 
           <PremiumCard
-            icon="🟣"
+            logo={logoNova}
             title="Nova"
             subtitle="Multi-service"
             color="purple"
@@ -305,7 +310,7 @@ export default function ClientSelector() {
           />
 
           <PremiumCard
-            icon="⚡"
+            logo={logoDeh}
             title="ΔΕΗ"
             subtitle="Δίκτυο Διανομής"
             color="amber"
@@ -315,7 +320,7 @@ export default function ClientSelector() {
           />
 
           <PremiumCard
-            icon="📊"
+            fallbackIcon={<Briefcase className="h-7 w-7 text-emerald-500" />}
             title="Συνολική Εικόνα"
             subtitle="Cashflow & KPIs"
             color="emerald"
@@ -361,7 +366,8 @@ export default function ClientSelector() {
 // PREMIUM CARD COMPONENT
 // ============================================
 interface PremiumCardProps {
-  icon: string;
+  logo?: string;
+  fallbackIcon?: React.ReactNode;
   title: string;
   subtitle: string;
   color: ColorKey;
@@ -374,7 +380,8 @@ interface PremiumCardProps {
 }
 
 function PremiumCard({
-  icon,
+  logo,
+  fallbackIcon,
   title,
   subtitle,
   color,
@@ -470,11 +477,19 @@ function PremiumCard({
           <div className="flex items-start justify-between mb-6">
             <div className="flex items-start gap-4">
               <div
-                className={`flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br ${c.iconBg} text-3xl shadow-lg ${
+                className={`flex h-14 w-14 items-center justify-center rounded-2xl bg-white p-2 shadow-lg ${
                   !comingSoon ? c.iconGlow : ""
                 } ${!comingSoon ? "group-hover:animate-float" : ""}`}
               >
-                <span className="drop-shadow-sm">{icon}</span>
+                {logo ? (
+                  <img
+                    src={logo}
+                    alt={title}
+                    className="h-full w-full object-contain"
+                  />
+                ) : (
+                  fallbackIcon
+                )}
               </div>
               <div>
                 <h4 className="text-lg font-bold text-foreground leading-tight">

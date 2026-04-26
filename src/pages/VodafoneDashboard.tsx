@@ -24,6 +24,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { AnimatedCounter } from "@/components/AnimatedCounter";
+import logoVodafone from "@/assets/logo-vodafone.png";
 import {
   XAxis,
   YAxis,
@@ -248,8 +249,8 @@ export default function VodafoneDashboard() {
               <ArrowLeft className="h-4 w-4 sm:mr-2" />
               <span className="hidden sm:inline">Πίνακες</span>
             </Button>
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-red-500 to-red-700 text-2xl shadow-glow-red shrink-0">
-              📱
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white p-1.5 shadow-glow-red shrink-0">
+              <img src={logoVodafone} alt="Vodafone" className="h-full w-full object-contain" />
             </div>
             <div className="min-w-0">
               <h1 className="text-xl font-bold tracking-tight text-foreground truncate">VODAFONE</h1>
