@@ -1390,9 +1390,26 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
       setBepPlacementFloor((gisData as any).bep_floor);
     }
 
-    // ── AK από conduit (μόνο αν εντελώς κενό) ──
-    if ((gisData as any)?.conduit && !ak) {
-      setAk(((gisData as any).conduit as string).toUpperCase());
+    // ── Αναμονή από GIS conduit (μόνο αν κενό) ──
+    if ((gisData as any)?.conduit && !pendingNote) {
+      setPendingNote(String((gisData as any).conduit));
+    }
+
+    // ── CAB από GIS optical_paths (π.χ. G137_... → G137), μόνο αν κενό ──
+    if (!cab) {
+      const paths = ((gisData as any)?.optical_paths as any[]) || [];
+      let foundCab = "";
+      for (const p of paths) {
+        const raw = p?.raw || p;
+        const pathStr = String(raw?.["OPTICAL PATH"] || raw?.path || "");
+        const m = pathStr.match(/^([A-Z]\d+)/i);
+        if (m) { foundCab = m[1].toUpperCase(); break; }
+      }
+      if (foundCab) {
+        setCab(foundCab);
+      } else if ((gisData as any)?.associated_bcp) {
+        setCab(String((gisData as any).associated_bcp));
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gisData]);
