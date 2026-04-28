@@ -325,7 +325,10 @@ export function computeAutoBilling(
 
   // ── 10) Γ' ΦΑΣΗ — Σύνδεση Πελάτη (μόνο αν SR ξεκινά με "2-") ──
   if (kya) {
-    push("1955.2", 1, "Γ' Φάση — Σύνδεση πελάτη με ενεργοποίηση");
+    push("1955.2", 1, "Γ' Φάση — Σύνδεση πελάτη με ενεργοποίηση (SR 2-...)");
+    console.log(`[computeAutoBilling] ✅ Γ' Φάση 1955.2 added (sr_id="${input.sr_id}")`);
+  } else {
+    console.log(`[computeAutoBilling] ⛔ Γ' Φάση SKIPPED (sr_id="${input.sr_id}" δεν ξεκινά με "2-")`);
   }
 
   console.log(
