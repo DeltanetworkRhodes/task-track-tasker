@@ -1202,10 +1202,19 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
     if (sorted.length === 0) return;
 
     setFloorMeters(sorted.map((f): FMRow => {
-      // ≥6 FB ports → 12FO (μεγαλύτερη χωρητικότητα), αλλιώς 4FO
-      const foType = f.fbCount >= 6 ? "12FO" : "4FO";
+      // Κανόνας:
+      //   4-port FB  → 4FO  (≤4 paths)
+      //   6-port FB  → 12FO (5-6 paths)
+      //   12-port FB → 12FO (7+ paths)
+      const foType = f.fbCount >= 5 ? "12FO" : "4FO";
       const pipe = foType === "12FO" ? '4"' : '2"';
-      return { floor: f.label, meters: "", pipe_type: pipe, fo_type: foType };
+      return {
+        floor: f.label,
+        meters: "",
+        pipe_type: pipe,
+        fo_type: foType,
+        fb_ports: f.fbCount, // 🆕 metadata: για debugging + audit
+      } as any;
     }));
     setFloorMetersInitialized(true);
   }, [gisData, floorMetersInitialized, existingConstructionLoaded]);
