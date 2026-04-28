@@ -460,16 +460,12 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
     return Math.max(charged, fromFloorMeters, fromFloors);
   }, [totalFbCharged, floorMeters.length, floorCount]);
 
-  // 🆕 Detect αν υπάρχει BCP (από section6 OR GIS)
+  // 🆕 Detect αν υπάρχει BCP (από section6.bcp_eidos)
+  // Note: gisData declared later in file, so we rely on section6 here.
+  // The auto-populate effect για bcp_eidos τρέχει από gisData, οπότε καλύπτει και GIS.
   const hasBcpForOtdr = useMemo(() => {
-    const fromSection6 = !!(section6?.bcp_eidos && String(section6.bcp_eidos).trim());
-    const fromGis = !!(
-      (gisData as any)?.new_bcp ||
-      (gisData as any)?.nearby_bcp ||
-      (gisData as any)?.associated_bcp
-    );
-    return fromSection6 || fromGis;
-  }, [section6?.bcp_eidos, gisData]);
+    return !!(section6?.bcp_eidos && String(section6.bcp_eidos).trim());
+  }, [section6?.bcp_eidos]);
 
   // 🆕 FB OTDR rows με floor labels + FO type από floor_meters
   const fbOtdrCategories = useMemo(() => {
