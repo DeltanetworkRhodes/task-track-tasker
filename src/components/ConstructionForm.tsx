@@ -435,14 +435,10 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
     );
   });
 
-  // OTDR PDF measurement categories (FB is dynamic based on floors)
-  const OTDR_CATEGORIES_STATIC = [
-    { key: "BMO", storageName: "OTDR_BMO", label: "BMO" },
-    { key: "ΚΑΜΠΙΝΑ", storageName: "OTDR_KAMPINA", label: "Καμπίνα" },
-    { key: "BEP", storageName: "OTDR_BEP", label: "BEP" },
-    { key: "BCP", storageName: "OTDR_BCP", label: "BCP" },
-    { key: "LIVE", storageName: "OTDR_LIVE", label: "Live" },
-  ];
+  // ============================================================
+  // OTDR Categories — δομημένα με σειρά ροής σήματος:
+  //   Καμπίνα → BCP (αν υπάρχει) → BEP → BMO → FB ανά όροφο → LIVE
+  // ============================================================
 
   const floorCount = Math.max(0, parseInt(floors) || 0);
 
@@ -457,8 +453,6 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
       .reduce((sum, m) => sum + m.quantity, 0);
   }, [materialItems]);
 
-  // Effective FB count: max of (charged FBs, FB rows from GIS floor_meters, floor count)
-  // Ensures FB OTDR rows appear even if technician hasn't charged FB materials yet.
   const effectiveFbCount = useMemo(() => {
     const charged = Math.max(0, Math.round(totalFbCharged));
     const fromFloorMeters = floorMeters.length;
@@ -466,29 +460,67 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
     return Math.max(charged, fromFloorMeters, fromFloors);
   }, [totalFbCharged, floorMeters.length, floorCount]);
 
+  // 🆕 Detect αν υπάρχει BCP (από section6.bcp_eidos)
+  // Note: gisData declared later in file, so we rely on section6 here.
+  // The auto-populate effect για bcp_eidos τρέχει από gisData, οπότε καλύπτει και GIS.
+  const hasBcpForOtdr = useMemo(() => {
+    return !!(section6?.bcp_eidos && String(section6.bcp_eidos).trim());
+  }, [section6?.bcp_eidos]);
+
+  // 🆕 FB OTDR rows με floor labels + FO type από floor_meters
   const fbOtdrCategories = useMemo(() => {
     const count = effectiveFbCount;
-    const cats = [];
-    for (let i = 1; i <= count; i++) {
-      const fbLabel = i.toString().padStart(2, "0");
+    const cats: Array<{ key: string; storageName: string; label: string }> = [];
+
+    for (let i = 0; i < count; i++) {
+      const fmRow: any = floorMeters[i];
+      const fbLabel = (i + 1).toString().padStart(2, "0");
+
+      let label: string;
+      if (fmRow?.floor) {
+        const floorName = fmRow.floor;
+        const foType = fmRow.fo_type || "";
+        label = foType ? `FB ${floorName} (${foType})` : `FB ${floorName}`;
+      } else {
+        label = `Floor Box ${fbLabel}`;
+      }
+
       cats.push({
         key: `FB_${fbLabel}`,
-        storageName: `OTDR_FB_${fbLabel}`,
-        label: `Floor Box ${fbLabel}`,
+        storageName: `OTDR_FB_${fbLabel}`, // αμετάβλητο για backward compat
+        label,
       });
     }
     return cats;
-  }, [effectiveFbCount]);
+  }, [effectiveFbCount, floorMeters]);
 
+  // 🆕 Build OTDR categories σε ΣΩΣΤΗ σειρά ροής
   const OTDR_CATEGORIES = useMemo(() => {
-    const allOtdr = [
-      OTDR_CATEGORIES_STATIC[0], // BMO
-      ...fbOtdrCategories,
-      ...OTDR_CATEGORIES_STATIC.slice(1), // ΚΑΜΠΙΝΑ, BEP, BCP, LIVE
-    ];
+    const allOtdr: Array<{ key: string; storageName: string; label: string }> = [];
+
+    // 1. ΚΑΜΠΙΝΑ — πάντα πρώτη
+    allOtdr.push({ key: "ΚΑΜΠΙΝΑ", storageName: "OTDR_KAMPINA", label: "🏢 Καμπίνα" });
+
+    // 2. BCP — μόνο αν υπάρχει
+    if (hasBcpForOtdr) {
+      allOtdr.push({ key: "BCP", storageName: "OTDR_BCP", label: "🔌 BCP" });
+    }
+
+    // 3. BEP — πάντα
+    allOtdr.push({ key: "BEP", storageName: "OTDR_BEP", label: "🚪 BEP" });
+
+    // 4. BMO — πάντα
+    allOtdr.push({ key: "BMO", storageName: "OTDR_BMO", label: "📡 BMO" });
+
+    // 5. FB ανά όροφο
+    for (const fb of fbOtdrCategories) {
+      allOtdr.push({ ...fb, label: `📋 ${fb.label}` });
+    }
+
+    // 6. LIVE — πάντα τελευταίο
+    allOtdr.push({ key: "LIVE", storageName: "OTDR_LIVE", label: "🟢 Live" });
 
     if (!filterPhotoCatKeys) return allOtdr;
-    // Phase 3 technicians get all OTDR categories
     if (phase === 3) return allOtdr;
     if (allowAllOtdrInCrewMode) return allOtdr;
 
@@ -500,7 +532,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
 
     // If filters from DB were malformed, keep OTDR visible instead of hiding everything.
     return crewFilteredOtdr.length > 1 ? crewFilteredOtdr : allOtdr;
-  }, [fbOtdrCategories, filterPhotoCatKeys, normalizedCrewPhotoKeys, allowAllOtdrInCrewMode, phase]);
+  }, [fbOtdrCategories, hasBcpForOtdr, filterPhotoCatKeys, normalizedCrewPhotoKeys, allowAllOtdrInCrewMode, phase]);
 
   const [categorizedPhotos, setCategorizedPhotos] = useState<Record<string, File[]>>({});
   const [categorizedPreviews, setCategorizedPreviews] = useState<Record<string, string[]>>({});
