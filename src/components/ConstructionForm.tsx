@@ -182,6 +182,9 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
   const [verticalInfraType, setVerticalInfraType] = useState("");
   const [floorMeters, setFloorMeters] = useState<{ floor: string; meters: string; pipe_type: string; fo_type: string }[]>([]);
   const [floorMetersInitialized, setFloorMetersInitialized] = useState(false);
+
+  // Helper: μετατρέπει αριθμό ορόφου σε ελληνικό label (1→Ο1, 2→Ο2, ...)
+  const floorLabel = (n: number): string => `Ο${n}`;
   const [section6, setSection6] = useState<Record<string, string>>({
     eisagogi_type: "",
     bmo_bep_distance: "",
@@ -2628,6 +2631,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
           vertical_infra_type: verticalInfraType,
           building_type: buildingType,
           asbuilt_section6: { ...section6, ball_marker_bep: ballMarkerBep, bcp_ball_marker: ballMarkerBcp },
+          floor_meters: floorMeters.length > 0 ? floorMeters : null,
           // 3-Phase workflow: mark this phase as in-progress while saving in crew mode
           ...(phase === 1 && { phase1_status: "in_progress" }),
           ...(phase === 2 && { phase2_status: "in_progress" }),
@@ -3124,6 +3128,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
         vertical_infra_type: verticalInfraType,
         building_type: buildingType,
         asbuilt_section6: { ...section6, ball_marker_bep: ballMarkerBep, bcp_ball_marker: ballMarkerBcp },
+        floor_meters: floorMeters.length > 0 ? floorMeters : null,
         // 3-Phase workflow: mark this phase's status (in_progress on save, completed when finishing)
         ...(phase === 1 && (isCompleting
           ? { phase1_status: "completed", phase1_completed_at: new Date().toISOString() }
