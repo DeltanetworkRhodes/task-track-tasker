@@ -22,6 +22,13 @@ export interface MaterialsAutoFillInput {
   routes: Array<{ koi: string; fyraKoi?: string }>;
 }
 
+const parseMeters = (value: unknown): number => {
+  const normalized = String(value ?? "")
+    .replace(",", ".")
+    .replace(/[^\d.-]/g, "");
+  return parseFloat(normalized) || 0;
+};
+
 export interface ComputedMaterial {
   code: string;
   material_id: string;
@@ -251,11 +258,11 @@ export function computeAutoMaterials(
     )
   );
   const ballMarkerMeters = hasBcp
-    ? parseFloat(String(section6?.bcp_ball_marker || "0")) || 0
-    : parseFloat(String(section6?.ball_marker_bep || "0")) || 0;
+    ? parseMeters(section6?.bcp_ball_marker)
+    : parseMeters(section6?.ball_marker_bep);
 
   const fallbackMeters =
-    ballMarkerMeters || parseFloat(String(routes?.[0]?.koi || "0")) || 0;
+    ballMarkerMeters || parseMeters(routes?.[0]?.koi) || 0;
 
   if (fallbackMeters > 0) {
     addMaterial(
@@ -276,10 +283,22 @@ export function computeAutoMaterials(
 
   // === 9. Ενδεικτικό πλέγμα σήμανσης 20cm (14023051) ===
   // Ίσα μέτρα με το Μ/Σ (ms_skamma) από Οριζοντογραφία AS-BUILD.
-  const msSkammaMeters = parseFloat(String((section6 as any)?.ms_skamma ?? "0")) || 0;
+  const msSkammaMeters = Math.max(
+    parseMeters((section6 as any)?.ms_skamma),
+    parseMeters((section6 as any)?.bcp_ms),
+    parseMeters((section6 as any)?.eskalit_ms),
+  );
   if (msSkammaMeters > 0) {
     addMaterial(
-      (m) => m.code === "14023051" || nameMatches(m.name, "πλέγμα", "σήμανσης"),
+      (m) => {
+        const upper = String(m.name || "").toUpperCase();
+        return (
+          m.code === "14023051" ||
+          nameMatches(m.name, "πλέγμα", "σήμαν") ||
+          nameMatches(m.name, "ενδεικτικό", "πλέγμα") ||
+          upper.includes("PLEGMA")
+        );
+      },
       Math.ceil(msSkammaMeters),
       `Πλέγμα σήμανσης 20cm (${Math.ceil(msSkammaMeters)}m Μ/Σ)`,
     );
