@@ -2047,10 +2047,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
       }
     }
 
-    // AK from building_id
-    if (!ak && gisData.building_id) {
-      setAk(gisData.building_id);
-    }
+    // Α/Κ: ΔΕΝ συμπληρώνεται αυτόματα — παραμένει κενό
 
     // Routes from optical_paths
     const opticalPaths = (gisData.optical_paths as any[]) || [];
