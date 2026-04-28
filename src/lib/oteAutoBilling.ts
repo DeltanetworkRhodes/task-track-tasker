@@ -56,8 +56,15 @@ export interface BillingItem {
   reason: string;
 }
 
-const isKya = (sr_id?: string | null) =>
-  !!sr_id && sr_id.trim().startsWith("2-");
+// Γ' Φάση (1955.2): ΜΟΝΟ όταν το SR ξεκινά με "2-" (after trimming non-digit/dash prefix).
+// Παραδείγματα που θεωρούνται KYA: "2-339992369245", " 2-12345", "SR:2-12345"
+// Παραδείγματα που ΔΕΝ είναι KYA: "1-12345", "ABC123", "" / null
+const isKya = (sr_id?: string | null) => {
+  if (!sr_id) return false;
+  const trimmed = String(sr_id).trim();
+  // Strict: must start with "2-" followed by at least one digit
+  return /^2-\d/.test(trimmed);
+};
 
 const isSmallBuilding = (bt?: string | null) => {
   const normalized = String(bt || "").toLowerCase().trim();
@@ -318,7 +325,10 @@ export function computeAutoBilling(
 
   // ── 10) Γ' ΦΑΣΗ — Σύνδεση Πελάτη (μόνο αν SR ξεκινά με "2-") ──
   if (kya) {
-    push("1955.2", 1, "Γ' Φάση — Σύνδεση πελάτη με ενεργοποίηση");
+    push("1955.2", 1, "Γ' Φάση — Σύνδεση πελάτη με ενεργοποίηση (SR 2-...)");
+    console.log(`[computeAutoBilling] ✅ Γ' Φάση 1955.2 added (sr_id="${input.sr_id}")`);
+  } else {
+    console.log(`[computeAutoBilling] ⛔ Γ' Φάση SKIPPED (sr_id="${input.sr_id}" δεν ξεκινά με "2-")`);
   }
 
   console.log(
