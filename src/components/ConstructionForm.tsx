@@ -673,6 +673,8 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
     setExistingConstructionLoaded(false);
     setExistingWorksLoaded(false);
     setExistingMaterialsLoaded(false);
+    setFloorMeters([]);
+    setFloorMetersInitialized(false);
     autoAddedCodesRef.current = new Set();
     autoAddedMaterialIdsRef.current = new Set();
     setLastAutoBillingSummary(null);
@@ -741,10 +743,10 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
           fo_type: foType,
         };
       }));
+      setFloorMetersInitialized(true);
     }
-    // Always mark as initialized after loading existing construction,
-    // so GIS auto-populate never overwrites user edits on re-renders.
-    setFloorMetersInitialized(true);
+    // Αν δεν υπάρχουν saved floor_meters, αφήνουμε το GIS auto-fill να τρέξει
+    // αφού φορτωθεί το construction. Αν υπάρχουν, δεν τα ξαναγράφουμε ποτέ από GIS.
     const savedSection6 = (existingConstruction as any).asbuilt_section6;
     if (savedSection6 && typeof savedSection6 === "object") {
       setSection6(prev => ({ ...prev, ...savedSection6 }));
