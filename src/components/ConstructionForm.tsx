@@ -2007,10 +2007,8 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
   useEffect(() => {
     if (!gisData || gisFieldsFilled || !!existingConstruction) return;
 
-    // CAB from assignment or GIS associated_bcp
-    if (!cab && gisData.associated_bcp) {
-      setCab(gisData.associated_bcp);
-    }
+    // CAB auto-fill γίνεται στο πρώτο GIS effect (από optical_paths → fallback associated_bcp)
+
 
     // Floors — με πολλαπλά fallbacks για να βεβαιωθούμε ότι έχουμε σωστή τιμή
     if (floors === "0" || floors === "" || !floors) {
