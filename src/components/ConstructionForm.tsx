@@ -182,6 +182,9 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
   const [verticalInfraType, setVerticalInfraType] = useState("");
   const [floorMeters, setFloorMeters] = useState<{ floor: string; meters: string; pipe_type: string; fo_type: string }[]>([]);
   const [floorMetersInitialized, setFloorMetersInitialized] = useState(false);
+
+  // Helper: μετατρέπει αριθμό ορόφου σε ελληνικό label (1→Ο1, 2→Ο2, ...)
+  const floorLabel = (n: number): string => `Ο${n}`;
   const [section6, setSection6] = useState<Record<string, string>>({
     eisagogi_type: "",
     bmo_bep_distance: "",
@@ -202,6 +205,62 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
   const [ballMarkerBcp, setBallMarkerBcp] = useState("");
   const [asbuiltCardOpen, setAsbuiltCardOpen] = useState(false);
   const [floorMetersCardOpen, setFloorMetersCardOpen] = useState(false);
+
+  // 🆕 AUTO-SYNC: Όταν αλλάζει floors ή verticalInfraType, δημιούργησε/συγχρόνισε τα floorMeters rows αυτόματα.
+  useEffect(() => {
+    if (!floorMetersInitialized) return;
+    const targetFloors = parseInt(floors) || 0;
+    if (targetFloors <= 0) return;
+
+    const defaultFoType = verticalInfraType === "12FO" ? "12FO" : "4FO";
+    const defaultPipeType = defaultFoType === "12FO" ? '4"' : '2"';
+
+    setFloorMeters(prev => {
+      if (prev.length === 0) {
+        return Array.from({ length: targetFloors }, (_, i) => ({
+          floor: floorLabel(i + 1),
+          meters: "",
+          pipe_type: defaultPipeType,
+          fo_type: defaultFoType,
+        }));
+      }
+      let next = [...prev];
+      if (next.length < targetFloors) {
+        for (let i = next.length; i < targetFloors; i++) {
+          next.push({
+            floor: floorLabel(i + 1),
+            meters: "",
+            pipe_type: defaultPipeType,
+            fo_type: defaultFoType,
+          });
+        }
+      }
+      if (next.length > targetFloors) {
+        next = next.slice(0, targetFloors);
+      }
+      next = next.map(row => {
+        const needsDefault = !row.fo_type || row.fo_type === "";
+        if (needsDefault) {
+          return { ...row, fo_type: defaultFoType, pipe_type: defaultPipeType };
+        }
+        return row;
+      });
+      return next;
+    });
+  }, [floors, verticalInfraType, floorMetersInitialized]);
+
+  // 🆕 BULK UPDATE fo_type: εφαρμόζει νέο type σε όλους τους ορόφους χωρίς μέτρα.
+  useEffect(() => {
+    if (!floorMetersInitialized) return;
+    if (!verticalInfraType || (verticalInfraType !== "12FO" && verticalInfraType !== "4FO")) return;
+    const newPipeType = verticalInfraType === "12FO" ? '4"' : '2"';
+    setFloorMeters(prev => prev.map(row => {
+      if (!row.meters || row.meters === "0") {
+        return { ...row, fo_type: verticalInfraType, pipe_type: newPipeType };
+      }
+      return row;
+    }));
+  }, [verticalInfraType, floorMetersInitialized]);
 
   // Routes (ΔΙΑΔΡΟΜΕΣ)
   const [routes, setRoutes] = useState([
@@ -2628,6 +2687,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
           vertical_infra_type: verticalInfraType,
           building_type: buildingType,
           asbuilt_section6: { ...section6, ball_marker_bep: ballMarkerBep, bcp_ball_marker: ballMarkerBcp },
+          floor_meters: floorMeters.length > 0 ? floorMeters : null,
           // 3-Phase workflow: mark this phase as in-progress while saving in crew mode
           ...(phase === 1 && { phase1_status: "in_progress" }),
           ...(phase === 2 && { phase2_status: "in_progress" }),
@@ -3124,6 +3184,7 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
         vertical_infra_type: verticalInfraType,
         building_type: buildingType,
         asbuilt_section6: { ...section6, ball_marker_bep: ballMarkerBep, bcp_ball_marker: ballMarkerBcp },
+        floor_meters: floorMeters.length > 0 ? floorMeters : null,
         // 3-Phase workflow: mark this phase's status (in_progress on save, completed when finishing)
         ...(phase === 1 && (isCompleting
           ? { phase1_status: "completed", phase1_completed_at: new Date().toISOString() }
