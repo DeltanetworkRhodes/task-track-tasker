@@ -1185,47 +1185,54 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
       return;
     }
 
-    // ── 2) Fallback: parse BMO-FB optical_paths ──
+    // ── 2) Fallback: parse BMO-FB optical_paths (REUSE λογικής από BMO-FB UI) ──
     const paths = ((gisData as any).optical_paths as any[]) || [];
     if (paths.length === 0) return;
 
-    // Συγκέντρωση ορόφων από BMO-FB paths (path format π.χ.: "G137_BMO01_05_FB(+02)" ή "FB(+ΗΜ)")
+    // Helper: ίδια κανονικοποίηση με το BMO-FB UI (γραμμή ~3953)
+    // π.χ. "0"/"00"/"+00" → "+00", "-1" → "-01", "ΗΜ" → "+ΗΜ"
+    const normalizeFloorIdLocal = (floorId: string | null | undefined): string => {
+      const r = String(floorId ?? "").trim().toUpperCase().replace(/^\+/, "+");
+      if (!r) return "";
+      if (r === "0" || r === "00" || r === "+0" || r === "+00") return "+00";
+      if (r === "ΗΜ" || r === "+ΗΜ" || r === "HM" || r === "+HM") return "+ΗΜ";
+      if (r === "-ΗΥ" || r === "-HY") return "-ΗΥ";
+      if (/^[+-]?\d+$/.test(r)) {
+        const v = parseInt(r, 10);
+        return `${v >= 0 ? "+" : "-"}${Math.abs(v).toString().padStart(2, "0")}`;
+      }
+      return r;
+    };
+
+    // Helper: από normalized token → label + sort (ευθυγραμμισμένο με BMO-FB UI)
+    const tokenToLabelAndSort = (normalized: string): { label: string; sort: number } => {
+      if (normalized === "+ΗΜ") return { label: "ΗΜ", sort: -1 };
+      if (normalized === "-ΗΥ") return { label: "ΥΠ", sort: -2 };
+      const m = normalized.match(/^([+-])(\d+)$/);
+      if (m) {
+        const sign = m[1];
+        const num = parseInt(m[2], 10);
+        if (sign === "+" && num === 0) return { label: "ΙΣ", sort: 0 };
+        if (sign === "+") return { label: `${num}ος`, sort: num };
+        return { label: `ΥΠ-${m[2]}`, sort: -num };
+      }
+      return { label: normalized, sort: 999 };
+    };
+
+    // Συγκέντρωση ορόφων από BMO-FB paths — υποστηρίζει + και - prefix
     const floorAgg: Record<string, { label: string; sort: number; fbCount: number }> = {};
     for (const p of paths) {
       const raw = p.raw || p;
       const pathType = (raw["OPTICAL PATH TYPE"] || raw["optical_path_type"] || "").toString().toUpperCase();
       if (pathType !== "BMO-FB") continue;
       const pathStr = (raw["OPTICAL PATH"] || raw["optical_path"] || "").toString();
-      const fm = pathStr.match(/FB\(\+?([^)]+)\)/i);
+      // Patterns: FB(+00), FB(-01), FB(+ΗΜ), FB(-ΗΥ)
+      const fm = pathStr.match(/FB\(([+\-]?[^)]+)\)/i);
       if (!fm) continue;
       const rawFloor = fm[1].trim().toUpperCase();
-      let key = rawFloor;
-      let label = rawFloor;
-      let sort = 999;
-      if (/ΗΜ|HM/i.test(rawFloor)) {
-        key = "ΗΜ";
-        label = "ΗΜ";
-        sort = -1;
-      } else if (/ΥΠ|YP/i.test(rawFloor)) {
-        key = "ΥΠ";
-        label = "ΥΠ";
-        sort = -2;
-      } else {
-        const num = parseInt(rawFloor, 10);
-        if (!isNaN(num)) {
-          sort = num;
-          if (num === 0) {
-            key = "0";
-            label = "ΙΣ";
-          } else if (num > 0) {
-            key = String(num);
-            label = `${num}ος`;
-          } else {
-            key = String(num);
-            label = `${num}`;
-          }
-        }
-      }
+      const normalized = normalizeFloorIdLocal(rawFloor) || rawFloor;
+      const { label, sort } = tokenToLabelAndSort(normalized);
+      const key = normalized;
       if (!floorAgg[key]) floorAgg[key] = { label, sort, fbCount: 0 };
       floorAgg[key].fbCount += 1;
     }
