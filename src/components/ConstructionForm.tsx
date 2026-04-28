@@ -733,11 +733,43 @@ const ConstructionForm = ({ assignment, onComplete, filterPhotoCatKeys, crewAssi
     setVerticalInfraType((existingConstruction as any).vertical_infra_type || "");
     const savedFloorMeters = (existingConstruction as any).floor_meters;
     if (Array.isArray(savedFloorMeters) && savedFloorMeters.length > 0) {
+      // 🔧 Backward compat: παλιά saved data μπορεί να έχει raw tokens (+00, -01, +ΗΜ)
+      // αντί για labels (ΙΣ, ΥΠ-01, ΗΜ). Κάνε normalize σε labels για το UI.
+      const normalizeFloorIdLocal = (floorId: string | null | undefined): string => {
+        const r = String(floorId ?? "").trim().toUpperCase();
+        if (!r) return "";
+        if (r === "0" || r === "00" || r === "+0" || r === "+00") return "+00";
+        if (r === "ΗΜ" || r === "+ΗΜ" || r === "HM" || r === "+HM") return "+ΗΜ";
+        if (r === "-ΗΥ" || r === "-HY") return "-ΗΥ";
+        if (/^[+-]?\d+$/.test(r)) {
+          const v = parseInt(r, 10);
+          return `${v >= 0 ? "+" : "-"}${Math.abs(v).toString().padStart(2, "0")}`;
+        }
+        return r;
+      };
+      const tokenToLabel = (raw: string): string => {
+        const normalized = normalizeFloorIdLocal(raw);
+        if (normalized === "+ΗΜ") return "ΗΜ";
+        if (normalized === "-ΗΥ") return "ΥΠ";
+        const m = normalized.match(/^([+-])(\d+)$/);
+        if (m) {
+          const sign = m[1];
+          const num = parseInt(m[2], 10);
+          if (sign === "+" && num === 0) return "ΙΣ";
+          if (sign === "+") return `${num}ος`;
+          return `ΥΠ-${m[2]}`;
+        }
+        return raw;
+      };
+      const isRawToken = (s: string) =>
+        /^[+\-](\d+|ΗΜ|HM)$/i.test(String(s || "").trim()) || /^-ΗΥ$/i.test(String(s || "").trim());
       setFloorMeters(savedFloorMeters.map((fm: any) => {
         const foType = fm.fo_type || "4FO";
         const derivedPipe = foType === "12FO" ? '4"' : '2"';
+        const rawFloor = String(fm.floor || "");
+        const displayFloor = isRawToken(rawFloor) ? tokenToLabel(rawFloor) : rawFloor;
         return {
-          floor: fm.floor || "",
+          floor: displayFloor,
           meters: String(fm.meters ?? ""),
           pipe_type: fm.pipe_type || derivedPipe,
           fo_type: foType,
